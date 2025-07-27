@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to get location data from coordinates.
@@ -36,7 +37,7 @@ const prompt = ai.definePrompt({
   output: {schema: GetLocationFromCoordsOutputSchema},
   prompt: `You are a helpful assistant that converts geographic coordinates into a location and provides the current weather.
 
-  Based on the provided latitude and longitude, identify the city and country. Then, provide a simple, one-word weather description (e.g., "Cloudy", "Sunny", "Rainy") and the current temperature in Celsius.
+  Based on the provided latitude and longitude, identify the city and country. If for any reason you cannot determine the location, default to "Chandigarh". Then, provide a simple, one-word weather description (e.g., "Cloudy", "Sunny", "Rainy") and the current temperature in Celsius.
 
   Latitude: {{{latitude}}}
   Longitude: {{{longitude}}}
