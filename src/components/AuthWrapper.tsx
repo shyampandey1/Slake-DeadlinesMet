@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +17,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   }
 
   if (!user) {
-    redirect("/login");
+    redirect("/auth");
   }
 
   return <>{children}</>;

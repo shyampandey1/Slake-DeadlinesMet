@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { ArrowLeft } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -63,6 +65,10 @@ export default function SignupPage() {
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
+      <Button variant="ghost" className="absolute top-4 left-4" onClick={() => router.push('/auth')}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
