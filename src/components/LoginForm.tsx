@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
@@ -20,18 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(1, { message: "Password is required." }),
 });
 
-interface LoginFormProps {
-    onBack: () => void;
-}
-
-export default function LoginForm({ onBack }: LoginFormProps) {
+export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();
@@ -59,10 +53,6 @@ export default function LoginForm({ onBack }: LoginFormProps) {
 
   return (
     <>
-      <Button variant="ghost" className="absolute top-4 left-4" onClick={onBack}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
         <CardDescription>Log in to your DeadlinesMet account.</CardDescription>

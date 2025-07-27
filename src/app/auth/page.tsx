@@ -50,7 +50,13 @@ export default function AuthPage() {
         transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
         className="w-full max-w-sm"
       >
-        <Card className="w-full max-w-sm text-center overflow-hidden">
+        <Card className="w-full max-w-sm text-center overflow-hidden relative">
+          {view !== 'initial' && (
+            <Button variant="ghost" className="absolute top-4 left-4 z-10" onClick={() => setView('initial')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          )}
           <AnimatePresence mode="wait">
             {view === "initial" && (
               <motion.div
@@ -89,7 +95,7 @@ export default function AuthPage() {
                 exit="exit"
                 variants={contentVariants}
               >
-                <LoginForm onBack={() => setView("initial")} />
+                <LoginForm />
               </motion.div>
             )}
 
@@ -101,7 +107,8 @@ export default function AuthPage() {
                 exit="exit"
                 variants={contentVariants}
               >
-                <SignupForm onBack={() => setView("initial")} />
+
+                <SignupForm />
               </motion.div>
             )}
           </AnimatePresence>
@@ -110,4 +117,3 @@ export default function AuthPage() {
     </main>
   );
 }
-

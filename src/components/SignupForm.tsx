@@ -19,19 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
-
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-interface SignupFormProps {
-    onBack: () => void;
-}
-
-export default function SignupForm({ onBack }: SignupFormProps) {
+export default function SignupForm() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();
@@ -59,10 +53,6 @@ export default function SignupForm({ onBack }: SignupFormProps) {
 
   return (
     <>
-      <Button variant="ghost" className="absolute top-4 left-4" onClick={onBack}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
         <CardDescription>Join DeadlinesMet to save your progress.</CardDescription>
@@ -105,4 +95,3 @@ export default function SignupForm({ onBack }: SignupFormProps) {
     </>
   );
 }
-

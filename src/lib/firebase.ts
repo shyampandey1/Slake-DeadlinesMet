@@ -9,7 +9,8 @@ const firebaseConfig = {
   "storageBucket": "deadlinesmet.firebasestorage.app",
   "apiKey": "AIzaSyARe1wX5bw7-zbpFAq77HKNJ3vyG_Jsiew",
   "authDomain": "deadlinesmet.firebaseapp.com",
-  "messagingSenderId": "248085678271"
+  "messagingSenderId": "248085678271",
+  "measurementId": "G-MEASUREMENT_ID"
 };
 
 // Initialize Firebase
