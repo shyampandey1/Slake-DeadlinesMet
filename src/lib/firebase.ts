@@ -10,7 +10,7 @@ const firebaseConfig = {
   "apiKey": "AIzaSyARe1wX5bw7-zbpFAq77HKNJ3vyG_Jsiew",
   "authDomain": "deadlinesmet.firebaseapp.com",
   "messagingSenderId": "248085678271",
-  "measurementId": "G-MEASUREMENT_ID"
+  "measurementId": ""
 };
 
 // Initialize Firebase
