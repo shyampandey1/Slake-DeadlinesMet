@@ -3,13 +3,13 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, Cloud, MapPin, LocateFixed } from 'lucide-react';
+import { getLocationFromCoords, GetLocationFromCoordsOutput } from '@/ai/flows/get-location-from-coords';
 
 type GeolocationStatus = 'prompt' | 'granted' | 'denied' | 'loading' | 'error';
 
 export default function InfoDisplay() {
   const [dateTime, setDateTime] = useState(new Date());
-  const [location, setLocation] = useState<{ city: string; country: string } | null>(null);
-  const [weather, setWeather] = useState<{ temp: number; description: string } | null>(null);
+  const [locationInfo, setLocationInfo] = useState<GetLocationFromCoordsOutput | null>(null);
   const [status, setStatus] = useState<GeolocationStatus>('prompt');
 
   useEffect(() => {
@@ -21,14 +21,16 @@ export default function InfoDisplay() {
     setStatus('loading');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // In a real app, you would use these coords to call a weather API
-          // and a reverse geocoding API.
-          // For this example, we'll use mock data.
-          console.log('Latitude:', position.coords.latitude, 'Longitude:', position.coords.longitude);
-          setLocation({ city: 'San Francisco', country: 'USA' });
-          setWeather({ temp: 18, description: 'Cloudy' });
-          setStatus('granted');
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const locationData = await getLocationFromCoords({ latitude, longitude });
+            setLocationInfo(locationData);
+            setStatus('granted');
+          } catch (error) {
+            console.error("Failed to get location from coords:", error);
+            setStatus('error');
+          }
         },
         (error) => {
           console.error("Geolocation error:", error);
@@ -74,16 +76,16 @@ export default function InfoDisplay() {
       case 'granted':
         return (
           <>
-            {weather && (
+            {locationInfo?.weather && (
               <div className="flex items-center gap-2">
                 <Cloud className="h-4 w-4" />
-                <span>{weather.description}, {weather.temp}°C</span>
+                <span>{locationInfo.weather.description}, {locationInfo.weather.temp}°C</span>
               </div>
             )}
-            {location && (
+            {locationInfo && (
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                <span>{location.city}, {location.country}</span>
+                <span>{locationInfo.city}, {locationInfo.country}</span>
               </div>
             )}
           </>
