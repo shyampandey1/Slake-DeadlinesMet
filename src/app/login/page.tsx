@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useRouter, redirect } from "next/navigation";
 import Link from "next/link";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,13 @@ export default function LoginPage() {
       password: "",
     },
   });
+  
+  useEffect(() => {
+    if (!loading && user) {
+      redirect('/');
+    }
+  }, [user, loading, router]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -55,12 +63,8 @@ export default function LoginPage() {
     }
   }
 
-  if (loading) {
+  if (loading || user) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  }
-
-  if (user) {
-    redirect('/');
   }
 
   return (

@@ -7,17 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useAuth } from "@/hooks/useAuth";
 import { redirect } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
+import { useEffect } from "react";
 
 export default function AuthPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
+  useEffect(() => {
+    if (!loading && user) {
+      redirect('/');
+    }
+  }, [user, loading, router]);
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
-
+  
   if (user) {
-    redirect('/');
+    return null;
   }
 
   return (
