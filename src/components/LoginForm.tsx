@@ -53,11 +53,11 @@ export default function LoginForm() {
 
   return (
     <>
-      <CardHeader className="pt-12">
+      <CardHeader className="pt-12 w-full">
         <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
         <CardDescription>Log in to your DeadlinesMet account.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="w-full">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField

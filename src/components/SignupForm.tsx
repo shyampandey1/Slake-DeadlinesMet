@@ -53,11 +53,11 @@ export default function SignupForm() {
 
   return (
     <>
-      <CardHeader className="pt-12">
+      <CardHeader className="pt-12 w-full">
         <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
         <CardDescription>Join DeadlinesMet to save your progress.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="w-full">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
