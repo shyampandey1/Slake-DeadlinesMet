@@ -32,7 +32,7 @@ export default function AuthPage() {
   }
 
   const renderInitialView = () => (
-    <div className="flex flex-col justify-center items-center h-full">
+    <>
         <CardHeader>
           <div className="flex justify-center items-center mb-4 text-primary">
             <Clock className="w-16 h-16" />
@@ -50,7 +50,7 @@ export default function AuthPage() {
             Sign Up
           </Button>
         </CardContent>
-    </div>
+    </>
   );
 
 
@@ -69,16 +69,14 @@ export default function AuthPage() {
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <Card className="w-full max-w-sm text-center overflow-hidden relative" style={{ minHeight: '450px' }}>
+        <Card className="w-full max-w-sm text-center overflow-hidden relative flex flex-col justify-center" style={{ minHeight: '450px' }}>
           {view !== 'initial' && (
             <Button variant="ghost" className="absolute top-4 left-4 z-10" onClick={() => setView('initial')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
           )}
-          <div className="relative flex flex-col justify-center h-full">
-            {renderContent()}
-          </div>
+          {renderContent()}
         </Card>
       </div>
     </main>
