@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Pause, Square, Loader2, PartyPopper, Music, Music4 } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
-import useLocalStorage from "@/hooks/useLocalStorage";
+import { useTasks } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
 
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ interface TimerDisplayProps {
 
 export default function TimerDisplay({ taskName, initialDuration, musicInfo }: TimerDisplayProps) {
   const router = useRouter();
-  const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  const { tasks, addTask } = useTasks();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -114,20 +114,18 @@ export default function TimerDisplay({ taskName, initialDuration, musicInfo }: T
   };
 
   const handleSaveTask = async (completed: boolean) => {
-    const newTask: Task = {
-      id: new Date().toISOString(),
+    const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
       duration: initialDuration,
       completed,
-      createdAt: Date.now(),
     };
-    setTasks([...tasks, newTask]);
+    await addTask(newTask);
 
     if (completed) {
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       try {
-        const pastTasks = tasks.slice(0, 5); // Use recent 5 tasks for context
+        const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
         const result = await generateMotivationalMessage({
           taskName: newTask.name,
           duration: newTask.duration,

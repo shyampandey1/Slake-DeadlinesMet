@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import TimerPageContent from '@/components/TimerPageContent';
 import { Skeleton } from '@/components/ui/skeleton';
+import AuthWrapper from '@/components/AuthWrapper';
 
-export default function TimerPage() {
+function TimerPage() {
   return (
     <Suspense fallback={<TimerSkeleton />}>
       <TimerPageContent />
@@ -24,4 +25,12 @@ function TimerSkeleton() {
       </div>
     </main>
   );
+}
+
+export default function WrappedTimerPage() {
+    return (
+        <AuthWrapper>
+            <TimerPage />
+        </AuthWrapper>
+    );
 }

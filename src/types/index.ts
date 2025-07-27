@@ -1,7 +1,8 @@
 export type Task = {
   id: string;
+  userId: string;
   name: string;
   duration: number; // in minutes
   completed: boolean;
-  createdAt: number;
+  createdAt: any; // Can be a server timestamp
 };

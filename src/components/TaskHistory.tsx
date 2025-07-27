@@ -2,9 +2,8 @@
 
 import { History, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useTasks } from "@/hooks/useFirestore";
 
-import useLocalStorage from "@/hooks/useLocalStorage";
-import type { Task } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -16,12 +15,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "./ui/skeleton";
 
 export default function TaskHistory() {
-  const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  const { tasks, loading, clearTasks } = useTasks();
 
   const clearHistory = () => {
-    setTasks([]);
+    clearTasks();
   };
 
   return (
@@ -39,7 +39,13 @@ export default function TaskHistory() {
         )}
       </CardHeader>
       <CardContent>
-        {tasks.length > 0 ? (
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : tasks.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -66,9 +72,9 @@ export default function TaskHistory() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatDistanceToNow(new Date(task.createdAt), {
+                    {task.createdAt ? formatDistanceToNow(new Date(task.createdAt), {
                       addSuffix: true,
-                    })}
+                    }) : 'Just now'}
                   </TableCell>
                 </TableRow>
               ))}
