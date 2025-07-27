@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -27,6 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import type { GetMusicForTaskOutput } from "@/ai/flows/get-music-vibe";
+import InfoDisplay from "./InfoDisplay";
 
 interface TimerDisplayProps {
   taskName: string;
@@ -156,6 +158,7 @@ export default function TimerDisplay({ taskName, initialDuration, musicInfo }: T
 
   return (
     <main className="relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 transition-colors duration-500">
+      <InfoDisplay />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <p className="mb-4 text-lg text-muted-foreground md:text-xl font-headline">FOCUSING ON:</p>
         <h1 className="mb-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl font-headline">
