@@ -33,9 +33,9 @@ export default function AuthPage() {
   }
 
   const contentVariants = {
-    hidden: { opacity: 0, y: -20, position: 'absolute' },
-    visible: { opacity: 1, y: 0, position: 'relative' },
-    exit: { opacity: 0, y: 20, position: 'absolute' },
+    hidden: { opacity: 0, x: 300, position: 'absolute', width: '100%' },
+    visible: { opacity: 1, x: 0, position: 'relative', width: '100%' },
+    exit: { opacity: 0, x: -300, position: 'absolute', width: '100%' },
   };
 
   return (
