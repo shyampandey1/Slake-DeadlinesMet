@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, redirect } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { LogIn, UserPlus, ArrowLeft, Target, Clock } from "lucide-react";
+import { LogIn, UserPlus, ArrowLeft, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatePresence, motion } from "framer-motion";
@@ -68,8 +68,7 @@ export default function AuthPage() {
               >
                 <CardHeader>
                   <div className="flex justify-center items-center mb-4 text-primary">
-                    <Clock className="w-12 h-12" />
-                    <Target className="w-12 h-12" />
+                    <Clock className="w-16 h-16" />
                   </div>
                   <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
                   <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
