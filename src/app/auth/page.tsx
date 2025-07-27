@@ -31,6 +31,29 @@ export default function AuthPage() {
     return null;
   }
 
+  const renderInitialView = () => (
+    <div className="flex flex-col justify-center items-center h-full">
+        <CardHeader>
+          <div className="flex justify-center items-center mb-4 text-primary">
+            <Clock className="w-16 h-16" />
+          </div>
+          <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
+          <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col space-y-4">
+          <Button onClick={() => setView("login")} size="lg">
+            <LogIn className="mr-2" />
+            Login
+          </Button>
+          <Button onClick={() => setView("signup")} size="lg" variant="secondary">
+            <UserPlus className="mr-2" />
+            Sign Up
+          </Button>
+        </CardContent>
+    </div>
+  );
+
+
   const renderContent = () => {
     switch (view) {
       case "login":
@@ -39,27 +62,7 @@ export default function AuthPage() {
         return <SignupForm />;
       case "initial":
       default:
-        return (
-          <>
-            <CardHeader>
-              <div className="flex justify-center items-center mb-4 text-primary">
-                <Clock className="w-16 h-16" />
-              </div>
-              <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
-              <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col space-y-4">
-              <Button onClick={() => setView("login")} size="lg">
-                <LogIn className="mr-2" />
-                Login
-              </Button>
-              <Button onClick={() => setView("signup")} size="lg" variant="secondary">
-                <UserPlus className="mr-2" />
-                Sign Up
-              </Button>
-            </CardContent>
-          </>
-        );
+        return renderInitialView();
     }
   };
 
@@ -73,7 +76,7 @@ export default function AuthPage() {
               Back
             </Button>
           )}
-          <div className="relative flex flex-col justify-center items-center h-full">
+          <div className="relative flex flex-col justify-center h-full">
             {renderContent()}
           </div>
         </Card>
