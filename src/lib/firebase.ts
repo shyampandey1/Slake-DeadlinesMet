@@ -4,12 +4,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  projectId: "deadlinesmet",
-  appId: "1:248085678271:web:b39ac7355a636cfe91de0a",
-  storageBucket: "deadlinesmet.firebasestorage.app",
-  apiKey: "AIzaSyARe1wX5bw7-zbpFAq77HKNJ3vyG_Jsiew",
-  authDomain: "deadlinesmet.firebaseapp.com",
-  messagingSenderId: "248085678271",
+  "projectId": "deadlinesmet",
+  "appId": "1:248085678271:web:b39ac7355a636cfe91de0a",
+  "storageBucket": "deadlinesmet.firebasestorage.app",
+  "apiKey": "AIzaSyARe1wX5bw7-zbpFAq77HKNJ3vyG_Jsiew",
+  "authDomain": "deadlinesmet.firebaseapp.com",
+  "messagingSenderId": "248085678271"
 };
 
 // Initialize Firebase
