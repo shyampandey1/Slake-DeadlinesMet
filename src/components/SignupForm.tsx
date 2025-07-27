@@ -52,8 +52,8 @@ export default function SignupForm() {
   }
 
   return (
-    <>
-      <CardHeader className="pt-12 w-full">
+    <div className="flex flex-col justify-center items-center h-full">
+      <CardHeader className="w-full">
         <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
         <CardDescription>Join DeadlinesMet to save your progress.</CardDescription>
       </CardHeader>
@@ -92,6 +92,6 @@ export default function SignupForm() {
           </form>
         </Form>
       </CardContent>
-    </>
+    </div>
   );
 }

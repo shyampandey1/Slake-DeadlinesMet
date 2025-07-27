@@ -52,8 +52,8 @@ export default function LoginForm() {
   }
 
   return (
-    <>
-      <CardHeader className="pt-12 w-full">
+    <div className="flex flex-col justify-center items-center h-full">
+      <CardHeader className="w-full">
         <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
         <CardDescription>Log in to your DeadlinesMet account.</CardDescription>
       </CardHeader>
@@ -92,6 +92,6 @@ export default function LoginForm() {
           </form>
         </Form>
       </CardContent>
-    </>
+    </div>
   );
 }
