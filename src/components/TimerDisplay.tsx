@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, Music, Music4 } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import type { Task } from "@/types";
@@ -26,13 +26,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import type { GetMusicForTaskOutput } from "@/ai/flows/get-music-vibe";
 
 interface TimerDisplayProps {
   taskName: string;
   initialDuration: number; // in minutes
+  musicInfo: GetMusicForTaskOutput | null;
 }
 
-export default function TimerDisplay({ taskName, initialDuration }: TimerDisplayProps) {
+export default function TimerDisplay({ taskName, initialDuration, musicInfo }: TimerDisplayProps) {
   const router = useRouter();
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
@@ -41,18 +43,43 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(true);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    if (musicInfo?.trackUrl) {
+        audioRef.current = new Audio(musicInfo.trackUrl);
+        audioRef.current.loop = true;
+    }
+  }, [musicInfo]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+        if (isMusicPlaying && !isPaused) {
+            audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+        } else {
+            audioRef.current.pause();
+        }
+    }
+  }, [isMusicPlaying, isPaused]);
+  
   const stopTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
   }, []);
 
   const startTimer = useCallback(() => {
     stopTimer();
+    if(audioRef.current && isMusicPlaying){
+      audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+    }
     intervalRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
@@ -63,11 +90,18 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
         return prev - 1;
       });
     }, 1000);
-  }, [stopTimer]);
+  }, [stopTimer, isMusicPlaying]);
 
   useEffect(() => {
     if (!isPaused) {
       startTimer();
+    } else {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+        }
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
     }
     return stopTimer;
   }, [isPaused, startTimer, stopTimer]);
@@ -117,6 +151,11 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const toggleMusic = () => {
+    setIsMusicPlaying(!isMusicPlaying);
+  };
+
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 transition-colors duration-500">
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
@@ -142,6 +181,14 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
             End
           </Button>
         </div>
+        {musicInfo && (
+            <div className="mt-8">
+                <Button onClick={toggleMusic} variant="ghost" size="sm">
+                    {isMusicPlaying ? <Music className="mr-2" /> : <Music4 className="mr-2" />}
+                    {isMusicPlaying ? "Mute" : "Unmute"}: <span className="ml-2 font-semibold">{musicInfo.trackName}</span><span className="ml-2 text-muted-foreground">({musicInfo.vibe})</span>
+                </Button>
+            </div>
+        )}
       </div>
 
       <AlertDialog open={isFinished} onOpenChange={setIsFinished}>

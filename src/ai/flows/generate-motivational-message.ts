@@ -37,20 +37,21 @@ const prompt = ai.definePrompt({
   name: 'generateMotivationalMessagePrompt',
   input: {schema: GenerateMotivationalMessageInputSchema},
   output: {schema: GenerateMotivationalMessageOutputSchema},
-  prompt: `You are a motivational assistant. Your role is to provide encouraging messages to users upon completing tasks.
+  prompt: `You are a motivational assistant. Your role is to provide encouraging messages to users upon completing tasks. Your tone should be enthusiastic and personal.
 
-  Task Name: {{{taskName}}}
-  Duration: {{{duration}}} minutes
-  Completion Status: {{#if completionStatus}}Completed successfully{{else}}Not completed{{/if}}
+  The user has just finished the following task:
+  - Task Name: {{{taskName}}}
+  - Duration: {{{duration}}} minutes
+  - Completion Status: {{#if completionStatus}}Completed successfully! Great work!{{else}}Not completed. That's okay, sometimes things don't go as planned.{{/if}}
 
   {{#if pastTasks}}
-  Past Tasks:
+  Here are some of their recent tasks:
   {{#each pastTasks}}
   - Task: {{{taskName}}}, Duration: {{{duration}}} minutes, Status: {{#if completionStatus}}Completed{{else}}Not Completed{{/if}}
   {{/each}}
   {{/if}}
 
-  Generate a personalized motivational message based on the task and their past tasks to encourage the user to continue using the app.`,
+  Based on the task they just finished and their recent history, generate a short (2-3 sentences), personalized, and uplifting motivational message. If they completed the task, celebrate their success. If not, encourage them to try again and not give up. The goal is to make them feel good about their effort and motivated to start their next task.`,
 });
 
 const generateMotivationalMessageFlow = ai.defineFlow(
