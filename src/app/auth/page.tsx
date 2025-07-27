@@ -1,23 +1,28 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, redirect } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { LogIn, UserPlus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
-import { redirect } from "next/navigation";
-import { LogIn, UserPlus } from "lucide-react";
-import { useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import LoginForm from "@/components/LoginForm";
+import SignupForm from "@/components/SignupForm";
+
+type AuthView = "initial" | "login" | "signup";
 
 export default function AuthPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [view, setView] = useState<AuthView>("initial");
 
   useEffect(() => {
     if (!loading && user) {
       redirect('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading]);
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
@@ -27,24 +32,78 @@ export default function AuthPage() {
     return null;
   }
 
+  const cardVariants = {
+    initial: { height: "auto", opacity: 1 },
+    form: { height: "auto", opacity: 1 },
+  };
+
+  const contentVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { opacity: 1, y: 0, transition: { delay: 0.2, duration: 0.3 } },
+    exit: { opacity: 0, y: 20, transition: { duration: 0.2 } },
+  };
+
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-sm text-center">
-        <CardHeader>
-          <CardTitle className="font-headline text-3xl">Welcome to DeadlinesMet</CardTitle>
-          <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col space-y-4">
-          <Button onClick={() => router.push('/login')} size="lg">
-            <LogIn className="mr-2" />
-            Login
-          </Button>
-          <Button onClick={() => router.push('/signup')} size="lg" variant="secondary">
-            <UserPlus className="mr-2" />
-            Sign Up
-          </Button>
-        </CardContent>
-      </Card>
+      <motion.div
+        layout
+        transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
+        className="w-full max-w-sm"
+      >
+        <Card className="w-full max-w-sm text-center overflow-hidden">
+          <AnimatePresence mode="wait">
+            {view === "initial" && (
+              <motion.div
+                key="initial"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={contentVariants}
+              >
+                <CardHeader>
+                  <CardTitle className="font-headline text-3xl">Welcome to DeadlinesMet</CardTitle>
+                  <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col space-y-4">
+                  <Button onClick={() => setView("login")} size="lg">
+                    <LogIn className="mr-2" />
+                    Login
+                  </Button>
+                  <Button onClick={() => setView("signup")} size="lg" variant="secondary">
+                    <UserPlus className="mr-2" />
+                    Sign Up
+                  </Button>
+                </CardContent>
+              </motion.div>
+            )}
+
+            {view === "login" && (
+              <motion.div
+                key="login"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={contentVariants}
+              >
+                <LoginForm onBack={() => setView("initial")} />
+              </motion.div>
+            )}
+
+            {view === "signup" && (
+              <motion.div
+                key="signup"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={contentVariants}
+              >
+                <SignupForm onBack={() => setView("initial")} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+      </motion.div>
     </main>
   );
 }
+
