@@ -32,87 +32,85 @@ export default function AuthPage() {
     return null;
   }
 
-  const cardVariants = {
-    initial: { height: "auto", opacity: 1 },
-    form: { height: "auto", opacity: 1 },
-  };
-
   const contentVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0, transition: { delay: 0.2, duration: 0.3 } },
-    exit: { opacity: 0, y: 20, transition: { duration: 0.2 } },
+    hidden: { opacity: 0, y: -20, position: 'absolute' },
+    visible: { opacity: 1, y: 0, position: 'relative' },
+    exit: { opacity: 0, y: 20, position: 'absolute' },
   };
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
-      <motion.div
-        layout
-        transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
-        className="w-full max-w-sm"
-      >
-        <Card className="w-full max-w-sm text-center overflow-hidden relative">
+      <div className="w-full max-w-sm">
+        <Card className="w-full max-w-sm text-center overflow-hidden relative" style={{ minHeight: '420px' }}>
           {view !== 'initial' && (
             <Button variant="ghost" className="absolute top-4 left-4 z-10" onClick={() => setView('initial')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
           )}
-          <AnimatePresence mode="wait">
-            {view === "initial" && (
-              <motion.div
-                key="initial"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={contentVariants}
-              >
-                <CardHeader>
-                  <div className="flex justify-center items-center mb-4 text-primary">
-                    <Clock className="w-16 h-16" />
-                  </div>
-                  <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
-                  <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col space-y-4">
-                  <Button onClick={() => setView("login")} size="lg">
-                    <LogIn className="mr-2" />
-                    Login
-                  </Button>
-                  <Button onClick={() => setView("signup")} size="lg" variant="secondary">
-                    <UserPlus className="mr-2" />
-                    Sign Up
-                  </Button>
-                </CardContent>
-              </motion.div>
-            )}
+          <div className="relative flex flex-col justify-center items-center h-full">
+            <AnimatePresence mode="wait">
+              {view === "initial" && (
+                <motion.div
+                  key="initial"
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  variants={contentVariants}
+                  transition={{ duration: 0.3 }}
+                  className="w-full"
+                >
+                  <CardHeader>
+                    <div className="flex justify-center items-center mb-4 text-primary">
+                      <Clock className="w-16 h-16" />
+                    </div>
+                    <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
+                    <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col space-y-4">
+                    <Button onClick={() => setView("login")} size="lg">
+                      <LogIn className="mr-2" />
+                      Login
+                    </Button>
+                    <Button onClick={() => setView("signup")} size="lg" variant="secondary">
+                      <UserPlus className="mr-2" />
+                      Sign Up
+                    </Button>
+                  </CardContent>
+                </motion.div>
+              )}
 
-            {view === "login" && (
-              <motion.div
-                key="login"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={contentVariants}
-              >
-                <LoginForm />
-              </motion.div>
-            )}
+              {view === "login" && (
+                <motion.div
+                  key="login"
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  variants={contentVariants}
+                  transition={{ duration: 0.3 }}
+                   className="w-full"
+                >
+                  <LoginForm />
+                </motion.div>
+              )}
 
-            {view === "signup" && (
-              <motion.div
-                key="signup"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={contentVariants}
-              >
-
-                <SignupForm />
-              </motion.div>
-            )}
-          </AnimatePresence>
+              {view === "signup" && (
+                <motion.div
+                  key="signup"
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  variants={contentVariants}
+                  transition={{ duration: 0.3 }}
+                   className="w-full"
+                >
+                  <SignupForm />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </Card>
-      </motion.div>
+      </div>
     </main>
   );
 }
