@@ -53,7 +53,7 @@ export default function LoginForm() {
 
   return (
     <>
-      <CardHeader>
+      <CardHeader className="pt-12">
         <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
         <CardDescription>Log in to your DeadlinesMet account.</CardDescription>
       </CardHeader>
