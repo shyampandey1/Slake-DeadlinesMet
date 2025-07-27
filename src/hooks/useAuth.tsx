@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -6,35 +7,45 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { MockUser } from "@/types";
 
 interface AuthContextType {
-  user: User | null;
+  user: User | MockUser | null;
   loading: boolean;
+  setMockUser: (user: MockUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  setMockUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | MockUser | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const setMockUser = useCallback((mockUser: MockUser | null) => {
+    setUser(mockUser);
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if(firebaseUser) {
+            setUser(firebaseUser);
+        }
+        setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, setMockUser }}>
       {children}
     </AuthContext.Provider>
   );

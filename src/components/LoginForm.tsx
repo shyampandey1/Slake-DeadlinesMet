@@ -17,8 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { mockLogin } from "@/lib/mockAuth";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { TriangleAlert } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -29,6 +33,7 @@ export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();
+  const { setMockUser } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,21 +48,34 @@ export default function LoginForm() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       router.push("/");
     } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+        console.warn("Firebase login failed, attempting mock login:", error.message);
+        
+        const mockUser = mockLogin(values.email, values.password);
+
+        if (mockUser) {
+            setMockUser(mockUser);
+            router.push("/");
+            toast({
+                title: "Using Mock Login",
+                description: "Firebase is unavailable. You are logged in with a temporary local account.",
+            });
+        } else {
+             toast({
+                title: "Login Failed",
+                description: "The credentials provided are invalid for both Firebase and the local fallback.",
+                variant: "destructive",
+            });
+        }
     }
   }
 
   return (
-    <>
-      <CardHeader className="w-full pt-12">
+    <div className="flex flex-col justify-center h-full">
+      <CardHeader>
         <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
         <CardDescription>Log in to your DeadlinesMet account.</CardDescription>
       </CardHeader>
-      <CardContent className="w-full">
+      <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -92,6 +110,17 @@ export default function LoginForm() {
           </form>
         </Form>
       </CardContent>
-    </>
+      <CardFooter>
+        <Alert variant="destructive">
+            <TriangleAlert className="h-4 w-4" />
+            <AlertTitle>Fallback Mode</AlertTitle>
+            <AlertDescription>
+            If Firebase fails, you can log in with: <br/>
+            <b>Email:</b> user@test.com <br/>
+            <b>Pass:</b> password123
+            </AlertDescription>
+        </Alert>
+      </CardFooter>
+    </div>
   );
 }
