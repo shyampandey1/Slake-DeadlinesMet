@@ -11,9 +11,16 @@ interface CircularProgressProps {
 const CircularProgress = ({ progress, children }: CircularProgressProps) => {
     const radius = 95;
     const stroke = 5;
+    const center = radius + stroke;
     const normalizedRadius = radius - stroke * 2;
     const circumference = normalizedRadius * 2 * Math.PI;
     const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+    // Calculate the position for the moving dot
+    const progressAngle = (progress / 100) * 360;
+    const angleInRadians = ((progressAngle - 90) * Math.PI) / 180;
+    const dotX = center + normalizedRadius * Math.cos(angleInRadians);
+    const dotY = center + normalizedRadius * Math.sin(angleInRadians);
 
     return (
         <div className="relative w-80 h-80 sm:w-[400px] sm:h-[400px]">
@@ -21,17 +28,17 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                 height="100%"
                 width="100%"
                 viewBox="0 0 200 200"
-                className="transform -rotate-90"
             >
                 <circle
                     stroke="hsl(var(--muted))"
                     fill="transparent"
                     strokeWidth={stroke}
                     r={normalizedRadius}
-                    cx={radius + stroke}
-                    cy={radius + stroke}
+                    cx={center}
+                    cy={center}
                 />
                 <circle
+                    className="transform -rotate-90 origin-center"
                     stroke="hsl(var(--primary))"
                     fill="transparent"
                     strokeWidth={stroke}
@@ -42,8 +49,18 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                     }}
                     strokeLinecap="round"
                     r={normalizedRadius}
-                    cx={radius + stroke}
-                    cy={radius + stroke}
+                    cx={center}
+                    cy={center}
+                />
+                {/* The moving dot */}
+                <circle
+                    fill="hsl(var(--primary))"
+                    r="8"
+                    cx={dotX}
+                    cy={dotY}
+                    style={{
+                      transition: 'all 1s linear'
+                    }}
                 />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
