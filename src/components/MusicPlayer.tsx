@@ -43,11 +43,12 @@ export default function MusicPlayer() {
   useEffect(() => {
     if (audioRef.current && currentTrack) {
       audioRef.current.src = currentTrack.trackUrl;
+      audioRef.current.load();
       if (isPlaying) {
         audioRef.current.play().catch(e => console.error("Audio play failed on track change", e));
       }
     }
-  }, [currentTrack]);
+  }, [currentTrack, isPlaying]);
 
 
   const togglePlayPause = () => {
@@ -65,6 +66,7 @@ export default function MusicPlayer() {
     const newTrack = library.find(t => t.trackName === trackName);
     if (newTrack && newTrack.trackName !== currentTrack?.trackName) {
       setCurrentTrack(newTrack);
+      // if music is already playing, the useEffect will handle playing the new track
     }
   };
 
@@ -85,7 +87,7 @@ export default function MusicPlayer() {
       </Button>
 
       <div className="w-[220px]">
-         <Select onValueChange={handleTrackChange} value={currentTrack?.trackName}>
+         <Select onValueChange={handleTrackChange} value={currentTrack?.trackName ?? ""}>
             <SelectTrigger className="border-0 bg-transparent shadow-none focus:ring-0">
                 <SelectValue asChild>
                   <div className='flex flex-col items-start'>
