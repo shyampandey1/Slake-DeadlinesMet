@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, ListX } from 'lucide-react';
-import React, { useState } from "react";
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, ListX, X } from 'lucide-react';
+import React, { useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import { Separator } from "./ui/separator";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
+import { Badge } from "./ui/badge";
 
 
 const formSchema = z.object({
@@ -61,8 +62,10 @@ export default function TaskForm() {
   const router = useRouter();
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
-  const [editModes, setEditModes] = useState<Record<string, boolean>>({});
+  const customTaskFormRef = useRef<HTMLDivElement>(null);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -76,6 +79,12 @@ export default function TaskForm() {
     const initialTask = task && category ? { ...task, category } : undefined;
     setTaskToEdit(initialTask);
     setIsDialogOpen(true);
+  };
+  
+  const handlePresetClick = (preset: UserPresetTask) => {
+    form.setValue('taskName', preset.name);
+    form.setValue('duration', preset.duration);
+    customTaskFormRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSaveTask = async (
@@ -93,18 +102,10 @@ export default function TaskForm() {
     await deletePresetTask(taskId);
     setIsDialogOpen(false);
   };
-  
-  const handleStartTaskFromPreset = (preset: UserPresetTask) => {
-    const params = new URLSearchParams({
-        task: preset.name,
-        duration: preset.duration.toString(),
-    });
-    router.push(`/timer?${params.toString()}`);
-  }
-  
-  const toggleEditMode = (category: string) => {
-    setEditModes(prev => ({...prev, [category]: !prev[category]}));
-  }
+
+  const toggleCategoryExpansion = (category: string) => {
+    setExpandedCategories(prev => ({...prev, [category]: !prev[category]}));
+  };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const params = new URLSearchParams({
@@ -123,7 +124,11 @@ export default function TaskForm() {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-            {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+            {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
+                const isExpanded = expandedCategories[category];
+                const visibleTasks = isExpanded ? tasks : tasks.slice(0, 3);
+
+                return (
                 <div key={category}>
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="font-semibold text-foreground">{category}</h3>
@@ -131,48 +136,55 @@ export default function TaskForm() {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(undefined, category)}>
                                 <Plus className="h-4 w-4 text-muted-foreground" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleEditMode(category)}>
-                                <ListX className={cn("h-4 w-4 text-muted-foreground", editModes[category] && "text-destructive")} />
-                            </Button>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {tasks.map((preset) => (
-                           <div key={preset.id || preset.name} className="relative group">
+                        {visibleTasks.map((preset) => (
+                            <div key={preset.id || preset.name} className="relative group overflow-hidden">
                                 <button
                                     className={cn(
-                                        "w-full text-sm justify-between py-3 px-4 border rounded-lg flex items-center transition-all duration-200",
-                                        color,
-                                        "hover:shadow-md hover:-translate-y-1"
+                                        "w-full text-sm justify-between py-3 px-4 border rounded-lg flex items-center transition-all duration-300 transform",
                                     )}
-                                    onClick={() => handleStartTaskFromPreset(preset)}
+                                    onClick={() => handlePresetClick(preset)}
+                                    onTouchStart={() => handlePresetClick(preset)}
                                 >
-                                    <div className="flex items-center flex-1 min-w-0">
-                                        {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                        <span className="truncate font-medium">{preset.name}</span>
-                                    </div>
-                                    <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                    <Badge
+                                         className={cn(
+                                            "w-full text-sm justify-between py-3 px-4 rounded-lg flex items-center transition-all duration-200",
+                                            color,
+                                            "hover:shadow-md hover:-translate-y-1"
+                                        )}
+                                    >
+                                        <div className="flex items-center flex-1 min-w-0">
+                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                            <span className="truncate font-medium">{preset.name}</span>
+                                        </div>
+                                        <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                    </Badge>
                                 </button>
-                                {editModes[category] && !isDefaultTask(preset) && (
-                                     <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-background border border-border shadow-md"
-                                        onClick={() => handleOpenDialog(preset, category)}
-                                     >
-                                         <Wrench className="h-3 w-3 text-muted-foreground" />
-                                     </Button>
-                                )}
+                                 <button
+                                    className="absolute top-1/2 -translate-y-1/2 right-0 h-full w-12 flex items-center justify-center bg-transparent transition-all duration-300"
+                                    onClick={() => handleOpenDialog(preset, category)}
+                                >
+                                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                                </button>
                            </div>
                         ))}
                     </div>
+                    {tasks.length > 3 && (
+                        <div className="mt-3">
+                            <Button variant="link" onClick={() => toggleCategoryExpansion(category)}>
+                                {isExpanded ? 'Show Less' : 'Show More...'}
+                            </Button>
+                        </div>
+                    )}
                 </div>
-            ))}
+            )})}
         </div>
         
         <Separator className="my-8" />
 
-        <div>
+        <div ref={customTaskFormRef}>
             <h3 className="font-headline text-xl mb-4">Or Create a Custom One-Off Task</h3>
             <Form {...form}>
             <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
