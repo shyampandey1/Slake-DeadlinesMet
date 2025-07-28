@@ -27,6 +27,7 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const formSchema = z.object({
@@ -113,6 +114,8 @@ export default function TaskForm() {
     });
     router.push(`/timer?${params.toString()}`);
   }
+  
+  const categories = Object.keys(presetTasks);
 
   return (
     <>
@@ -122,60 +125,67 @@ export default function TaskForm() {
         <CardDescription>Choose a preset task or create a new one to begin your focus session.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-            {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                <div key={category}>
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-semibold text-foreground">{category}</h3>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(undefined, category)}>
-                            <Plus className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    </div>
-                    <Carousel
-                        opts={{
-                            align: "start",
-                            dragFree: true,
-                        }}
-                        className="w-full"
-                    >
-                        <CarouselContent>
-                           {tasks.map((preset) => (
-                            <CarouselItem key={preset.id || preset.name} className="basis-auto group relative">
-                                <button
-                                    className="w-full"
-                                    onClick={(e) => handlePresetClick(preset, category, e)}
-                                >
-                                    <Badge
-                                         className={cn(
-                                            "w-full text-sm justify-between py-3 px-4 rounded-lg flex items-center transition-all duration-200",
-                                            color,
-                                            "hover:shadow-md hover:-translate-y-1"
-                                        )}
+        <Tabs defaultValue={categories[0]} className="w-full">
+            <div className="flex items-center">
+              <TabsList>
+                {categories.map((category) => (
+                  <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
+                ))}
+              </TabsList>
+               <Button variant="ghost" size="icon" className="ml-auto h-8 w-8 shrink-0" onClick={() => handleOpenDialog(undefined, categories[0])}>
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+               </Button>
+            </div>
+            {categories.map((category) => {
+                const { tasks, color } = presetTasks[category];
+                return (
+                    <TabsContent key={category} value={category} className="mt-4">
+                        <Carousel
+                            opts={{
+                                align: "start",
+                                dragFree: true,
+                            }}
+                            className="w-full"
+                        >
+                            <CarouselContent>
+                               {tasks.map((preset) => (
+                                <CarouselItem key={preset.id || preset.name} className="basis-auto group relative">
+                                    <button
+                                        className="w-full"
+                                        onClick={(e) => handlePresetClick(preset, category, e)}
                                     >
-                                        <div className="flex items-center flex-1 min-w-0">
-                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                            <span className="truncate font-medium">{preset.name}</span>
-                                        </div>
-                                        <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                    </Badge>
-                                </button>
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleOpenDialog(preset, category)}
-                                >
-                                    <Settings2 className="h-4 w-4"/>
-                                </Button>
-                            </CarouselItem>
-                           ))}
-                        </CarouselContent>
-                        <CarouselPrevious className="hidden sm:flex" />
-                        <CarouselNext className="hidden sm:flex" />
-                    </Carousel>
-                </div>
-            ))}
-        </div>
+                                        <Badge
+                                             className={cn(
+                                                "w-full text-sm justify-between py-3 px-4 rounded-lg flex items-center transition-all duration-200",
+                                                color,
+                                                "hover:shadow-md hover:-translate-y-1"
+                                            )}
+                                        >
+                                            <div className="flex items-center flex-1 min-w-0">
+                                                {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                <span className="truncate font-medium">{preset.name}</span>
+                                            </div>
+                                            <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                        </Badge>
+                                    </button>
+                                    <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleOpenDialog(preset, category)}
+                                    >
+                                        <Settings2 className="h-4 w-4"/>
+                                    </Button>
+                                </CarouselItem>
+                               ))}
+                            </CarouselContent>
+                            <CarouselPrevious className="hidden sm:flex" />
+                            <CarouselNext className="hidden sm:flex" />
+                        </Carousel>
+                    </TabsContent>
+                )
+            })}
+        </Tabs>
         
         <Separator className="my-8" />
 
