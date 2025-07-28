@@ -3,12 +3,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, History, LogOut } from "lucide-react";
+import { Home, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import { Button } from "./ui/button";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
@@ -18,12 +15,6 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await auth.signOut();
-    router.push('/auth');
-  };
 
   if (!user) {
     return null;
@@ -46,14 +37,6 @@ export default function BottomNav() {
           <span>{label}</span>
         </Link>
       ))}
-      <Button
-        variant="ghost"
-        onClick={handleLogout}
-        className="flex flex-col items-center justify-center w-full h-full text-sm text-muted-foreground"
-      >
-        <LogOut className="h-6 w-6 mb-1" />
-        <span>Logout</span>
-      </Button>
     </nav>
   );
 }
