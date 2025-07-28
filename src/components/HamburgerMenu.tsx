@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -10,28 +11,35 @@ import {
   SheetFooter
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
 import TaskHistory from "./TaskHistory";
+import { cn } from "@/lib/utils";
 
 export default function HamburgerMenu() {
   const { user } = useAuth();
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
+    setIsOpen(false);
     await auth.signOut();
     router.push('/auth');
   };
+  
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Open menu</span>
+        <Button variant="outline" size="icon" onClick={toggleMenu}>
+           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="flex flex-col">
