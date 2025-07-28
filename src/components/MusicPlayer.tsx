@@ -78,12 +78,7 @@ export default function MusicPlayer() {
   }
   
   if (!isAudioEnabled) {
-    return (
-        <Button onClick={requestAudioPermission}>
-            <Volume2 className="mr-2" />
-            Enable Audio
-        </Button>
-    )
+    return null;
   }
 
   if (!library.length) {
