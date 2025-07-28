@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -28,14 +29,7 @@ export default function MusicPlayer() {
         const validTracks = musicLibrary.tracks.filter(t => t.trackUrl);
         setLibrary(validTracks);
         if (validTracks.length > 0) {
-          const initialTrack = validTracks[0];
-          setCurrentTrack(initialTrack);
-          if (typeof Audio !== "undefined") {
-            audioRef.current = new Audio(initialTrack.trackUrl);
-            audioRef.current.loop = true;
-            audioRef.current.onplay = () => setIsPlaying(true);
-            audioRef.current.onpause = () => setIsPlaying(false);
-          }
+          setCurrentTrack(validTracks[0]);
         }
       } catch (error) {
         console.error('Failed to fetch music library:', error);
@@ -44,56 +38,60 @@ export default function MusicPlayer() {
       }
     }
     fetchLibrary();
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
   }, []);
-
+  
   useEffect(() => {
-    if (audioRef.current && currentTrack) {
-        if(audioRef.current.src !== currentTrack.trackUrl) {
-            audioRef.current.src = currentTrack.trackUrl;
-            audioRef.current.load();
-        }
-        if (isPlaying) {
-            audioRef.current.play().catch(e => console.error("Audio play failed on track change", e));
-        }
+    if (isPlaying) {
+      audioRef.current?.play().catch(e => console.error("Error playing audio:", e));
+    } else {
+      audioRef.current?.pause();
     }
-  }, [currentTrack]);
-
+  }, [isPlaying]);
 
   const togglePlayPause = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-        audioRef.current.pause();
-    } else {
-        audioRef.current.play().catch(e => console.error("Audio play failed on toggle", e));
-    }
     setIsPlaying(!isPlaying);
   };
-
+  
   const handleTrackChange = (trackName: string) => {
     const newTrack = library.find(t => t.trackName === trackName);
     if (newTrack && newTrack.trackName !== currentTrack?.trackName) {
       setCurrentTrack(newTrack);
+      // If a track is already playing, keep it playing
+      if (isPlaying && audioRef.current) {
+         // The useEffect listening on currentTrack will handle loading and playing
+         setTimeout(() => audioRef.current?.play(), 50);
+      }
     }
   };
+  
+  useEffect(() => {
+      if (currentTrack && audioRef.current) {
+          audioRef.current.src = currentTrack.trackUrl;
+          if (isPlaying) {
+              audioRef.current.load();
+              audioRef.current.play().catch(e => console.error("Error playing new track:", e));
+          }
+      }
+  }, [currentTrack]);
+
 
   if (isLoading) {
     return <Skeleton className="h-10 w-64" />;
   }
 
   if (!library.length) {
-    return null; // Don't render anything if no music is available
+    return null; 
   }
 
   return (
     <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
+      <audio 
+        ref={audioRef}
+        src={currentTrack?.trackUrl}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        loop 
+      />
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
       </Button>
