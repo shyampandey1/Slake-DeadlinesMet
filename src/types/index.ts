@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import { LucideIcon } from 'lucide-react';
 
 export type Task = {
   id: string;
@@ -22,3 +23,17 @@ export const MusicTrackSchema = z.object({
   trackUrl: z.string().describe('A URL to a royalty-free music track that fits the vibe.'),
 });
 export type MusicTrack = z.infer<typeof MusicTrackSchema>;
+
+export type PresetTask = {
+    name: string;
+    duration: number;
+    icon: string;
+    recurring?: boolean;
+};
+
+export type Preset = {
+    [category: string]: {
+        color: string;
+        tasks: PresetTask[];
+    };
+};

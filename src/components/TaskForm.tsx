@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
+import React, { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,8 @@ import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { useTasks } from "@/hooks/useFirestore";
-import { useMemo } from "react";
+import AddTaskDialog from "./AddTaskDialog";
+import type { Preset, PresetTask } from "@/types";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -37,52 +39,72 @@ const formSchema = z.object({
   }),
 });
 
-const presetTasks = {
+const initialPresetTasks: Preset = {
     'Morning Routine': {
         color: "bg-sky-200/80 text-sky-900 hover:bg-sky-200 dark:bg-sky-800/60 dark:text-sky-100 dark:hover:bg-sky-800",
         tasks: [
-            { name: 'Plan Day', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
-            { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
-            { name: 'Stretching', duration: 10, icon: <StretchHorizontal className="mr-2 h-4 w-4" /> },
-            { name: 'Workout', duration: 45, icon: <Dumbbell className="mr-2 h-4 w-4" /> },
+            { name: 'Plan Day', duration: 15, icon: 'ListChecks' },
+            { name: 'Meditate', duration: 10, icon: 'Bed' },
+            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
+            { name: 'Workout', duration: 45, icon: 'Dumbbell' },
         ]
     },
     'Work & Focus': {
         color: "bg-blue-200/80 text-blue-900 hover:bg-blue-200 dark:bg-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-800",
         tasks: [
-            { name: 'Deep Work', duration: 90, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
-            { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
-            { name: 'Check Emails', duration: 15, icon: <Mail className="mr-2 h-4 w-4" /> },
-            { name: 'Stand-up', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
+            { name: 'Deep Work', duration: 90, icon: 'BrainCircuit' },
+            { name: 'Focus Session', duration: 50, icon: 'BrainCircuit' },
+            { name: 'Check Emails', duration: 15, icon: 'Mail' },
+            { name: 'Stand-up', duration: 15, icon: 'Users' },
         ]
     },
     'Breaks & Meals': {
         color: "bg-amber-200/80 text-amber-900 hover:bg-amber-200 dark:bg-amber-800/60 dark:text-amber-100 dark:hover:bg-amber-800",
         tasks: [
-            { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" />, recurring: true },
-            { name: 'Walk', duration: 15, icon: <Footprints className="mr-2 h-4 w-4" /> },
-            { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
-            { name: 'Breathing Practice', duration: 5, icon: <Wind className="mr-2 h-4 w-4" />, recurring: true },
+            { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true },
+            { name: 'Walk', duration: 15, icon: 'Footprints' },
+            { name: 'Lunch Break', duration: 45, icon: 'Utensils' },
+            { name: 'Breathing Practice', duration: 5, icon: 'Wind', recurring: true },
         ]
     },
     'Health Reminders': {
         color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
         tasks: [
-            { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-2 h-4 w-4" />, recurring: true },
+            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true },
         ]
     },
     'Evening Wind-down': {
         color: "bg-indigo-200/80 text-indigo-900 hover:bg-indigo-200 dark:bg-indigo-800/60 dark:text-indigo-100 dark:hover:bg-indigo-800",
         tasks: [
-            { name: 'Read a book', duration: 30, icon: <BookOpen className="mr-2 h-4 w-4" /> },
-            { name: 'Journal', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
+            { name: 'Read a book', duration: 30, icon: 'BookOpen' },
+            { name: 'Journal', duration: 15, icon: 'ListChecks' },
         ]
     }
+};
+
+const iconMap: { [key: string]: React.ReactNode } = {
+    ListChecks: <ListChecks className="mr-2 h-4 w-4" />,
+    Bed: <Bed className="mr-2 h-4 w-4" />,
+    StretchHorizontal: <StretchHorizontal className="mr-2 h-4 w-4" />,
+    Dumbbell: <Dumbbell className="mr-2 h-4 w-4" />,
+    BrainCircuit: <BrainCircuit className="mr-2 h-4 w-4" />,
+    Mail: <Mail className="mr-2 h-4 w-4" />,
+    Users: <Users className="mr-2 h-4 w-4" />,
+    Coffee: <Coffee className="mr-2 h-4 w-4" />,
+    Footprints: <Footprints className="mr-2 h-4 w-4" />,
+    Utensils: <Utensils className="mr-2 h-4 w-4" />,
+    Wind: <Wind className="mr-2 h-4 w-4" />,
+    Droplets: <Droplets className="mr-2 h-4 w-4" />,
+    BookOpen: <BookOpen className="mr-2 h-4 w-4" />,
+    Plus: <Plus className="mr-2 h-4 w-4" />,
 };
 
 export default function TaskForm() {
   const router = useRouter();
   const { tasks: completedTasks } = useTasks();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [presetTasks, setPresetTasks] = useState<Preset>(initialPresetTasks);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,12 +114,32 @@ export default function TaskForm() {
     },
   });
 
+  const handleOpenDialog = (category: string) => {
+    setSelectedCategory(category);
+    setIsDialogOpen(true);
+  };
+
+  const handleAddTask = (newTask: PresetTask) => {
+    if (selectedCategory) {
+        setPresetTasks(prev => {
+            const updatedCategory = {
+                ...prev[selectedCategory],
+                tasks: [...prev[selectedCategory].tasks, newTask]
+            };
+            return {
+                ...prev,
+                [selectedCategory]: updatedCategory
+            };
+        });
+    }
+  };
+
   const visiblePresetTasks = useMemo(() => {
     const completedToday = completedTasks
       .filter(task => task.completed && task.createdAt && isToday(parseISO(task.createdAt)))
       .map(task => task.name);
   
-    const filteredTasks: typeof presetTasks = {};
+    const filteredTasks: Preset = {};
   
     for (const category in presetTasks) {
       const { tasks, color } = presetTasks[category as keyof typeof presetTasks];
@@ -108,7 +150,7 @@ export default function TaskForm() {
       }
     }
     return filteredTasks;
-  }, [completedTasks]);
+  }, [completedTasks, presetTasks]);
   
   const handlePresetClick = (preset: {name: string, duration: number}) => {
     form.setValue('taskName', preset.name);
@@ -130,6 +172,7 @@ export default function TaskForm() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
@@ -149,7 +192,7 @@ export default function TaskForm() {
                             <div className="p-1">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(category)}>
                                         <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
                                     </Button>
                                 </div>
@@ -162,7 +205,7 @@ export default function TaskForm() {
                                         onClick={() => handlePresetClick(preset)}
                                     >
                                         <div className="flex items-center">
-                                            {preset.icon}
+                                            {iconMap[preset.icon]}
                                             <span>{preset.name}</span>
                                         </div>
                                         <span className="text-xs opacity-75">{preset.duration}m</span>
@@ -238,5 +281,12 @@ export default function TaskForm() {
         </Form>
       </CardContent>
     </Card>
+    <AddTaskDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onAddTask={handleAddTask}
+        category={selectedCategory ?? ""}
+      />
+    </>
   );
 }
