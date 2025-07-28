@@ -95,7 +95,7 @@ export default function TaskForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Select a Preset Task</CardTitle>
+        <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
         <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
       </CardHeader>
       <CardContent>
