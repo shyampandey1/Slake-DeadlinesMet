@@ -26,6 +26,7 @@ export type GenerateMotivationalMessageInput = z.infer<typeof GenerateMotivation
 
 const GenerateMotivationalMessageOutputSchema = z.object({
   message: z.string().describe('The generated motivational message.'),
+  suggestedNextTask: z.string().optional().describe('A suggested next task based on the completed task and history.'),
 });
 export type GenerateMotivationalMessageOutput = z.infer<typeof GenerateMotivationalMessageOutputSchema>;
 
@@ -37,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'generateMotivationalMessagePrompt',
   input: {schema: GenerateMotivationalMessageInputSchema},
   output: {schema: GenerateMotivationalMessageOutputSchema},
-  prompt: `You are a motivational assistant. Your role is to provide encouraging messages to users upon completing tasks. Your tone should be enthusiastic and personal.
+  prompt: `You are a motivational assistant. Your role is to provide encouraging messages to users upon completing tasks and suggest a relevant next task. Your tone should be enthusiastic and personal.
 
   The user has just finished the following task:
   - Task Name: {{{taskName}}}
@@ -51,7 +52,9 @@ const prompt = ai.definePrompt({
   {{/each}}
   {{/if}}
 
-  Based on the task they just finished and their recent history, generate a short (2-3 sentences), personalized, and uplifting motivational message. If they completed the task, celebrate their success. If not, encourage them to try again and not give up. The goal is to make them feel good about their effort and motivated to start their next task.`,
+  Based on the task they just finished and their recent history, generate a short (2-3 sentences), personalized, and uplifting motivational message. If they completed the task, celebrate their success. If not, encourage them to try again and not give up. The goal is to make them feel good about their effort and motivated to start their next task.
+  
+  Also, suggest a logical next task. For example, if they just finished 'Plan Day', suggest 'Focus Session'. If they finished 'Focus Session', suggest 'Short Break'.`,
 });
 
 const generateMotivationalMessageFlow = ai.defineFlow(

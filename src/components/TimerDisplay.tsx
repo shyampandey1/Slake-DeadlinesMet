@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { useTasks } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
@@ -48,6 +48,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   const [isFinished, setIsFinished] = useState(false);
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
+  const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
 
@@ -109,6 +110,15 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
     setIsPaused(true);
     setIsFinished(true);
   };
+  
+  const handleStartSuggestedTask = () => {
+    if (!suggestedTask) return;
+    const params = new URLSearchParams({
+      task: suggestedTask,
+      duration: "25",
+    });
+    router.push(`/timer?${params.toString()}`);
+  }
 
   const handleSaveTask = async (completed: boolean) => {
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
@@ -130,6 +140,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
           pastTasks,
         });
         setMotivationalMessage(result.message);
+        setSuggestedTask(result.suggestedNextTask);
       } catch (error) {
         console.error("Failed to generate motivational message:", error);
         setMotivationalMessage("Great job finishing your task! Keep up the momentum!");
@@ -235,13 +246,21 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
                         <p>Generating your motivational message...</p>
                     </div>
                 ) : (
+                  <>
                     <p className="text-lg text-foreground">{motivationalMessage}</p>
+                    {suggestedTask && (
+                      <Button onClick={handleStartSuggestedTask} className="mt-4 w-full">
+                        Start: {suggestedTask}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
+                  </>
                 )}
                 </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => router.push('/')} className="w-full">
+            <Button onClick={() => router.push('/')} className="w-full mt-2">
               Back to Home
             </Button>
           </DialogFooter>
