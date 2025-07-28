@@ -93,7 +93,7 @@ export default function TaskForm() {
         <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-6 mb-8">
+        <div className="flex flex-wrap gap-x-6 gap-y-4 mb-8">
             {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
                 <div key={category} className="flex-shrink-0">
                 <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
@@ -102,11 +102,12 @@ export default function TaskForm() {
                     <Badge
                         key={preset.name}
                         variant="secondary"
-                        className={cn("cursor-pointer text-sm py-1 px-3 md:text-base md:py-2 md:px-4 border-transparent", color)}
+                        className={cn("cursor-pointer text-sm py-1.5 px-3 border-transparent", color)}
                         onClick={() => handlePresetClick(preset)}
                     >
                         {preset.icon}
-                        {preset.name}
+                        <span className="mr-1.5">{preset.name}</span>
+                        <span className="text-xs opacity-75">{preset.duration}m</span>
                     </Badge>
                     ))}
                 </div>
@@ -176,3 +177,4 @@ export default function TaskForm() {
     </Card>
   );
 }
+
