@@ -41,13 +41,13 @@ export default function MusicPlayer() {
   }, []);
 
   useEffect(() => {
-    if (currentTrack && audioRef.current) {
-        audioRef.current.src = currentTrack.trackUrl;
-        if (isPlaying) {
-            audioRef.current.play().catch(e => console.error("Audio play failed", e));
-        }
+    if (audioRef.current && currentTrack) {
+      audioRef.current.src = currentTrack.trackUrl;
+      if (isPlaying) {
+        audioRef.current.play().catch(e => console.error("Audio play failed on track change", e));
+      }
     }
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack]);
 
 
   const togglePlayPause = () => {
@@ -63,7 +63,7 @@ export default function MusicPlayer() {
 
   const handleTrackChange = (trackName: string) => {
     const newTrack = library.find(t => t.trackName === trackName);
-    if (newTrack) {
+    if (newTrack && newTrack.trackName !== currentTrack?.trackName) {
       setCurrentTrack(newTrack);
     }
   };
