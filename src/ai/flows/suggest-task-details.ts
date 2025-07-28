@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Suggests details for a task (icon, category, duration) based on its name.
@@ -76,7 +77,15 @@ const suggestTaskDetailsFlow = ai.defineFlow(
     if (!input.taskName.trim()) {
         return { iconName: 'BrainCircuit', category: 'Work & Focus', duration: 25 };
     }
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      return output!;
+    } catch(e) {
+      console.error("AI call for task suggestions failed, returning default", e);
+      // Fallback in case of quota errors or other failures
+      return { iconName: 'BrainCircuit', category: 'Work & Focus', duration: 25 };
+    }
   }
 );
+
+    

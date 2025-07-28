@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2 } from "lucide-react";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2, Wand2 } from "lucide-react";
 import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,6 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingTaskName, setIsAnalyzingTaskName] = useState(false);
   const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const taskNameDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isDefaultTask } = usePresetTasks();
   
@@ -99,7 +98,10 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
 
   const taskNameValue = form.watch("taskName");
 
-  const handleSuggestDetails = async (taskName: string) => {
+  const handleSuggestDetails = async () => {
+    const taskName = form.getValues("taskName");
+    if (!taskName) return;
+
     setIsAnalyzing(true);
     try {
       const result = await suggestTaskDetails({ taskName, availableIcons: iconNames, availableCategories: categories });
@@ -139,24 +141,20 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
   };
 
   useEffect(() => {
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
     
     if (taskNameValue) {
-      debounceTimeoutRef.current = setTimeout(() => handleSuggestDetails(taskNameValue), 800);
       taskNameDebounceTimeoutRef.current = setTimeout(() => handleSuggestTaskName(taskNameValue), 500);
     } else {
-      setIsAnalyzing(false);
       setIsAnalyzingTaskName(false);
       setTaskNameSuggestions([]);
     }
 
     return () => {
-        if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
         if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
     }
 
-  }, [taskNameValue, form, categories]);
+  }, [taskNameValue]);
 
 
   useEffect(() => {
@@ -218,9 +216,15 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                           </span>
                       )}
                   </FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Morning Journal" {...field} />
-                  </FormControl>
+                   <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input placeholder="e.g., Morning Journal" {...field} />
+                    </FormControl>
+                    <Button type="button" variant="outline" size="icon" onClick={handleSuggestDetails} disabled={isAnalyzing || !taskNameValue}>
+                      {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                      <span className="sr-only">Suggest Details</span>
+                    </Button>
+                  </div>
                   <FormMessage />
                    {taskNameSuggestions.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
@@ -245,15 +249,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 name="category"
                 render={({ field }) => (
                     <FormItem className="space-y-3">
-                    <FormLabel className="flex items-center gap-2">
-                        Category
-                        {isAnalyzing && (
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                Analyzing...
-                            </span>
-                        )}
-                    </FormLabel>
+                    <FormLabel>Category</FormLabel>
                     <FormControl>
                         <RadioGroup
                         onValueChange={field.onChange}
@@ -287,15 +283,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
               name="duration"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                      Duration (minutes)
-                        {isAnalyzing && (
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                Analyzing...
-                            </span>
-                        )}
-                  </FormLabel>
+                  <FormLabel>Duration (minutes)</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -308,18 +296,10 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
               name="icon"
               render={({ field }) => (
                 <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                        Icon
-                        {isAnalyzing && (
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                Analyzing...
-                            </span>
-                        )}
-                    </FormLabel>
+                    <FormLabel>Icon</FormLabel>
                    <Select onValueChange={field.onChange} value={field.value}>
                      <FormControl>
-                      <SelectTrigger disabled={isAnalyzing}>
+                      <SelectTrigger>
                         <SelectValue placeholder="Select an icon" />
                       </SelectTrigger>
                      </FormControl>
@@ -358,3 +338,5 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
     </Dialog>
   );
 }
+
+    
