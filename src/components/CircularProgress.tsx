@@ -36,12 +36,14 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                     fill="transparent"
                     strokeWidth={stroke}
                     strokeDasharray={circumference + ' ' + circumference}
-                    style={{ strokeDashoffset }}
+                    style={{ 
+                        strokeDashoffset,
+                        transition: 'stroke-dashoffset 1s linear' 
+                    }}
                     strokeLinecap="round"
                     r={normalizedRadius}
                     cx={radius + stroke}
                     cy={radius + stroke}
-                    className="transition-all duration-300"
                 />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
