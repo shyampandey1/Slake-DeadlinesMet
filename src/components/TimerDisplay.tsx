@@ -126,18 +126,13 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
           setFlashState('three-times');
         }
 
-        if (prev <= 11) { 
+        if (prev <= 11 && prev > 1) { 
             playTickSound();
         }
         return prev - 1;
       });
     }, 1000);
   }, [stopTimer, playTickSound]);
-
-  useEffect(() => {
-    tickAudioRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3");
-    tickAudioRef.current.preload = "auto";
-  }, []);
 
   useEffect(() => {
     if (!isPaused) {
@@ -204,6 +199,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
             'animate-flash-continuous': flashState === 'continuous',
         }
     )}>
+      <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <InfoDisplay />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <p className="mb-4 text-lg text-muted-foreground md:text-xl font-headline">FOCUSING ON:</p>

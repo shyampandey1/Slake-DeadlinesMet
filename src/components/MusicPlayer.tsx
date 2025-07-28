@@ -40,31 +40,32 @@ export default function MusicPlayer() {
     fetchLibrary();
   }, []);
 
-  // Effect to handle track changes
   useEffect(() => {
     if (audioRef.current && currentTrack) {
-      audioRef.current.src = currentTrack.trackUrl;
+      if (audioRef.current.src !== currentTrack.trackUrl) {
+        audioRef.current.src = currentTrack.trackUrl;
+      }
       if (isPlaying) {
-        audioRef.current.load(); // Load the new source
+        audioRef.current.load();
         audioRef.current.play().catch(e => console.error("Error playing new track:", e));
       }
     }
-  }, [currentTrack]);
+  }, [currentTrack, isPlaying]);
 
   const togglePlayPause = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !currentTrack) return;
     
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      // Ensure there's a track to play
-      if (currentTrack && audioRef.current.src !== currentTrack.trackUrl) {
+      if (audioRef.current.src !== currentTrack.trackUrl) {
          audioRef.current.src = currentTrack.trackUrl;
       }
       audioRef.current.play().catch(e => console.error("Error playing audio:", e));
     }
+    setIsPlaying(!isPlaying);
   };
-
+  
   const handleTrackChange = (trackName: string) => {
     const newTrack = library.find(t => t.trackName === trackName);
     if (newTrack) {
@@ -86,8 +87,9 @@ export default function MusicPlayer() {
         ref={audioRef}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
         loop
-        // The src is now set programmatically in the useEffect hook
+        src={currentTrack?.trackUrl}
       />
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
