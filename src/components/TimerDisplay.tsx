@@ -194,7 +194,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
                     : "bg-blue-600 hover:bg-blue-700"
             )}
           >
-            {isPaused ? <Play className="mr-2 h-6 w-6" /> : <Pause className="mr-2 h-6 w-6" />}
+            {isPaused ? <Play className="mr-2 h-6 w-6" /> : null}
             {isPaused ? "Resume" : "Pause"}
           </Button>
           <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
