@@ -115,7 +115,7 @@ export default function TaskForm() {
                       <Badge
                         key={preset.name}
                         variant="secondary"
-                        className={cn("cursor-pointer text-base py-2 px-4 border-transparent", color)}
+                        className={cn("cursor-pointer text-sm py-1 px-3 md:text-base md:py-2 md:px-4 border-transparent", color)}
                         onClick={() => handlePresetClick(preset)}
                       >
                         {preset.icon}
