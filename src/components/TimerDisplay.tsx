@@ -135,6 +135,11 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   }, [stopTimer, playTickSound]);
 
   useEffect(() => {
+    tickAudioRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3");
+    tickAudioRef.current.preload = "auto";
+  }, []);
+
+  useEffect(() => {
     if (!isPaused) {
       startTimer();
     } else {
@@ -199,7 +204,6 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
             'animate-flash-continuous': flashState === 'continuous',
         }
     )}>
-      <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <InfoDisplay />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <p className="mb-4 text-lg text-muted-foreground md:text-xl font-headline">FOCUSING ON:</p>
@@ -242,16 +246,16 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
               Did you complete your task, "{taskName}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="sm:flex-col-reverse">
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <AlertDialogFooter>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
                 <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                className="bg-red-600 hover:bg-red-700"
                 onClick={() => handleSaveTask(false)}
                 >
                 No
                 </AlertDialogAction>
                 <AlertDialogAction
-                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                className="bg-green-600 hover:bg-green-700"
                 onClick={() => handleSaveTask(true)}
                 >
                 Yes!
