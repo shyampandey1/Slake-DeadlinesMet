@@ -183,18 +183,17 @@ export default function TaskForm() {
   
   const handlePresetClick = (preset: PresetTask, category: string) => {
     const isCustom = !isDefaultTask(preset, category);
+    
     if (isCustom) {
         if (taskToDelete?.name === preset.name) {
-            // If already selected, deselect it
             setTaskToDelete(null);
         } else {
-            // Select for deletion
             setTaskToDelete(preset);
         }
         return; 
     }
     
-    // Default task behavior
+    setTaskToDelete(null);
     setIsCustomTaskOpen(true);
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
@@ -221,7 +220,7 @@ export default function TaskForm() {
     <Card>
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
-        <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
+        <CardDescription>Choose a task, or create a custom one below. Tap custom tasks to manage them.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-8">
@@ -242,30 +241,46 @@ export default function TaskForm() {
                                     </Button>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    {tasks.map((preset) => (
-                                        <div key={preset.name} className="relative group">
-                                            <Badge
-                                                variant="secondary"
-                                                className={cn("w-full text-sm justify-between py-2 px-3 border-transparent cursor-pointer", color)}
-                                                onClick={() => handlePresetClick(preset, category)}
-                                            >
-                                                <div className="flex items-center flex-1 min-w-0">
-                                                    {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                    <span className="truncate">{preset.name}</span>
-                                                </div>
-                                                <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                            </Badge>
-                                             {taskToDelete?.name === preset.name && !isDefaultTask(preset, category) && (
-                                                <button
-                                                    onClick={() => handleDeleteTask(preset, category)}
-                                                    className="absolute -top-2 -right-2 z-20 flex items-center justify-center h-6 w-6 rounded-full bg-destructive text-destructive-foreground transition-opacity"
+                                    {tasks.map((preset) => {
+                                        const isCustom = !isDefaultTask(preset, category);
+                                        const isSelectedForDelete = isCustom && taskToDelete?.name === preset.name;
+                                        return (
+                                        <div key={preset.name} className={cn("relative rounded-full", isCustom ? "cursor-pointer" : "")}>
+                                            <div className="relative w-full h-full overflow-hidden rounded-full">
+                                                <div
+                                                    className={cn(
+                                                        "transition-transform duration-300 ease-in-out",
+                                                        isSelectedForDelete && "-translate-x-10"
+                                                    )}
+                                                    onClick={() => handlePresetClick(preset, category)}
                                                 >
-                                                    <X className="h-4 w-4" />
-                                                    <span className="sr-only">Delete task</span>
-                                                </button>
-                                            )}
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color, isCustom ? "cursor-pointer" : "cursor-default")}
+                                                    >
+                                                        <div className="flex items-center flex-1 min-w-0">
+                                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                            <span className="truncate">{preset.name}</span>
+                                                        </div>
+                                                        <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                                    </Badge>
+                                                </div>
+
+                                                {isCustom && (
+                                                    <button
+                                                        onClick={() => handleDeleteTask(preset, category)}
+                                                        className={cn(
+                                                            "absolute top-0 right-0 z-10 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
+                                                            isSelectedForDelete ? "translate-x-0" : "translate-x-full"
+                                                        )}
+                                                        aria-label={`Delete ${preset.name} task`}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             </div>
                         </CarouselItem>
