@@ -59,16 +59,16 @@ const presetTasks = {
     'Breaks & Meals': {
         color: "bg-amber-200/80 text-amber-900 hover:bg-amber-200 dark:bg-amber-800/60 dark:text-amber-100 dark:hover:bg-amber-800",
         tasks: [
-            { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" /> },
+            { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" />, recurring: true },
             { name: 'Walk', duration: 15, icon: <Footprints className="mr-2 h-4 w-4" /> },
             { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
-            { name: 'Breathing Practice', duration: 5, icon: <Wind className="mr-2 h-4 w-4" /> },
+            { name: 'Breathing Practice', duration: 5, icon: <Wind className="mr-2 h-4 w-4" />, recurring: true },
         ]
     },
     'Health Reminders': {
         color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
         tasks: [
-            { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-2 h-4 w-4" /> },
+            { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-2 h-4 w-4" />, recurring: true },
         ]
     },
     'Evening Wind-down': {
@@ -101,7 +101,7 @@ export default function TaskForm() {
   
     for (const category in presetTasks) {
       const { tasks, color } = presetTasks[category as keyof typeof presetTasks];
-      const remaining = tasks.filter(task => !completedToday.includes(task.name));
+      const remaining = tasks.filter(task => !completedToday.includes(task.name) || task.recurring);
   
       if (remaining.length > 0) {
         filteredTasks[category as keyof typeof presetTasks] = { tasks: remaining, color };
