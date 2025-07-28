@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Music, Music2, Music3, Music4, Loader2 } from 'lucide-react';
+import { Music, Music4 } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { MusicTrack } from '@/types';
 
@@ -46,7 +47,7 @@ export default function MusicPlayer() {
             audioRef.current.play().catch(e => console.error("Audio play failed", e));
         }
     }
-  }, [currentTrack]);
+  }, [currentTrack, isPlaying]);
 
 
   const togglePlayPause = () => {
@@ -76,16 +77,16 @@ export default function MusicPlayer() {
   }
 
   return (
-    <div className="mt-8 flex items-center gap-4 p-2 rounded-lg bg-card/50 border">
-      <audio ref={audioRef} loop />
+    <div className="mt-8 flex items-center gap-2 p-2 rounded-lg bg-card/50">
+      <audio ref={audioRef} loop onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
       
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
       </Button>
 
-      <div className="flex flex-col items-start">
+      <div className="flex flex-col">
          <Select onValueChange={handleTrackChange} defaultValue={currentTrack?.trackName}>
-            <SelectTrigger className="w-[200px] border-0 bg-transparent shadow-none focus:ring-0">
+            <SelectTrigger className="w-[220px] border-0 bg-transparent shadow-none focus:ring-0">
                 <SelectValue placeholder="Select a vibe..." />
             </SelectTrigger>
             <SelectContent>
@@ -96,7 +97,7 @@ export default function MusicPlayer() {
                 ))}
             </SelectContent>
          </Select>
-        <span className="text-xs text-muted-foreground ml-3">{currentTrack?.vibe}</span>
+         {currentTrack && <span className="text-xs text-muted-foreground ml-3 -mt-1">{currentTrack?.vibe}</span>}
       </div>
     </div>
   );
