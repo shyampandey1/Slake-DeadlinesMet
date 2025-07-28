@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag, X } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +26,11 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
-import { useTasks } from "@/hooks/useFirestore";
+import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
-import type { Preset, PresetTask } from "@/types";
+import type { PresetTask, UserPresetTask } from "@/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -39,50 +40,6 @@ const formSchema = z.object({
     message: "Duration must be at least 1 minute.",
   }),
 });
-
-const initialPresetTasks: Preset = {
-    'Morning Routine': {
-        color: "bg-sky-200/80 text-sky-900 hover:bg-sky-200 dark:bg-sky-800/60 dark:text-sky-100 dark:hover:bg-sky-800",
-        tasks: [
-            { name: 'Plan Day', duration: 15, icon: 'ListChecks' },
-            { name: 'Meditate', duration: 10, icon: 'Bed' },
-            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
-        ]
-    },
-    'Work & Focus': {
-        color: "bg-blue-200/80 text-blue-900 hover:bg-blue-200 dark:bg-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-800",
-        tasks: [
-            { name: 'Deep Work', duration: 90, icon: 'BrainCircuit' },
-            { name: 'Focus Session', duration: 50, icon: 'BrainCircuit' },
-            { name: 'Check Emails', duration: 15, icon: 'Mail' },
-            { name: 'Stand-up', duration: 15, icon: 'Users' },
-        ]
-    },
-    'Health & Wellness': {
-        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
-        tasks: [
-            { name: 'Workout', duration: 45, icon: 'Dumbbell' },
-            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
-            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true },
-        ]
-    },
-    'Breaks & Meals': {
-        color: "bg-amber-200/80 text-amber-900 hover:bg-amber-200 dark:bg-amber-800/60 dark:text-amber-100 dark:hover:bg-amber-800",
-        tasks: [
-            { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true },
-            { name: 'Walk', duration: 15, icon: 'Footprints' },
-            { name: 'Lunch Break', duration: 45, icon: 'Utensils' },
-            { name: 'Breathing Practice', duration: 5, icon: 'Wind', recurring: true },
-        ]
-    },
-    'Evening Wind-down': {
-        color: "bg-indigo-200/80 text-indigo-900 hover:bg-indigo-200 dark:bg-indigo-800/60 dark:text-indigo-100 dark:hover:bg-indigo-800",
-        tasks: [
-            { name: 'Read a book', duration: 30, icon: 'BookOpen' },
-            { name: 'Journal', duration: 15, icon: 'ListChecks' },
-        ]
-    }
-};
 
 const iconMap: { [key: string]: React.ReactNode } = {
     ListChecks: <ListChecks className="mr-2 h-4 w-4" />,
@@ -104,24 +61,16 @@ const iconMap: { [key: string]: React.ReactNode } = {
     ShoppingBag: <ShoppingBag className="mr-2 h-4 w-4" />,
 };
 
-// Helper function to check if a task is one of the initial default tasks.
-const isDefaultTask = (task: PresetTask, category: string): boolean => {
-    return initialPresetTasks[category]?.tasks.some(
-      (initialTask) =>
-        initialTask.name === task.name &&
-        initialTask.duration === task.duration &&
-        initialTask.icon === task.icon
-    ) ?? false;
-};
 
 export default function TaskForm() {
   const router = useRouter();
   const { tasks: completedTasks } = useTasks();
+  const { presetTasks, addPresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Work & Focus');
-  const [presetTasks, setPresetTasks] = useState<Preset>(initialPresetTasks);
   const [isCustomTaskOpen, setIsCustomTaskOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<PresetTask | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<UserPresetTask | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -136,30 +85,12 @@ export default function TaskForm() {
     setIsDialogOpen(true);
   };
 
-  const handleAddTask = (newTask: PresetTask, category: string) => {
-    setPresetTasks(prev => {
-        const updatedCategory = {
-            ...prev[category],
-            tasks: [...prev[category].tasks, newTask]
-        };
-        return {
-            ...prev,
-            [category]: updatedCategory
-        };
-    });
+  const handleAddTask = async (newTask: PresetTask, category: string) => {
+    await addPresetTask({ ...newTask, category });
   };
 
-  const handleDeleteTask = (taskToDelete: PresetTask, category: string) => {
-    setPresetTasks(prev => {
-        const updatedTasks = prev[category].tasks.filter(task => task.name !== taskToDelete.name);
-        return {
-            ...prev,
-            [category]: {
-                ...prev[category],
-                tasks: updatedTasks
-            }
-        };
-    });
+  const handleDeleteTask = async (taskToDelete: UserPresetTask) => {
+    await deletePresetTask(taskToDelete.id);
     setTaskToDelete(null);
   };
 
@@ -168,24 +99,24 @@ export default function TaskForm() {
       .filter(task => task.completed && task.createdAt && isToday(parseISO(task.createdAt)))
       .map(task => task.name);
   
-    const filteredTasks: Preset = {};
+    const filteredTasks: typeof presetTasks = {};
   
     for (const category in presetTasks) {
-      const { tasks, color } = presetTasks[category as keyof typeof presetTasks];
+      const { tasks, color } = presetTasks[category];
       const remaining = tasks.filter(task => !completedToday.includes(task.name) || task.recurring);
   
       if (remaining.length > 0) {
-        filteredTasks[category as keyof typeof presetTasks] = { tasks: remaining, color };
+        filteredTasks[category] = { tasks: remaining, color };
       }
     }
     return filteredTasks;
   }, [completedTasks, presetTasks]);
   
-  const handlePresetClick = (preset: PresetTask, category: string) => {
-    const isCustom = !isDefaultTask(preset, category);
+  const handlePresetClick = (preset: UserPresetTask, category: string) => {
+    const isCustom = !isDefaultTask(preset);
     
     if (isCustom) {
-        if (taskToDelete?.name === preset.name) {
+        if (taskToDelete?.id === preset.id) {
             setTaskToDelete(null);
         } else {
             setTaskToDelete(preset);
@@ -204,6 +135,10 @@ export default function TaskForm() {
             formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, 100);
+  };
+
+  const toggleCategoryExpansion = (category: string) => {
+    setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
   };
 
 
@@ -231,60 +166,69 @@ export default function TaskForm() {
             variant="subtle"
             >
                 <CarouselContent>
-                    {Object.entries(visiblePresetTasks).map(([category, {tasks, color}]) => (
-                        <CarouselItem key={category} className="basis-auto md:basis-1/2 lg:basis-1/3">
-                            <div className="p-1">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(category)}>
-                                        <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
-                                    </Button>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    {tasks.map((preset) => {
-                                        const isCustom = !isDefaultTask(preset, category);
-                                        const isSelectedForDelete = isCustom && taskToDelete?.name === preset.name;
-                                        return (
-                                        <div key={preset.name} className="relative w-full h-full overflow-hidden rounded-full">
-                                            <div
-                                                className={cn(
-                                                    "transition-transform duration-300 ease-in-out w-full",
-                                                    isCustom ? "cursor-pointer" : "cursor-default",
-                                                    isSelectedForDelete && "-translate-x-10"
-                                                )}
-                                                onClick={() => handlePresetClick(preset, category)}
-                                                onTouchStart={() => isCustom && handlePresetClick(preset, category)}
-                                            >
-                                                <Badge
-                                                    variant="secondary"
-                                                    className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color)}
-                                                >
-                                                    <div className="flex items-center flex-1 min-w-0">
-                                                        {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                        <span className="truncate">{preset.name}</span>
-                                                    </div>
-                                                    <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                                </Badge>
-                                            </div>
-
-                                            {isCustom && (
-                                                <button
-                                                    onClick={() => handleDeleteTask(preset, category)}
+                    {Object.entries(visiblePresetTasks).map(([category, {tasks, color}]) => {
+                        const isExpanded = expandedCategories[category];
+                        const displayTasks = isExpanded ? tasks : tasks.slice(0, 3);
+                        return (
+                            <CarouselItem key={category} className="basis-auto md:basis-1/2 lg:basis-1/3">
+                                <div className="p-1">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(category)}>
+                                            <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
+                                        </Button>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        {displayTasks.map((preset) => {
+                                            const isCustom = !isDefaultTask(preset);
+                                            const isSelectedForDelete = isCustom && taskToDelete?.id === preset.id;
+                                            return (
+                                            <div key={preset.id || preset.name} className="relative w-full h-full overflow-hidden rounded-full">
+                                                <div
                                                     className={cn(
-                                                        "absolute top-0 right-0 z-10 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
-                                                        isSelectedForDelete ? "translate-x-0" : "translate-x-full"
+                                                        "transition-transform duration-300 ease-in-out w-full",
+                                                        isCustom ? "cursor-pointer" : "cursor-default",
+                                                        isSelectedForDelete && "-translate-x-10"
                                                     )}
-                                                    aria-label={`Delete ${preset.name} task`}
+                                                    onClick={() => handlePresetClick(preset, category)}
+                                                    onTouchStart={() => isCustom && handlePresetClick(preset, category)}
                                                 >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    )})}
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color)}
+                                                    >
+                                                        <div className="flex items-center flex-1 min-w-0">
+                                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                            <span className="truncate">{preset.name}</span>
+                                                        </div>
+                                                        <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                                    </Badge>
+                                                </div>
+
+                                                {isCustom && (
+                                                    <button
+                                                        onClick={() => handleDeleteTask(preset)}
+                                                        className={cn(
+                                                            "absolute top-0 right-0 z-10 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
+                                                            isSelectedForDelete ? "translate-x-0" : "translate-x-full"
+                                                        )}
+                                                        aria-label={`Delete ${preset.name} task`}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )})}
+                                        {tasks.length > 3 && !isExpanded && (
+                                            <Button variant="link" size="sm" onClick={() => toggleCategoryExpansion(category)}>
+                                                More...
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </CarouselItem>
-                    ))}
+                            </CarouselItem>
+                        )
+                    })}
                 </CarouselContent>
                 <CarouselPrevious />
                 <CarouselNext />

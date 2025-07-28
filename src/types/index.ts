@@ -31,9 +31,15 @@ export type PresetTask = {
     recurring?: boolean;
 };
 
+// Represents a task stored in Firestore, which will have an ID.
+export type UserPresetTask = PresetTask & {
+  id?: string; // Default tasks won't have an ID
+};
+
+
 export type Preset = {
     [category: string]: {
         color: string;
-        tasks: PresetTask[];
+        tasks: UserPresetTask[];
     };
 };
