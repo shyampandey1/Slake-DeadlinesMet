@@ -186,9 +186,13 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
         <div className="flex items-center gap-4">
           <Button
             onClick={() => setIsPaused(!isPaused)}
-            variant="outline"
             size="lg"
-            className="w-32 text-lg"
+            className={cn(
+                "w-32 text-lg",
+                isPaused 
+                    ? "bg-green-600 hover:bg-green-700" 
+                    : "bg-blue-600 hover:bg-blue-700"
+            )}
           >
             {isPaused ? <Play className="mr-2 h-5 w-5" /> : <Pause className="mr-2 h-5 w-5" />}
             {isPaused ? "Resume" : "Pause"}
