@@ -193,7 +193,7 @@ export default function TaskForm() {
         return; 
     }
     
-    setTaskToDelete(null);
+    setTaskToDelete(null); // Deselect any task marked for deletion
     setIsCustomTaskOpen(true);
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
@@ -249,13 +249,14 @@ export default function TaskForm() {
                                             <div
                                                 className={cn(
                                                     "transition-transform duration-300 ease-in-out w-full",
+                                                     isCustom ? "cursor-pointer" : "cursor-default",
                                                     isSelectedForDelete && "-translate-x-10"
                                                 )}
                                                 onClick={() => handlePresetClick(preset, category)}
                                             >
                                                 <Badge
                                                     variant="secondary"
-                                                    className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color, isCustom ? "cursor-pointer" : "cursor-default")}
+                                                    className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color)}
                                                 >
                                                     <div className="flex items-center flex-1 min-w-0">
                                                         {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
@@ -269,7 +270,7 @@ export default function TaskForm() {
                                                 <button
                                                     onClick={() => handleDeleteTask(preset, category)}
                                                     className={cn(
-                                                        "absolute top-0 right-0 z-0 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
+                                                        "absolute top-0 right-0 z-10 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
                                                         isSelectedForDelete ? "translate-x-0" : "translate-x-full"
                                                     )}
                                                     aria-label={`Delete ${preset.name} task`}
