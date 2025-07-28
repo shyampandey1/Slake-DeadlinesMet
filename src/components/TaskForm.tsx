@@ -84,7 +84,17 @@ export default function TaskForm() {
                         onValueChange={(value) => field.onChange(value[0])}
                         className="w-full"
                       />
-                      <span className="w-12 text-center font-bold text-primary">{field.value}</span>
+                       <Input
+                        type="number"
+                        min={1}
+                        max={120}
+                        {...field}
+                        className="w-20 text-center font-bold text-primary"
+                        onChange={(e) => {
+                            const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                            field.onChange(value);
+                        }}
+                      />
                     </div>
                   </FormControl>
                   <FormMessage />
