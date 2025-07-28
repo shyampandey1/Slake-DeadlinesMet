@@ -4,6 +4,7 @@
 import TaskForm from '@/components/TaskForm';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
+import { CheckCircle } from 'lucide-react';
 
 function HomeComponent() {
 
@@ -14,9 +15,9 @@ function HomeComponent() {
       </div>
       <div className="w-full max-w-2xl">
         <header className="mb-8 text-center">
-          <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-            DeadlinesMet
-          </h1>
+          <div className="flex justify-center items-center mb-4">
+            <CheckCircle className="w-16 h-16 text-yellow-500" />
+          </div>
           <p className="mt-2 text-muted-foreground sm:text-lg">
             Focus on one task at a time. Set your goal and go.
           </p>
