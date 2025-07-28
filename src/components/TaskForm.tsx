@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BookOpen, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -32,21 +33,30 @@ const formSchema = z.object({
 });
 
 const presetTasks = {
-    'Work & Productivity': [
-        { name: 'Plan Day', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
-        { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
-        { name: 'Check Emails', duration: 15, icon: <Mail className="mr-2 h-4 w-4" /> },
-        { name: 'Stand-up', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
-    ],
-    'Health & Wellness': [
-        { name: 'Drink Water', duration: 2, icon: <Droplets className="mr-2 h-4 w-4" /> },
-        { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
-        { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
-    ],
-    'Breaks': [
-        { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" /> },
-        { name: 'Walk', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
-    ]
+    'Work & Productivity': {
+        color: "bg-sky-200/80 text-sky-900 hover:bg-sky-200 dark:bg-sky-800/60 dark:text-sky-100 dark:hover:bg-sky-800",
+        tasks: [
+            { name: 'Plan Day', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
+            { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
+            { name: 'Check Emails', duration: 15, icon: <Mail className="mr-2 h-4 w-4" /> },
+            { name: 'Stand-up', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
+        ]
+    },
+    'Health & Wellness': {
+        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
+        tasks: [
+            { name: 'Drink Water', duration: 2, icon: <Droplets className="mr-2 h-4 w-4" /> },
+            { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
+            { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
+        ]
+    },
+    'Breaks': {
+        color: "bg-amber-200/80 text-amber-900 hover:bg-amber-200 dark:bg-amber-800/60 dark:text-amber-100 dark:hover:bg-amber-800",
+        tasks: [
+            { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" /> },
+            { name: 'Walk', duration: 15, icon: <Footprints className="mr-2 h-4 w-4" /> },
+        ]
+    }
 };
 
 export default function TaskForm() {
@@ -97,7 +107,7 @@ export default function TaskForm() {
             />
 
             <div className="space-y-4">
-              {Object.entries(presetTasks).map(([category, tasks]) => (
+              {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
                 <div key={category}>
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
                   <div className="flex flex-wrap gap-2">
@@ -105,7 +115,7 @@ export default function TaskForm() {
                       <Badge
                         key={preset.name}
                         variant="secondary"
-                        className="cursor-pointer hover:bg-primary/20 text-sm py-1 px-3"
+                        className={cn("cursor-pointer text-base py-2 px-4 border-transparent", color)}
                         onClick={() => handlePresetClick(preset)}
                       >
                         {preset.icon}
