@@ -5,9 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag, X } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -104,6 +104,16 @@ const iconMap: { [key: string]: React.ReactNode } = {
     ShoppingBag: <ShoppingBag className="mr-2 h-4 w-4" />,
 };
 
+// Helper function to check if a task is one of the initial default tasks.
+const isDefaultTask = (task: PresetTask, category: string): boolean => {
+    return initialPresetTasks[category]?.tasks.some(
+      (initialTask) =>
+        initialTask.name === task.name &&
+        initialTask.duration === task.duration &&
+        initialTask.icon === task.icon
+    ) ?? false;
+};
+
 export default function TaskForm() {
   const router = useRouter();
   const { tasks: completedTasks } = useTasks();
@@ -137,6 +147,19 @@ export default function TaskForm() {
         };
     });
   };
+
+  const handleDeleteTask = useCallback((taskToDelete: PresetTask, category: string) => {
+    setPresetTasks(prev => {
+        const updatedTasks = prev[category].tasks.filter(task => task.name !== taskToDelete.name);
+        return {
+            ...prev,
+            [category]: {
+                ...prev[category],
+                tasks: updatedTasks
+            }
+        };
+    });
+  }, []);
 
   const visiblePresetTasks = useMemo(() => {
     const completedToday = completedTasks
@@ -205,18 +228,31 @@ export default function TaskForm() {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     {tasks.map((preset) => (
-                                    <Badge
-                                        key={preset.name}
-                                        variant="secondary"
-                                        className={cn("cursor-pointer text-sm justify-between py-2 px-3 border-transparent", color)}
-                                        onClick={() => handlePresetClick(preset)}
-                                    >
-                                        <div className="flex items-center">
-                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                            <span>{preset.name}</span>
+                                        <div key={preset.name} className="relative group">
+                                            <Badge
+                                                variant="secondary"
+                                                className={cn("w-full cursor-pointer text-sm justify-between py-2 px-3 border-transparent", color)}
+                                                onClick={() => handlePresetClick(preset)}
+                                            >
+                                                <div className="flex items-center">
+                                                    {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                    <span>{preset.name}</span>
+                                                </div>
+                                                <span className="text-xs opacity-75">{preset.duration}</span>
+                                            </Badge>
+                                            {!isDefaultTask(preset, category) && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteTask(preset, category);
+                                                    }}
+                                                    className="absolute -top-1 -right-1 z-10 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                    <span className="sr-only">Delete task</span>
+                                                </button>
+                                            )}
                                         </div>
-                                        <span className="text-xs opacity-75">{preset.duration}</span>
-                                    </Badge>
                                     ))}
                                 </div>
                             </div>
