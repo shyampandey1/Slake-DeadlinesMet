@@ -199,9 +199,10 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                              <FormLabel htmlFor={category.name} className="font-normal">
                                 <Badge
                                     className={cn(
-                                        "cursor-pointer border-2 border-transparent",
-                                        field.value === category.name ? 'shadow-md' : 'opacity-75 hover:opacity-100',
-                                        field.value === category.name && `${category.color} border-current`,
+                                        "cursor-pointer border-2",
+                                        field.value === category.name 
+                                            ? 'border-current shadow-md' 
+                                            : 'border-transparent opacity-75 hover:opacity-100',
                                         category.color
                                     )}
                                 >

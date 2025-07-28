@@ -139,14 +139,12 @@ export default function TaskForm() {
             className="w-full -ml-4"
         >
             <CarouselContent className="pl-2">
-                {categories.map((category) => {
-                    const { tasks, color } = presetTasks[category];
+                {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
                     return (
                         <CarouselItem key={category} className="basis-11/12 md:basis-1/2 lg:basis-1/3 pl-2">
                             <Card className="h-full">
                                 <CardHeader>
                                     <CardTitle>{category}</CardTitle>
-
                                 </CardHeader>
                                 <CardContent>
                                     <div className="flex flex-wrap gap-2">
