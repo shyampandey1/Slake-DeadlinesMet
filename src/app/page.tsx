@@ -3,15 +3,11 @@
 
 import TaskForm from '@/components/TaskForm';
 import AuthWrapper from '@/components/AuthWrapper';
-import HamburgerMenu from '@/components/HamburgerMenu';
 
 function HomeComponent() {
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-12">
-      <div className="absolute top-4 right-4 flex items-center gap-4">
-        <HamburgerMenu />
-      </div>
       <div className="w-full max-w-2xl">
         <header className="mb-8 text-center">
           <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">

@@ -20,8 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
+import AuthWrapper from "./AuthWrapper";
 
-export default function TaskHistory() {
+function TaskHistoryContent() {
   const { tasks, loading, clearTasks } = useTasks();
   const router = useRouter();
 
@@ -108,4 +109,12 @@ export default function TaskHistory() {
       </CardContent>
     </Card>
   );
+}
+
+export default function TaskHistory() {
+  return (
+    <AuthWrapper>
+      <TaskHistoryContent />
+    </AuthWrapper>
+  )
 }

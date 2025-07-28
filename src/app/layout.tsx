@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/useAuth';
 import { AudioProvider } from '@/hooks/useAudio';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
   title: 'DeadlinesMet',
@@ -24,7 +25,10 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AuthProvider>
           <AudioProvider>
-            {children}
+            <div className="flex flex-col min-h-screen">
+              <main className="flex-1 pb-20">{children}</main>
+              <BottomNav />
+            </div>
           </AudioProvider>
         </AuthProvider>
         <Toaster />

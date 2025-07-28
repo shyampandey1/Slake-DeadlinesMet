@@ -14,8 +14,8 @@ import { Menu, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import TaskHistory from "./TaskHistory";
 import { ScrollArea } from "./ui/scroll-area";
+import TaskHistory from "./TaskHistory";
 
 export default function HamburgerMenu() {
   const { user } = useAuth();
