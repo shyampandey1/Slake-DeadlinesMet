@@ -90,7 +90,7 @@ export default function TaskForm() {
   };
 
   const handleDeleteTask = async (taskToDelete: UserPresetTask) => {
-    await deletePresetTask(taskToDelete.id);
+    await deletePresetTask(taskToDelete.id!);
     setTaskToDelete(null);
   };
 
@@ -183,15 +183,18 @@ export default function TaskForm() {
                                             const isCustom = !isDefaultTask(preset);
                                             const isSelectedForDelete = isCustom && taskToDelete?.id === preset.id;
                                             return (
-                                            <div key={preset.id || preset.name} className="relative w-full h-full overflow-hidden rounded-full">
+                                            <div
+                                                key={preset.id || preset.name}
+                                                className="relative flex items-center gap-2"
+                                                onClick={() => isCustom && handlePresetClick(preset, category)}
+                                                onTouchStart={() => isCustom && handlePresetClick(preset, category)}
+                                            >
                                                 <div
                                                     className={cn(
-                                                        "transition-transform duration-300 ease-in-out w-full",
+                                                        "flex-grow transition-transform duration-300 ease-in-out",
                                                         isCustom ? "cursor-pointer" : "cursor-default",
                                                         isSelectedForDelete && "-translate-x-10"
                                                     )}
-                                                    onClick={() => handlePresetClick(preset, category)}
-                                                    onTouchStart={() => isCustom && handlePresetClick(preset, category)}
                                                 >
                                                     <Badge
                                                         variant="secondary"
@@ -206,16 +209,24 @@ export default function TaskForm() {
                                                 </div>
 
                                                 {isCustom && (
-                                                    <button
-                                                        onClick={() => handleDeleteTask(preset)}
-                                                        className={cn(
-                                                            "absolute top-0 right-0 z-10 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
-                                                            isSelectedForDelete ? "translate-x-0" : "translate-x-full"
-                                                        )}
-                                                        aria-label={`Delete ${preset.name} task`}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
+                                                    <div className={cn(
+                                                        "absolute top-0 right-0 flex items-center h-full transition-opacity duration-300 ease-in-out",
+                                                        isSelectedForDelete ? "opacity-100" : "opacity-0"
+                                                    )}>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteTask(preset)
+                                                            }}
+                                                            className={cn(
+                                                                "flex items-center justify-center h-8 w-8 rounded-full bg-destructive text-destructive-foreground",
+                                                                !isSelectedForDelete && "pointer-events-none"
+                                                            )}
+                                                            aria-label={`Delete ${preset.name} task`}
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         )})}
