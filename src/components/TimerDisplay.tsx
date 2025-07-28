@@ -104,6 +104,15 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
     }
     return stopTimer;
   }, [isPaused, startTimer, stopTimer]);
+
+  useEffect(() => {
+    // Disable scrolling on the body when the timer is active
+    document.body.style.overflow = 'hidden';
+    // Re-enable scrolling when the component unmounts
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
   
   const handleEndEarly = () => {
     stopTimer();
