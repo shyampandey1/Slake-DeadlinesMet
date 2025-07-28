@@ -7,7 +7,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetFooter
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -39,40 +38,40 @@ export default function HamburgerMenu() {
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="icon" onClick={toggleMenu}>
-           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          <span className="sr-only">Toggle menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="font-headline text-2xl">Menu</SheetTitle>
-        </SheetHeader>
-        <div className="py-4">
-          {user && (
-            <div className="flex items-center gap-3 rounded-lg bg-muted p-3 mb-4">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground truncate">
-                {user.email}
-              </span>
-            </div>
-          )}
-        </div>
-        <ScrollArea className="flex-1 pr-4">
-            <Button variant="ghost" onClick={navigateToHistory} className="w-full justify-start gap-2">
-                <History className="h-5 w-5" />
-                <span>Task History</span>
+    <>
+      <Button variant="outline" size="icon" onClick={toggleMenu} className="relative z-50">
+        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <span className="sr-only">Toggle menu</span>
+      </Button>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetContent side="right" className="flex flex-col pt-16">
+          <SheetHeader>
+            <SheetTitle className="font-headline text-2xl">Menu</SheetTitle>
+          </SheetHeader>
+          <div className="py-4">
+            {user && (
+              <div className="flex items-center gap-3 rounded-lg bg-muted p-3 mb-4">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground truncate">
+                  {user.email}
+                </span>
+              </div>
+            )}
+          </div>
+          <ScrollArea className="flex-1 pr-4">
+              <Button variant="ghost" onClick={navigateToHistory} className="w-full justify-start gap-2">
+                  <History className="h-5 w-5" />
+                  <span>Task History</span>
+              </Button>
+          </ScrollArea>
+          <SheetFooter className="mt-auto pt-4">
+            <Button onClick={handleLogout} variant="outline" className="w-full">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
             </Button>
-        </ScrollArea>
-        <SheetFooter className="mt-auto pt-4">
-          <Button onClick={handleLogout} variant="outline" className="w-full">
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
