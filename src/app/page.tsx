@@ -5,6 +5,7 @@ import TaskForm from '@/components/TaskForm';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { CheckCircle } from 'lucide-react';
+import InfoDisplay from '@/components/InfoDisplay';
 
 function HomeComponent() {
 
@@ -13,6 +14,7 @@ function HomeComponent() {
       <div className="absolute top-4 right-4 z-10">
         <HamburgerMenu />
       </div>
+      <InfoDisplay />
       <div className="w-full max-w-2xl">
         <header className="mb-6">
           <div className="flex items-center gap-3">

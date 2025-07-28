@@ -102,7 +102,7 @@ export default function InfoDisplay() {
   }
 
   return (
-    <div className="absolute top-2 right-2 flex items-center gap-4 text-xs text-muted-foreground p-1.5 rounded-md bg-card/50 backdrop-blur-sm border border-border">
+    <div className="fixed top-2 right-2 z-50 flex items-center gap-4 text-xs text-muted-foreground p-1.5 rounded-md bg-card/50 backdrop-blur-sm border border-border">
       <div className="flex items-center gap-1.5">
         <Calendar className={cn(iconSize)} />
         <span>{formatDate(dateTime)}</span>
