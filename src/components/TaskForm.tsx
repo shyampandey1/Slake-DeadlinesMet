@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Trash2, ShoppingBag } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
 import React, { useMemo, useState } from "react";
 
@@ -29,6 +29,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { useTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { Preset, PresetTask } from "@/types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -98,6 +99,9 @@ const iconMap: { [key: string]: React.ReactNode } = {
     Droplets: <Droplets className="mr-2 h-4 w-4" />,
     BookOpen: <BookOpen className="mr-2 h-4 w-4" />,
     Plus: <Plus className="mr-2 h-4 w-4" />,
+    Wrench: <Wrench className="mr-2 h-4 w-4" />,
+    Trash2: <Trash2 className="mr-2 h-4 w-4" />,
+    ShoppingBag: <ShoppingBag className="mr-2 h-4 w-4" />,
 };
 
 export default function TaskForm() {
@@ -106,6 +110,7 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Work & Focus');
   const [presetTasks, setPresetTasks] = useState<Preset>(initialPresetTasks);
+  const [isCustomTaskOpen, setIsCustomTaskOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -152,13 +157,16 @@ export default function TaskForm() {
   }, [completedTasks, presetTasks]);
   
   const handlePresetClick = (preset: {name: string, duration: number}) => {
+    setIsCustomTaskOpen(true);
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
     
-    const formElement = document.querySelector('form');
-    if (formElement) {
-        formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    setTimeout(() => {
+        const formElement = document.querySelector('form');
+        if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
   };
 
 
@@ -204,10 +212,10 @@ export default function TaskForm() {
                                         onClick={() => handlePresetClick(preset)}
                                     >
                                         <div className="flex items-center">
-                                            {iconMap[preset.icon]}
+                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
                                             <span>{preset.name}</span>
                                         </div>
-                                        <span className="text-xs opacity-75">{preset.duration}m</span>
+                                        <span className="text-xs opacity-75">{preset.duration}</span>
                                     </Badge>
                                     ))}
                                 </div>
@@ -222,62 +230,71 @@ export default function TaskForm() {
         
         <Separator />
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-8">
-             <CardDescription className="text-center">Or create a custom task</CardDescription>
-            <FormField
-              control={form.control}
-              name="taskName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Task Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Design the main page" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Collapsible open={isCustomTaskOpen} onOpenChange={setIsCustomTaskOpen}>
+            <CollapsibleTrigger asChild>
+                <div className="flex justify-center items-center cursor-pointer py-4 text-sm text-muted-foreground hover:text-foreground">
+                    <span>Or create a custom task</span>
+                    <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", isCustomTaskOpen && "rotate-180")} />
+                </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <FormField
+                    control={form.control}
+                    name="taskName"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Task Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., Design the main page" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
 
-            <FormField
-              control={form.control}
-              name="duration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duration (in minutes)</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        min={1}
-                        max={120}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={(value) => field.onChange(value[0])}
-                        className="w-full"
-                      />
-                       <Input
-                        type="number"
-                        min={1}
-                        max={120}
-                        {...field}
-                        className="w-24 text-center font-bold text-primary text-lg"
-                        onChange={(e) => {
-                            const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                            field.onChange(value);
-                        }}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-              <Rocket className="mr-2 h-4 w-4" />
-              Start Custom Timer
-            </Button>
-          </form>
-        </Form>
+                    <FormField
+                    control={form.control}
+                    name="duration"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Duration (in minutes)</FormLabel>
+                        <FormControl>
+                            <div className="flex items-center gap-4">
+                            <Slider
+                                min={1}
+                                max={120}
+                                step={1}
+                                value={[field.value]}
+                                onValueChange={(value) => field.onChange(value[0])}
+                                className="w-full"
+                            />
+                            <Input
+                                type="number"
+                                min={1}
+                                max={120}
+                                {...field}
+                                className="w-24 text-center font-bold text-primary text-lg"
+                                onChange={(e) => {
+                                    const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                    field.onChange(value);
+                                }}
+                            />
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Rocket className="mr-2 h-4 w-4" />
+                    Start Custom Timer
+                    </Button>
+                </form>
+                </Form>
+            </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
     <AddTaskDialog
@@ -290,3 +307,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    
