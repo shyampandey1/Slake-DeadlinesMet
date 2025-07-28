@@ -155,7 +155,7 @@ export default function TaskForm() {
                                             >
                                                 <Badge
                                                     className={cn(
-                                                        "text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200",
+                                                        "text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200 w-full",
                                                         color,
                                                         "hover:shadow-md hover:-translate-y-0.5"
                                                     )}
