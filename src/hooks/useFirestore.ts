@@ -18,7 +18,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Work & Focus': {
-        color: "bg-blue-200/80 text-blue-900 hover:bg-blue-200 dark:bg-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-800",
+        color: "bg-slate-200/80 text-slate-900 hover:bg-slate-200 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:bg-slate-800",
         tasks: [
             { name: 'Deep Work', duration: 90, icon: 'BrainCircuit' },
             { name: 'Focus Session', duration: 50, icon: 'BrainCircuit' },
@@ -27,7 +27,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Health & Wellness': {
-        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
+        color: "bg-blue-200/80 text-blue-900 hover:bg-blue-200 dark:bg-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-800",
         tasks: [
             { name: 'Workout', duration: 45, icon: 'Dumbbell' },
             { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
