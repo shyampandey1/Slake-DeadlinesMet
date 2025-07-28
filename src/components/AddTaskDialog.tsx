@@ -30,19 +30,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets } from "lucide-react";
 import type { PresetTask } from "@/types";
+import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 interface AddTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTask: (task: PresetTask) => void;
-  category: string;
+  onAddTask: (task: PresetTask, category: string) => void;
+  initialCategory: string;
+  categories: string[];
 }
 
 const formSchema = z.object({
   taskName: z.string().min(1, "Task name is required."),
+  category: z.string({ required_error: "Please select a category." }),
   duration: z.coerce.number().min(1, "Duration must be at least 1 minute."),
   icon: z.string().min(1, "Icon is required."),
 });
@@ -62,22 +67,34 @@ const icons: {name: string, icon: LucideIcon}[] = [
     { name: "BookOpen", icon: BookOpen },
 ];
 
-export default function AddTaskDialog({ isOpen, onClose, onAddTask, category }: AddTaskDialogProps) {
+export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCategory, categories }: AddTaskDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       taskName: "",
       duration: 10,
       icon: "BrainCircuit",
+      category: initialCategory,
     },
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      form.reset({
+        taskName: "",
+        duration: 10,
+        icon: "BrainCircuit",
+        category: initialCategory,
+      });
+    }
+  }, [isOpen, initialCategory, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     onAddTask({
         name: values.taskName,
         duration: values.duration,
         icon: values.icon,
-    });
+    }, values.category);
     onClose();
     form.reset();
   };
@@ -86,9 +103,9 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, category }: 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a new task to "{category}"</DialogTitle>
+          <DialogTitle>Add a new quick start task</DialogTitle>
           <DialogDescription>
-            Customize your quick-start list by adding a new task.
+            Customize your quick-start list by adding a new reusable task.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -106,6 +123,41 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, category }: 
                 </FormItem>
               )}
             />
+
+            <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                    <FormLabel>Category</FormLabel>
+                    <FormControl>
+                        <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-wrap gap-2"
+                        >
+                        {categories.map((category) => (
+                           <FormItem key={category} className="flex items-center space-x-2 space-y-0">
+                             <FormControl>
+                                <RadioGroupItem value={category} id={category} className="sr-only" />
+                             </FormControl>
+                             <FormLabel htmlFor={category} className="font-normal">
+                                <Badge
+                                    variant={field.value === category ? 'default' : 'secondary'}
+                                    className={cn("cursor-pointer border", field.value !== category && "border-border")}
+                                >
+                                    {category}
+                                </Badge>
+                             </FormLabel>
+                            </FormItem>
+                        ))}
+                        </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+
             <FormField
               control={form.control}
               name="duration"

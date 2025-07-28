@@ -104,7 +104,7 @@ export default function TaskForm() {
   const router = useRouter();
   const { tasks: completedTasks } = useTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Work & Focus');
   const [presetTasks, setPresetTasks] = useState<Preset>(initialPresetTasks);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -120,19 +120,17 @@ export default function TaskForm() {
     setIsDialogOpen(true);
   };
 
-  const handleAddTask = (newTask: PresetTask) => {
-    if (selectedCategory) {
-        setPresetTasks(prev => {
-            const updatedCategory = {
-                ...prev[selectedCategory],
-                tasks: [...prev[selectedCategory].tasks, newTask]
-            };
-            return {
-                ...prev,
-                [selectedCategory]: updatedCategory
-            };
-        });
-    }
+  const handleAddTask = (newTask: PresetTask, category: string) => {
+    setPresetTasks(prev => {
+        const updatedCategory = {
+            ...prev[category],
+            tasks: [...prev[category].tasks, newTask]
+        };
+        return {
+            ...prev,
+            [category]: updatedCategory
+        };
+    });
   };
 
   const visiblePresetTasks = useMemo(() => {
@@ -286,7 +284,8 @@ export default function TaskForm() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onAddTask={handleAddTask}
-        category={selectedCategory ?? ""}
+        initialCategory={selectedCategory}
+        categories={Object.keys(presetTasks)}
       />
     </>
   );
