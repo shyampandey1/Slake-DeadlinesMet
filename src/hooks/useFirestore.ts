@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -176,12 +177,15 @@ export function usePresetTasks() {
             
             const newPresets: Preset = JSON.parse(JSON.stringify(initialPresetTasks));
 
+            // Clear dynamic tasks before adding them again
+            Object.keys(newPresets).forEach(category => {
+                newPresets[category].tasks = newPresets[category].tasks.filter(t => !t.id);
+            });
+
+
             userTasks.forEach(task => {
                 if (newPresets[task.category]) {
-                    // Avoid duplicates
-                    if (!newPresets[task.category].tasks.some(t => t.id === task.id)) {
-                        newPresets[task.category].tasks.push(task);
-                    }
+                    newPresets[task.category].tasks.push(task);
                 } else {
                     newPresets[task.category] = { color: "bg-gray-200 text-gray-800", tasks: [task] };
                 }
@@ -191,6 +195,7 @@ export function usePresetTasks() {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching preset tasks:", error);
+            setPresetTasks(initialPresetTasks);
             setLoading(false);
         });
 

@@ -1,11 +1,12 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, ListX, X } from 'lucide-react';
-import React, { useState } from "react";
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, Settings2, X } from 'lucide-react';
+import React, { useState, MouseEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -60,9 +61,8 @@ const iconMap: { [key: string]: React.ReactNode } = {
 
 export default function TaskForm() {
   const router = useRouter();
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [manageMode, setManageMode] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -72,8 +72,9 @@ export default function TaskForm() {
       duration: 25,
     },
   });
-
-  const handleStartTaskFromPreset = (preset: UserPresetTask) => {
+  
+  const handlePresetClick = (preset: UserPresetTask, category: string, e: MouseEvent<HTMLButtonElement>) => {
+    // A regular click starts the timer
     const params = new URLSearchParams({
       task: preset.name,
       duration: preset.duration.toString(),
@@ -124,14 +125,9 @@ export default function TaskForm() {
                 <div key={category}>
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="font-semibold text-foreground">{category}</h3>
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(undefined, category)}>
-                                <Plus className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                            <Button variant={manageMode ? 'default' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setManageMode(!manageMode)}>
-                               {manageMode ? <X className="h-4 w-4" /> : <ListX className="h-4 w-4 text-muted-foreground" />}
-                            </Button>
-                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(undefined, category)}>
+                            <Plus className="h-4 w-4 text-muted-foreground" />
+                        </Button>
                     </div>
                     <Carousel
                         opts={{
@@ -141,13 +137,11 @@ export default function TaskForm() {
                         className="w-full"
                     >
                         <CarouselContent>
-                           {tasks.map((preset, index) => (
-                            <CarouselItem key={preset.id || index} className="basis-auto">
+                           {tasks.map((preset) => (
+                            <CarouselItem key={preset.id || preset.name} className="basis-auto group relative">
                                 <button
-                                    className={cn(
-                                        "w-full text-sm justify-between py-3 px-4 border rounded-lg flex items-center transition-all duration-300 transform",
-                                    )}
-                                    onClick={() => handleStartTaskFromPreset(preset)}
+                                    className="w-full"
+                                    onClick={(e) => handlePresetClick(preset, category, e)}
                                 >
                                     <Badge
                                          className={cn(
@@ -163,14 +157,14 @@ export default function TaskForm() {
                                         <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
                                     </Badge>
                                 </button>
-                                {manageMode && !isDefaultTask(preset) && (
-                                     <button
-                                        onClick={() => handleDeleteTask(preset.id!)}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 z-10"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                )}
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleOpenDialog(preset, category)}
+                                >
+                                    <Settings2 className="h-4 w-4"/>
+                                </Button>
                             </CarouselItem>
                            ))}
                         </CarouselContent>
