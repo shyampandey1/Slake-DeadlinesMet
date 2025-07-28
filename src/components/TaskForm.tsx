@@ -149,9 +149,9 @@ export default function TaskForm() {
             
             <div>
                  <CardDescription className="mb-4 text-center">Or select a preset task</CardDescription>
-                <div className="space-y-4">
+                <div className="flex flex-wrap justify-center gap-6">
                 {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
-                    <div key={category}>
+                    <div key={category} className="flex-shrink-0">
                     <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
                     <div className="flex flex-wrap gap-2">
                         {tasks.map((preset) => (
