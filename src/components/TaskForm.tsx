@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
 
@@ -74,7 +75,17 @@ export default function TaskForm() {
                 <FormItem>
                   <FormLabel>Duration (in minutes)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="25" {...field} />
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={1}
+                        max={120}
+                        step={1}
+                        value={[field.value]}
+                        onValueChange={(value) => field.onChange(value[0])}
+                        className="w-full"
+                      />
+                      <span className="w-12 text-center font-bold text-primary">{field.value}</span>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
