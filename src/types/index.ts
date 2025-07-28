@@ -1,4 +1,6 @@
 
+import { z } from 'zod';
+
 export type Task = {
   id: string;
   userId: string;
@@ -13,3 +15,10 @@ export type MockUser = {
   email: string;
   isMockUser: true;
 }
+
+export const MusicTrackSchema = z.object({
+  vibe: z.string().describe('The vibe or category of the music (e.g., Focus, Relax, Boost).'),
+  trackName: z.string().describe('The name of the music track.'),
+  trackUrl: z.string().url().describe('A URL to a royalty-free music track that fits the vibe.'),
+});
+export type MusicTrack = z.infer<typeof MusicTrackSchema>;

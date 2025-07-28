@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getMusicLibrary, MusicTrack } from '@/ai/flows/get-music-library';
+import { getMusicLibrary } from '@/ai/flows/get-music-library';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Music, Music2, Music3, Music4, Loader2 } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { MusicTrack } from '@/types';
 
 export default function MusicPlayer() {
   const [library, setLibrary] = useState<MusicTrack[]>([]);

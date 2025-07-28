@@ -3,19 +3,12 @@
  * @fileOverview Fetches a library of royalty-free music categorized by vibe.
  *
  * - getMusicLibrary - A function that returns a library of music tracks.
- * - MusicTrackSchema - The schema for a single music track.
  * - GetMusicLibraryOutput - The return type for the getMusicLibrary function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-export const MusicTrackSchema = z.object({
-  vibe: z.string().describe('The vibe or category of the music (e.g., Focus, Relax, Boost).'),
-  trackName: z.string().describe('The name of the music track.'),
-  trackUrl: z.string().url().describe('A URL to a royalty-free music track that fits the vibe.'),
-});
-export type MusicTrack = z.infer<typeof MusicTrackSchema>;
+import { MusicTrackSchema } from '@/types';
 
 const GetMusicLibraryOutputSchema = z.object({
     tracks: z.array(MusicTrackSchema),
