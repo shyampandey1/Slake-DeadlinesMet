@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Trash2, ShoppingBag } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
 import React, { useMemo, useState } from "react";
 
@@ -100,7 +100,7 @@ const iconMap: { [key: string]: React.ReactNode } = {
     BookOpen: <BookOpen className="mr-2 h-4 w-4" />,
     Plus: <Plus className="mr-2 h-4 w-4" />,
     Wrench: <Wrench className="mr-2 h-4 w-4" />,
-    Trash2: <Trash2 className="mr-2 h-4 w-4" />,
+    Target: <Target className="mr-2 h-4 w-4" />,
     ShoppingBag: <ShoppingBag className="mr-2 h-4 w-4" />,
 };
 
