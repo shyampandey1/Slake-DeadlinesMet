@@ -250,7 +250,7 @@ export default function TaskForm() {
                                                     {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
                                                     <span>{preset.name}</span>
                                                 </div>
-                                                <span className="text-xs opacity-75">{preset.duration}</span>
+                                                <span className="text-xs opacity-75">{preset.duration} min</span>
                                             </Badge>
                                             {editingCategory === category && !isDefaultTask(preset, category) && (
                                                 <button
