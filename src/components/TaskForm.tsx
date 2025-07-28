@@ -246,11 +246,11 @@ export default function TaskForm() {
                                                 className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color, editingCategory ? "cursor-default" : "cursor-pointer")}
                                                 onClick={() => handlePresetClick(preset)}
                                             >
-                                                <div className="flex items-center">
+                                                <div className="flex items-center flex-1 min-w-0">
                                                     {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                    <span>{preset.name}</span>
+                                                    <span className="truncate">{preset.name}</span>
                                                 </div>
-                                                <span className="text-xs opacity-75">{preset.duration} min</span>
+                                                <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
                                             </Badge>
                                             {editingCategory === category && !isDefaultTask(preset, category) && (
                                                 <button
@@ -356,3 +356,4 @@ export default function TaskForm() {
     
 
     
+
