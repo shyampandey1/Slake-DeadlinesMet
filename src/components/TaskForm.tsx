@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen } from 'lucide-react';
+import { isToday, parseISO } from 'date-fns';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,8 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { useTasks } from "@/hooks/useFirestore";
+import { useMemo } from "react";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -35,38 +38,51 @@ const formSchema = z.object({
 });
 
 const presetTasks = {
-    'Work & Productivity': {
+    'Morning Routine': {
         color: "bg-sky-200/80 text-sky-900 hover:bg-sky-200 dark:bg-sky-800/60 dark:text-sky-100 dark:hover:bg-sky-800",
         tasks: [
             { name: 'Plan Day', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
-            { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
+            { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
+            { name: 'Stretching', duration: 10, icon: <StretchHorizontal className="mr-2 h-4 w-4" /> },
+            { name: 'Workout', duration: 45, icon: <Dumbbell className="mr-2 h-4 w-4" /> },
+        ]
+    },
+    'Work & Focus': {
+        color: "bg-blue-200/80 text-blue-900 hover:bg-blue-200 dark:bg-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-800",
+        tasks: [
             { name: 'Deep Work', duration: 90, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
+            { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
             { name: 'Check Emails', duration: 15, icon: <Mail className="mr-2 h-4 w-4" /> },
             { name: 'Stand-up', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
         ]
     },
-    'Health & Wellness': {
-        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
-        tasks: [
-            { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-2 h-4 w-4" /> },
-            { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
-            { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
-            { name: 'Workout', duration: 60, icon: <Dumbbell className="mr-2 h-4 w-4" /> },
-            { name: 'Stretching', duration: 10, icon: <StretchHorizontal className="mr-2 h-4 w-4" /> },
-        ]
-    },
-    'Breaks': {
+    'Breaks & Meals': {
         color: "bg-amber-200/80 text-amber-900 hover:bg-amber-200 dark:bg-amber-800/60 dark:text-amber-100 dark:hover:bg-amber-800",
         tasks: [
             { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" /> },
             { name: 'Walk', duration: 15, icon: <Footprints className="mr-2 h-4 w-4" /> },
+            { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
             { name: 'Breathing Practice', duration: 5, icon: <Wind className="mr-2 h-4 w-4" /> },
+        ]
+    },
+    'Health Reminders': {
+        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
+        tasks: [
+            { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-2 h-4 w-4" /> },
+        ]
+    },
+    'Evening Wind-down': {
+        color: "bg-indigo-200/80 text-indigo-900 hover:bg-indigo-200 dark:bg-indigo-800/60 dark:text-indigo-100 dark:hover:bg-indigo-800",
+        tasks: [
+            { name: 'Read a book', duration: 30, icon: <BookOpen className="mr-2 h-4 w-4" /> },
+            { name: 'Journal', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
         ]
     }
 };
 
 export default function TaskForm() {
   const router = useRouter();
+  const { tasks: completedTasks } = useTasks();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,6 +91,24 @@ export default function TaskForm() {
       duration: 25,
     },
   });
+
+  const visiblePresetTasks = useMemo(() => {
+    const completedToday = completedTasks
+      .filter(task => task.completed && task.createdAt && isToday(parseISO(task.createdAt)))
+      .map(task => task.name);
+  
+    const filteredTasks: typeof presetTasks = {};
+  
+    for (const category in presetTasks) {
+      const { tasks, color } = presetTasks[category as keyof typeof presetTasks];
+      const remaining = tasks.filter(task => !completedToday.includes(task.name));
+  
+      if (remaining.length > 0) {
+        filteredTasks[category as keyof typeof presetTasks] = { tasks: remaining, color };
+      }
+    }
+    return filteredTasks;
+  }, [completedTasks]);
   
   const handlePresetClick = (preset: {name: string, duration: number}) => {
     form.setValue('taskName', preset.name);
@@ -110,7 +144,7 @@ export default function TaskForm() {
             variant="subtle"
             >
                 <CarouselContent>
-                    {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
+                    {Object.entries(visiblePresetTasks).map(([category, {tasks, color}]) => (
                         <CarouselItem key={category} className="basis-auto md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
                                 <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
