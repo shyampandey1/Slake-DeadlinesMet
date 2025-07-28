@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -78,7 +78,7 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       form.reset({
         taskName: "",
