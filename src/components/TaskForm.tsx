@@ -170,7 +170,7 @@ export default function TaskForm() {
                                             <Button
                                                 variant="secondary"
                                                 size="icon"
-                                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={() => handleOpenDialog(preset, category)}
                                             >
                                                 <Settings2 className="h-4 w-4"/>
