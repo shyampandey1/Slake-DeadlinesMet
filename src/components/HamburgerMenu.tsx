@@ -39,7 +39,7 @@ export default function HamburgerMenu() {
 
   return (
     <>
-      <Button variant="outline" size="icon" onClick={toggleMenu} className="relative z-50">
+      <Button variant="outline" size="icon" onClick={toggleMenu} className="relative z-[60]">
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         <span className="sr-only">Toggle menu</span>
       </Button>
