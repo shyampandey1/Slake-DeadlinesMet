@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2 } from "lucide-react";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Trash2, Wrench, ShoppingBag } from "lucide-react";
 import type { PresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
@@ -67,6 +67,10 @@ const icons: {name: string, icon: LucideIcon}[] = [
     { name: "Wind", icon: Wind },
     { name: "Droplets", icon: Droplets },
     { name: "BookOpen", icon: BookOpen },
+    { name: "Utensils", icon: Utensils },
+    { name: "Trash2", icon: Trash2 },
+    { name: "Wrench", icon: Wrench },
+    { name: "ShoppingBag", icon: ShoppingBag },
 ];
 const iconNames = icons.map(i => i.name);
 
