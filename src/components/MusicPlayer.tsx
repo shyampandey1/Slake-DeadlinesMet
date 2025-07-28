@@ -40,27 +40,19 @@ export default function MusicPlayer() {
     fetchLibrary();
   }, []);
   
-  useEffect(() => {
-    if (isPlaying) {
-      audioRef.current?.play().catch(e => console.error("Error playing audio:", e));
-    } else {
-      audioRef.current?.pause();
-    }
-  }, [isPlaying]);
-
   const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+    }
   };
   
   const handleTrackChange = (trackName: string) => {
     const newTrack = library.find(t => t.trackName === trackName);
     if (newTrack && newTrack.trackName !== currentTrack?.trackName) {
       setCurrentTrack(newTrack);
-      // If a track is already playing, keep it playing
-      if (isPlaying && audioRef.current) {
-         // The useEffect listening on currentTrack will handle loading and playing
-         setTimeout(() => audioRef.current?.play(), 50);
-      }
     }
   };
   
@@ -68,7 +60,7 @@ export default function MusicPlayer() {
       if (currentTrack && audioRef.current) {
           audioRef.current.src = currentTrack.trackUrl;
           if (isPlaying) {
-              audioRef.current.load();
+              audioRef.current.load(); // Important: load the new source
               audioRef.current.play().catch(e => console.error("Error playing new track:", e));
           }
       }
@@ -87,7 +79,6 @@ export default function MusicPlayer() {
     <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
       <audio 
         ref={audioRef}
-        src={currentTrack?.trackUrl}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         loop 
