@@ -75,7 +75,12 @@ export default function TaskForm() {
   const handlePresetClick = (preset: {name: string, duration: number}) => {
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
-    onSubmit(form.getValues());
+    
+    // Find the form and scroll to it.
+    const formElement = document.querySelector('form');
+    if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
 
