@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +40,7 @@ const presetTasks = {
         tasks: [
             { name: 'Plan Day', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
             { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
+            { name: 'Deep Work', duration: 90, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
             { name: 'Check Emails', duration: 15, icon: <Mail className="mr-2 h-4 w-4" /> },
             { name: 'Stand-up', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
         ]
@@ -47,9 +48,11 @@ const presetTasks = {
     'Health & Wellness': {
         color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
         tasks: [
-            { name: 'Drink Water', duration: 2, icon: <Droplets className="mr-2 h-4 w-4" /> },
+            { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-2 h-4 w-4" /> },
             { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
             { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
+            { name: 'Workout', duration: 60, icon: <Dumbbell className="mr-2 h-4 w-4" /> },
+            { name: 'Stretching', duration: 10, icon: <StretchHorizontal className="mr-2 h-4 w-4" /> },
         ]
     },
     'Breaks': {
@@ -76,7 +79,6 @@ export default function TaskForm() {
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
     
-    // Find the form and scroll to it.
     const formElement = document.querySelector('form');
     if (formElement) {
         formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -102,13 +104,13 @@ export default function TaskForm() {
         <div className="mb-8">
             <Carousel opts={{
                 align: "start",
-                loop: true,
+                loop: false,
             }}
             variant="subtle"
             >
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
-                        <CarouselItem key={category} className="basis-1/1 md:basis-1/2 lg:basis-1/3">
+                        <CarouselItem key={category} className="basis-auto md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
                                 <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
                                 <div className="flex flex-col gap-2">
