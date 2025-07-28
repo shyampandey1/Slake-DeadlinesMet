@@ -38,14 +38,14 @@ interface TimerDisplayProps {
 type FlashState = 'none' | 'three-times' | 'continuous';
 
 const CircularProgress = ({ progress, children }: { progress: number, children: React.ReactNode }) => {
-    const radius = 90;
-    const stroke = 10;
+    const radius = 95;
+    const stroke = 5;
     const normalizedRadius = radius - stroke * 2;
     const circumference = normalizedRadius * 2 * Math.PI;
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
-        <div className="relative w-72 h-72 sm:w-96 sm:h-96">
+        <div className="relative w-80 h-80 sm:w-[400px] sm:h-[400px]">
             <svg
                 height="100%"
                 width="100%"
@@ -53,7 +53,7 @@ const CircularProgress = ({ progress, children }: { progress: number, children: 
                 className="transform -rotate-90"
             >
                 <circle
-                    stroke="hsl(var(--secondary))"
+                    stroke="hsl(var(--muted))"
                     fill="transparent"
                     strokeWidth={stroke}
                     r={normalizedRadius}
