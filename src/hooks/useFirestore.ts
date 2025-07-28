@@ -179,9 +179,11 @@ export function usePresetTasks() {
 
             userTasks.forEach(task => {
                 if (newPresets[task.category]) {
-                    newPresets[task.category].tasks.push(task);
+                    // Avoid duplicates
+                    if (!newPresets[task.category].tasks.some(t => t.id === task.id)) {
+                        newPresets[task.category].tasks.push(task);
+                    }
                 } else {
-                    // Handle case where category might not exist in initial presets, though this shouldn't happen with current logic
                     newPresets[task.category] = { color: "bg-gray-200 text-gray-800", tasks: [task] };
                 }
             });
@@ -205,12 +207,11 @@ export function usePresetTasks() {
         });
     }, [user]);
     
-    const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id'> & { category: string }) => {
+    const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId'>) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
         const taskRef = doc(db, 'userPresetTasks', taskId);
         await updateDoc(taskRef, task);
     }, [user]);
-
 
     const deletePresetTask = useCallback(async (taskId: string) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;

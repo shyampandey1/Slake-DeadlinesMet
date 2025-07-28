@@ -4,28 +4,23 @@
 import TaskForm from '@/components/TaskForm';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import { CheckCircle } from 'lucide-react';
+import InfoDisplay from '@/components/InfoDisplay';
 
 function HomeComponent() {
 
   return (
     <main className="container mx-auto flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
-      <header className="w-full max-w-2xl flex justify-between items-start mb-12 mt-4">
-        <div className="flex items-center gap-3">
-          <CheckCircle className="w-10 h-10 text-yellow-500 flex-shrink-0" />
-          <div>
-            <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
-            <p className="text-muted-foreground sm:text-base">
-              Focus on one task at a time. Set your goal and go.
-            </p>
-          </div>
-        </div>
-        <div className="z-10">
-          <HamburgerMenu />
+      <header className="w-full max-w-4xl flex justify-between items-center mb-12 mt-4">
+        <h1 className="text-xl font-bold font-headline text-foreground/80">DeadlinesMet</h1>
+        <div className="flex items-center gap-2">
+            <InfoDisplay />
+            <div className="z-10">
+            <HamburgerMenu />
+            </div>
         </div>
       </header>
 
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-4xl">
         <section className="mb-8">
           <TaskForm />
         </section>

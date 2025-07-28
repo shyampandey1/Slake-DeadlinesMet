@@ -5,9 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag, X } from 'lucide-react';
-import { isToday, parseISO } from 'date-fns';
-import React, { useMemo, useState } from "react";
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, ListX } from 'lucide-react';
+import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,17 +18,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
-import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
-import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
+import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
-import type { PresetTask, UserPresetTask } from "@/types";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import type { UserPresetTask } from "@/types";
 
 
 const formSchema = z.object({
@@ -64,12 +59,10 @@ const iconMap: { [key: string]: React.ReactNode } = {
 
 export default function TaskForm() {
   const router = useRouter();
-  const { tasks: completedTasks } = useTasks();
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
-  const [isCustomTaskOpen, setIsCustomTaskOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [editModes, setEditModes] = useState<Record<string, boolean>>({});
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -98,43 +91,20 @@ export default function TaskForm() {
 
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
+    setIsDialogOpen(false);
   };
   
   const handleStartTaskFromPreset = (preset: UserPresetTask) => {
-     setIsCustomTaskOpen(true);
-     form.setValue('taskName', preset.name);
-     form.setValue('duration', preset.duration);
-    
-     setTimeout(() => {
-         const formElement = document.getElementById('custom-task-form');
-         if (formElement) {
-             formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-         }
-     }, 100);
+    const params = new URLSearchParams({
+        task: preset.name,
+        duration: preset.duration.toString(),
+    });
+    router.push(`/timer?${params.toString()}`);
   }
-
-  const visiblePresetTasks = useMemo(() => {
-    const completedToday = completedTasks
-      .filter(task => task.completed && task.createdAt && isToday(parseISO(task.createdAt)))
-      .map(task => task.name);
   
-    const filteredTasks: typeof presetTasks = {};
-  
-    for (const category in presetTasks) {
-      const { tasks, color } = presetTasks[category];
-      const remaining = tasks.filter(task => !completedToday.includes(task.name) || task.recurring);
-  
-      if (remaining.length > 0) {
-        filteredTasks[category] = { tasks: remaining, color };
-      }
-    }
-    return filteredTasks;
-  }, [completedTasks, presetTasks]);
-
-  const toggleCategoryExpansion = (category: string) => {
-    setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
-  };
-
+  const toggleEditMode = (category: string) => {
+    setEditModes(prev => ({...prev, [category]: !prev[category]}));
+  }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const params = new URLSearchParams({
@@ -146,135 +116,116 @@ export default function TaskForm() {
 
   return (
     <>
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
-        <CardDescription>Click a task to start a timer, or long-press to customize it. Add your own tasks with the (+) button.</CardDescription>
+        <CardTitle className="font-headline text-2xl">Start a Task</CardTitle>
+        <CardDescription>Choose a preset task or create a new one to begin your focus session.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-8">
-            <Carousel opts={{
-                align: "start",
-                loop: false,
-            }}
-            variant="subtle"
-            >
-                <CarouselContent>
-                    {Object.entries(visiblePresetTasks).map(([category, {tasks, color}]) => {
-                        const isExpanded = expandedCategories[category];
-                        const displayTasks = isExpanded ? tasks : tasks.slice(0, 3);
-                        return (
-                            <CarouselItem key={category} className="basis-auto md:basis-1/2 lg:basis-1/3">
-                                <div className="p-1">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(undefined, category)}>
-                                            <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
-                                        </Button>
+        <div className="space-y-6">
+            {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+                <div key={category}>
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-foreground">{category}</h3>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(undefined, category)}>
+                                <Plus className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleEditMode(category)}>
+                                <ListX className={cn("h-4 w-4 text-muted-foreground", editModes[category] && "text-destructive")} />
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {tasks.map((preset) => (
+                           <div key={preset.id || preset.name} className="relative group">
+                                <button
+                                    className={cn(
+                                        "w-full text-sm justify-between py-3 px-4 border rounded-lg flex items-center transition-all duration-200",
+                                        color,
+                                        "hover:shadow-md hover:-translate-y-1"
+                                    )}
+                                    onClick={() => handleStartTaskFromPreset(preset)}
+                                >
+                                    <div className="flex items-center flex-1 min-w-0">
+                                        {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                        <span className="truncate font-medium">{preset.name}</span>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        {displayTasks.map((preset) => (
-                                          <div key={preset.id || preset.name}>
-                                            <Badge
-                                                variant="secondary"
-                                                className={cn("w-full text-sm justify-between py-2 px-3 border-transparent cursor-pointer", color)}
-                                                onClick={() => handleStartTaskFromPreset(preset)}
-                                                onContextMenu={(e) => {
-                                                  e.preventDefault();
-                                                  handleOpenDialog(preset, category);
-                                                }}
-                                            >
-                                                <div className="flex items-center flex-1 min-w-0">
-                                                    {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                    <span className="truncate">{preset.name}</span>
-                                                </div>
-                                                <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                            </Badge>
-                                          </div>
-                                        ))}
-                                        {tasks.length > 3 && !isExpanded && (
-                                            <Button variant="link" size="sm" onClick={() => toggleCategoryExpansion(category)}>
-                                                More...
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </CarouselItem>
-                        )
-                    })}
-                </CarouselContent>
-                <CarouselPrevious />
-                <CarouselNext />
-            </Carousel>
+                                    <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                </button>
+                                {editModes[category] && !isDefaultTask(preset) && (
+                                     <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-background border border-border shadow-md"
+                                        onClick={() => handleOpenDialog(preset, category)}
+                                     >
+                                         <Wrench className="h-3 w-3 text-muted-foreground" />
+                                     </Button>
+                                )}
+                           </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
         
-        <Separator />
+        <Separator className="my-8" />
 
-        <Collapsible open={isCustomTaskOpen} onOpenChange={setIsCustomTaskOpen}>
-            <CollapsibleTrigger asChild>
-                <div className="flex justify-center items-center cursor-pointer py-4 text-sm text-muted-foreground hover:text-foreground">
-                    <span>Or create a custom task</span>
-                    <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", isCustomTaskOpen && "rotate-180")} />
+        <div>
+            <h3 className="font-headline text-xl mb-4">Or Create a Custom One-Off Task</h3>
+            <Form {...form}>
+            <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                        <FormField
+                            control={form.control}
+                            name="taskName"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Task Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Design the main page" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <div>
+                        <FormField
+                            control={form.control}
+                            name="duration"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Duration (min)</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={120}
+                                        {...field}
+                                        className="text-center font-bold"
+                                        onChange={(e) => {
+                                            const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                            field.onChange(value);
+                                        }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                 </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-                <Form {...form}>
-                <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                    <FormField
-                    control={form.control}
-                    name="taskName"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Task Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Design the main page" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
 
-                    <FormField
-                    control={form.control}
-                    name="duration"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Duration (in minutes)</FormLabel>
-                        <FormControl>
-                            <div className="flex items-center gap-4">
-                            <Slider
-                                min={1}
-                                max={120}
-                                step={1}
-                                value={[field.value]}
-                                onValueChange={(value) => field.onChange(value[0])}
-                                className="w-full"
-                            />
-                            <Input
-                                type="number"
-                                min={1}
-                                max={120}
-                                {...field}
-                                className="w-24 text-center font-bold text-primary text-lg"
-                                onChange={(e) => {
-                                    const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                                    field.onChange(value);
-                                }}
-                            />
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                    <Rocket className="mr-2 h-4 w-4" />
-                    Start Custom Timer
-                    </Button>
-                </form>
-                </Form>
-            </CollapsibleContent>
-        </Collapsible>
+                <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <Rocket className="mr-2 h-4 w-4" />
+                Start Custom Timer
+                </Button>
+            </form>
+            </Form>
+        </div>
       </CardContent>
     </Card>
     <AddTaskDialog

@@ -38,6 +38,7 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { suggestTaskDetails } from "@/ai/flows/suggest-task-details";
 import { suggestTaskName } from "@/ai/flows/suggest-task-name";
+import { usePresetTasks } from "@/hooks/useFirestore";
 
 interface AddTaskDialogProps {
   isOpen: boolean;
@@ -82,6 +83,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
   const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const taskNameDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { isDefaultTask } = usePresetTasks();
   
   const isEditMode = !!initialTask?.id;
 
@@ -337,7 +339,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
               )}
             />
             <DialogFooter className="sm:justify-between">
-                {isEditMode && (
+                {isEditMode && initialTask && !isDefaultTask(initialTask) && (
                     <Button type="button" variant="destructive" onClick={handleDelete} className="sm:mr-auto">
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete Task
