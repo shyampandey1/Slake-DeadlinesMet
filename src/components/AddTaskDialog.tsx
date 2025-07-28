@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,10 +32,11 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets } from "lucide-react";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2 } from "lucide-react";
 import type { PresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { suggestTaskIcon } from "@/ai/flows/suggest-task-icon";
 
 interface AddTaskDialogProps {
   isOpen: boolean;
@@ -66,8 +67,13 @@ const icons: {name: string, icon: LucideIcon}[] = [
     { name: "Droplets", icon: Droplets },
     { name: "BookOpen", icon: BookOpen },
 ];
+const iconNames = icons.map(i => i.name);
+
 
 export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCategory, categories }: AddTaskDialogProps) {
+  const [isAnalyzingIcon, setIsAnalyzingIcon] = useState(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -77,6 +83,32 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
       category: initialCategory,
     },
   });
+
+  const taskNameValue = form.watch("taskName");
+
+  useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    if (taskNameValue) {
+      setIsAnalyzingIcon(true);
+      debounceTimeoutRef.current = setTimeout(async () => {
+        try {
+          const result = await suggestTaskIcon({ taskName: taskNameValue, availableIcons: iconNames });
+          if (result.iconName && iconNames.includes(result.iconName)) {
+            form.setValue('icon', result.iconName, { shouldValidate: true });
+          }
+        } catch (error) {
+            console.error("Failed to suggest icon:", error);
+        } finally {
+          setIsAnalyzingIcon(false);
+        }
+      }, 500); // 500ms debounce
+    } else {
+        setIsAnalyzingIcon(false);
+    }
+  }, [taskNameValue, form]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -176,10 +208,18 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
               name="icon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Icon</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel className="flex items-center gap-2">
+                        Icon
+                        {isAnalyzingIcon && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Analyzing...
+                            </span>
+                        )}
+                    </FormLabel>
+                   <Select onValueChange={field.onChange} value={field.value}>
                      <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger disabled={isAnalyzingIcon}>
                         <SelectValue placeholder="Select an icon" />
                       </SelectTrigger>
                      </FormControl>
