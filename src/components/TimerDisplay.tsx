@@ -35,6 +35,8 @@ interface TimerDisplayProps {
   initialDuration: number; // in minutes
 }
 
+type FlashState = 'none' | 'three-times' | 'continuous';
+
 export default function TimerDisplay({ taskName, initialDuration }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
@@ -44,7 +46,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [isEndingSoon, setIsEndingSoon] = useState(false);
+  const [flashState, setFlashState] = useState<FlashState>('none');
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const tickAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -70,10 +72,17 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
         if (prev <= 1) {
           stopTimer();
           setIsFinished(true);
+          setFlashState('none');
           return 0;
         }
-        if (prev <= 11) { // Start flashing and ticking at 10 seconds
-            setIsEndingSoon(true);
+        
+        if (prev <= 4) {
+          setFlashState('continuous');
+        } else if (prev <= 11) {
+          setFlashState('three-times');
+        }
+
+        if (prev <= 11) { 
             playTickSound();
         }
         return prev - 1;
@@ -138,7 +147,10 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   return (
     <main className={cn(
         "relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 transition-colors duration-500",
-        isEndingSoon && "animate-flash"
+        {
+            'animate-flash-three-times': flashState === 'three-times',
+            'animate-flash-continuous': flashState === 'continuous',
+        }
     )}>
       <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <InfoDisplay />
