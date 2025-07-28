@@ -65,11 +65,10 @@ const iconMap: { [key: string]: React.ReactNode } = {
 export default function TaskForm() {
   const router = useRouter();
   const { tasks: completedTasks } = useTasks();
-  const { presetTasks, addPresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('Work & Focus');
+  const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [isCustomTaskOpen, setIsCustomTaskOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<UserPresetTask | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,19 +79,39 @@ export default function TaskForm() {
     },
   });
 
-  const handleOpenDialog = (category: string) => {
-    setSelectedCategory(category);
+  const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
+    const initialTask = task && category ? { ...task, category } : undefined;
+    setTaskToEdit(initialTask);
     setIsDialogOpen(true);
   };
 
-  const handleAddTask = async (newTask: PresetTask, category: string) => {
-    await addPresetTask({ ...newTask, category });
+  const handleSaveTask = async (
+    taskData: Omit<UserPresetTask, 'id'> & { category: string },
+    taskId?: string
+  ) => {
+    if (taskId) {
+      await updatePresetTask(taskId, taskData);
+    } else {
+      await addPresetTask(taskData);
+    }
   };
 
-  const handleDeleteTask = async (taskToDelete: UserPresetTask) => {
-    await deletePresetTask(taskToDelete.id!);
-    setTaskToDelete(null);
+  const handleDeleteTask = async (taskId: string) => {
+    await deletePresetTask(taskId);
   };
+  
+  const handleStartTaskFromPreset = (preset: UserPresetTask) => {
+     setIsCustomTaskOpen(true);
+     form.setValue('taskName', preset.name);
+     form.setValue('duration', preset.duration);
+    
+     setTimeout(() => {
+         const formElement = document.getElementById('custom-task-form');
+         if (formElement) {
+             formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         }
+     }, 100);
+  }
 
   const visiblePresetTasks = useMemo(() => {
     const completedToday = completedTasks
@@ -111,31 +130,6 @@ export default function TaskForm() {
     }
     return filteredTasks;
   }, [completedTasks, presetTasks]);
-  
-  const handlePresetClick = (preset: UserPresetTask, category: string) => {
-    const isCustom = !isDefaultTask(preset);
-    
-    if (isCustom) {
-        if (taskToDelete?.id === preset.id) {
-            setTaskToDelete(null);
-        } else {
-            setTaskToDelete(preset);
-        }
-        return; 
-    }
-    
-    setTaskToDelete(null);
-    setIsCustomTaskOpen(true);
-    form.setValue('taskName', preset.name);
-    form.setValue('duration', preset.duration);
-    
-    setTimeout(() => {
-        const formElement = document.querySelector('form');
-        if (formElement) {
-            formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, 100);
-  };
 
   const toggleCategoryExpansion = (category: string) => {
     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
@@ -155,7 +149,7 @@ export default function TaskForm() {
     <Card>
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
-        <CardDescription>Choose a task, or create a custom one below. Tap custom tasks to manage them.</CardDescription>
+        <CardDescription>Click a task to start a timer, or long-press to customize it. Add your own tasks with the (+) button.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-8">
@@ -174,62 +168,30 @@ export default function TaskForm() {
                                 <div className="p-1">
                                     <div className="flex items-center justify-between mb-2">
                                         <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(category)}>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(undefined, category)}>
                                             <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
                                         </Button>
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        {displayTasks.map((preset) => {
-                                            const isCustom = !isDefaultTask(preset);
-                                            const isSelectedForDelete = isCustom && taskToDelete?.id === preset.id;
-                                            return (
-                                            <div
-                                                key={preset.id || preset.name}
-                                                className="relative flex items-center gap-2"
-                                                onClick={() => isCustom && handlePresetClick(preset, category)}
-                                                onTouchStart={() => isCustom && handlePresetClick(preset, category)}
+                                        {displayTasks.map((preset) => (
+                                          <div key={preset.id || preset.name}>
+                                            <Badge
+                                                variant="secondary"
+                                                className={cn("w-full text-sm justify-between py-2 px-3 border-transparent cursor-pointer", color)}
+                                                onClick={() => handleStartTaskFromPreset(preset)}
+                                                onContextMenu={(e) => {
+                                                  e.preventDefault();
+                                                  handleOpenDialog(preset, category);
+                                                }}
                                             >
-                                                <div
-                                                    className={cn(
-                                                        "flex-grow transition-transform duration-300 ease-in-out",
-                                                        isCustom ? "cursor-pointer" : "cursor-default",
-                                                        isSelectedForDelete && "-translate-x-10"
-                                                    )}
-                                                >
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color)}
-                                                    >
-                                                        <div className="flex items-center flex-1 min-w-0">
-                                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                            <span className="truncate">{preset.name}</span>
-                                                        </div>
-                                                        <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                                    </Badge>
+                                                <div className="flex items-center flex-1 min-w-0">
+                                                    {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                    <span className="truncate">{preset.name}</span>
                                                 </div>
-
-                                                {isCustom && (
-                                                    <div className={cn(
-                                                        "absolute top-0 right-0 flex items-center h-full transition-opacity duration-300 ease-in-out",
-                                                        isSelectedForDelete ? "opacity-100" : "opacity-0"
-                                                    )}>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDeleteTask(preset)
-                                                            }}
-                                                            className={cn(
-                                                                "flex items-center justify-center h-8 w-8 rounded-full bg-destructive text-destructive-foreground",
-                                                                !isSelectedForDelete && "pointer-events-none"
-                                                            )}
-                                                            aria-label={`Delete ${preset.name} task`}
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )})}
+                                                <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                            </Badge>
+                                          </div>
+                                        ))}
                                         {tasks.length > 3 && !isExpanded && (
                                             <Button variant="link" size="sm" onClick={() => toggleCategoryExpansion(category)}>
                                                 More...
@@ -257,7 +219,7 @@ export default function TaskForm() {
             </CollapsibleTrigger>
             <CollapsibleContent>
                 <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <FormField
                     control={form.control}
                     name="taskName"
@@ -318,8 +280,9 @@ export default function TaskForm() {
     <AddTaskDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        onAddTask={handleAddTask}
-        initialCategory={selectedCategory}
+        onSaveTask={handleSaveTask}
+        onDeleteTask={handleDeleteTask}
+        initialTask={taskToEdit}
         categories={Object.keys(presetTasks)}
       />
     </>

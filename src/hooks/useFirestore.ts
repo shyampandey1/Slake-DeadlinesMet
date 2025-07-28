@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
 
@@ -204,6 +204,13 @@ export function usePresetTasks() {
             userId: user.uid
         });
     }, [user]);
+    
+    const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id'> & { category: string }) => {
+        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        const taskRef = doc(db, 'userPresetTasks', taskId);
+        await updateDoc(taskRef, task);
+    }, [user]);
+
 
     const deletePresetTask = useCallback(async (taskId: string) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
@@ -212,5 +219,5 @@ export function usePresetTasks() {
 
     }, [user]);
 
-    return { presetTasks, loading, addPresetTask, deletePresetTask, isDefaultTask };
+    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask };
 }

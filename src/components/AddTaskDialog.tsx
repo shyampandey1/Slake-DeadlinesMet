@@ -32,8 +32,8 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag } from "lucide-react";
-import type { PresetTask } from "@/types";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2 } from "lucide-react";
+import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { suggestTaskDetails } from "@/ai/flows/suggest-task-details";
@@ -42,8 +42,9 @@ import { suggestTaskName } from "@/ai/flows/suggest-task-name";
 interface AddTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddTask: (task: PresetTask, category: string) => void;
-  initialCategory: string;
+  onSaveTask: (task: Omit<UserPresetTask, 'id'> & { category: string }, taskId?: string) => void;
+  onDeleteTask?: (taskId: string) => void;
+  initialTask?: UserPresetTask & { category: string };
   categories: string[];
 }
 
@@ -75,12 +76,14 @@ const icons: {name: string, icon: LucideIcon}[] = [
 const iconNames = icons.map(i => i.name);
 
 
-export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCategory, categories }: AddTaskDialogProps) {
+export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTask, initialTask, categories }: AddTaskDialogProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingTaskName, setIsAnalyzingTaskName] = useState(false);
   const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const taskNameDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const isEditMode = !!initialTask?.id;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,7 +91,7 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
       taskName: "",
       duration: 10,
       icon: "BrainCircuit",
-      category: initialCategory,
+      category: "Work & Focus",
     },
   });
 
@@ -157,14 +160,14 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        taskName: "",
-        duration: 10,
-        icon: "BrainCircuit",
-        category: initialCategory,
+        taskName: initialTask?.name ?? "",
+        duration: initialTask?.duration ?? 10,
+        icon: initialTask?.icon ?? "BrainCircuit",
+        category: initialTask?.category ?? "Work & Focus",
       });
       setTaskNameSuggestions([]);
     }
-  }, [isOpen, initialCategory, form]);
+  }, [isOpen, initialTask, form]);
 
   const handleSuggestionClick = (suggestion: string) => {
     form.setValue('taskName', suggestion);
@@ -172,22 +175,29 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    onAddTask({
+    onSaveTask({
         name: values.taskName,
         duration: values.duration,
         icon: values.icon,
-    }, values.category);
+        category: values.category
+    }, initialTask?.id);
     onClose();
-    form.reset();
   };
+
+  const handleDelete = () => {
+    if (isEditMode && onDeleteTask) {
+        onDeleteTask(initialTask.id!);
+    }
+    onClose();
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a new quick start task</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Task' : 'Add a New Quick Start Task'}</DialogTitle>
           <DialogDescription>
-            Customize your quick-start list by adding a new reusable task.
+            {isEditMode ? 'Modify the details of your task or delete it.' : 'Customize your quick-start list by adding a new reusable task.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -326,11 +336,19 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
                 </FormItem>
               )}
             />
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button type="button" variant="ghost">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Add Task</Button>
+            <DialogFooter className="sm:justify-between">
+                {isEditMode && (
+                    <Button type="button" variant="destructive" onClick={handleDelete} className="sm:mr-auto">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Task
+                    </Button>
+                )}
+                <div className="flex gap-2 justify-end">
+                    <DialogClose asChild>
+                        <Button type="button" variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Task'}</Button>
+                </div>
             </DialogFooter>
           </form>
         </Form>
