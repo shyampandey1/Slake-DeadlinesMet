@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { Coffee, Droplets, BookOpen, BrainCircuit } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -28,6 +30,13 @@ const formSchema = z.object({
     message: "Duration must be at least 1 minute.",
   }),
 });
+
+const presetTasks = [
+    { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-1 h-3 w-3" /> },
+    { name: 'Short Break', duration: 5, icon: <Coffee className="mr-1 h-3 w-3" /> },
+    { name: 'Read a book', duration: 15, icon: <BookOpen className="mr-1 h-3 w-3" /> },
+    { name: 'Deep Work', duration: 45, icon: <BrainCircuit className="mr-1 h-3 w-3" /> },
+];
 
 export default function TaskForm() {
   const router = useRouter();
@@ -39,6 +48,12 @@ export default function TaskForm() {
       duration: 25,
     },
   });
+  
+  const handlePresetClick = (preset: typeof presetTasks[0]) => {
+    form.setValue('taskName', preset.name);
+    form.setValue('duration', preset.duration);
+  };
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const params = new URLSearchParams({
@@ -69,6 +84,21 @@ export default function TaskForm() {
                 </FormItem>
               )}
             />
+
+            <div className="flex flex-wrap gap-2">
+                {presetTasks.map((preset) => (
+                    <Badge 
+                        key={preset.name} 
+                        variant="secondary" 
+                        className="cursor-pointer hover:bg-primary/20"
+                        onClick={() => handlePresetClick(preset)}
+                    >
+                        {preset.icon}
+                        {preset.name} - {preset.duration} min
+                    </Badge>
+                ))}
+            </div>
+
             <FormField
               control={form.control}
               name="duration"
