@@ -77,14 +77,14 @@ export default function MusicPlayer() {
   }
 
   return (
-    <div className="mt-8 flex items-center gap-2 p-2 rounded-lg bg-card/50">
+    <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50">
       <audio ref={audioRef} loop onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
       
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
       </Button>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col items-start">
          <Select onValueChange={handleTrackChange} defaultValue={currentTrack?.trackName}>
             <SelectTrigger className="w-[220px] border-0 bg-transparent shadow-none focus:ring-0">
                 <SelectValue placeholder="Select a vibe..." />
@@ -97,7 +97,7 @@ export default function MusicPlayer() {
                 ))}
             </SelectContent>
          </Select>
-         {currentTrack && <span className="text-xs text-muted-foreground ml-3 -mt-1">{currentTrack?.vibe}</span>}
+         {currentTrack && <span className="text-xs text-muted-foreground ml-3">{currentTrack?.vibe}</span>}
       </div>
     </div>
   );
