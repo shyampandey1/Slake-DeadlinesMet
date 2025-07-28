@@ -27,7 +27,6 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const formSchema = z.object({
@@ -120,72 +119,74 @@ export default function TaskForm() {
   return (
     <>
     <Card className="overflow-hidden">
-      <CardHeader>
-        <CardTitle className="font-headline text-2xl">Start a Task</CardTitle>
-        <CardDescription>Choose a preset task or create a new one to begin your focus session.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue={categories[0]} className="w-full">
-            <div className="flex items-center">
-              <TabsList>
-                {categories.map((category) => (
-                  <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
-                ))}
-              </TabsList>
-               <Button variant="ghost" size="icon" className="ml-auto h-8 w-8 shrink-0" onClick={() => handleOpenDialog(undefined, categories[0])}>
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-               </Button>
+        <CardHeader className="flex-row items-center justify-between">
+            <div>
+                <CardTitle className="font-headline text-2xl">Start a Task</CardTitle>
+                <CardDescription>Choose a preset task or create a new one.</CardDescription>
             </div>
-            {categories.map((category) => {
-                const { tasks, color } = presetTasks[category];
-                return (
-                    <TabsContent key={category} value={category} className="mt-4">
-                        <Carousel
-                            opts={{
-                                align: "start",
-                                dragFree: true,
-                            }}
-                            className="w-full"
-                        >
-                            <CarouselContent>
-                               {tasks.map((preset) => (
-                                <CarouselItem key={preset.id || preset.name} className="basis-auto group relative">
-                                    <button
-                                        className="w-full"
-                                        onClick={(e) => handlePresetClick(preset, category, e)}
-                                    >
-                                        <Badge
-                                             className={cn(
-                                                "w-full text-sm justify-between py-3 px-4 rounded-lg flex items-center transition-all duration-200",
-                                                color,
-                                                "hover:shadow-md hover:-translate-y-1"
-                                            )}
-                                        >
-                                            <div className="flex items-center flex-1 min-w-0">
-                                                {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                <span className="truncate font-medium">{preset.name}</span>
-                                            </div>
-                                            <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                        </Badge>
-                                    </button>
-                                    <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => handleOpenDialog(preset, category)}
-                                    >
-                                        <Settings2 className="h-4 w-4"/>
-                                    </Button>
-                                </CarouselItem>
-                               ))}
-                            </CarouselContent>
-                            <CarouselPrevious className="hidden sm:flex" />
-                            <CarouselNext className="hidden sm:flex" />
-                        </Carousel>
-                    </TabsContent>
-                )
-            })}
-        </Tabs>
+            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(undefined, categories[0])}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Task
+            </Button>
+        </CardHeader>
+      <CardContent>
+        <Carousel
+            opts={{
+                align: "start",
+            }}
+            className="w-full -ml-4"
+        >
+            <CarouselContent className="pl-2">
+                {categories.map((category) => {
+                    const { tasks, color } = presetTasks[category];
+                    return (
+                        <CarouselItem key={category} className="basis-11/12 md:basis-1/2 lg:basis-1/3 pl-2">
+                            <Card className="h-full">
+                                <CardHeader>
+                                    <CardTitle>{category}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex flex-wrap gap-2">
+                                        {tasks.map((preset) => (
+                                        <div key={preset.id || preset.name} className="group relative">
+                                            <button
+                                                className="w-full"
+                                                onClick={(e) => handlePresetClick(preset, category, e)}
+                                            >
+                                                <Badge
+                                                    className={cn(
+                                                        "text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200",
+                                                        color,
+                                                        "hover:shadow-md hover:-translate-y-0.5"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center flex-1 min-w-0">
+                                                        {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                        <span className="truncate font-medium">{preset.name}</span>
+                                                    </div>
+                                                    <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                                </Badge>
+                                            </button>
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => handleOpenDialog(preset, category)}
+                                            >
+                                                <Settings2 className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </CarouselItem>
+                    )
+                })}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex -left-2" />
+            <CarouselNext className="hidden sm:flex -right-2" />
+        </Carousel>
         
         <Separator className="my-8" />
 
