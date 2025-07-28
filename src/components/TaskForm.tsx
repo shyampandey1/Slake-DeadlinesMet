@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BookOpen, BrainCircuit } from 'lucide-react';
+import { Coffee, Droplets, BookOpen, BrainCircuit, Mail, ListChecks, Users } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,10 +32,12 @@ const formSchema = z.object({
 });
 
 const presetTasks = [
-    { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-1 h-3 w-3" /> },
+    { name: 'Plan Day', duration: 10, icon: <ListChecks className="mr-1 h-3 w-3" /> },
+    { name: 'Check Emails', duration: 15, icon: <Mail className="mr-1 h-3 w-3" /> },
+    { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-1 h-3 w-3" /> },
     { name: 'Short Break', duration: 5, icon: <Coffee className="mr-1 h-3 w-3" /> },
-    { name: 'Read a book', duration: 15, icon: <BookOpen className="mr-1 h-3 w-3" /> },
-    { name: 'Deep Work', duration: 45, icon: <BrainCircuit className="mr-1 h-3 w-3" /> },
+    { name: 'Stand-up', duration: 15, icon: <Users className="mr-1 h-3 w-3" /> },
+    { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-1 h-3 w-3" /> },
 ];
 
 export default function TaskForm() {
