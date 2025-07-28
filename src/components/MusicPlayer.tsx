@@ -28,7 +28,14 @@ export default function MusicPlayer() {
         const validTracks = musicLibrary.tracks.filter(t => t.trackUrl);
         setLibrary(validTracks);
         if (validTracks.length > 0) {
-          setCurrentTrack(validTracks[0]);
+          const initialTrack = validTracks[0];
+          setCurrentTrack(initialTrack);
+          if (typeof Audio !== "undefined") {
+            audioRef.current = new Audio(initialTrack.trackUrl);
+            audioRef.current.loop = true;
+            audioRef.current.onplay = () => setIsPlaying(true);
+            audioRef.current.onpause = () => setIsPlaying(false);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch music library:', error);
@@ -38,7 +45,6 @@ export default function MusicPlayer() {
     }
     fetchLibrary();
     
-    // Cleanup audio element on component unmount
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -48,30 +54,26 @@ export default function MusicPlayer() {
   }, []);
 
   useEffect(() => {
-    if (!audioRef.current) {
-        audioRef.current = new Audio();
-        audioRef.current.loop = true;
-        audioRef.current.onplay = () => setIsPlaying(true);
-        audioRef.current.onpause = () => setIsPlaying(false);
+    if (audioRef.current && currentTrack) {
+        if(audioRef.current.src !== currentTrack.trackUrl) {
+            audioRef.current.src = currentTrack.trackUrl;
+            audioRef.current.load();
+        }
+        if (isPlaying) {
+            audioRef.current.play().catch(e => console.error("Audio play failed on track change", e));
+        }
     }
-    
-    if (currentTrack?.trackUrl) {
-      if (audioRef.current.src !== currentTrack.trackUrl) {
-        audioRef.current.src = currentTrack.trackUrl;
-        audioRef.current.load();
-      }
-      
-      if (isPlaying) {
-        audioRef.current.play().catch(e => console.error("Audio play failed", e));
-      } else {
-        audioRef.current.pause();
-      }
-    }
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack]);
 
 
   const togglePlayPause = () => {
-    if (!currentTrack) return;
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+        audioRef.current.pause();
+    } else {
+        audioRef.current.play().catch(e => console.error("Audio play failed on toggle", e));
+    }
     setIsPlaying(!isPlaying);
   };
 
