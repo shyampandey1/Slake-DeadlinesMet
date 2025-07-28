@@ -31,7 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind } from "lucide-react";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets } from "lucide-react";
 import type { PresetTask } from "@/types";
 
 interface AddTaskDialogProps {
@@ -48,13 +48,18 @@ const formSchema = z.object({
 });
 
 const icons: {name: string, icon: LucideIcon}[] = [
-    { name: "BrainCircuit", icon: BrainCircuit },
-    { name: "Coffee", icon: Coffee },
+    { name: "ListChecks", icon: ListChecks },
+    { name: "Bed", icon: Bed },
+    { name: "StretchHorizontal", icon: StretchHorizontal },
     { name: "Dumbbell", icon: Dumbbell },
-    { name: "BookOpen", icon: BookOpen },
+    { name: "BrainCircuit", icon: BrainCircuit },
+    { name: "Mail", icon: Mail },
+    { name: "Users", icon: Users },
+    { name: "Coffee", icon: Coffee },
     { name: "Footprints", icon: Footprints },
     { name: "Wind", icon: Wind },
-    { name: "ListChecks", icon: ListChecks },
+    { name: "Droplets", icon: Droplets },
+    { name: "BookOpen", icon: BookOpen },
 ];
 
 export default function AddTaskDialog({ isOpen, onClose, onAddTask, category }: AddTaskDialogProps) {
@@ -153,4 +158,3 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, category }: 
     </Dialog>
   );
 }
-

@@ -46,7 +46,6 @@ const initialPresetTasks: Preset = {
             { name: 'Plan Day', duration: 15, icon: 'ListChecks' },
             { name: 'Meditate', duration: 10, icon: 'Bed' },
             { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
-            { name: 'Workout', duration: 45, icon: 'Dumbbell' },
         ]
     },
     'Work & Focus': {
@@ -58,6 +57,14 @@ const initialPresetTasks: Preset = {
             { name: 'Stand-up', duration: 15, icon: 'Users' },
         ]
     },
+    'Health & Wellness': {
+        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
+        tasks: [
+            { name: 'Workout', duration: 45, icon: 'Dumbbell' },
+            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
+            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true },
+        ]
+    },
     'Breaks & Meals': {
         color: "bg-amber-200/80 text-amber-900 hover:bg-amber-200 dark:bg-amber-800/60 dark:text-amber-100 dark:hover:bg-amber-800",
         tasks: [
@@ -65,12 +72,6 @@ const initialPresetTasks: Preset = {
             { name: 'Walk', duration: 15, icon: 'Footprints' },
             { name: 'Lunch Break', duration: 45, icon: 'Utensils' },
             { name: 'Breathing Practice', duration: 5, icon: 'Wind', recurring: true },
-        ]
-    },
-    'Health Reminders': {
-        color: "bg-green-200/80 text-green-900 hover:bg-green-200 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-800",
-        tasks: [
-            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true },
         ]
     },
     'Evening Wind-down': {
