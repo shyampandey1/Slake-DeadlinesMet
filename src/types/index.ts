@@ -19,6 +19,6 @@ export type MockUser = {
 export const MusicTrackSchema = z.object({
   vibe: z.string().describe('The vibe or category of the music (e.g., Focus, Relax, Boost).'),
   trackName: z.string().describe('The name of the music track.'),
-  trackUrl: z.string().url().describe('A URL to a royalty-free music track that fits the vibe.'),
+  trackUrl: z.string().describe('A URL to a royalty-free music track that fits the vibe.'),
 });
 export type MusicTrack = z.infer<typeof MusicTrackSchema>;
