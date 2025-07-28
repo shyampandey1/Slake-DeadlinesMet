@@ -77,17 +77,22 @@ export default function MusicPlayer() {
   }
 
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50">
+    <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
       <audio ref={audioRef} loop onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
       
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
       </Button>
 
-      <div className="flex flex-col items-start">
-         <Select onValueChange={handleTrackChange} defaultValue={currentTrack?.trackName}>
-            <SelectTrigger className="w-[220px] border-0 bg-transparent shadow-none focus:ring-0">
-                <SelectValue placeholder="Select a vibe..." />
+      <div className="w-[220px]">
+         <Select onValueChange={handleTrackChange} value={currentTrack?.trackName}>
+            <SelectTrigger className="border-0 bg-transparent shadow-none focus:ring-0">
+                <SelectValue asChild>
+                  <div className='flex flex-col items-start'>
+                    <span className='text-sm'>{currentTrack?.trackName}</span>
+                    <span className="text-xs text-muted-foreground">{currentTrack?.vibe}</span>
+                  </div>
+                </SelectValue>
             </SelectTrigger>
             <SelectContent>
                 {library.map((track) => (
@@ -97,7 +102,6 @@ export default function MusicPlayer() {
                 ))}
             </SelectContent>
          </Select>
-         {currentTrack && <span className="text-xs text-muted-foreground ml-3">{currentTrack?.vibe}</span>}
       </div>
     </div>
   );
