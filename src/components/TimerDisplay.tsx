@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -40,7 +41,7 @@ type FlashState = 'none' | 'three-times' | 'continuous';
 export default function TimerDisplay({ taskName, initialDuration }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
-  const { isAudioEnabled } = useAudio();
+  const { isAudioEnabled, requestAudioPermission } = useAudio();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -91,6 +92,10 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
       });
     }, 1000);
   }, [stopTimer, playTickSound]);
+
+  useEffect(() => {
+    requestAudioPermission();
+  }, [requestAudioPermission]);
 
   useEffect(() => {
     if (!isPaused) {
