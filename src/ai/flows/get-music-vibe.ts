@@ -26,32 +26,19 @@ export async function getMusicForTask(input: GetMusicForTaskInput): Promise<GetM
   return getMusicForTaskFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'getMusicForTaskPrompt',
-  input: {schema: GetMusicForTaskInputSchema},
-  output: {schema: GetMusicForTaskOutputSchema},
-  prompt: `You are a DJ who curates playlists for productivity. Based on the user's task, suggest a music vibe/genre and a specific, publicly-accessible, royalty-free music track URL that would be perfect for focus.
-
-For example:
-- Task: "Write a novel" -> Vibe: "Lofi Beats", find a suitable track URL.
-- Task: "Workout session" -> Vibe: "High-Energy Electronic", find a suitable track URL.
-- Task: "Prepare a business presentation" -> Vibe: "Minimalist Ambient", find a suitable track URL.
-- Task: "Design a brochure" -> Vibe: "Chill Cafe Sounds", find a suitable track URL.
-
-Please find tracks from royalty-free sources like Pixabay Music, Free Music Archive, or similar sites that provide direct download/streaming links.
-
-User's Task: {{{taskName}}}
-`,
-});
-
 const getMusicForTaskFlow = ai.defineFlow(
   {
     name: 'getMusicForTaskFlow',
     inputSchema: GetMusicForTaskInputSchema,
     outputSchema: GetMusicForTaskOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  async (input) => {
+    // For simplicity and reliability, we return a default track.
+    // A more advanced implementation could have logic to select a track based on the task.
+    return {
+        vibe: 'Focus',
+        trackName: 'Lofi Study',
+        trackUrl: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1811de2363.mp3'
+    };
   }
 );

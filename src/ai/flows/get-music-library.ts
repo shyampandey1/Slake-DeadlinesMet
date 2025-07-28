@@ -19,26 +19,31 @@ export async function getMusicLibrary(): Promise<GetMusicLibraryOutput> {
   return getMusicLibraryFlow();
 }
 
-const prompt = ai.definePrompt({
-  name: 'getMusicLibraryPrompt',
-  output: {schema: GetMusicLibraryOutputSchema},
-  prompt: `You are a DJ who curates playlists for productivity. Your task is to provide a list of 3 royalty-free music tracks for a focus application. Each track must have a different vibe: "Focus", "Relax", and "Boost".
-
-Provide a specific, publicly-accessible, royalty-free music track URL for each vibe. The tracks should be ambient or instrumental and suitable for working.
-
-Please find tracks from royalty-free sources like Pixabay Music, Free Music Archive, or similar sites that provide direct download/streaming links. Ensure the URLs are direct links to the audio files (e.g., .mp3, .wav).
-
-Return the data as a list of tracks, each with its vibe, trackName, and trackUrl.
-`,
-});
-
 const getMusicLibraryFlow = ai.defineFlow(
   {
     name: 'getMusicLibraryFlow',
     outputSchema: GetMusicLibraryOutputSchema,
   },
   async () => {
-    const {output} = await prompt({});
-    return output!;
+    // Returning a hardcoded list of royalty-free tracks to ensure reliability.
+    return {
+        tracks: [
+            {
+                vibe: 'Focus',
+                trackName: 'Lofi Study',
+                trackUrl: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1811de2363.mp3'
+            },
+            {
+                vibe: 'Relax',
+                trackName: 'Ambient Piano',
+                trackUrl: 'https://cdn.pixabay.com/audio/2024/05/16/audio_689316d3e3.mp3'
+            },
+            {
+                vibe: 'Boost',
+                trackName: 'Uplifting Electronic',
+                trackUrl: 'https://cdn.pixabay.com/audio/2023/04/19/audio_444b36d075.mp3'
+            }
+        ]
+    };
   }
 );
