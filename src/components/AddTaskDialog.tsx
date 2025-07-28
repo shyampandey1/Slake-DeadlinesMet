@@ -37,6 +37,7 @@ import type { PresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { suggestTaskIcon } from "@/ai/flows/suggest-task-icon";
+import { suggestTaskName } from "@/ai/flows/suggest-task-name";
 
 interface AddTaskDialogProps {
   isOpen: boolean;
@@ -72,7 +73,10 @@ const iconNames = icons.map(i => i.name);
 
 export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCategory, categories }: AddTaskDialogProps) {
   const [isAnalyzingIcon, setIsAnalyzingIcon] = useState(false);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAnalyzingTaskName, setIsAnalyzingTaskName] = useState(false);
+  const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
+  const iconDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const taskNameDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,27 +90,50 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
 
   const taskNameValue = form.watch("taskName");
 
+  const handleSuggestIcon = async (taskName: string) => {
+    setIsAnalyzingIcon(true);
+    try {
+      const result = await suggestTaskIcon({ taskName, availableIcons: iconNames });
+      if (result.iconName && iconNames.includes(result.iconName)) {
+        form.setValue('icon', result.iconName, { shouldValidate: true });
+      }
+    } catch (error) {
+      console.error("Failed to suggest icon:", error);
+    } finally {
+      setIsAnalyzingIcon(false);
+    }
+  };
+
+  const handleSuggestTaskName = async (prompt: string) => {
+    if (prompt.length < 3) {
+      setTaskNameSuggestions([]);
+      return;
+    }
+    setIsAnalyzingTaskName(true);
+    try {
+      const result = await suggestTaskName({ taskPrompt: prompt });
+      setTaskNameSuggestions(result.suggestions);
+    } catch (error) {
+      console.error("Failed to suggest task name:", error);
+      setTaskNameSuggestions([]);
+    } finally {
+      setIsAnalyzingTaskName(false);
+    }
+  };
+
   useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
+    if (iconDebounceTimeoutRef.current) clearTimeout(iconDebounceTimeoutRef.current);
+    if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
+    
     if (taskNameValue) {
-      setIsAnalyzingIcon(true);
-      debounceTimeoutRef.current = setTimeout(async () => {
-        try {
-          const result = await suggestTaskIcon({ taskName: taskNameValue, availableIcons: iconNames });
-          if (result.iconName && iconNames.includes(result.iconName)) {
-            form.setValue('icon', result.iconName, { shouldValidate: true });
-          }
-        } catch (error) {
-            console.error("Failed to suggest icon:", error);
-        } finally {
-          setIsAnalyzingIcon(false);
-        }
-      }, 500); // 500ms debounce
+      iconDebounceTimeoutRef.current = setTimeout(() => handleSuggestIcon(taskNameValue), 500);
+      taskNameDebounceTimeoutRef.current = setTimeout(() => handleSuggestTaskName(taskNameValue), 500);
     } else {
-        setIsAnalyzingIcon(false);
+      setIsAnalyzingIcon(false);
+      setIsAnalyzingTaskName(false);
+      setTaskNameSuggestions([]);
     }
+
   }, [taskNameValue, form]);
 
 
@@ -118,8 +145,14 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
         icon: "BrainCircuit",
         category: initialCategory,
       });
+      setTaskNameSuggestions([]);
     }
   }, [isOpen, initialCategory, form]);
+
+  const handleSuggestionClick = (suggestion: string) => {
+    form.setValue('taskName', suggestion);
+    setTaskNameSuggestions([]);
+  };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     onAddTask({
@@ -147,11 +180,33 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
               name="taskName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Task Name</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                      Task Name
+                      {isAnalyzingTaskName && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Analyzing...
+                          </span>
+                      )}
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Morning Journal" {...field} />
                   </FormControl>
                   <FormMessage />
+                   {taskNameSuggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                        {taskNameSuggestions.map((suggestion, index) => (
+                            <Badge
+                                key={index}
+                                variant="outline"
+                                className="cursor-pointer"
+                                onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                                {suggestion}
+                            </Badge>
+                        ))}
+                    </div>
+                   )}
                 </FormItem>
               )}
             />
