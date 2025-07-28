@@ -1,3 +1,4 @@
+
 "use client";
 
 import { History, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
+import type { Task } from "@/types";
 
 export default function TaskHistory() {
   const { tasks, loading, clearTasks } = useTasks();
@@ -27,7 +29,7 @@ export default function TaskHistory() {
     clearTasks();
   };
   
-  const handleTaskClick = (task: typeof tasks[0]) => {
+  const handleTaskClick = (task: Task) => {
     if (!task.completed) {
       const params = new URLSearchParams({
         task: task.name,
@@ -74,7 +76,7 @@ export default function TaskHistory() {
                 <TableRow 
                   key={task.id} 
                   onClick={() => handleTaskClick(task)}
-                  className={cn(!task.completed && "cursor-pointer hover:bg-muted/60")}
+                  className={cn(!task.completed && "cursor-pointer hover:bg-muted/50")}
                 >
                   <TableCell className="font-medium">{task.name}</TableCell>
                   <TableCell className="text-center">{task.duration} min</TableCell>
