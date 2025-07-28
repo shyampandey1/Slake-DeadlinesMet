@@ -36,7 +36,7 @@ import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, Lucid
 import type { PresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { suggestTaskIcon } from "@/ai/flows/suggest-task-icon";
+import { suggestTaskDetails } from "@/ai/flows/suggest-task-details";
 import { suggestTaskName } from "@/ai/flows/suggest-task-name";
 
 interface AddTaskDialogProps {
@@ -72,10 +72,10 @@ const iconNames = icons.map(i => i.name);
 
 
 export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCategory, categories }: AddTaskDialogProps) {
-  const [isAnalyzingIcon, setIsAnalyzingIcon] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingTaskName, setIsAnalyzingTaskName] = useState(false);
   const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
-  const iconDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const taskNameDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -90,17 +90,25 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
 
   const taskNameValue = form.watch("taskName");
 
-  const handleSuggestIcon = async (taskName: string) => {
-    setIsAnalyzingIcon(true);
+  const handleSuggestDetails = async (taskName: string) => {
+    setIsAnalyzing(true);
     try {
-      const result = await suggestTaskIcon({ taskName, availableIcons: iconNames });
-      if (result.iconName && iconNames.includes(result.iconName)) {
-        form.setValue('icon', result.iconName, { shouldValidate: true });
+      const result = await suggestTaskDetails({ taskName, availableIcons: iconNames, availableCategories: categories });
+      if (result) {
+        if (result.iconName && iconNames.includes(result.iconName)) {
+            form.setValue('icon', result.iconName, { shouldValidate: true });
+        }
+        if (result.category && categories.includes(result.category)) {
+            form.setValue('category', result.category, { shouldValidate: true });
+        }
+        if (result.duration) {
+            form.setValue('duration', result.duration, { shouldValidate: true });
+        }
       }
     } catch (error) {
-      console.error("Failed to suggest icon:", error);
+      console.error("Failed to suggest details:", error);
     } finally {
-      setIsAnalyzingIcon(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -122,19 +130,24 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
   };
 
   useEffect(() => {
-    if (iconDebounceTimeoutRef.current) clearTimeout(iconDebounceTimeoutRef.current);
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
     
     if (taskNameValue) {
-      iconDebounceTimeoutRef.current = setTimeout(() => handleSuggestIcon(taskNameValue), 500);
+      debounceTimeoutRef.current = setTimeout(() => handleSuggestDetails(taskNameValue), 800);
       taskNameDebounceTimeoutRef.current = setTimeout(() => handleSuggestTaskName(taskNameValue), 500);
     } else {
-      setIsAnalyzingIcon(false);
+      setIsAnalyzing(false);
       setIsAnalyzingTaskName(false);
       setTaskNameSuggestions([]);
     }
 
-  }, [taskNameValue, form]);
+    return () => {
+        if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+        if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
+    }
+
+  }, [taskNameValue, form, categories]);
 
 
   useEffect(() => {
@@ -185,7 +198,7 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
                       {isAnalyzingTaskName && (
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Analyzing...
+                              Suggesting...
                           </span>
                       )}
                   </FormLabel>
@@ -216,11 +229,19 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
                 name="category"
                 render={({ field }) => (
                     <FormItem className="space-y-3">
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel className="flex items-center gap-2">
+                        Category
+                        {isAnalyzing && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Analyzing...
+                            </span>
+                        )}
+                    </FormLabel>
                     <FormControl>
                         <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className="flex flex-wrap gap-2"
                         >
                         {categories.map((category) => (
@@ -250,7 +271,15 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
               name="duration"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Duration (minutes)</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                      Duration (minutes)
+                        {isAnalyzing && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Analyzing...
+                            </span>
+                        )}
+                  </FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -265,7 +294,7 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
                 <FormItem>
                     <FormLabel className="flex items-center gap-2">
                         Icon
-                        {isAnalyzingIcon && (
+                        {isAnalyzing && (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Loader2 className="h-3 w-3 animate-spin" />
                                 Analyzing...
@@ -274,7 +303,7 @@ export default function AddTaskDialog({ isOpen, onClose, onAddTask, initialCateg
                     </FormLabel>
                    <Select onValueChange={field.onChange} value={field.value}>
                      <FormControl>
-                      <SelectTrigger disabled={isAnalyzingIcon}>
+                      <SelectTrigger disabled={isAnalyzing}>
                         <SelectValue placeholder="Select an icon" />
                       </SelectTrigger>
                      </FormControl>
