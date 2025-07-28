@@ -245,40 +245,38 @@ export default function TaskForm() {
                                         const isCustom = !isDefaultTask(preset, category);
                                         const isSelectedForDelete = isCustom && taskToDelete?.name === preset.name;
                                         return (
-                                        <div key={preset.name} className={cn("relative rounded-full", isCustom ? "cursor-pointer" : "")}>
-                                            <div className="relative w-full h-full overflow-hidden rounded-full">
-                                                <div
-                                                    className={cn(
-                                                        "transition-transform duration-300 ease-in-out",
-                                                        isSelectedForDelete && "-translate-x-10"
-                                                    )}
-                                                    onClick={() => handlePresetClick(preset, category)}
-                                                >
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color, isCustom ? "cursor-pointer" : "cursor-default")}
-                                                    >
-                                                        <div className="flex items-center flex-1 min-w-0">
-                                                            {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                            <span className="truncate">{preset.name}</span>
-                                                        </div>
-                                                        <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                                    </Badge>
-                                                </div>
-
-                                                {isCustom && (
-                                                    <button
-                                                        onClick={() => handleDeleteTask(preset, category)}
-                                                        className={cn(
-                                                            "absolute top-0 right-0 z-10 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
-                                                            isSelectedForDelete ? "translate-x-0" : "translate-x-full"
-                                                        )}
-                                                        aria-label={`Delete ${preset.name} task`}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
+                                        <div key={preset.name} className="relative w-full h-full overflow-hidden rounded-full">
+                                            <div
+                                                className={cn(
+                                                    "transition-transform duration-300 ease-in-out w-full",
+                                                    isSelectedForDelete && "-translate-x-10"
                                                 )}
+                                                onClick={() => handlePresetClick(preset, category)}
+                                            >
+                                                <Badge
+                                                    variant="secondary"
+                                                    className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color, isCustom ? "cursor-pointer" : "cursor-default")}
+                                                >
+                                                    <div className="flex items-center flex-1 min-w-0">
+                                                        {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                        <span className="truncate">{preset.name}</span>
+                                                    </div>
+                                                    <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                                </Badge>
                                             </div>
+
+                                            {isCustom && (
+                                                <button
+                                                    onClick={() => handleDeleteTask(preset, category)}
+                                                    className={cn(
+                                                        "absolute top-0 right-0 z-0 flex items-center justify-center h-full w-10 bg-destructive text-destructive-foreground transition-transform duration-300 ease-in-out",
+                                                        isSelectedForDelete ? "translate-x-0" : "translate-x-full"
+                                                    )}
+                                                    aria-label={`Delete ${preset.name} task`}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     )})}
                                 </div>
