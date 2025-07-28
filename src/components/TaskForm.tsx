@@ -246,7 +246,7 @@ export default function TaskForm() {
                                                         e.stopPropagation();
                                                         handleDeleteTask(preset, category);
                                                     }}
-                                                    className="absolute -top-1 -right-1 z-10 p-0.5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute -top-1 -right-1 z-10 p-0.5 bg-destructive text-destructive-foreground rounded-full transition-opacity"
                                                 >
                                                     <X className="h-3 w-3" />
                                                     <span className="sr-only">Delete task</span>
