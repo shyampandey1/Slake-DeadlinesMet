@@ -18,10 +18,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { Separator } from "./ui/separator";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -106,27 +107,6 @@ export default function TaskForm() {
               )}
             />
 
-            <div className="space-y-4">
-              {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
-                <div key={category}>
-                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {tasks.map((preset) => (
-                      <Badge
-                        key={preset.name}
-                        variant="secondary"
-                        className={cn("cursor-pointer text-sm py-1 px-3 md:text-base md:py-2 md:px-4 border-transparent", color)}
-                        onClick={() => handlePresetClick(preset)}
-                      >
-                        {preset.icon}
-                        {preset.name} - {preset.duration}m
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
             <FormField
               control={form.control}
               name="duration"
@@ -164,6 +144,33 @@ export default function TaskForm() {
               <Rocket className="mr-2 h-4 w-4" />
               Start Timer
             </Button>
+            
+            <Separator />
+            
+            <div>
+                 <CardDescription className="mb-4 text-center">Or select a preset task</CardDescription>
+                <div className="space-y-4">
+                {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
+                    <div key={category}>
+                    <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {tasks.map((preset) => (
+                        <Badge
+                            key={preset.name}
+                            variant="secondary"
+                            className={cn("cursor-pointer text-sm py-1 px-3 md:text-base md:py-2 md:px-4 border-transparent", color)}
+                            onClick={() => handlePresetClick(preset)}
+                        >
+                            {preset.icon}
+                            {preset.name} - {preset.duration}m
+                        </Badge>
+                        ))}
+                    </div>
+                    </div>
+                ))}
+                </div>
+            </div>
+
           </form>
         </Form>
       </CardContent>
