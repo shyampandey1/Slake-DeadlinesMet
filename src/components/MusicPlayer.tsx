@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -42,23 +41,17 @@ export default function MusicPlayer() {
 
   useEffect(() => {
     if (audioRef.current && currentTrack) {
-      audioRef.current.src = currentTrack.trackUrl;
-      audioRef.current.load();
       if (isPlaying) {
         audioRef.current.play().catch(e => console.error("Audio play failed on track change", e));
+      } else {
+        audioRef.current.pause();
       }
     }
-  }, [currentTrack]);
+  }, [currentTrack, isPlaying]);
 
 
   const togglePlayPause = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(e => console.error("Audio play failed", e));
-    }
+    if (!currentTrack) return;
     setIsPlaying(!isPlaying);
   };
 
@@ -66,7 +59,6 @@ export default function MusicPlayer() {
     const newTrack = library.find(t => t.trackName === trackName);
     if (newTrack && newTrack.trackName !== currentTrack?.trackName) {
       setCurrentTrack(newTrack);
-      // if music is already playing, the useEffect will handle playing the new track
     }
   };
 
@@ -80,7 +72,13 @@ export default function MusicPlayer() {
 
   return (
     <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
-      <audio ref={audioRef} loop onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
+      <audio 
+        ref={audioRef}
+        src={currentTrack?.trackUrl}
+        loop 
+        onPlay={() => setIsPlaying(true)} 
+        onPause={() => setIsPlaying(false)} 
+      />
       
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
