@@ -70,7 +70,7 @@ export default function InfoDisplay() {
         return (
           <button onClick={requestLocation} className="flex items-center gap-1.5 text-xs hover:text-foreground transition-colors">
             <LocateFixed className={cn(iconSize)} />
-            <span>Weather</span>
+            <span>Get Weather</span>
           </button>
         );
       case 'loading':
@@ -81,7 +81,7 @@ export default function InfoDisplay() {
         return <span className="text-xs">Could not fetch location.</span>;
       case 'granted':
         return (
-          <>
+          <div className="flex flex-col items-start gap-1">
             {locationInfo?.weather && (
               <div className="flex items-center gap-1.5">
                 <Cloud className={cn(iconSize)} />
@@ -94,7 +94,7 @@ export default function InfoDisplay() {
                 <span>{locationInfo.city}</span>
               </div>
             )}
-          </>
+          </div>
         );
       default:
         return null;
@@ -102,14 +102,16 @@ export default function InfoDisplay() {
   }
 
   return (
-    <div className="fixed top-2 right-2 z-50 flex items-center gap-4 text-xs text-muted-foreground p-1.5 rounded-md bg-card/50 backdrop-blur-sm border border-border">
-      <div className="flex items-center gap-1.5">
-        <Calendar className={cn(iconSize)} />
-        <span>{formatDate(dateTime)}</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Clock className={cn(iconSize)} />
-        <span>{formatTime(dateTime)}</span>
+    <div className="fixed top-4 right-4 z-50 flex flex-col items-start gap-2 text-xs text-muted-foreground p-2 rounded-md bg-card/50 backdrop-blur-sm border border-border">
+      <div className="flex flex-col items-start gap-1">
+        <div className="flex items-center gap-1.5">
+          <Calendar className={cn(iconSize)} />
+          <span>{formatDate(dateTime)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock className={cn(iconSize)} />
+          <span>{formatTime(dateTime)}</span>
+        </div>
       </div>
       {renderLocationWeather()}
     </div>
