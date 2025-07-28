@@ -47,11 +47,19 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   const [isEndingSoon, setIsEndingSoon] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const tickAudioRef = useRef<HTMLAudioElement | null>(null);
   
   const stopTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+  }, []);
+
+  const playTickSound = useCallback(() => {
+    if (tickAudioRef.current) {
+        tickAudioRef.current.currentTime = 0;
+        tickAudioRef.current.play().catch(e => console.error("Tick sound play failed", e));
     }
   }, []);
 
@@ -64,13 +72,14 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
           setIsFinished(true);
           return 0;
         }
-        if (prev <= 11) { // Start flashing at 10 seconds
+        if (prev <= 11) { // Start flashing and ticking at 10 seconds
             setIsEndingSoon(true);
+            playTickSound();
         }
         return prev - 1;
       });
     }, 1000);
-  }, [stopTimer]);
+  }, [stopTimer, playTickSound]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -131,6 +140,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
         "relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 transition-colors duration-500",
         isEndingSoon && "animate-flash"
     )}>
+      <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <InfoDisplay />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <p className="mb-4 text-lg text-muted-foreground md:text-xl font-headline">FOCUSING ON:</p>
