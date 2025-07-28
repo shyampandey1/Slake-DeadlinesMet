@@ -148,7 +148,7 @@ export default function TaskForm() {
                                 <CardContent>
                                     <div className="flex flex-wrap gap-2">
                                         {tasks.map((preset) => (
-                                        <div key={preset.id || preset.name} className="group relative">
+                                        <div key={preset.id || preset.name} className="group flex items-center gap-1">
                                             <button
                                                 className="w-full"
                                                 onClick={(e) => handlePresetClick(preset, category, e)}
@@ -170,7 +170,7 @@ export default function TaskForm() {
                                             <Button
                                                 variant="secondary"
                                                 size="icon"
-                                                className="absolute top-1/2 right-2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                                                 onClick={() => handleOpenDialog(preset, category)}
                                             >
                                                 <Settings2 className="h-4 w-4"/>
