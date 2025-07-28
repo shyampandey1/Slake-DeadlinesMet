@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag, X, ListX } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, ChevronDown, Wrench, Target, ShoppingBag, X } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
 import React, { useMemo, useState, useCallback } from "react";
 
@@ -121,7 +121,7 @@ export default function TaskForm() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Work & Focus');
   const [presetTasks, setPresetTasks] = useState<Preset>(initialPresetTasks);
   const [isCustomTaskOpen, setIsCustomTaskOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<PresetTask | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -148,12 +148,8 @@ export default function TaskForm() {
         };
     });
   };
-  
-  const handleToggleEdit = (category: string) => {
-    setEditingCategory(prev => (prev === category ? null : category));
-  }
 
-  const handleDeleteTask = useCallback((taskToDelete: PresetTask, category: string) => {
+  const handleDeleteTask = (taskToDelete: PresetTask, category: string) => {
     setPresetTasks(prev => {
         const updatedTasks = prev[category].tasks.filter(task => task.name !== taskToDelete.name);
         return {
@@ -164,7 +160,8 @@ export default function TaskForm() {
             }
         };
     });
-  }, []);
+    setTaskToDelete(null);
+  };
 
   const visiblePresetTasks = useMemo(() => {
     const completedToday = completedTasks
@@ -184,9 +181,20 @@ export default function TaskForm() {
     return filteredTasks;
   }, [completedTasks, presetTasks]);
   
-  const handlePresetClick = (preset: {name: string, duration: number}) => {
-    if (editingCategory) return;
+  const handlePresetClick = (preset: PresetTask, category: string) => {
+    const isCustom = !isDefaultTask(preset, category);
+    if (isCustom) {
+        if (taskToDelete?.name === preset.name) {
+            // If already selected, deselect it
+            setTaskToDelete(null);
+        } else {
+            // Select for deletion
+            setTaskToDelete(preset);
+        }
+        return; 
+    }
     
+    // Default task behavior
     setIsCustomTaskOpen(true);
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
@@ -229,22 +237,17 @@ export default function TaskForm() {
                             <div className="p-1">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
-                                    <div className="flex items-center gap-1">
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleToggleEdit(category)}>
-                                          <ListX className={cn("h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground", editingCategory === category && "text-primary")} />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(category)}>
-                                          <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
-                                      </Button>
-                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(category)}>
+                                        <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
+                                    </Button>
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     {tasks.map((preset) => (
                                         <div key={preset.name} className="relative group">
                                             <Badge
                                                 variant="secondary"
-                                                className={cn("w-full text-sm justify-between py-2 px-3 border-transparent", color, editingCategory ? "cursor-default" : "cursor-pointer")}
-                                                onClick={() => handlePresetClick(preset)}
+                                                className={cn("w-full text-sm justify-between py-2 px-3 border-transparent cursor-pointer", color)}
+                                                onClick={() => handlePresetClick(preset, category)}
                                             >
                                                 <div className="flex items-center flex-1 min-w-0">
                                                     {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
@@ -252,12 +255,12 @@ export default function TaskForm() {
                                                 </div>
                                                 <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
                                             </Badge>
-                                            {editingCategory === category && !isDefaultTask(preset, category) && (
+                                             {taskToDelete?.name === preset.name && !isDefaultTask(preset, category) && (
                                                 <button
                                                     onClick={() => handleDeleteTask(preset, category)}
-                                                    className="absolute inset-0 z-10 flex items-center justify-center bg-destructive/80 text-destructive-foreground rounded-full transition-opacity"
+                                                    className="absolute -top-2 -right-2 z-20 flex items-center justify-center h-6 w-6 rounded-full bg-destructive text-destructive-foreground transition-opacity"
                                                 >
-                                                    <X className="h-5 w-5" />
+                                                    <X className="h-4 w-4" />
                                                     <span className="sr-only">Delete task</span>
                                                 </button>
                                             )}
@@ -352,8 +355,3 @@ export default function TaskForm() {
     </>
   );
 }
-
-    
-
-    
-
