@@ -48,7 +48,7 @@ export default function MusicPlayer() {
         audioRef.current.play().catch(e => console.error("Audio play failed on track change", e));
       }
     }
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack]);
 
 
   const togglePlayPause = () => {
