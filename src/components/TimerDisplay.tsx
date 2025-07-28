@@ -147,6 +147,9 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
             End
           </Button>
         </div>
+      </div>
+
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
         <MusicPlayer />
       </div>
 
