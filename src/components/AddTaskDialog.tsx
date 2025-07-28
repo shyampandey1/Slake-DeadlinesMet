@@ -81,7 +81,6 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingTaskName, setIsAnalyzingTaskName] = useState(false);
   const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
-  const taskNameDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { isDefaultTask } = usePresetTasks();
   
   const isEditMode = !!initialTask?.id;
@@ -123,7 +122,8 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
     }
   };
 
-  const handleSuggestTaskName = async (prompt: string) => {
+  const handleSuggestTaskName = async () => {
+    const prompt = form.getValues("taskName");
     if (prompt.length < 3) {
       setTaskNameSuggestions([]);
       return;
@@ -139,23 +139,6 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
       setIsAnalyzingTaskName(false);
     }
   };
-
-  useEffect(() => {
-    if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
-    
-    if (taskNameValue) {
-      taskNameDebounceTimeoutRef.current = setTimeout(() => handleSuggestTaskName(taskNameValue), 500);
-    } else {
-      setIsAnalyzingTaskName(false);
-      setTaskNameSuggestions([]);
-    }
-
-    return () => {
-        if (taskNameDebounceTimeoutRef.current) clearTimeout(taskNameDebounceTimeoutRef.current);
-    }
-
-  }, [taskNameValue]);
-
 
   useEffect(() => {
     if (isOpen) {
@@ -207,19 +190,15 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
               name="taskName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                      Task Name
-                      {isAnalyzingTaskName && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Suggesting...
-                          </span>
-                      )}
-                  </FormLabel>
+                  <FormLabel>Task Name</FormLabel>
                    <div className="flex items-center gap-2">
                     <FormControl>
                       <Input placeholder="e.g., Morning Journal" {...field} />
                     </FormControl>
+                    <Button type="button" variant="outline" size="icon" onClick={handleSuggestTaskName} disabled={isAnalyzingTaskName || !taskNameValue}>
+                      {isAnalyzingTaskName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                      <span className="sr-only">Suggest Names</span>
+                    </Button>
                     <Button type="button" variant="outline" size="icon" onClick={handleSuggestDetails} disabled={isAnalyzing || !taskNameValue}>
                       {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                       <span className="sr-only">Suggest Details</span>
@@ -338,5 +317,3 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
     </Dialog>
   );
 }
-
-    
