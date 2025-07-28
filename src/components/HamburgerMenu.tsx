@@ -16,13 +16,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
-import TaskHistory from "./TaskHistory";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 
 export default function HamburgerMenu() {
@@ -39,6 +32,11 @@ export default function HamburgerMenu() {
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
+
+  const navigateToHistory = () => {
+    setIsOpen(false);
+    router.push('/history');
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -63,19 +61,10 @@ export default function HamburgerMenu() {
           )}
         </div>
         <ScrollArea className="flex-1 pr-4">
-             <Accordion type="single" collapsible>
-                <AccordionItem value="item-1">
-                    <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                           <History className="h-5 w-5" />
-                           <span>Task History</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        <TaskHistory />
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+            <Button variant="ghost" onClick={navigateToHistory} className="w-full justify-start gap-2">
+                <History className="h-5 w-5" />
+                <span>Task History</span>
+            </Button>
         </ScrollArea>
         <SheetFooter className="mt-auto pt-4">
           <Button onClick={handleLogout} variant="outline" className="w-full">
