@@ -4,17 +4,20 @@
 import { useState, useEffect } from "react";
 import { useRouter, redirect } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { LogIn, UserPlus, ArrowLeft, Clock } from "lucide-react";
+import { LogIn, UserPlus, ArrowLeft, Clock, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import LoginForm from "@/components/LoginForm";
 import SignupForm from "@/components/SignupForm";
+import { mockLogin } from "@/lib/mockAuth";
+import { useToast } from "@/hooks/use-toast";
 
 type AuthView = "initial" | "login" | "signup";
 
 export default function AuthPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { toast } = useToast();
+  const { user, loading, setMockUser } = useAuth();
   const [view, setView] = useState<AuthView>("initial");
 
   useEffect(() => {
@@ -22,6 +25,18 @@ export default function AuthPage() {
       redirect('/');
     }
   }, [user, loading]);
+  
+  const handleGuestLogin = () => {
+    const mockUser = mockLogin("user@test.com", "password123");
+    if (mockUser) {
+        setMockUser(mockUser);
+        router.push("/");
+        toast({
+            title: "Logged in as Guest",
+            description: "You are logged in with a temporary local account.",
+        });
+    }
+  };
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
@@ -48,6 +63,10 @@ export default function AuthPage() {
           <Button onClick={() => setView("signup")} size="lg" variant="secondary">
             <UserPlus className="mr-2" />
             Sign Up
+          </Button>
+           <Button onClick={handleGuestLogin} size="lg" variant="outline">
+            <UserCheck className="mr-2" />
+            Login as Guest
           </Button>
         </CardContent>
     </>
