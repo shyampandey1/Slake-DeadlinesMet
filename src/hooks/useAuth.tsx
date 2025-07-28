@@ -10,7 +10,7 @@ import {
   useCallback,
 } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, analytics } from "@/lib/firebase";
 import { MockUser } from "@/types";
 
 interface AuthContextType {
@@ -34,6 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Ensure analytics is initialized
+    analytics.then(instance => {
+      if (instance) {
+        console.log("Firebase Analytics initialized");
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
         if(firebaseUser) {
             setUser(firebaseUser);
