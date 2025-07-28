@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, Settings2, X } from 'lucide-react';
-import React, { useState, MouseEvent } from "react";
+import React, { useState, MouseEvent, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +64,8 @@ export default function TaskForm() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
-  
+  const customTaskFormRef = useRef<HTMLDivElement>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,12 +75,13 @@ export default function TaskForm() {
   });
   
   const handlePresetClick = (preset: UserPresetTask, category: string, e: MouseEvent<HTMLButtonElement>) => {
-    // A regular click starts the timer
-    const params = new URLSearchParams({
-      task: preset.name,
-      duration: preset.duration.toString(),
+    form.setValue("taskName", preset.name);
+    form.setValue("duration", preset.duration);
+    
+    customTaskFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
     });
-    router.push(`/timer?${params.toString()}`);
   }
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -177,7 +179,7 @@ export default function TaskForm() {
         
         <Separator className="my-8" />
 
-        <div>
+        <div ref={customTaskFormRef}>
             <h3 className="font-headline text-xl mb-4">Or Create a Custom One-Off Task</h3>
             <Form {...form}>
             <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
