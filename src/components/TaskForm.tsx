@@ -23,6 +23,7 @@ import { Rocket } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -93,26 +94,41 @@ export default function TaskForm() {
         <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-x-6 gap-y-4 mb-8">
-            {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
-                <div key={category} className="flex-shrink-0">
-                <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
-                <div className="flex flex-wrap gap-2">
-                    {tasks.map((preset) => (
-                    <Badge
-                        key={preset.name}
-                        variant="secondary"
-                        className={cn("cursor-pointer text-sm py-1.5 px-3 border-transparent", color)}
-                        onClick={() => handlePresetClick(preset)}
-                    >
-                        {preset.icon}
-                        <span className="mr-1.5">{preset.name}</span>
-                        <span className="text-xs opacity-75">{preset.duration}m</span>
-                    </Badge>
+        <div className="mb-8">
+            <Carousel opts={{
+                align: "start",
+                loop: true,
+            }}
+            variant="subtle"
+            >
+                <CarouselContent>
+                    {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
+                        <CarouselItem key={category} className="basis-1/1 md:basis-1/2 lg:basis-1/3">
+                            <div className="p-1">
+                                <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
+                                <div className="flex flex-col gap-2">
+                                    {tasks.map((preset) => (
+                                    <Badge
+                                        key={preset.name}
+                                        variant="secondary"
+                                        className={cn("cursor-pointer text-sm justify-between py-2 px-3 border-transparent", color)}
+                                        onClick={() => handlePresetClick(preset)}
+                                    >
+                                        <div className="flex items-center">
+                                            {preset.icon}
+                                            <span>{preset.name}</span>
+                                        </div>
+                                        <span className="text-xs opacity-75">{preset.duration}m</span>
+                                    </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        </CarouselItem>
                     ))}
-                </div>
-                </div>
-            ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+            </Carousel>
         </div>
         
         <Separator />
@@ -177,4 +193,3 @@ export default function TaskForm() {
     </Card>
   );
 }
-

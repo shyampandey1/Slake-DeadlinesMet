@@ -5,6 +5,7 @@ import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
 import { ArrowLeft, ArrowRight } from "lucide-react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,19 @@ type CarouselProps = {
   setApi?: (api: CarouselApi) => void
 }
 
+const carouselVariants = cva("relative", {
+    variants: {
+      variant: {
+        default: "",
+        subtle:
+          "[--prev-button-display:flex] [--next-button-display:flex] [--prev-button-top:50%] [--next-button-top:50%] [--button-size:2rem] sm:[--button-size:2.5rem] lg:[--button-size:3rem]",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  })
+
 type CarouselContextProps = {
   carouselRef: ReturnType<typeof useEmblaCarousel>[0]
   api: ReturnType<typeof useEmblaCarousel>[1]
@@ -28,7 +42,8 @@ type CarouselContextProps = {
   scrollNext: () => void
   canScrollPrev: boolean
   canScrollNext: boolean
-} & CarouselProps
+} & CarouselProps &
+  VariantProps<typeof carouselVariants>
 
 const CarouselContext = React.createContext<CarouselContextProps | null>(null)
 
@@ -44,7 +59,7 @@ function useCarousel() {
 
 const Carousel = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & CarouselProps
+  React.HTMLAttributes<HTMLDivElement> & CarouselProps & VariantProps<typeof carouselVariants>
 >(
   (
     {
@@ -54,6 +69,7 @@ const Carousel = React.forwardRef<
       plugins,
       className,
       children,
+      variant,
       ...props
     },
     ref
@@ -132,12 +148,13 @@ const Carousel = React.forwardRef<
           scrollNext,
           canScrollPrev,
           canScrollNext,
+          variant,
         }}
       >
         <div
           ref={ref}
           onKeyDownCapture={handleKeyDown}
-          className={cn("relative", className)}
+          className={cn(carouselVariants({ variant }), className)}
           role="region"
           aria-roledescription="carousel"
           {...props}
@@ -206,9 +223,11 @@ const CarouselPrevious = React.forwardRef<
       variant={variant}
       size={size}
       className={cn(
-        "absolute  h-8 w-8 rounded-full",
+        "absolute h-8 w-8 rounded-full",
+        "h-[var(--button-size)] w-[var(--button-size)]",
+        "top-[var(--prev-button-top)] -translate-y-1/2",
         orientation === "horizontal"
-          ? "-left-12 top-1/2 -translate-y-1/2"
+          ? "-left-12"
           : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
         className
       )}
@@ -236,8 +255,10 @@ const CarouselNext = React.forwardRef<
       size={size}
       className={cn(
         "absolute h-8 w-8 rounded-full",
+        "h-[var(--button-size)] w-[var(--button-size)]",
+        "top-[var(--next-button-top)] -translate-y-1/2",
         orientation === "horizontal"
-          ? "-right-12 top-1/2 -translate-y-1/2"
+          ? "-right-12"
           : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
         className
       )}
