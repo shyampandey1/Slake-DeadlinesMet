@@ -114,7 +114,6 @@ export default function TaskForm() {
     router.push(`/timer?${params.toString()}`);
   }
   
-  const categories = Object.keys(presetTasks);
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
 
@@ -126,7 +125,7 @@ export default function TaskForm() {
                 <CardTitle className="font-headline text-2xl">Start a Task</CardTitle>
                 <CardDescription>Choose a preset task or create a new one.</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(undefined, categories[0])}>
+            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(undefined, categoriesWithColors[0]?.name)}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Task
             </Button>
@@ -253,3 +252,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    
