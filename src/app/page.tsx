@@ -15,7 +15,7 @@ function HomeComponent() {
         <HamburgerMenu />
       </div>
       <InfoDisplay />
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-2xl mt-24">
         <header className="mb-6">
           <div className="flex items-center gap-3">
             <CheckCircle className="w-10 h-10 text-yellow-500 flex-shrink-0" />
