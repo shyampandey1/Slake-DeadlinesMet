@@ -193,7 +193,7 @@ export default function TaskForm() {
         return; 
     }
     
-    setTaskToDelete(null); // Deselect any task marked for deletion
+    setTaskToDelete(null);
     setIsCustomTaskOpen(true);
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
@@ -249,10 +249,11 @@ export default function TaskForm() {
                                             <div
                                                 className={cn(
                                                     "transition-transform duration-300 ease-in-out w-full",
-                                                     isCustom ? "cursor-pointer" : "cursor-default",
+                                                    isCustom ? "cursor-pointer" : "cursor-default",
                                                     isSelectedForDelete && "-translate-x-10"
                                                 )}
                                                 onClick={() => handlePresetClick(preset, category)}
+                                                onTouchStart={() => isCustom && handlePresetClick(preset, category)}
                                             >
                                                 <Badge
                                                     variant="secondary"
