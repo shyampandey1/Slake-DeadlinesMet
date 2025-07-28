@@ -1,7 +1,7 @@
+
 "use client";
 
 import TaskForm from '@/components/TaskForm';
-import TaskHistory from '@/components/TaskHistory';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
 
@@ -24,10 +24,6 @@ function HomeComponent() {
 
         <section className="mb-12">
           <TaskForm />
-        </section>
-
-        <section>
-          <TaskHistory />
         </section>
       </div>
     </main>
