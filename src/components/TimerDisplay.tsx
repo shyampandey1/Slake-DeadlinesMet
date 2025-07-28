@@ -7,6 +7,7 @@ import { Play, Pause, Square, Loader2, PartyPopper } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { useTasks } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [isEndingSoon, setIsEndingSoon] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -61,6 +63,9 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
           stopTimer();
           setIsFinished(true);
           return 0;
+        }
+        if (prev <= 11) { // Start flashing at 10 seconds
+            setIsEndingSoon(true);
         }
         return prev - 1;
       });
@@ -122,7 +127,10 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   };
 
   return (
-    <main className="relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 transition-colors duration-500">
+    <main className={cn(
+        "relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 transition-colors duration-500",
+        isEndingSoon && "animate-flash"
+    )}>
       <InfoDisplay />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <p className="mb-4 text-lg text-muted-foreground md:text-xl font-headline">FOCUSING ON:</p>

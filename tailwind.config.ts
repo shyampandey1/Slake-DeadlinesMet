@@ -88,10 +88,15 @@ export default {
             height: '0',
           },
         },
+        flash: {
+            '0%, 100%': { backgroundColor: 'hsl(var(--background))' },
+            '50%': { backgroundColor: 'hsl(40 20% 95%)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'flash': 'flash 0.5s ease-in-out',
       },
     },
   },
