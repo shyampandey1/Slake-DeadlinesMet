@@ -37,6 +37,50 @@ interface TimerDisplayProps {
 
 type FlashState = 'none' | 'three-times' | 'continuous';
 
+const CircularProgress = ({ progress, children }: { progress: number, children: React.ReactNode }) => {
+    const radius = 90;
+    const stroke = 10;
+    const normalizedRadius = radius - stroke * 2;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+    return (
+        <div className="relative w-64 h-64 sm:w-80 sm:h-80">
+            <svg
+                height="100%"
+                width="100%"
+                viewBox="0 0 200 200"
+                className="transform -rotate-90"
+            >
+                <circle
+                    stroke="hsl(var(--secondary))"
+                    fill="transparent"
+                    strokeWidth={stroke}
+                    r={normalizedRadius}
+                    cx={radius + stroke}
+                    cy={radius + stroke}
+                />
+                <circle
+                    stroke="hsl(var(--primary))"
+                    fill="transparent"
+                    strokeWidth={stroke}
+                    strokeDasharray={circumference + ' ' + circumference}
+                    style={{ strokeDashoffset }}
+                    strokeLinecap="round"
+                    r={normalizedRadius}
+                    cx={radius + stroke}
+                    cy={radius + stroke}
+                    className="transition-all duration-300"
+                />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+                {children}
+            </div>
+        </div>
+    );
+};
+
+
 export default function TimerDisplay({ taskName, initialDuration }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
@@ -143,6 +187,9 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
+  
+  const progress = (timeRemaining / (initialDuration * 60)) * 100;
+
 
   return (
     <main className={cn(
@@ -159,8 +206,12 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
         <h1 className="mb-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl font-headline">
           {taskName}
         </h1>
-        <div className="mb-12 font-code text-7xl font-bold text-primary sm:text-8xl md:text-9xl">
-          {formatTime(timeRemaining)}
+        <div className="mb-12">
+            <CircularProgress progress={progress}>
+                 <div className="font-code text-5xl font-bold text-primary sm:text-6xl md:text-7xl">
+                    {formatTime(timeRemaining)}
+                 </div>
+            </CircularProgress>
         </div>
         <div className="flex items-center gap-4">
           <Button
