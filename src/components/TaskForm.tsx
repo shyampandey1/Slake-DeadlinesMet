@@ -74,7 +74,7 @@ export default function TaskForm() {
     },
   });
   
-  const handlePresetClick = (preset: UserPresetTask, category: string, e: MouseEvent<HTMLButtonElement>) => {
+  const handlePresetClick = (preset: UserPresetTask) => {
     form.setValue("taskName", preset.name);
     form.setValue("duration", preset.duration);
     
@@ -149,23 +149,19 @@ export default function TaskForm() {
                                     <div className="flex flex-wrap gap-2">
                                         {tasks.map((preset) => (
                                         <div key={preset.id || preset.name} className="group flex items-center gap-1">
-                                            <button
-                                                className="w-full"
-                                                onClick={(e) => handlePresetClick(preset, category, e)}
+                                            <Badge
+                                                onClick={() => handlePresetClick(preset)}
+                                                className={cn(
+                                                    "cursor-pointer text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200 w-full hover:shadow-md hover:-translate-y-0.5",
+                                                    color
+                                                )}
                                             >
-                                                <Badge
-                                                    className={cn(
-                                                        "text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200 w-full hover:shadow-md hover:-translate-y-0.5",
-                                                        color
-                                                    )}
-                                                >
-                                                    <div className="flex items-center flex-1 min-w-0">
-                                                        {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                        <span className="truncate font-medium">{preset.name}</span>
-                                                    </div>
-                                                    <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                                </Badge>
-                                            </button>
+                                                <div className="flex items-center flex-1 min-w-0">
+                                                    {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
+                                                    <span className="truncate font-medium">{preset.name}</span>
+                                                </div>
+                                                <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
+                                            </Badge>
                                             <Button
                                                 variant="secondary"
                                                 size="icon"
