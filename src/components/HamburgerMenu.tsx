@@ -11,13 +11,19 @@ import {
   SheetFooter
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X } from "lucide-react";
+import { Menu, LogOut, User, X, History } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
 import TaskHistory from "./TaskHistory";
-import { cn } from "@/lib/utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
 
 export default function HamburgerMenu() {
   const { user } = useAuth();
@@ -56,8 +62,20 @@ export default function HamburgerMenu() {
             </div>
           )}
         </div>
-        <ScrollArea className="flex-1">
-          <TaskHistory />
+        <ScrollArea className="flex-1 pr-4">
+             <Accordion type="single" collapsible>
+                <AccordionItem value="item-1">
+                    <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                           <History className="h-5 w-5" />
+                           <span>Task History</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <TaskHistory />
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
         </ScrollArea>
         <SheetFooter className="mt-auto pt-4">
           <Button onClick={handleLogout} variant="outline" className="w-full">
