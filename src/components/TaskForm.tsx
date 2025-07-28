@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus } from 'lucide-react';
 import { isToday, parseISO } from 'date-fns';
 
 import { Button } from "@/components/ui/button";
@@ -147,7 +147,12 @@ export default function TaskForm() {
                     {Object.entries(visiblePresetTasks).map(([category, {tasks, color}]) => (
                         <CarouselItem key={category} className="basis-auto md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
-                                <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-sm font-medium text-muted-foreground">{category}</h3>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                        <Plus className="h-4 w-4 text-muted-foreground/50 hover:text-muted-foreground" />
+                                    </Button>
+                                </div>
                                 <div className="flex flex-col gap-2">
                                     {tasks.map((preset) => (
                                     <Badge
