@@ -3,6 +3,7 @@
 import { History, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
+import { useRouter } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,13 +17,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "./ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function TaskHistory() {
   const { tasks, loading, clearTasks } = useTasks();
+  const router = useRouter();
 
   const clearHistory = () => {
     clearTasks();
   };
+  
+  const handleTaskClick = (task: typeof tasks[0]) => {
+    if (!task.completed) {
+      const params = new URLSearchParams({
+        task: task.name,
+        duration: task.duration.toString(),
+      });
+      router.push(`/timer?${params.toString()}`);
+    }
+  };
+
 
   return (
     <Card>
@@ -57,7 +71,11 @@ export default function TaskHistory() {
             </TableHeader>
             <TableBody>
               {tasks.map((task) => (
-                <TableRow key={task.id}>
+                <TableRow 
+                  key={task.id} 
+                  onClick={() => handleTaskClick(task)}
+                  className={cn(!task.completed && "cursor-pointer hover:bg-muted/60")}
+                >
                   <TableCell className="font-medium">{task.name}</TableCell>
                   <TableCell className="text-center">{task.duration} min</TableCell>
                   <TableCell className="text-center">
