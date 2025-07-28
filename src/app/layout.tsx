@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/useAuth';
+import { AudioProvider } from '@/hooks/useAudio';
 
 export const metadata: Metadata = {
   title: 'DeadlinesMet',
@@ -22,7 +23,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
+          <AudioProvider>
+            {children}
+          </AudioProvider>
         </AuthProvider>
         <Toaster />
       </body>

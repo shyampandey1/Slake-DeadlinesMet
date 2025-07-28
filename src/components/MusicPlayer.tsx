@@ -11,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Music, Music4 } from 'lucide-react';
+import { Music, Music4, Volume2 } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { MusicTrack } from '@/types';
+import { useAudio } from '@/hooks/useAudio';
 
 export default function MusicPlayer() {
   const [library, setLibrary] = useState<MusicTrack[]>([]);
@@ -21,6 +22,7 @@ export default function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { isAudioEnabled, requestAudioPermission } = useAudio();
 
   useEffect(() => {
     async function fetchLibrary() {
@@ -45,25 +47,23 @@ export default function MusicPlayer() {
       if (audioRef.current.src !== currentTrack.trackUrl) {
         audioRef.current.src = currentTrack.trackUrl;
       }
-      if (isPlaying) {
+      if (isPlaying && isAudioEnabled) {
         audioRef.current.load();
         audioRef.current.play().catch(e => console.error("Error playing new track:", e));
+      } else {
+        audioRef.current.pause();
       }
     }
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack, isPlaying, isAudioEnabled]);
 
   const togglePlayPause = () => {
-    if (!audioRef.current || !currentTrack) return;
-    
+    if (!audioRef.current || !currentTrack || !isAudioEnabled) return;
+
     if (isPlaying) {
-      audioRef.current.pause();
+        audioRef.current.pause();
     } else {
-      if (audioRef.current.src !== currentTrack.trackUrl) {
-         audioRef.current.src = currentTrack.trackUrl;
-      }
-      audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
     }
-    setIsPlaying(!isPlaying);
   };
   
   const handleTrackChange = (trackName: string) => {
@@ -75,6 +75,15 @@ export default function MusicPlayer() {
 
   if (isLoading) {
     return <Skeleton className="h-10 w-64" />;
+  }
+  
+  if (!isAudioEnabled) {
+    return (
+        <Button onClick={requestAudioPermission}>
+            <Volume2 className="mr-2" />
+            Enable Audio
+        </Button>
+    )
   }
 
   if (!library.length) {
@@ -89,7 +98,7 @@ export default function MusicPlayer() {
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
         loop
-        src={currentTrack?.trackUrl}
+        src={currentTrack?.trackUrl ?? ''}
       />
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}

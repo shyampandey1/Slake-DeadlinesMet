@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import InfoDisplay from "./InfoDisplay";
 import MusicPlayer from "./MusicPlayer";
+import { useAudio } from "@/hooks/useAudio";
 
 interface TimerDisplayProps {
   taskName: string;
@@ -84,6 +85,7 @@ const CircularProgress = ({ progress, children }: { progress: number, children: 
 export default function TimerDisplay({ taskName, initialDuration }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
+  const { isAudioEnabled } = useAudio();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -103,11 +105,11 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   }, []);
 
   const playTickSound = useCallback(() => {
-    if (tickAudioRef.current) {
+    if (tickAudioRef.current && isAudioEnabled) {
         tickAudioRef.current.currentTime = 0;
         tickAudioRef.current.play().catch(e => console.error("Tick sound play failed", e));
     }
-  }, []);
+  }, [isAudioEnabled]);
 
   const startTimer = useCallback(() => {
     stopTimer();
