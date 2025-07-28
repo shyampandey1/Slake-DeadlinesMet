@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BookOpen, BrainCircuit, Mail, ListChecks, Users } from 'lucide-react';
+import { Coffee, Droplets, BookOpen, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,14 +31,23 @@ const formSchema = z.object({
   }),
 });
 
-const presetTasks = [
-    { name: 'Plan Day', duration: 10, icon: <ListChecks className="mr-1 h-3 w-3" /> },
-    { name: 'Check Emails', duration: 15, icon: <Mail className="mr-1 h-3 w-3" /> },
-    { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-1 h-3 w-3" /> },
-    { name: 'Short Break', duration: 5, icon: <Coffee className="mr-1 h-3 w-3" /> },
-    { name: 'Stand-up', duration: 15, icon: <Users className="mr-1 h-3 w-3" /> },
-    { name: 'Drink Water', duration: 1, icon: <Droplets className="mr-1 h-3 w-3" /> },
-];
+const presetTasks = {
+    'Work & Productivity': [
+        { name: 'Plan Day', duration: 15, icon: <ListChecks className="mr-2 h-4 w-4" /> },
+        { name: 'Focus Session', duration: 50, icon: <BrainCircuit className="mr-2 h-4 w-4" /> },
+        { name: 'Check Emails', duration: 15, icon: <Mail className="mr-2 h-4 w-4" /> },
+        { name: 'Stand-up', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
+    ],
+    'Health & Wellness': [
+        { name: 'Drink Water', duration: 2, icon: <Droplets className="mr-2 h-4 w-4" /> },
+        { name: 'Lunch Break', duration: 45, icon: <Utensils className="mr-2 h-4 w-4" /> },
+        { name: 'Meditate', duration: 10, icon: <Bed className="mr-2 h-4 w-4" /> },
+    ],
+    'Breaks': [
+        { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" /> },
+        { name: 'Walk', duration: 15, icon: <Users className="mr-2 h-4 w-4" /> },
+    ]
+};
 
 export default function TaskForm() {
   const router = useRouter();
@@ -51,7 +60,7 @@ export default function TaskForm() {
     },
   });
   
-  const handlePresetClick = (preset: typeof presetTasks[0]) => {
+  const handlePresetClick = (preset: {name: string, duration: number}) => {
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
   };
@@ -72,7 +81,7 @@ export default function TaskForm() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
               name="taskName"
@@ -87,18 +96,25 @@ export default function TaskForm() {
               )}
             />
 
-            <div className="flex flex-wrap gap-2">
-                {presetTasks.map((preset) => (
-                    <Badge 
-                        key={preset.name} 
-                        variant="secondary" 
-                        className="cursor-pointer hover:bg-primary/20"
+            <div className="space-y-4">
+              {Object.entries(presetTasks).map(([category, tasks]) => (
+                <div key={category}>
+                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tasks.map((preset) => (
+                      <Badge
+                        key={preset.name}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-primary/20 text-sm py-1 px-3"
                         onClick={() => handlePresetClick(preset)}
-                    >
+                      >
                         {preset.icon}
-                        {preset.name} - {preset.duration} min
-                    </Badge>
-                ))}
+                        {preset.name} - {preset.duration}m
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <FormField
@@ -122,7 +138,7 @@ export default function TaskForm() {
                         min={1}
                         max={120}
                         {...field}
-                        className="w-20 text-center font-bold text-primary"
+                        className="w-24 text-center font-bold text-primary text-lg"
                         onChange={(e) => {
                             const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
                             field.onChange(value);
@@ -134,7 +150,7 @@ export default function TaskForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               <Rocket className="mr-2 h-4 w-4" />
               Start Timer
             </Button>
