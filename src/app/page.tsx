@@ -14,13 +14,13 @@ function HomeComponent() {
         <HamburgerMenu />
       </div>
       <div className="w-full max-w-2xl">
-        <header className="mb-8 text-center">
-          <div className="flex justify-center items-center mb-4">
-            <CheckCircle className="w-16 h-16 text-yellow-500" />
+        <header className="mb-8">
+          <div className="flex items-center gap-4">
+            <CheckCircle className="w-12 h-12 text-yellow-500 flex-shrink-0" />
+            <p className="text-muted-foreground sm:text-lg">
+              Focus on one task at a time. Set your goal and go.
+            </p>
           </div>
-          <p className="mt-2 text-muted-foreground sm:text-lg">
-            Focus on one task at a time. Set your goal and go.
-          </p>
         </header>
 
         <section className="mb-12">
