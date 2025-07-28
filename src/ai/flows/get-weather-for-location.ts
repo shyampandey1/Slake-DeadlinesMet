@@ -27,7 +27,7 @@ const GetWeatherForLocationOutputSchema = z.object({
 });
 export type GetWeatherForLocationOutput = z.infer<typeof GetWeatherForLocationOutputSchema>;
 
-export async function getWeatherForLocation(input: GetWeatherForLocationInput): Promise<GetWeatherForLocationOutput> {
+export async function getWeatherForLocation(input: GetWeatherForLocationInput): Promise<GetWeatherForLocationOutput | null> {
     return getWeatherForLocationFlow(input);
 }
 
@@ -36,15 +36,21 @@ const getWeatherForLocationFlow = ai.defineFlow(
     {
         name: 'getWeatherForLocationFlow',
         inputSchema: GetWeatherForLocationInputSchema,
-        outputSchema: GetWeatherForLocationOutputSchema,
+        outputSchema: z.nullable(GetWeatherForLocationOutputSchema),
     },
     async (input) => {
+        if (!process.env.WEATHER_API_KEY) {
+            console.warn("WEATHER_API_KEY is not set. Skipping weather fetch.");
+            return null;
+        }
+
         const weather = await getWeather({
             location: `${input.latitude},${input.longitude}`
         });
 
         if (!weather) {
-            throw new Error('Could not get weather for location.');
+            console.error('Could not get weather for location.');
+            return null;
         }
 
         return {
@@ -55,4 +61,3 @@ const getWeatherForLocationFlow = ai.defineFlow(
         };
     }
 );
-
