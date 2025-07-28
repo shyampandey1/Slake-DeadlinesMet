@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +60,7 @@ const presetTasks = {
         tasks: [
             { name: 'Short Break', duration: 5, icon: <Coffee className="mr-2 h-4 w-4" /> },
             { name: 'Walk', duration: 15, icon: <Footprints className="mr-2 h-4 w-4" /> },
+            { name: 'Breathing Practice', duration: 5, icon: <Wind className="mr-2 h-4 w-4" /> },
         ]
     }
 };
