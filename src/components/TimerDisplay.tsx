@@ -27,7 +27,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import MusicPlayer from "./MusicPlayer";
+import InfoDisplay from "./InfoDisplay";
 import { useAudio } from "@/hooks/useAudio";
 import CircularProgress from "./CircularProgress";
 
@@ -216,7 +216,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
       </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <MusicPlayer />
+        <InfoDisplay />
       </div>
 
       <AlertDialog open={isFinished} onOpenChange={setIsFinished}>
