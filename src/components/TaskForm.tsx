@@ -115,6 +115,8 @@ export default function TaskForm() {
   }
   
   const categories = Object.keys(presetTasks);
+  const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
+
 
   return (
     <>
@@ -144,6 +146,7 @@ export default function TaskForm() {
                             <Card className="h-full">
                                 <CardHeader>
                                     <CardTitle>{category}</CardTitle>
+
                                 </CardHeader>
                                 <CardContent>
                                     <div className="flex flex-wrap gap-2">
@@ -247,7 +250,7 @@ export default function TaskForm() {
         onSaveTask={handleSaveTask}
         onDeleteTask={handleDeleteTask}
         initialTask={taskToEdit}
-        categories={Object.keys(presetTasks)}
+        categories={categoriesWithColors}
       />
     </>
   );

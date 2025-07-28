@@ -45,7 +45,7 @@ interface AddTaskDialogProps {
   onSaveTask: (task: Omit<UserPresetTask, 'id'> & { category: string }, taskId?: string) => void;
   onDeleteTask?: (taskId: string) => void;
   initialTask?: UserPresetTask & { category: string };
-  categories: string[];
+  categories: { name: string; color: string }[];
 }
 
 const formSchema = z.object({
@@ -100,12 +100,12 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
 
     setIsAnalyzing(true);
     try {
-      const result = await suggestTaskDetails({ taskName, availableIcons: iconNames, availableCategories: categories });
+      const result = await suggestTaskDetails({ taskName, availableIcons: iconNames, availableCategories: categories.map(c => c.name) });
       if (result) {
         if (result.iconName && iconNames.includes(result.iconName)) {
             form.setValue('icon', result.iconName, { shouldValidate: true });
         }
-        if (result.category && categories.includes(result.category)) {
+        if (result.category && categories.map(c => c.name).includes(result.category)) {
             form.setValue('category', result.category, { shouldValidate: true });
         }
         if (result.duration) {
@@ -192,16 +192,20 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                         className="flex flex-wrap gap-2"
                         >
                         {categories.map((category) => (
-                           <FormItem key={category} className="flex items-center space-x-2 space-y-0">
+                           <FormItem key={category.name} className="flex items-center space-x-2 space-y-0">
                              <FormControl>
-                                <RadioGroupItem value={category} id={category} className="sr-only" />
+                                <RadioGroupItem value={category.name} id={category.name} className="sr-only" />
                              </FormControl>
-                             <FormLabel htmlFor={category} className="font-normal">
+                             <FormLabel htmlFor={category.name} className="font-normal">
                                 <Badge
-                                    variant={field.value === category ? 'default' : 'secondary'}
-                                    className={cn("cursor-pointer border", field.value !== category && "border-border")}
+                                    className={cn(
+                                        "cursor-pointer border-2 border-transparent",
+                                        field.value === category.name ? 'shadow-md' : 'opacity-75 hover:opacity-100',
+                                        field.value === category.name && `${category.color} border-current`,
+                                        category.color
+                                    )}
                                 >
-                                    {category}
+                                    {category.name}
                                 </Badge>
                              </FormLabel>
                             </FormItem>
