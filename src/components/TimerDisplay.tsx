@@ -190,7 +190,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
             size="lg"
             className="w-32 text-lg"
           >
-            {isPaused ? <Play className="mr-2" /> : <Pause className="mr-2" />}
+            {isPaused ? <Play className="mr-2 h-5 w-5" /> : <Pause className="mr-2 h-5 w-5" />}
             {isPaused ? "Resume" : "Pause"}
           </Button>
           <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
