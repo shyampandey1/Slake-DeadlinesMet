@@ -17,9 +17,12 @@ function HomeComponent() {
         <header className="mb-8">
           <div className="flex items-center gap-4">
             <CheckCircle className="w-12 h-12 text-yellow-500 flex-shrink-0" />
-            <p className="text-muted-foreground sm:text-lg">
-              Focus on one task at a time. Set your goal and go.
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold font-headline">DeadlinesMet</h1>
+              <p className="text-muted-foreground sm:text-lg">
+                Focus on one task at a time. Set your goal and go.
+              </p>
+            </div>
           </div>
         </header>
 
