@@ -74,6 +74,7 @@ export default function TaskForm() {
   const handlePresetClick = (preset: {name: string, duration: number}) => {
     form.setValue('taskName', preset.name);
     form.setValue('duration', preset.duration);
+    onSubmit(form.getValues());
   };
 
 
@@ -88,11 +89,36 @@ export default function TaskForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Create a New Task</CardTitle>
+        <CardTitle className="font-headline text-2xl">Select a Preset Task</CardTitle>
+        <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-wrap gap-6 mb-8">
+            {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
+                <div key={category} className="flex-shrink-0">
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
+                <div className="flex flex-wrap gap-2">
+                    {tasks.map((preset) => (
+                    <Badge
+                        key={preset.name}
+                        variant="secondary"
+                        className={cn("cursor-pointer text-sm py-1 px-3 md:text-base md:py-2 md:px-4 border-transparent", color)}
+                        onClick={() => handlePresetClick(preset)}
+                    >
+                        {preset.icon}
+                        {preset.name}
+                    </Badge>
+                    ))}
+                </div>
+                </div>
+            ))}
+        </div>
+        
+        <Separator />
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-8">
+             <CardDescription className="text-center">Or create a custom task</CardDescription>
             <FormField
               control={form.control}
               name="taskName"
@@ -142,35 +168,8 @@ export default function TaskForm() {
             />
             <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               <Rocket className="mr-2 h-4 w-4" />
-              Start Timer
+              Start Custom Timer
             </Button>
-            
-            <Separator />
-            
-            <div>
-                 <CardDescription className="mb-4 text-center">Or select a preset task</CardDescription>
-                <div className="flex flex-wrap justify-center gap-6">
-                {Object.entries(presetTasks).map(([category, {tasks, color}]) => (
-                    <div key={category} className="flex-shrink-0">
-                    <h3 className="mb-2 text-sm font-medium text-muted-foreground">{category}</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {tasks.map((preset) => (
-                        <Badge
-                            key={preset.name}
-                            variant="secondary"
-                            className={cn("cursor-pointer text-sm py-1 px-3 md:text-base md:py-2 md:px-4 border-transparent", color)}
-                            onClick={() => handlePresetClick(preset)}
-                        >
-                            {preset.icon}
-                            {preset.name} - {preset.duration}m
-                        </Badge>
-                        ))}
-                    </div>
-                    </div>
-                ))}
-                </div>
-            </div>
-
           </form>
         </Form>
       </CardContent>
