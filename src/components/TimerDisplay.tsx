@@ -45,7 +45,7 @@ const CircularProgress = ({ progress, children }: { progress: number, children: 
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     return (
-        <div className="relative w-64 h-64 sm:w-80 sm:h-80">
+        <div className="relative w-72 h-72 sm:w-96 sm:h-96">
             <svg
                 height="100%"
                 width="100%"
