@@ -37,7 +37,6 @@ import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { suggestTaskDetails } from "@/ai/flows/suggest-task-details";
-import { suggestTaskName } from "@/ai/flows/suggest-task-name";
 import { usePresetTasks } from "@/hooks/useFirestore";
 
 interface AddTaskDialogProps {
@@ -79,8 +78,6 @@ const iconNames = icons.map(i => i.name);
 
 export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTask, initialTask, categories }: AddTaskDialogProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isAnalyzingTaskName, setIsAnalyzingTaskName] = useState(false);
-  const [taskNameSuggestions, setTaskNameSuggestions] = useState<string[]>([]);
   const { isDefaultTask } = usePresetTasks();
   
   const isEditMode = !!initialTask?.id;
@@ -122,24 +119,6 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
     }
   };
 
-  const handleSuggestTaskName = async () => {
-    const prompt = form.getValues("taskName");
-    if (prompt.length < 3) {
-      setTaskNameSuggestions([]);
-      return;
-    }
-    setIsAnalyzingTaskName(true);
-    try {
-      const result = await suggestTaskName({ taskPrompt: prompt });
-      setTaskNameSuggestions(result.suggestions);
-    } catch (error) {
-      console.error("Failed to suggest task name:", error);
-      setTaskNameSuggestions([]);
-    } finally {
-      setIsAnalyzingTaskName(false);
-    }
-  };
-
   useEffect(() => {
     if (isOpen) {
       form.reset({
@@ -148,14 +127,9 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
         icon: initialTask?.icon ?? "BrainCircuit",
         category: initialTask?.category ?? "Work & Focus",
       });
-      setTaskNameSuggestions([]);
     }
   }, [isOpen, initialTask, form]);
 
-  const handleSuggestionClick = (suggestion: string) => {
-    form.setValue('taskName', suggestion);
-    setTaskNameSuggestions([]);
-  };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     onSaveTask({
@@ -195,30 +169,12 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                     <FormControl>
                       <Input placeholder="e.g., Morning Journal" {...field} />
                     </FormControl>
-                    <Button type="button" variant="outline" size="icon" onClick={handleSuggestTaskName} disabled={isAnalyzingTaskName || !taskNameValue}>
-                      {isAnalyzingTaskName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                      <span className="sr-only">Suggest Names</span>
-                    </Button>
                     <Button type="button" variant="outline" size="icon" onClick={handleSuggestDetails} disabled={isAnalyzing || !taskNameValue}>
                       {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                       <span className="sr-only">Suggest Details</span>
                     </Button>
                   </div>
                   <FormMessage />
-                   {taskNameSuggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        {taskNameSuggestions.map((suggestion, index) => (
-                            <Badge
-                                key={index}
-                                variant="outline"
-                                className="cursor-pointer"
-                                onClick={() => handleSuggestionClick(suggestion)}
-                            >
-                                {suggestion}
-                            </Badge>
-                        ))}
-                    </div>
-                   )}
                 </FormItem>
               )}
             />
