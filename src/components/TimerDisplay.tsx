@@ -242,19 +242,21 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
               Did you complete your task, "{taskName}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => handleSaveTask(false)}
-            >
-              No
-            </AlertDialogAction>
-            <AlertDialogAction
-              className="bg-green-600 hover:bg-green-700"
-              onClick={() => handleSaveTask(true)}
-            >
-              Yes!
-            </AlertDialogAction>
+          <AlertDialogFooter className="sm:flex-col-reverse">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
+                onClick={() => handleSaveTask(false)}
+                >
+                No
+                </AlertDialogAction>
+                <AlertDialogAction
+                className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                onClick={() => handleSaveTask(true)}
+                >
+                Yes!
+                </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
