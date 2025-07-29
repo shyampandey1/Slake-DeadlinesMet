@@ -103,7 +103,7 @@ export default function AuthPage() {
                     Sign Up
                 </Button>
             </div>
-            <Button onClick={handleGuestLogin} size="lg" variant="ghost" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500">
+            <Button onClick={handleGuestLogin} size="lg" className="bg-blue-500 hover:bg-blue-600 text-white">
                 <UserCheck className="mr-2" />
                 Login as Guest
             </Button>
