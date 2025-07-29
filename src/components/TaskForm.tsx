@@ -26,7 +26,7 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
-import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
@@ -246,6 +246,8 @@ export default function TaskForm() {
                 )
             })}
         </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
       </Carousel>
 
       <div className="flex justify-center gap-2">
@@ -340,3 +342,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    
