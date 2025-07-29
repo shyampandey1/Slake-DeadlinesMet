@@ -142,7 +142,7 @@ export default function HamburgerMenu() {
                     <h4 className="font-semibold text-foreground">Productivity Profile</h4>
                     <div className="space-y-2">
                         <Label htmlFor="profile-select">Choose a Profile</Label>
-                         <Select onValueChange={setProfile} value={profile} disabled={profileLoading || isGenerating}>
+                         <Select onValueChange={(value) => setProfile(value as any)} value={profile} disabled={profileLoading || isGenerating}>
                             <SelectTrigger id="profile-select">
                                 <SelectValue placeholder="Select a profile..." />
                             </SelectTrigger>
@@ -150,7 +150,7 @@ export default function HamburgerMenu() {
                                 <SelectItem value="Software Engineer">Software Engineer</SelectItem>
                                 <SelectItem value="Student">Student</SelectItem>
                                 <SelectItem value="General">General</SelectItem>
-                                {profile === 'Custom' && <SelectItem value="Custom">Custom</SelectItem>}
+                                {profile === 'Custom' && <SelectItem value="Custom" disabled>Custom</SelectItem>}
                             </SelectContent>
                         </Select>
                     </div>

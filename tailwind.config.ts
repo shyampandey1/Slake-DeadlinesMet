@@ -10,15 +10,17 @@ export default {
   ],
   safelist: [
     'bg-slate-800',
-    'text-slate-200',
+    'text-slate-100',
     'bg-blue-900/80',
-    'text-blue-200',
+    'text-blue-100',
     'bg-green-900/80',
-    'text-green-200',
+    'text-green-100',
     'bg-orange-900/80',
-    'text-orange-200',
+    'text-orange-100',
     'bg-indigo-900/80',
-    'text-indigo-200',
+    'text-indigo-100',
+    'bg-gray-800',
+    'text-gray-100',
   ],
   theme: {
     extend: {

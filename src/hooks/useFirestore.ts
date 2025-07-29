@@ -31,7 +31,7 @@ const iconNames = Object.keys(iconMap);
 const profilePresets: { [key: string]: Preset } = {
     "Software Engineer": {
         'Morning Foundation': {
-            color: "bg-slate-800 text-slate-200",
+            color: "bg-slate-800 text-slate-100",
             tasks: [
                 { name: 'Freshen Up & Hydrate', duration: 25, icon: 'Droplets', order: 0 },
                 { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
@@ -39,27 +39,27 @@ const profilePresets: { [key: string]: Preset } = {
             ]
         },
         'Daily Strategy': {
-            color: "bg-blue-900/80 text-blue-200",
+            color: "bg-blue-900/80 text-blue-100",
             tasks: [
                 { name: 'Plan & Prioritize Tasks', duration: 30, icon: 'ListChecks', order: 0 },
             ]
         },
         'Deep Work': {
-            color: "bg-green-900/80 text-green-200",
+            color: "bg-green-900/80 text-green-100",
             tasks: [
                 { name: 'Focus on Top Priority Tasks', duration: 180, icon: 'BrainCircuit', order: 0 },
                 { name: 'Focus on Secondary Tasks', duration: 150, icon: 'BrainCircuit', order: 1 },
             ]
         },
         'Breaks & Meals': {
-            color: "bg-orange-900/80 text-orange-200",
+            color: "bg-orange-900/80 text-orange-100",
             tasks: [
                 { name: 'Short Drive', duration: 45, icon: 'Footprints', order: 0 },
                 { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
             ]
         },
         'Afternoon Wrap-up': {
-            color: "bg-indigo-900/80 text-indigo-200",
+            color: "bg-indigo-900/80 text-indigo-100",
             tasks: [
                 { name: 'Progress Review & Analysis', duration: 30, icon: 'Target', order: 0 },
                 { name: 'Client App Refinements', duration: 30, icon: 'Wrench', order: 1 },
@@ -68,14 +68,14 @@ const profilePresets: { [key: string]: Preset } = {
     },
     "Student": {
         'Morning Routine': {
-            color: "bg-slate-800 text-slate-200",
+            color: "bg-slate-800 text-slate-100",
             tasks: [
                 { name: 'Review Notes', duration: 25, icon: 'BookOpen', order: 0 },
                 { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 1 },
             ]
         },
         'Study Blocks': {
-            color: "bg-blue-900/80 text-blue-200",
+            color: "bg-blue-900/80 text-blue-100",
             tasks: [
                 { name: 'Study Session 1', duration: 90, icon: 'BrainCircuit', order: 0 },
                 { name: 'Study Session 2', duration: 90, icon: 'BrainCircuit', order: 1 },
@@ -83,7 +83,7 @@ const profilePresets: { [key: string]: Preset } = {
             ]
         },
         'Breaks & Campus Life': {
-            color: "bg-green-900/80 text-green-200",
+            color: "bg-green-900/80 text-green-100",
             tasks: [
                 { name: 'Lunch with Friends', duration: 60, icon: 'Users', order: 0 },
                 { name: 'Walk on Campus', duration: 20, icon: 'Footprints', order: 1 },
@@ -92,21 +92,21 @@ const profilePresets: { [key: string]: Preset } = {
     },
     "General": {
         'Morning Routine': {
-            color: "bg-slate-800 text-slate-200",
+            color: "bg-slate-800 text-slate-100",
             tasks: [
                 { name: 'Plan Day', duration: 15, icon: 'ListChecks', order: 0 },
                 { name: 'Meditate', duration: 10, icon: 'Bed', order: 1 },
             ]
         },
         'Work & Focus': {
-            color: "bg-blue-900/80 text-blue-200",
+            color: "bg-blue-900/80 text-blue-100",
             tasks: [
                 { name: 'Focus Session', duration: 50, icon: 'BrainCircuit', order: 1 },
                 { name: 'Check Emails', duration: 15, icon: 'Mail', order: 2 },
             ]
         },
         'Health & Wellness': {
-            color: "bg-green-900/80 text-green-200",
+            color: "bg-green-900/80 text-green-100",
             tasks: [
                 { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
                 { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true, order: 2 },
@@ -270,7 +270,7 @@ export function usePresetTasks() {
                    // For custom-generated categories
                    if (profile === 'Custom') {
                         newPresets[task.category] = {
-                            color: "bg-gray-800 text-gray-200", // A default color
+                            color: "bg-gray-800 text-gray-100", // A default color
                             tasks: [task]
                         };
                    }

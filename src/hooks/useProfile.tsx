@@ -73,9 +73,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setProfileState(newProfile);
     if (user && !('isMockUser' in user)) {
         const profileRef = doc(db, 'userProfiles', user.uid);
-        await setDoc(profileRef, { profile: newProfile }, { merge: true });
+        let dataToSet: { profile: ProfileType, customProfession?: string } = { profile: newProfile };
+        if (newProfile === 'Custom' && customProfession) {
+          dataToSet.customProfession = customProfession;
+        }
+        await setDoc(profileRef, dataToSet, { merge: true });
     }
-  }, [user]);
+  }, [user, customProfession]);
 
   return (
     <ProfileContext.Provider value={{ profile, setProfile, loading, customProfession, setCustomProfession }}>
