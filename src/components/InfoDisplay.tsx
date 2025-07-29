@@ -14,27 +14,27 @@ interface WeatherData {
 }
 
 const weatherCodeMapping: { [key: number]: { condition: string, icon: React.ReactNode } } = {
-    0: { condition: 'Clear sky', icon: <Sun /> },
-    1: { condition: 'Mainly clear', icon: <Sun /> },
-    2: { condition: 'Partly cloudy', icon: <Cloud /> },
-    3: { condition: 'Overcast', icon: <Cloud /> },
-    45: { condition: 'Fog', icon: <CloudFog /> },
-    48: { condition: 'Depositing rime fog', icon: <CloudFog /> },
-    51: { condition: 'Light drizzle', icon: <CloudDrizzle /> },
-    53: { condition: 'Moderate drizzle', icon: <CloudDrizzle /> },
-    55: { condition: 'Dense drizzle', icon: <CloudDrizzle /> },
-    61: { condition: 'Slight rain', icon: <CloudRain /> },
-    63: { condition: 'Moderate rain', icon: <CloudRain /> },
-    65: { condition: 'Heavy rain', icon: <CloudRain /> },
-    80: { condition: 'Slight rain showers', icon: <CloudRain /> },
-    81: { condition: 'Moderate rain showers', icon: <CloudRain /> },
-    82: { condition: 'Violent rain showers', icon: <CloudRain /> },
-    71: { condition: 'Slight snow fall', icon: <CloudSnow /> },
-    73: { condition: 'Moderate snow fall', icon: <CloudSnow /> },
-    75: { condition: 'Heavy snow fall', icon: <CloudSnow /> },
-    85: { condition: 'Slight snow showers', icon: <CloudSnow /> },
-    86: { condition: 'Heavy snow showers', icon: <CloudSnow /> },
-    95: { condition: 'Thunderstorm', icon: <CloudLightning /> },
+    0: { condition: 'Clear sky', icon: <Sun className="h-4 w-4" /> },
+    1: { condition: 'Mainly clear', icon: <Sun className="h-4 w-4" /> },
+    2: { condition: 'Partly cloudy', icon: <Cloud className="h-4 w-4" /> },
+    3: { condition: 'Overcast', icon: <Cloud className="h-4 w-4" /> },
+    45: { condition: 'Fog', icon: <CloudFog className="h-4 w-4" /> },
+    48: { condition: 'Depositing rime fog', icon: <CloudFog className="h-4 w-4" /> },
+    51: { condition: 'Light drizzle', icon: <CloudDrizzle className="h-4 w-4" /> },
+    53: { condition: 'Moderate drizzle', icon: <CloudDrizzle className="h-4 w-4" /> },
+    55: { condition: 'Dense drizzle', icon: <CloudDrizzle className="h-4 w-4" /> },
+    61: { condition: 'Slight rain', icon: <CloudRain className="h-4 w-4" /> },
+    63: { condition: 'Moderate rain', icon: <CloudRain className="h-4 w-4" /> },
+    65: { condition: 'Heavy rain', icon: <CloudRain className="h-4 w-4" /> },
+    80: { condition: 'Slight rain showers', icon: <CloudRain className="h-4 w-4" /> },
+    81: { condition: 'Moderate rain showers', icon: <CloudRain className="h-4 w-4" /> },
+    82: { condition: 'Violent rain showers', icon: <CloudRain className="h-4 w-4" /> },
+    71: { condition: 'Slight snow fall', icon: <CloudSnow className="h-4 w-4" /> },
+    73: { condition: 'Moderate snow fall', icon: <CloudSnow className="h-4 w-4" /> },
+    75: { condition: 'Heavy snow fall', icon: <CloudSnow className="h-4 w-4" /> },
+    85: { condition: 'Slight snow showers', icon: <CloudSnow className="h-4 w-4" /> },
+    86: { condition: 'Heavy snow showers', icon: <CloudSnow className="h-4 w-4" /> },
+    95: { condition: 'Thunderstorm', icon: <CloudLightning className="h-4 w-4" /> },
 };
 
 
@@ -60,7 +60,7 @@ export default function InfoDisplay() {
             const locationData = await locationResponse.json();
 
             const { temperature, weathercode } = weatherData.current_weather;
-            const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun /> };
+            const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
             const locationName = locationData.address?.city || locationData.address?.town || 'Current Location';
 
             setWeather({
@@ -105,23 +105,23 @@ export default function InfoDisplay() {
   }
 
   return (
-    <div className="flex items-center gap-4 text-sm p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
-      <div className="flex items-center gap-1">
+    <div className="hidden sm:flex items-center gap-x-3 text-xs p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
+      <div className="flex items-center gap-1.5">
         <Clock className="h-4 w-4" />
         <span>{format(time, "p")}</span>
       </div>
       {weather && (
         <>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
             <MapPin className="h-4 w-4" />
             <span>{weather.location}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
             <Thermometer className="h-4 w-4" />
             <span>{weather.temperature}°C</span>
         </div>
-        <div className="flex items-center gap-1">
-            <div className="h-4 w-4">{weather.icon}</div>
+        <div className="flex items-center gap-1.5">
+            {weather.icon}
             <span>{weather.condition}</span>
         </div>
         </>

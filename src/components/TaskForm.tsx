@@ -5,8 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock4 } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { add, format, set } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,6 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "./ui/carousel";
 import { Badge } from "./ui/badge";
 import { Slider } from "./ui/slider";
 
@@ -61,6 +61,12 @@ const iconMap: { [key: string]: LucideIcon } = {
     ShoppingBag: ShoppingBag,
 };
 
+type TimedTask = UserPresetTask & {
+    category: string;
+    color: string;
+    startTime: Date;
+    endTime: Date;
+};
 
 export default function TaskForm() {
   const router = useRouter();
@@ -69,10 +75,10 @@ export default function TaskForm() {
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
   const { requestAudioPermission } = useAudio();
-
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
-  const [dots, setDots] = useState<number[]>([]);
+  
+  const [timedTasks, setTimedTasks] = useState<TimedTask[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const activeTaskRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -83,25 +89,39 @@ export default function TaskForm() {
   });
 
   useEffect(() => {
-    if (!api) return;
+    // Calculate start and end times for each task
+    const calculateTimes = () => {
+        let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+        const allTasks: TimedTask[] = [];
 
-    const updateCarouselState = () => {
-        if (!api) return;
-        setDots(api.scrollSnapList().map((_, index) => index));
-        setCurrent(api.selectedScrollSnap());
+        Object.entries(presetTasks).forEach(([category, { tasks, color }]) => {
+            tasks.forEach(task => {
+                const startTime = cumulativeTime;
+                const endTime = add(startTime, { minutes: task.duration });
+                allTasks.push({ ...task, category, color, startTime, endTime });
+                cumulativeTime = endTime;
+            });
+        });
+        setTimedTasks(allTasks);
     };
-    
-    updateCarouselState();
-    api.on("select", updateCarouselState);
-    api.on("reInit", updateCarouselState);
 
-    return () => {
-        if (api) {
-            api.off("select", updateCarouselState);
-            api.off("reInit", updateCarouselState);
-        }
+    if (Object.keys(presetTasks).length > 0) {
+        calculateTimes();
     }
-  }, [api]);
+  }, [presetTasks]);
+  
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Scroll to active task on initial load
+    if (timedTasks.length > 0 && activeTaskRef.current) {
+      activeTaskRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [timedTasks]);
+
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -158,65 +178,46 @@ export default function TaskForm() {
     <div className="space-y-8">
         <div>
             <div className="px-1 mb-4">
-                <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
-                <p className="text-muted-foreground">Select a preset task or add your own. Double-click to edit.</p>
+                <h2 className="font-headline text-2xl">Today's Routine</h2>
+                <p className="text-muted-foreground">Your daily schedule at a glance. Click a task to start.</p>
             </div>
-            <Carousel
-                setApi={setApi}
-                opts={{
-                    align: "start",
-                }}
-                className="w-full"
-            >
-                <CarouselContent>
-                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <CarouselItem key={category} className="md:basis-1/2 lg:basis-1/3">
-                            <Card className="h-full flex flex-col rounded-xl overflow-hidden">
-                                <CardHeader className={`${color} p-3`}>
-                                     <CardTitle className="font-headline text-base">{category}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-3 pt-3 flex flex-col gap-2 flex-grow">
-                                    {tasks.map((task) => {
-                                        const Icon = iconMap[task.icon] || BrainCircuit;
-                                        return (
-                                            <Button
-                                                key={task.id || task.name}
-                                                onClick={() => selectQuickStartTask(task, category, color)}
-                                                onDoubleClick={() => handleOpenDialog(task, category)}
-                                                variant="outline"
-                                                className="h-auto py-2 px-3 justify-start gap-3 whitespace-normal"
-                                            >
-                                                <Icon className="w-5 h-5 shrink-0 text-muted-foreground" />
-                                                <span className="flex-1 text-left">{task.name}</span>
-                                                <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                            </Button>
-                                        );
-                                    })}
-                                </CardContent>
-                                <CardFooter className="p-3 pt-0 mt-auto">
-                                    <Button variant="ghost" className="w-full h-10 text-sm border-2 border-dashed" onClick={() => handleOpenDialog(undefined, category)}>
-                                        <Plus className="w-4 h-4 mr-2" /> Add Task
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </CarouselItem>
-                    ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-            </Carousel>
-            <div className="flex justify-center gap-2 mt-4">
-                {dots.map((_, index) => (
-                    <button
-                        key={index}
-                        onClick={() => api?.scrollTo(index)}
-                        className={cn(
-                            "h-2 rounded-full bg-muted transition-all duration-300",
-                            current === index ? "w-6 bg-primary" : "w-2"
-                        )}
-                        aria-label={`Go to slide ${index + 1}`}
-                    />
-                ))}
+            
+            <div className="relative space-y-4">
+              {timedTasks.map((task) => {
+                const Icon = iconMap[task.icon] || BrainCircuit;
+                const is_active = currentTime >= task.startTime && currentTime < task.endTime;
+
+                return (
+                  <div key={task.id || task.name} className="flex items-start gap-4 relative" ref={is_active ? activeTaskRef : null}>
+                      <div className="flex flex-col items-center gap-1">
+                          <div className={cn("w-3 h-3 rounded-full mt-2", is_active ? "bg-primary animate-pulse" : "bg-border")}></div>
+                          <div className={cn("w-px h-full", is_active ? "bg-primary" : "bg-border")}></div>
+                      </div>
+
+                      <div className="flex-1 -mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {format(task.startTime, 'p')} - {format(task.endTime, 'p')}
+                          </p>
+                          <Button
+                              onClick={() => selectQuickStartTask(task, task.category, task.color)}
+                              onDoubleClick={() => handleOpenDialog(task, task.category)}
+                              variant="outline"
+                              className={cn(
+                                "h-auto py-3 px-4 justify-start gap-3 whitespace-normal w-full mt-1",
+                                is_active && "border-primary shadow-lg"
+                              )}
+                          >
+                              <Icon className="w-5 h-5 shrink-0 text-muted-foreground" />
+                              <span className="flex-1 text-left">{task.name}</span>
+                              <Badge variant={is_active ? "default" : "secondary"}>
+                                <Clock4 className="w-3 h-3 mr-1.5"/>
+                                {task.duration}m
+                              </Badge>
+                          </Button>
+                      </div>
+                  </div>
+                )
+              })}
             </div>
         </div>
 
