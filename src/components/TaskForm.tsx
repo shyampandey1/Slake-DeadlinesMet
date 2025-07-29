@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
+import { add, set } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -104,6 +105,32 @@ export default function TaskForm() {
         carouselApi.off('select', onSelect)
     }
   }, [carouselApi, setScrollSnaps, onSelect]);
+
+  useEffect(() => {
+    if (Object.keys(presetTasks).length > 0 && carouselApi) {
+        let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+        const allTasksWithTimes: (UserPresetTask & { category: string; startTime: Date; endTime: Date; })[] = [];
+
+        Object.entries(presetTasks).forEach(([category, { tasks }]) => {
+            tasks.forEach(task => {
+                const startTime = cumulativeTime;
+                const endTime = add(startTime, { minutes: task.duration });
+                allTasksWithTimes.push({ ...task, category, startTime, endTime });
+                cumulativeTime = endTime;
+            });
+        });
+
+        const currentTime = new Date();
+        const activeTask = allTasksWithTimes.find(task => currentTime >= task.startTime && currentTime < task.endTime);
+        
+        if (activeTask) {
+            const categoryIndex = Object.keys(presetTasks).findIndex(cat => cat === activeTask.category);
+            if (categoryIndex !== -1) {
+                scrollTo(categoryIndex);
+            }
+        }
+    }
+  }, [presetTasks, carouselApi, scrollTo]);
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
