@@ -284,7 +284,7 @@ function RoutineCustomizationPage() {
                             const is_past = currentTime >= task.endTime;
 
                             return (
-                                <div key={`${task.id || task.name}-${index}`} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
+                                <div key={`${task.category}-${task.name}-${index}`} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
                                     <div className="absolute left-0 top-0 flex flex-col items-center h-full">
                                         <div className={cn("w-3.5 h-3.5 rounded-full mt-1.5 border-2", 
                                         is_active ? "border-primary bg-primary/20" : "border-border",
@@ -361,62 +361,6 @@ function RoutineCustomizationPage() {
                     </RadioGroup>
                 </div>
                 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                            <WandSparkles className="text-primary" />
-                            AI-Powered Customization
-                        </CardTitle>
-                        <CardDescription>
-                            Let AI craft a personalized routine for you or edit your current one.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="custom-profession">Generate for a New Profession</Label>
-                            <div className="flex gap-2">
-                                <Input 
-                                    id="custom-profession"
-                                    placeholder="e.g., Doctor, Artist"
-                                    value={customProfession}
-                                    onChange={(e) => setCustomProfession(e.target.value)}
-                                    disabled={isGenerating}
-                                />
-                                <Button onClick={handleGenerateByProfession} disabled={isGenerating || !customProfession.trim()}>
-                                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <Separator />
-                            <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-2 text-xs text-muted-foreground">OR</span>
-                        </div>
-
-                        <div className="space-y-2">
-                             <Label htmlFor="custom-profession">Generate from a Description</Label>
-                            <Textarea
-                                placeholder="e.g., 'I wake up, meditate for 10 mins, then do a 90-minute deep work session...'"
-                                value={routineDescription}
-                                onChange={(e) => setRoutineDescription(e.target.value)}
-                                rows={4}
-                                className="rounded-md"
-                                disabled={isGenerating}
-                            />
-                            <Button onClick={handleGenerateFromDescription} disabled={isGenerating || !routineDescription.trim()} className="mt-2 w-full">
-                                {isGenerating ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Generating...
-                                    </>
-                                ) : (
-                                    "Generate from Description"
-                                )}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
                 <Separator />
                 
                 <div>
@@ -488,3 +432,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
