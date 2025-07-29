@@ -31,9 +31,9 @@ export default function BottomNav() {
   const newTimerHref = "/";
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center">
         <TooltipProvider>
-            <nav className="flex items-center gap-2 p-2 rounded-full bg-slate-900 text-white shadow-lg">
+            <nav className="flex items-center gap-2 p-2 rounded-full bg-slate-900 text-white shadow-lg w-auto mx-4">
                 {navItems.map(({ href, label, icon: Icon }) => (
                     <Tooltip key={href}>
                         <TooltipTrigger asChild>
@@ -49,7 +49,7 @@ export default function BottomNav() {
                                 <Icon className={cn("h-5 w-5", 
                                     label === 'Dashboard' && '-rotate-90'
                                 )} />
-                                {pathname === href && <span>{label}</span>}
+                                {pathname === href && <span className="hidden sm:inline">{label}</span>}
                             </Link>
                         </TooltipTrigger>
                         {pathname !== href && (

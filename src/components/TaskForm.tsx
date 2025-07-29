@@ -132,7 +132,7 @@ export default function TaskForm() {
         </CardHeader>
         <CardContent>
             <Tabs defaultValue={categories[0]} className="w-full">
-                <TabsList className="mb-4">
+                <TabsList className="mb-4 w-full overflow-x-auto justify-start">
                     {categories.map((category) => (
                         <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
                     ))}
@@ -146,7 +146,7 @@ export default function TaskForm() {
                                     <Card
                                         key={task.id || task.name}
                                         onClick={() => handlePresetClick(task)}
-                                        className={cn("cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1", color)}
+                                        className={cn("cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1")}
                                     >
                                         <CardContent className="flex flex-col items-center justify-center p-4 text-center">
                                             <Icon className="w-8 h-8 mb-3" />
