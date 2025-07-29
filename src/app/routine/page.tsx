@@ -161,7 +161,6 @@ function RoutineCustomizationPage() {
                             onChange={(e) => setRoutineDescription(e.target.value)}
                             rows={4}
                             disabled={isGenerating}
-                            className="rounded-md"
                         />
                         <Button onClick={handleGenerateRoutine} disabled={isGenerating || !routineDescription.trim()}>
                             {isGenerating ? (
@@ -191,7 +190,7 @@ function RoutineCustomizationPage() {
                             return (
                                 <div key={task.id || task.name} className="flex items-center gap-1">
                                     <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     className="w-full justify-start gap-4 flex-grow"
                                     onClick={() => handleOpenDialog(task, category)}
                                     >

@@ -10,7 +10,7 @@ import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
 
 const initialPresetTasks: Preset = {
     'Morning Routine': {
-        color: "bg-blue-300/80 text-blue-900 dark:bg-blue-800/70 dark:text-blue-100",
+        color: "bg-blue-900/80 text-blue-100",
         tasks: [
             { name: 'Plan Day', duration: 15, icon: 'ListChecks', order: 0 },
             { name: 'Meditate', duration: 10, icon: 'Bed', order: 1 },
@@ -18,7 +18,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Work & Focus': {
-        color: "bg-indigo-300/80 text-indigo-900 dark:bg-indigo-800/70 dark:text-indigo-100",
+        color: "bg-indigo-900/80 text-indigo-100",
         tasks: [
             { name: 'Deep Work', duration: 90, icon: 'BrainCircuit', order: 0 },
             { name: 'Focus Session', duration: 50, icon: 'BrainCircuit', order: 1 },
@@ -27,7 +27,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Health & Wellness': {
-        color: "bg-green-300/80 text-green-900 dark:bg-green-800/70 dark:text-green-100",
+        color: "bg-green-900/80 text-green-100",
         tasks: [
             { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
             { name: 'Stretching', duration: 10, icon: 'StretchHorizontal', order: 1 },
@@ -35,7 +35,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Breaks & Meals': {
-        color: "bg-orange-300/80 text-orange-900 dark:bg-orange-800/70 dark:text-orange-100",
+        color: "bg-amber-800 text-amber-100",
         tasks: [
             { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true, order: 0 },
             { name: 'Walk', duration: 15, icon: 'Footprints', order: 1 },
@@ -44,7 +44,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Evening Wind-down': {
-        color: "bg-sky-300/80 text-sky-900 dark:bg-sky-800/70 dark:text-sky-100",
+        color: "bg-sky-900/80 text-sky-100",
         tasks: [
             { name: 'Read a book', duration: 30, icon: 'BookOpen', order: 0 },
             { name: 'Journal', duration: 15, icon: 'ListChecks', order: 1 },
