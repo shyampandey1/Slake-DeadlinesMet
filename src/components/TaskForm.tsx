@@ -18,15 +18,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
 import { Separator } from "./ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { cn } from "@/lib/utils";
-import { Badge } from "./ui/badge";
 
 
 const formSchema = z.object({
@@ -114,63 +113,58 @@ export default function TaskForm() {
     router.push(`/timer?${params.toString()}`);
   }
   
-  const categories = Object.keys(presetTasks);
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
 
   return (
     <>
     <Card className="overflow-hidden">
-        <CardHeader className="flex-row items-center justify-between">
-            <div>
-                <CardTitle className="font-headline text-2xl">Start a Task</CardTitle>
-                <CardDescription>Choose a preset task or create a new one.</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(undefined, categoriesWithColors[0]?.name)}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Task
-            </Button>
+        <CardHeader>
+            <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
+            <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Tabs defaultValue={categories[0]} className="w-full">
-                <TabsList className="mb-4 w-full overflow-x-auto justify-start scrollbar-hide">
-                    {categories.map((category) => (
-                        <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
+            <Carousel
+                opts={{
+                    align: "start",
+                }}
+                className="w-full"
+            >
+                <CarouselContent>
+                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+                        <CarouselItem key={category} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
+                             <div className="p-1">
+                                <h3 className="font-semibold text-foreground/90 mb-3">{category}</h3>
+                                <div className="flex flex-col gap-2">
+                                    {tasks.map((task) => {
+                                        const Icon = iconMap[task.icon] || BrainCircuit;
+                                        return (
+                                            <Button
+                                                key={task.name}
+                                                variant="secondary"
+                                                onClick={() => handlePresetClick(task)}
+                                                className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal", color)}
+                                            >
+                                                <Icon className="w-4 h-4 shrink-0" />
+                                                <span className="flex-1 text-left font-normal text-sm">{task.name}</span>
+                                                <span className="text-xs opacity-80">{task.duration}</span>
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                             </div>
+                        </CarouselItem>
                     ))}
-                </TabsList>
-                {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                    <TabsContent key={category} value={category}>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {tasks.map((task) => {
-                                const Icon = iconMap[task.icon] || BrainCircuit;
-                                return (
-                                     <Card
-                                        key={task.id || task.name}
-                                        onClick={() => handlePresetClick(task)}
-                                        className={cn("cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1")}
-                                    >
-                                        <CardContent className="flex flex-col items-center justify-center p-4 text-center">
-                                            <Badge className={cn(
-                                                "w-12 h-12 mb-3 flex items-center justify-center rounded-full",
-                                                color
-                                            )}>
-                                                <Icon className="w-6 h-6 text-white" />
-                                            </Badge>
-                                            <p className="font-semibold text-sm leading-tight">{task.name}</p>
-                                            <p className="text-xs opacity-80 mt-1">{task.duration} min</p>
-                                        </CardContent>
-                                    </Card>
-                                )
-                            })}
-                        </div>
-                    </TabsContent>
-                ))}
-            </Tabs>
+                </CarouselContent>
+                 <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+           
 
             <Separator className="my-8" />
 
             <div ref={customTaskFormRef}>
-                <h3 className="font-headline text-xl mb-4">Or Create a Custom One-Off Task</h3>
+                <h3 className="font-headline text-lg mb-4">Or create a custom task</h3>
                 <Form {...form}>
                 <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid sm:grid-cols-3 gap-4">
