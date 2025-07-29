@@ -161,7 +161,6 @@ function RoutineCustomizationPage() {
                             onChange={(e) => setRoutineDescription(e.target.value)}
                             rows={4}
                             disabled={isGenerating}
-                            className="rounded-lg"
                         />
                         <Button onClick={handleGenerateRoutine} disabled={isGenerating || !routineDescription.trim()}>
                             {isGenerating ? (
