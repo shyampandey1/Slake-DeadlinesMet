@@ -84,6 +84,7 @@ export default function TaskForm() {
     if (!api) return;
 
     const updateCarouselState = () => {
+        if (!api) return;
         setDots(api.scrollSnapList().map((_, index) => index));
         setCurrent(api.selectedScrollSnap());
     };
@@ -93,8 +94,10 @@ export default function TaskForm() {
     api.on("reInit", updateCarouselState);
 
     return () => {
-        api.off("select", updateCarouselState);
-        api.off("reInit", updateCarouselState);
+        if (api) {
+            api.off("select", updateCarouselState);
+            api.off("reInit", updateCarouselState);
+        }
     }
   }, [api]);
 
@@ -158,9 +161,9 @@ export default function TaskForm() {
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
                         <CarouselItem key={category} className="basis-full sm:basis-1/2 md:basis-1/3">
-                            <Card className="h-full flex flex-col">
+                            <Card className={cn("h-full flex flex-col", color)}>
                                 <CardHeader>
-                                    <Badge className={cn("w-fit", color)}>{category}</Badge>
+                                    <Badge variant="outline" className="w-fit border-current text-current">{category}</Badge>
                                 </CardHeader>
                                 <CardContent className="flex flex-col gap-2 flex-grow">
                                     {tasks.map((task) => {
@@ -172,7 +175,7 @@ export default function TaskForm() {
                                                 onClick={() => selectQuickStartTask(task)}
                                                 onDoubleClick={() => handleOpenDialog(task, category)}
                                                 className={cn(
-                                                    "justify-start gap-2 h-auto py-1 px-2 whitespace-normal text-xs",
+                                                    "justify-start gap-2 h-auto py-1 px-2 whitespace-normal text-xs bg-card/20 hover:bg-card/40 text-card-foreground",
                                                 )}
                                             >
                                                 <Icon className="w-4 h-4 shrink-0" />
@@ -183,7 +186,7 @@ export default function TaskForm() {
                                     })}
                                 </CardContent>
                                 <CardFooter>
-                                    <Button variant="ghost" className="w-full h-8 text-xs" onClick={() => handleOpenDialog(undefined, category)}>
+                                    <Button variant="ghost" className="w-full h-8 text-xs bg-card/20 hover:bg-card/40 text-card-foreground" onClick={() => handleOpenDialog(undefined, category)}>
                                         <Plus className="w-4 h-4 mr-2" /> Add Task
                                     </Button>
                                 </CardFooter>
