@@ -141,7 +141,7 @@ export default function TaskForm() {
                 {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
                     return (
                         <CarouselItem key={category} className="basis-11/12 md:basis-1/2 lg:basis-1/3 pl-2">
-                            <Card className={cn("h-full", color)}>
+                            <Card className="h-full">
                                 <CardHeader>
                                     <CardTitle>{category}</CardTitle>
                                 </CardHeader>
@@ -153,7 +153,7 @@ export default function TaskForm() {
                                                 onClick={() => handlePresetClick(preset)}
                                                 className={cn(
                                                     "cursor-pointer text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200 w-full hover:shadow-md hover:-translate-y-0.5",
-                                                    "bg-white/20 hover:bg-white/30 text-white"
+                                                    color
                                                 )}
                                             >
                                                 <div className="flex items-center flex-1 min-w-0">
