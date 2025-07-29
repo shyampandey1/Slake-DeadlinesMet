@@ -185,7 +185,7 @@ function RoutineCustomizationPage() {
                             <CardHeader className={`${color} p-4`}>
                                 <CardTitle className="font-headline text-base">{category}</CardTitle>
                             </CardHeader>
-                            <CardContent className="p-3 space-y-2 flex-grow">
+                            <CardContent className="p-3 pt-3 space-y-2 flex-grow">
                                 {tasks.map((task, index) => {
                                 const Icon = iconMap[task.icon] || BrainCircuit;
                                 return (
