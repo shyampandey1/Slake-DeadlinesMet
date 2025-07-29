@@ -225,7 +225,7 @@ function RoutineCustomizationPage() {
                              <RadioGroup 
                                 value={profile} 
                                 onValueChange={(value) => setProfile(value as any)}
-                                className="flex flex-wrap gap-3"
+                                className="flex flex-wrap gap-2"
                                 disabled={profileLoading || isGenerating}
                             >
                                 {Object.entries(professionConfig).map(([prof, {icon: Icon, color}]) => (
@@ -233,13 +233,13 @@ function RoutineCustomizationPage() {
                                         <RadioGroupItem value={prof} id={prof} className="sr-only" />
                                         <Label htmlFor={prof}
                                             className={cn(
-                                                "flex flex-col items-center justify-center gap-2 rounded-lg p-3 border-2 cursor-pointer w-28 h-24 transition-all",
+                                                "flex flex-col items-center justify-center gap-2 rounded-lg p-3 border-2 cursor-pointer w-36 text-center transition-all",
                                                 profile === prof ? 'border-primary shadow-lg' : 'border-muted/20 hover:border-muted/50',
                                                 color
                                             )}
                                         >
-                                            <Icon className="w-8 h-8" />
-                                            <span className="text-xs font-medium">{prof}</span>
+                                            <Icon className="w-7 h-7" />
+                                            <span className="text-xs font-medium h-8 flex items-center">{prof}</span>
                                         </Label>
                                     </div>
                                 ))}
