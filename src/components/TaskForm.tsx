@@ -134,7 +134,7 @@ export default function TaskForm() {
             >
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <CarouselItem key={category} className="basis-full sm:basis-1/2 md:basis-1/3">
+                        <CarouselItem key={category} className="basis-full sm:basis-1/2">
                             <Card className="h-full">
                                 <CardHeader>
                                     <Badge className={cn("w-fit", color)}>{category}</Badge>
