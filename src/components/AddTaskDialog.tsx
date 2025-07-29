@@ -201,8 +201,8 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                                     className={cn(
                                         "cursor-pointer border-2",
                                         field.value === category.name 
-                                            ? 'border-current shadow-md' 
-                                            : 'border-transparent opacity-75 hover:opacity-100',
+                                            ? 'border-primary shadow-md' 
+                                            : 'border-transparent opacity-70 hover:opacity-100',
                                         category.color
                                     )}
                                 >

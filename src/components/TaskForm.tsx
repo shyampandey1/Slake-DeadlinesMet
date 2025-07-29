@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, Settings2, X } from 'lucide-react';
-import React, { useState, MouseEvent, useRef } from "react";
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon } from 'lucide-react';
+import React, { useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,15 +18,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Rocket } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
-import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 
 const formSchema = z.object({
@@ -38,24 +37,24 @@ const formSchema = z.object({
   }),
 });
 
-const iconMap: { [key: string]: React.ReactNode } = {
-    ListChecks: <ListChecks className="mr-2 h-4 w-4" />,
-    Bed: <Bed className="mr-2 h-4 w-4" />,
-    StretchHorizontal: <StretchHorizontal className="mr-2 h-4 w-4" />,
-    Dumbbell: <Dumbbell className="mr-2 h-4 w-4" />,
-    BrainCircuit: <BrainCircuit className="mr-2 h-4 w-4" />,
-    Mail: <Mail className="mr-2 h-4 w-4" />,
-    Users: <Users className="mr-2 h-4 w-4" />,
-    Coffee: <Coffee className="mr-2 h-4 w-4" />,
-    Footprints: <Footprints className="mr-2 h-4 w-4" />,
-    Utensils: <Utensils className="mr-2 h-4 w-4" />,
-    Wind: <Wind className="mr-2 h-4 w-4" />,
-    Droplets: <Droplets className="mr-2 h-4 w-4" />,
-    BookOpen: <BookOpen className="mr-2 h-4 w-4" />,
-    Plus: <Plus className="mr-2 h-4 w-4" />,
-    Wrench: <Wrench className="mr-2 h-4 w-4" />,
-    Target: <Target className="mr-2 h-4 w-4" />,
-    ShoppingBag: <ShoppingBag className="mr-2 h-4 w-4" />,
+const iconMap: { [key: string]: LucideIcon } = {
+    ListChecks: ListChecks,
+    Bed: Bed,
+    StretchHorizontal: StretchHorizontal,
+    Dumbbell: Dumbbell,
+    BrainCircuit: BrainCircuit,
+    Mail: Mail,
+    Users: Users,
+    Coffee: Coffee,
+    Footprints: Footprints,
+    Utensils: Utensils,
+    Wind: Wind,
+    Droplets: Droplets,
+    BookOpen: BookOpen,
+    Plus: Plus,
+    Wrench: Wrench,
+    Target: Target,
+    ShoppingBag: ShoppingBag,
 };
 
 
@@ -114,6 +113,7 @@ export default function TaskForm() {
     router.push(`/timer?${params.toString()}`);
   }
   
+  const categories = Object.keys(presetTasks);
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
 
@@ -130,116 +130,94 @@ export default function TaskForm() {
                 New Task
             </Button>
         </CardHeader>
-      <CardContent>
-        <Carousel
-            opts={{
-                align: "start",
-            }}
-            className="w-full -ml-4"
-        >
-            <CarouselContent className="pl-2">
-                {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
-                    return (
-                        <CarouselItem key={category} className="basis-11/12 md:basis-1/2 lg:basis-1/3 pl-2">
-                            <Card className="h-full">
-                                <CardHeader>
-                                    <CardTitle>{category}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2">
-                                        {tasks.map((preset) => (
-                                        <div key={preset.id || preset.name} className="group flex items-center gap-1">
-                                            <Badge
-                                                onClick={() => handlePresetClick(preset)}
-                                                className={cn(
-                                                    "cursor-pointer text-sm justify-between py-2 px-3 rounded-lg flex items-center transition-all duration-200 w-full hover:shadow-md hover:-translate-y-0.5",
-                                                    color
-                                                )}
-                                            >
-                                                <div className="flex items-center flex-1 min-w-0">
-                                                    {iconMap[preset.icon] || <BrainCircuit className="mr-2 h-4 w-4" />}
-                                                    <span className="truncate font-medium">{preset.name}</span>
-                                                </div>
-                                                <span className="text-xs opacity-75 ml-2 shrink-0">{preset.duration} min</span>
-                                            </Badge>
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                                                onClick={() => handleOpenDialog(preset, category)}
-                                            >
-                                                <Settings2 className="h-4 w-4"/>
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </CarouselItem>
-                    )
-                })}
-            </CarouselContent>
-            <CarouselPrevious className="hidden sm:flex -left-2" />
-            <CarouselNext className="hidden sm:flex -right-2" />
-        </Carousel>
-        
-        <Separator className="my-8" />
+        <CardContent>
+            <Tabs defaultValue={categories[0]} className="w-full">
+                <TabsList className="mb-4">
+                    {categories.map((category) => (
+                        <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
+                    ))}
+                </TabsList>
+                {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+                    <TabsContent key={category} value={category}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {tasks.map((task) => {
+                                const Icon = iconMap[task.icon] || BrainCircuit;
+                                return (
+                                    <Card
+                                        key={task.id || task.name}
+                                        onClick={() => handlePresetClick(task)}
+                                        className={cn("cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1", color)}
+                                    >
+                                        <CardContent className="flex flex-col items-center justify-center p-4 text-center">
+                                            <Icon className="w-8 h-8 mb-3" />
+                                            <p className="font-semibold text-sm leading-tight">{task.name}</p>
+                                            <p className="text-xs opacity-80 mt-1">{task.duration} min</p>
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })}
+                        </div>
+                    </TabsContent>
+                ))}
+            </Tabs>
 
-        <div ref={customTaskFormRef}>
-            <h3 className="font-headline text-xl mb-4">Or Create a Custom One-Off Task</h3>
-            <Form {...form}>
-            <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid sm:grid-cols-3 gap-4">
-                    <div className="sm:col-span-2">
-                        <FormField
-                            control={form.control}
-                            name="taskName"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Task Name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., Design the main page" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    <div>
-                        <FormField
-                            control={form.control}
-                            name="duration"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Duration (min)</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        max={120}
-                                        {...field}
-                                        className="text-center font-bold"
-                                        onChange={(e) => {
-                                            const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                                            field.onChange(value);
-                                        }}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </div>
+            <Separator className="my-8" />
 
-                <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                <Rocket className="mr-2 h-4 w-4" />
-                Start Custom Timer
-                </Button>
-            </form>
-            </Form>
-        </div>
-      </CardContent>
+            <div ref={customTaskFormRef}>
+                <h3 className="font-headline text-xl mb-4">Or Create a Custom One-Off Task</h3>
+                <Form {...form}>
+                <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid sm:grid-cols-3 gap-4">
+                        <div className="sm:col-span-2">
+                            <FormField
+                                control={form.control}
+                                name="taskName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Task Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Design the main page" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <div>
+                            <FormField
+                                control={form.control}
+                                name="duration"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Duration (min)</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={120}
+                                            {...field}
+                                            className="text-center font-bold"
+                                            onChange={(e) => {
+                                                const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                                field.onChange(value);
+                                            }}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    </div>
+
+                    <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                        <Rocket className="mr-2 h-4 w-4" />
+                        Start Custom Timer
+                    </Button>
+                </form>
+                </Form>
+            </div>
+        </CardContent>
     </Card>
     <AddTaskDialog
         isOpen={isDialogOpen}

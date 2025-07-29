@@ -10,7 +10,7 @@ import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
 
 const initialPresetTasks: Preset = {
     'Morning Routine': {
-        color: "bg-sky-200/80 text-sky-900 hover:bg-sky-300/80 dark:bg-sky-800/60 dark:text-sky-100 dark:hover:bg-sky-700/60",
+        color: "bg-sky-100 text-sky-900 dark:bg-sky-900/50 dark:text-sky-200",
         tasks: [
             { name: 'Plan Day', duration: 15, icon: 'ListChecks' },
             { name: 'Meditate', duration: 10, icon: 'Bed' },
@@ -18,7 +18,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Work & Focus': {
-        color: "bg-green-200/80 text-green-900 hover:bg-green-300/80 dark:bg-green-800/60 dark:text-green-100 dark:hover:bg-green-700/60",
+        color: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-200",
         tasks: [
             { name: 'Deep Work', duration: 90, icon: 'BrainCircuit' },
             { name: 'Focus Session', duration: 50, icon: 'BrainCircuit' },
@@ -27,7 +27,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Health & Wellness': {
-        color: "bg-blue-200/80 text-blue-900 hover:bg-blue-300/80 dark:bg-blue-800/60 dark:text-blue-100 dark:hover:bg-blue-700/60",
+        color: "bg-blue-100 text-blue-900 dark:bg-blue-900/50 dark:text-blue-200",
         tasks: [
             { name: 'Workout', duration: 45, icon: 'Dumbbell' },
             { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
@@ -35,7 +35,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Breaks & Meals': {
-        color: "bg-orange-200/80 text-orange-900 hover:bg-orange-300/80 dark:bg-orange-800/60 dark:text-orange-100 dark:hover:bg-orange-700/60",
+        color: "bg-orange-100 text-orange-900 dark:bg-orange-900/50 dark:text-orange-200",
         tasks: [
             { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true },
             { name: 'Walk', duration: 15, icon: 'Footprints' },
@@ -44,7 +44,7 @@ const initialPresetTasks: Preset = {
         ]
     },
     'Evening Wind-down': {
-        color: "bg-indigo-200/80 text-indigo-900 hover:bg-indigo-300/80 dark:bg-indigo-800/60 dark:text-indigo-100 dark:hover:bg-indigo-700/60",
+        color: "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/50 dark:text-indigo-200",
         tasks: [
             { name: 'Read a book', duration: 30, icon: 'BookOpen' },
             { name: 'Journal', duration: 15, icon: 'ListChecks' },
