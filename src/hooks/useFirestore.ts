@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit, runTransaction } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
 
@@ -12,42 +12,42 @@ const initialPresetTasks: Preset = {
     'Morning Routine': {
         color: "bg-blue-300/80 text-blue-900 dark:bg-blue-800/70 dark:text-blue-100",
         tasks: [
-            { name: 'Plan Day', duration: 15, icon: 'ListChecks' },
-            { name: 'Meditate', duration: 10, icon: 'Bed' },
-            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
+            { name: 'Plan Day', duration: 15, icon: 'ListChecks', order: 0 },
+            { name: 'Meditate', duration: 10, icon: 'Bed', order: 1 },
+            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal', order: 2 },
         ]
     },
     'Work & Focus': {
         color: "bg-indigo-300/80 text-indigo-900 dark:bg-indigo-800/70 dark:text-indigo-100",
         tasks: [
-            { name: 'Deep Work', duration: 90, icon: 'BrainCircuit' },
-            { name: 'Focus Session', duration: 50, icon: 'BrainCircuit' },
-            { name: 'Check Emails', duration: 15, icon: 'Mail' },
-            { name: 'Stand-up', duration: 15, icon: 'Users' },
+            { name: 'Deep Work', duration: 90, icon: 'BrainCircuit', order: 0 },
+            { name: 'Focus Session', duration: 50, icon: 'BrainCircuit', order: 1 },
+            { name: 'Check Emails', duration: 15, icon: 'Mail', order: 2 },
+            { name: 'Stand-up', duration: 15, icon: 'Users', order: 3 },
         ]
     },
     'Health & Wellness': {
         color: "bg-green-300/80 text-green-900 dark:bg-green-800/70 dark:text-green-100",
         tasks: [
-            { name: 'Workout', duration: 45, icon: 'Dumbbell' },
-            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal' },
-            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true },
+            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
+            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal', order: 1 },
+            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true, order: 2 },
         ]
     },
     'Breaks & Meals': {
         color: "bg-orange-300/80 text-orange-900 dark:bg-orange-800/70 dark:text-orange-100",
         tasks: [
-            { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true },
-            { name: 'Walk', duration: 15, icon: 'Footprints' },
-            { name: 'Lunch Break', duration: 45, icon: 'Utensils' },
-            { name: 'Breathing Practice', duration: 5, icon: 'Wind', recurring: true },
+            { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true, order: 0 },
+            { name: 'Walk', duration: 15, icon: 'Footprints', order: 1 },
+            { name: 'Lunch Break', duration: 45, icon: 'Utensils', order: 2 },
+            { name: 'Breathing Practice', duration: 5, icon: 'Wind', recurring: true, order: 3 },
         ]
     },
     'Evening Wind-down': {
         color: "bg-sky-300/80 text-sky-900 dark:bg-sky-800/70 dark:text-sky-100",
         tasks: [
-            { name: 'Read a book', duration: 30, icon: 'BookOpen' },
-            { name: 'Journal', duration: 15, icon: 'ListChecks' },
+            { name: 'Read a book', duration: 30, icon: 'BookOpen', order: 0 },
+            { name: 'Journal', duration: 15, icon: 'ListChecks', order: 1 },
         ]
     }
 };
@@ -169,7 +169,8 @@ export function usePresetTasks() {
 
         const q = query(
             collection(db, 'userPresetTasks'),
-            where('userId', '==', user.uid)
+            where('userId', '==', user.uid),
+            orderBy('order', 'asc')
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -191,6 +192,11 @@ export function usePresetTasks() {
                     // If a task belongs to a category not in initialPresetTasks, it won't be displayed.
                 }
             });
+            
+             // Ensure tasks within each category are sorted by the order property
+            Object.keys(newPresets).forEach(category => {
+                newPresets[category].tasks.sort((a, b) => a.order - b.order);
+            });
 
             setPresetTasks(newPresets);
             setLoading(false);
@@ -206,13 +212,17 @@ export function usePresetTasks() {
     const addPresetTask = useCallback(async (task: PresetTask & { category: string }) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
 
+        const categoryTasks = presetTasks[task.category]?.tasks || [];
+        const maxOrder = categoryTasks.reduce((max, t) => Math.max(max, t.order), -1);
+
         await addDoc(collection(db, 'userPresetTasks'), {
             ...task,
+            order: maxOrder + 1,
             userId: user.uid
         });
-    }, [user]);
+    }, [user, presetTasks]);
     
-    const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId'>) => {
+    const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
         const taskRef = doc(db, 'userPresetTasks', taskId);
         await updateDoc(taskRef, task);
@@ -249,5 +259,50 @@ export function usePresetTasks() {
 
     }, [user]);
 
-    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask };
+    const reorderPresetTask = useCallback(async (taskId: string, direction: 'up' | 'down') => {
+        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        
+        try {
+            await runTransaction(db, async (transaction) => {
+                const taskRef = doc(db, 'userPresetTasks', taskId);
+                const taskDoc = await transaction.get(taskRef);
+
+                if (!taskDoc.exists()) {
+                    throw "Task does not exist!";
+                }
+
+                const taskData = taskDoc.data() as UserPresetTask & { category: string };
+                const { category, order } = taskData;
+                
+                const categoryTasksQuery = query(
+                    collection(db, 'userPresetTasks'),
+                    where('userId', '==', user.uid),
+                    where('category', '==', category),
+                    orderBy('order')
+                );
+                
+                const categoryTasksSnapshot = await getDocs(categoryTasksQuery);
+                const categoryTasks = categoryTasksSnapshot.docs.map(d => ({...d.data(), id: d.id} as UserPresetTask & {id: string}));
+
+                const taskIndex = categoryTasks.findIndex(t => t.id === taskId);
+
+                if (direction === 'up' && taskIndex > 0) {
+                    const otherTask = categoryTasks[taskIndex - 1];
+                    const otherTaskRef = doc(db, 'userPresetTasks', otherTask.id);
+                    transaction.update(taskRef, { order: otherTask.order });
+                    transaction.update(otherTaskRef, { order: order });
+                } else if (direction === 'down' && taskIndex < categoryTasks.length - 1) {
+                    const otherTask = categoryTasks[taskIndex + 1];
+                    const otherTaskRef = doc(db, 'userPresetTasks', otherTask.id);
+                    transaction.update(taskRef, { order: otherTask.order });
+                    transaction.update(otherTaskRef, { order: order });
+                }
+            });
+        } catch (error) {
+            console.error("Failed to reorder task:", error);
+        }
+
+    }, [user]);
+
+    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask };
 }

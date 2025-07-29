@@ -28,6 +28,7 @@ export type PresetTask = {
     name: string;
     duration: number;
     icon: string;
+    order: number;
     recurring?: boolean;
 };
 

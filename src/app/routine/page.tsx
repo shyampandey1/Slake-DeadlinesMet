@@ -5,7 +5,7 @@ import { useState } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2 } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
@@ -39,7 +39,7 @@ const iconMap: { [key: string]: LucideIcon } = {
 const iconNames = Object.keys(iconMap);
 
 function RoutineCustomizationPage() {
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [routineDescription, setRoutineDescription] = useState("");
@@ -53,7 +53,7 @@ function RoutineCustomizationPage() {
   };
 
   const handleSaveTask = async (
-    taskData: Omit<UserPresetTask, 'id'> & { category: string },
+    taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string },
     taskId?: string
   ) => {
     if (taskId) {
@@ -161,6 +161,7 @@ function RoutineCustomizationPage() {
                             onChange={(e) => setRoutineDescription(e.target.value)}
                             rows={4}
                             disabled={isGenerating}
+                            className="rounded-md"
                         />
                         <Button onClick={handleGenerateRoutine} disabled={isGenerating || !routineDescription.trim()}>
                             {isGenerating ? (
@@ -185,19 +186,30 @@ function RoutineCustomizationPage() {
                             <CardTitle className="font-headline">{category}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 space-y-2 flex-grow">
-                            {tasks.map((task) => {
+                            {tasks.map((task, index) => {
                             const Icon = iconMap[task.icon] || BrainCircuit;
                             return (
-                                <Button
-                                key={task.id || task.name}
-                                variant="outline"
-                                className="w-full justify-start gap-4"
-                                onClick={() => handleOpenDialog(task, category)}
-                                >
-                                <Icon className="w-5 h-5 text-muted-foreground" />
-                                <span className="flex-1 text-left font-semibold">{task.name}</span>
-                                <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                </Button>
+                                <div key={task.id || task.name} className="flex items-center gap-1">
+                                    <Button
+                                    variant="outline"
+                                    className="w-full justify-start gap-4 flex-grow"
+                                    onClick={() => handleOpenDialog(task, category)}
+                                    >
+                                    <Icon className="w-5 h-5 text-muted-foreground" />
+                                    <span className="flex-1 text-left font-semibold">{task.name}</span>
+                                    <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                    </Button>
+                                    {task.id && (
+                                        <div className="flex flex-col">
+                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
+                                                <ArrowUp className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
+                                                <ArrowDown className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             );
                             })}
                         </CardContent>

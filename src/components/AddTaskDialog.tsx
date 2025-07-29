@@ -42,7 +42,7 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 interface AddTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveTask: (task: Omit<UserPresetTask, 'id'> & { category: string }, taskId?: string) => void;
+  onSaveTask: (task: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, taskId?: string) => void;
   onDeleteTask?: (taskId: string) => void;
   initialTask?: UserPresetTask & { category: string };
   categories: { name: string; color: string }[];
