@@ -7,7 +7,6 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import useEmblaCarousel from 'embla-carousel-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +25,8 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { Badge } from "./ui/badge";
 
 
 const formSchema = z.object({
@@ -64,18 +65,7 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
-  const { isAudioEnabled, requestAudioPermission } = useAudio();
-  const revolverSoundRef = useRef<HTMLAudioElement>(null);
-
-  const allTasks = Object.entries(presetTasks).flatMap(([category, { tasks, color }]) =>
-    tasks.map(task => ({ ...task, category, color }))
-  );
-  
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    axis: 'y',
-    loop: true,
-  });
-
+  const { requestAudioPermission } = useAudio();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -84,32 +74,6 @@ export default function TaskForm() {
       duration: 25,
     },
   });
-  
-  const playRevolverSound = useCallback(() => {
-    if (revolverSoundRef.current && isAudioEnabled) {
-      revolverSoundRef.current.currentTime = 0;
-      revolverSoundRef.current.play().catch(e => console.error("Sound play failed", e));
-    }
-  }, [isAudioEnabled]);
-
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    const selectedTask = allTasks[emblaApi.selectedScrollSnap()];
-    if (selectedTask) {
-        form.setValue("taskName", selectedTask.name);
-        form.setValue("duration", selectedTask.duration);
-        playRevolverSound();
-    }
-  }, [emblaApi, allTasks, form, playRevolverSound]);
-
-  useEffect(() => {
-    if (emblaApi) {
-        emblaApi.on('select', onSelect);
-        // Set initial task
-        onSelect();
-    }
-  }, [emblaApi, onSelect]);
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : undefined;
@@ -145,95 +109,123 @@ export default function TaskForm() {
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
+  const selectQuickStartTask = (task: UserPresetTask) => {
+    form.setValue("taskName", task.name);
+    form.setValue("duration", task.duration);
+    if (customTaskFormRef.current) {
+        customTaskFormRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
 
   return (
     <>
-    <Card className="overflow-hidden">
-        <CardHeader>
-            <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
-            <CardDescription>Spin the wheel to select a task and get started.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <audio ref={revolverSoundRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_96c21e72e3.mp3" preload="auto" />
-            <div className="relative h-48 overflow-hidden" ref={emblaRef}>
-                <div className="flex flex-col h-full">
-                    {allTasks.map((task, index) => {
-                         const Icon = iconMap[task.icon] || BrainCircuit;
-                        return (
-                        <div key={`${task.name}-${index}`} className="flex-shrink-0 h-16 flex items-center justify-center">
-                            <Button
-                                variant="ghost"
-                                className={cn("justify-start gap-4 h-auto py-3 px-6 whitespace-normal w-64 text-lg", task.color)}
-                            >
-                                <Icon className="w-5 h-5 shrink-0" />
-                                <span className="flex-1 text-left font-semibold">{task.name}</span>
-                                <span className="text-sm opacity-80">{task.duration}m</span>
-                            </Button>
-                        </div>
-                    )})}
-                </div>
-                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-full h-16 border-y-2 border-primary/50" />
-                </div>
+    <div className="space-y-8">
+        <div>
+            <div className="px-1 mb-4">
+                <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
+                <p className="text-muted-foreground">Select a preset task to get started quickly.</p>
             </div>
+            <Carousel
+                opts={{
+                    align: "start",
+                }}
+                className="w-full"
+            >
+                <CarouselContent>
+                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+                        <CarouselItem key={category} className="basis-full sm:basis-1/2 md:basis-1/3">
+                            <Card className="h-full">
+                                <CardHeader>
+                                    <Badge className={cn("w-fit", color)}>{category}</Badge>
+                                </CardHeader>
+                                <CardContent className="flex flex-col gap-2">
+                                    {tasks.map((task) => {
+                                        const Icon = iconMap[task.icon] || BrainCircuit;
+                                        return (
+                                            <Button
+                                                key={task.name}
+                                                variant="ghost"
+                                                onClick={() => selectQuickStartTask(task)}
+                                                className={cn("justify-start gap-4 h-auto py-3 px-4 whitespace-normal", color)}
+                                            >
+                                                <Icon className="w-5 h-5 shrink-0" />
+                                                <span className="flex-1 text-left font-semibold">{task.name}</span>
+                                                <span className="text-sm opacity-80">{task.duration}m</span>
+                                            </Button>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
+                        </CarouselItem>
+                    ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+        </div>
 
-            <Separator className="my-8" />
+        <Separator />
 
-            <div ref={customTaskFormRef}>
-                <h3 className="font-headline text-lg mb-4">Or create a custom task</h3>
-                <Form {...form}>
-                <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid sm:grid-cols-3 gap-4">
-                        <div className="sm:col-span-2">
-                            <FormField
-                                control={form.control}
-                                name="taskName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Task Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g., Design the main page" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+        <div ref={customTaskFormRef}>
+            <h3 className="font-headline text-2xl mb-2">Or Create a Custom Task</h3>
+            <p className="text-muted-foreground mb-4">Set a name and duration for a one-off task.</p>
+            <Form {...form}>
+            <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="grid sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-2">
+                                <FormField
+                                    control={form.control}
+                                    name="taskName"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Task Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Design the main page" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <div>
+                                <FormField
+                                    control={form.control}
+                                    name="duration"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Duration (min)</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                max={120}
+                                                {...field}
+                                                className="text-center font-bold"
+                                                onChange={(e) => {
+                                                    const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                                    field.onChange(value);
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <FormField
-                                control={form.control}
-                                name="duration"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Duration (min)</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            type="number"
-                                            min={1}
-                                            max={120}
-                                            {...field}
-                                            className="text-center font-bold"
-                                            onChange={(e) => {
-                                                const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                                                field.onChange(value);
-                                            }}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                        Start
-                    </Button>
-                </form>
-                </Form>
-            </div>
-        </CardContent>
-    </Card>
+                <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    Start
+                </Button>
+            </form>
+            </Form>
+        </div>
+    </div>
     <AddTaskDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
