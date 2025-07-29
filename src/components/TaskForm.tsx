@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Rocket } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
@@ -210,8 +209,7 @@ export default function TaskForm() {
                     </div>
 
                     <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                        <Rocket className="mr-2 h-4 w-4" />
-                        Start Custom Timer
+                        Start
                     </Button>
                 </form>
                 </Form>
