@@ -175,7 +175,7 @@ export default function TaskForm() {
             {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
                 const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
                 return (
-                <CarouselItem key={category} className="basis-full md:basis-1/2">
+                <CarouselItem key={category} className="basis-1/2 lg:basis-1/3">
                     <div className="p-1">
                     <Card className="overflow-hidden flex flex-col rounded-xl h-full">
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
@@ -231,7 +231,7 @@ export default function TaskForm() {
       </div>
 
 
-        <Separator />
+        <Separator className="my-6" />
 
         <div ref={customTaskFormRef}>
             <h3 className="font-headline text-2xl mb-2">Or Create a Custom Task</h3>
