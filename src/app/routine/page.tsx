@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4 } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
@@ -21,6 +21,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import { add, format, set } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -71,6 +73,13 @@ const profileCategories = {
     "General & Freelance": ["Educator", "Freelancer", "Student", "General"],
 };
 
+type TimedTask = UserPresetTask & {
+    category: string;
+    color: string;
+    startTime: Date;
+    endTime: Date;
+};
+
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
   const { profile, setProfile, customProfession, setCustomProfession, loading: profileLoading } = useProfile();
@@ -79,6 +88,44 @@ function RoutineCustomizationPage() {
   const [routineDescription, setRoutineDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  
+  const [timedTasks, setTimedTasks] = useState<TimedTask[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const activeTaskRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    // Calculate start and end times for each task
+    const calculateTimes = () => {
+        let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+        const allTasks: TimedTask[] = [];
+
+        Object.entries(presetTasks).forEach(([category, { tasks, color }]) => {
+            tasks.forEach(task => {
+                const startTime = cumulativeTime;
+                const endTime = add(startTime, { minutes: task.duration });
+                allTasks.push({ ...task, category, color, startTime, endTime });
+                cumulativeTime = endTime;
+            });
+        });
+        setTimedTasks(allTasks);
+    };
+
+    if (Object.keys(presetTasks).length > 0) {
+        calculateTimes();
+    }
+  }, [presetTasks]);
+  
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Scroll to active task on initial load
+    if (timedTasks.length > 0 && activeTaskRef.current) {
+      activeTaskRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [timedTasks]);
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -216,6 +263,56 @@ function RoutineCustomizationPage() {
 
         <main className="flex-1 overflow-y-auto pt-16 pb-20">
             <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
+                <div>
+                    <div className="px-1 mb-4">
+                        <h2 className="font-headline text-2xl">Today's Routine</h2>
+                        <p className="text-muted-foreground">Your daily schedule at a glance.</p>
+                    </div>
+                    
+                    <div className="relative space-y-4">
+                      {timedTasks.map((task, index) => {
+                        const Icon = iconMap[task.icon] || BrainCircuit;
+                        const is_active = currentTime >= task.startTime && currentTime < task.endTime;
+                        const is_past = currentTime >= task.endTime;
+
+                        return (
+                          <div key={task.id || task.name} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
+                              <div className="absolute left-0 top-0 flex flex-col items-center h-full">
+                                  <div className={cn("w-3.5 h-3.5 rounded-full mt-1.5 border-2", 
+                                    is_active ? "border-primary bg-primary/20" : "border-border",
+                                    is_past ? "border-primary bg-primary" : ""
+                                  )}></div>
+                                  {index < timedTasks.length - 1 && (
+                                    <div className={cn("w-px h-full my-1", is_past ? "bg-primary" : "bg-border")}></div>
+                                  )}
+                              </div>
+
+                              <div className="flex-1 -mt-0.5">
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(task.startTime, 'p')}
+                                  </p>
+                                  <div
+                                      className={cn(
+                                        "h-auto py-2 px-3 justify-start gap-2.5 whitespace-normal w-full mt-1 border rounded-lg flex items-center",
+                                        is_active && "border-primary shadow-lg"
+                                      )}
+                                  >
+                                      <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+                                      <span className="flex-1 text-left text-sm">{task.name}</span>
+                                      <Badge variant={is_active ? "default" : "secondary"}>
+                                        <Clock4 className="w-3 h-3 mr-1.5"/>
+                                        {task.duration}m
+                                      </Badge>
+                                  </div>
+                              </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                </div>
+
+                <Separator />
+                
                 <div className="space-y-2">
                     <h2 className="font-headline text-2xl">Choose a Profile</h2>
                     <RadioGroup 
@@ -258,15 +355,15 @@ function RoutineCustomizationPage() {
                     <CardHeader>
                         <CardTitle className="font-headline text-2xl flex items-center gap-2">
                             <WandSparkles className="text-primary" />
-                            AI-Powered Generation
+                            AI-Powered Customization
                         </CardTitle>
                         <CardDescription>
-                            Let AI craft a personalized routine for you.
+                            Let AI craft a personalized routine for you or edit your current one.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="custom-profession">Generate for a Profession</Label>
+                            <Label htmlFor="custom-profession">Generate for a New Profession</Label>
                             <div className="flex gap-2">
                                 <Input 
                                     id="custom-profession"
@@ -287,7 +384,7 @@ function RoutineCustomizationPage() {
                         </div>
 
                         <div className="space-y-2">
-                             <Label htmlFor="custom-profession">Generate from Description</Label>
+                             <Label htmlFor="custom-profession">Generate from a Description</Label>
                             <Textarea
                                 placeholder="e.g., 'I wake up, meditate for 10 mins, then do a 90-minute deep work session...'"
                                 value={routineDescription}
@@ -311,51 +408,54 @@ function RoutineCustomizationPage() {
                 </Card>
 
                 <Separator />
-
-                 {presetTasksLoading ? renderSkeleton() : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
-                            <CardHeader className={`${color} p-3`}>
-                                <CardTitle className="font-headline text-base">{category}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-3 pt-3 space-y-2 flex-grow">
-                                {tasks.map((task, index) => {
-                                const Icon = iconMap[task.icon] || BrainCircuit;
-                                return (
-                                    <div key={task.id || task.name} className="flex items-center gap-1">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-start gap-3 h-10 px-3 flex-grow"
-                                            onClick={() => handleOpenDialog(task, category)}
-                                            >
-                                            <Icon className="w-5 h-5 text-muted-foreground" />
-                                            <span className="flex-1 text-left">{task.name}</span>
-                                            <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                        </Button>
-                                        {task.id && (
-                                            <div className="flex flex-col">
-                                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
-                                                    <ArrowUp className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
-                                                    <ArrowDown className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                                })}
-                            </CardContent>
-                            <div className="p-3 pt-0 mt-auto">
-                                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                                    <Plus className="w-4 h-4 mr-2" /> Add Task
-                                </Button>
-                            </div>
-                        </Card>
-                    ))}
-                    </div>
-                 )}
+                
+                <div>
+                     <h2 className="font-headline text-2xl mb-4">Edit Current Routine</h2>
+                     {presetTasksLoading ? renderSkeleton() : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+                            <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
+                                <CardHeader className={`${color} p-3`}>
+                                    <CardTitle className="font-headline text-base">{category}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-3 pt-3 space-y-2 flex-grow">
+                                    {tasks.map((task, index) => {
+                                    const Icon = iconMap[task.icon] || BrainCircuit;
+                                    return (
+                                        <div key={task.id || task.name} className="flex items-center gap-1">
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start gap-3 h-10 px-3 flex-grow"
+                                                onClick={() => handleOpenDialog(task, category)}
+                                                >
+                                                <Icon className="w-5 h-5 text-muted-foreground" />
+                                                <span className="flex-1 text-left">{task.name}</span>
+                                                <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                            </Button>
+                                            {task.id && (
+                                                <div className="flex flex-col">
+                                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
+                                                        <ArrowUp className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
+                                                        <ArrowDown className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                    })}
+                                </CardContent>
+                                <div className="p-3 pt-0 mt-auto">
+                                    <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                        <Plus className="w-4 h-4 mr-2" /> Add Task
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                        </div>
+                     )}
+                </div>
             </div>
         </main>
         <AddTaskDialog

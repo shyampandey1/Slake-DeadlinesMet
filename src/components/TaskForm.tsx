@@ -5,9 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock4 } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { add, format, set } from "date-fns";
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +25,7 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
-import { Badge } from "./ui/badge";
+import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 
 
@@ -61,12 +60,6 @@ const iconMap: { [key: string]: LucideIcon } = {
     ShoppingBag: ShoppingBag,
 };
 
-type TimedTask = UserPresetTask & {
-    category: string;
-    color: string;
-    startTime: Date;
-    endTime: Date;
-};
 
 export default function TaskForm() {
   const router = useRouter();
@@ -75,10 +68,6 @@ export default function TaskForm() {
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
   const { requestAudioPermission } = useAudio();
-  
-  const [timedTasks, setTimedTasks] = useState<TimedTask[]>([]);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const activeTaskRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,41 +76,6 @@ export default function TaskForm() {
       duration: 25,
     },
   });
-
-  useEffect(() => {
-    // Calculate start and end times for each task
-    const calculateTimes = () => {
-        let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
-        const allTasks: TimedTask[] = [];
-
-        Object.entries(presetTasks).forEach(([category, { tasks, color }]) => {
-            tasks.forEach(task => {
-                const startTime = cumulativeTime;
-                const endTime = add(startTime, { minutes: task.duration });
-                allTasks.push({ ...task, category, color, startTime, endTime });
-                cumulativeTime = endTime;
-            });
-        });
-        setTimedTasks(allTasks);
-    };
-
-    if (Object.keys(presetTasks).length > 0) {
-        calculateTimes();
-    }
-  }, [presetTasks]);
-  
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    // Scroll to active task on initial load
-    if (timedTasks.length > 0 && activeTaskRef.current) {
-      activeTaskRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  }, [timedTasks]);
-
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -176,56 +130,45 @@ export default function TaskForm() {
   return (
     <>
     <div className="space-y-8">
-        <div>
-            <div className="px-1 mb-4">
-                <h2 className="font-headline text-2xl">Today's Routine</h2>
-                <p className="text-muted-foreground">Your daily schedule at a glance. Click a task to start.</p>
-            </div>
-            
-            <div className="relative space-y-4">
-              {timedTasks.map((task, index) => {
-                const Icon = iconMap[task.icon] || BrainCircuit;
-                const is_active = currentTime >= task.startTime && currentTime < task.endTime;
-                const is_past = currentTime >= task.endTime;
+      <div>
+        <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
+        <p className="text-muted-foreground">
+            Select a preset task or add your own. Double-click to edit.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
+            <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
+            <CardHeader className={cn("p-4", color)}>
+                <CardTitle className="font-headline text-lg">{category}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-3 space-y-2 flex-grow">
+                {tasks.map((task) => {
+                    const Icon = iconMap[task.icon] || BrainCircuit;
+                    return (
+                        <Button
+                            key={task.name}
+                            variant="outline"
+                            className="w-full justify-start gap-3 h-10 px-3"
+                            onClick={() => selectQuickStartTask(task, category, color)}
+                            onDoubleClick={() => handleOpenDialog(task, category)}
+                        >
+                            <Icon className="w-5 h-5 text-muted-foreground" />
+                            <span className="flex-1 text-left font-normal">{task.name}</span>
+                            <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                        </Button>
+                    );
+                })}
+            </CardContent>
+             <CardFooter className="p-3 pt-0 mt-auto">
+                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                    <Plus className="w-4 h-4 mr-2" /> Add Task
+                </Button>
+            </CardFooter>
+            </Card>
+        ))}
+      </div>
 
-                return (
-                  <div key={task.id || task.name} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
-                      <div className="absolute left-0 top-0 flex flex-col items-center h-full">
-                          <div className={cn("w-3.5 h-3.5 rounded-full mt-1.5 border-2", 
-                            is_active ? "border-primary bg-primary/20" : "border-border",
-                            is_past ? "border-primary bg-primary" : ""
-                          )}></div>
-                          {index < timedTasks.length - 1 && (
-                            <div className={cn("w-px h-full my-1", is_past ? "bg-primary" : "bg-border")}></div>
-                          )}
-                      </div>
-
-                      <div className="flex-1 -mt-0.5">
-                          <p className="text-xs text-muted-foreground">
-                            {format(task.startTime, 'p')}
-                          </p>
-                          <Button
-                              onClick={() => selectQuickStartTask(task, task.category, task.color)}
-                              onDoubleClick={() => handleOpenDialog(task, task.category)}
-                              variant="outline"
-                              className={cn(
-                                "h-auto py-2 px-3 justify-start gap-2.5 whitespace-normal w-full mt-1",
-                                is_active && "border-primary shadow-lg"
-                              )}
-                          >
-                              <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                              <span className="flex-1 text-left text-sm">{task.name}</span>
-                              <Badge variant={is_active ? "default" : "secondary"}>
-                                <Clock4 className="w-3 h-3 mr-1.5"/>
-                                {task.duration}m
-                              </Badge>
-                          </Button>
-                      </div>
-                  </div>
-                )
-              })}
-            </div>
-        </div>
 
         <Separator />
 
