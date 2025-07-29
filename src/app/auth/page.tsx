@@ -83,27 +83,21 @@ export default function AuthPage() {
           <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col space-y-4">
-            <Button onClick={handleGoogleLogin} size="lg">
+            <Button onClick={handleGoogleLogin} size="lg" variant="outline">
                 <GoogleIcon className="mr-2 h-5 w-5" />
                 Sign in with Google
             </Button>
-            <div className="relative">
-                <Separator />
-                <div className="absolute inset-0 flex items-center">
-                    <span className="bg-card px-2 text-xs text-muted-foreground mx-auto">OR</span>
-                </div>
-            </div>
             <div className="grid grid-cols-2 gap-4">
-                <Button onClick={() => setView("login")} size="lg" variant="secondary">
+                <Button onClick={() => setView("login")} size="lg">
                     <LogIn className="mr-2" />
                     Login
                 </Button>
-                <Button onClick={() => setView("signup")} size="lg" variant="ghost">
+                <Button onClick={() => setView("signup")} size="lg">
                     <UserPlus className="mr-2" />
                     Sign Up
                 </Button>
             </div>
-             <Button onClick={handleGuestLogin} variant="link" size="lg" className="text-muted-foreground">
+             <Button onClick={handleGuestLogin} size="lg" className="bg-sky-500 text-white">
                 <UserCheck className="mr-2" />
                 Continue as Guest
             </Button>
