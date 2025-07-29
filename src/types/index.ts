@@ -44,3 +44,10 @@ export type Preset = {
         tasks: UserPresetTask[];
     };
 };
+
+export type ProfileType = "Artist" | "Consultant" | "Content Creator" | "Designer" | "Educator" | "Entrepreneur" | "Freelancer" | "General" | "Healthcare Professional" | "IT Professional" | "Manager" | "Marketer" | "Researcher" | "Sales" | "Software Engineer" | "Student" | "Writer" | string;
+
+export type CustomProfession = {
+    name: string;
+    categoryGroup: string;
+}

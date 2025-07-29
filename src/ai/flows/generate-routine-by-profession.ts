@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a structured daily routine based on a user's profession.
@@ -14,6 +15,7 @@ const GenerateRoutineByProfessionInputSchema = z.object({
   profession: z.string().describe("The user's profession (e.g., 'Doctor', 'Artist', 'Teacher')."),
   availableIcons: z.array(z.string()).describe('A list of available icon names to choose from.'),
   availableCategories: z.array(z.string()).describe('A list of available category names to choose from.'),
+  availableCategoryGroups: z.array(z.string()).describe('A list of available profession category groups to choose from.'),
 });
 export type GenerateRoutineByProfessionInput = z.infer<typeof GenerateRoutineByProfessionInputSchema>;
 
@@ -26,6 +28,7 @@ const OrganizedTaskSchema = z.object({
 
 const GenerateRoutineByProfessionOutputSchema = z.object({
   tasks: z.array(OrganizedTaskSchema).describe('An array of structured tasks generated for the specified profession.'),
+  categoryGroup: z.string().describe('The most relevant category group for the profession from the available list.'),
 });
 export type GenerateRoutineByProfessionOutput = z.infer<typeof GenerateRoutineByProfessionOutputSchema>;
 
@@ -42,22 +45,28 @@ const prompt = ai.definePrompt({
 
   Profession: {{{profession}}}
 
-  Your task is to generate a comprehensive and structured daily routine for this profession. The routine should be broken down into logical categories and individual tasks with realistic durations.
+  Your task is to generate a comprehensive and structured daily routine for this profession. The routine should be broken down into logical categories and individual tasks with realistic durations. Then, you must classify the profession into one of the provided category groups.
 
   1.  **Analyze the Profession**: Consider the typical daily activities, responsibilities, and work patterns of a {{{profession}}}.
   2.  **Structure the Routine**: Create a full-day schedule, starting from the morning and ending in the evening.
   3.  **Define Tasks**: For each part of the day, define specific, actionable tasks.
   4.  **Estimate Durations**: Assign a reasonable duration in minutes for each task.
-  5.  **Categorize**: Assign each task to the most appropriate category from the provided list.
+  5.  **Categorize Tasks**: Assign each task to the most appropriate category from the provided list.
   6.  **Assign Icons**: Assign the most relevant icon from the provided list to each task.
+  7.  **Classify Profession**: Assign the profession to the single most relevant category group from the provided list.
 
-  Available Icons:
+  Available Task Icons:
   {{#each availableIcons}}
   - {{{this}}}
   {{/each}}
 
-  Available Categories:
+  Available Task Categories:
   {{#each availableCategories}}
+  - {{{this}}}
+  {{/each}}
+  
+  Available Profession Category Groups:
+  {{#each availableCategoryGroups}}
   - {{{this}}}
   {{/each}}
 
@@ -69,10 +78,11 @@ const prompt = ai.definePrompt({
       { "name": "Client Feedback & Revisions", "duration": 60, "icon": "Mail", "category": "Work & Focus" },
       { "name": "Inspiration & Moodboarding", "duration": 45, "icon": "ShoppingBag", "category": "Work & Focus" },
       { "name": "Lunch & Walk", "duration": 60, "icon": "Utensils", "category": "Breaks & Meals" }
-    ]
+    ],
+    "categoryGroup": "Creative & Media"
   }
 
-  Generate a structured routine for the "{{{profession}}}" profession now. Ensure the entire day is reasonably accounted for.
+  Generate a structured routine and classify the "{{{profession}}}" profession now. Ensure the entire day is reasonably accounted for.
   `,
 });
 
@@ -88,7 +98,7 @@ const generateRoutineByProfessionFlow = ai.defineFlow(
       return output!;
     } catch(e) {
       console.error("AI call for profession-based routine generation failed", e);
-      return { tasks: [] };
+      return { tasks: [], categoryGroup: 'General & Freelance' };
     }
   }
 );

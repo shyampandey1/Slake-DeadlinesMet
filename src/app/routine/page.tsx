@@ -1,31 +1,27 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import HamburgerMenu from "@/components/HamburgerMenu";
-import { Textarea } from "@/components/ui/textarea";
-import { organizeRoutine } from "@/ai/flows/organize-routine";
 import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useProfile } from "@/hooks/useProfile";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { add, format, set } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const iconMap: { [key: string]: LucideIcon } = {
+const initialIconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
     Bed: Bed,
     StretchHorizontal: StretchHorizontal,
@@ -45,9 +41,9 @@ const iconMap: { [key: string]: LucideIcon } = {
     ShoppingBag: ShoppingBag,
 };
 
-const iconNames = Object.keys(iconMap);
+const iconNames = Object.keys(initialIconMap);
 
-const professionConfig: { [key: string]: { icon: LucideIcon, color: string } } = {
+const initialProfessionConfig: { [key: string]: { icon: LucideIcon, color: string } } = {
     "Artist": { icon: Paintbrush, color: "border-red-500/80 text-red-400" },
     "Consultant": { icon: Briefcase, color: "border-blue-500/80 text-blue-400" },
     "Content Creator": { icon: Camera, color: "border-orange-500/80 text-orange-400" },
@@ -67,7 +63,7 @@ const professionConfig: { [key: string]: { icon: LucideIcon, color: string } } =
     "Writer": { icon: Feather, color: "border-stone-500/80 text-stone-400" },
 };
 
-const profileCategories = {
+const initialProfileCategories: { [key: string]: string[] } = {
     "Creative & Media": ["Artist", "Content Creator", "Designer", "Writer"],
     "Business & Management": ["Consultant", "Entrepreneur", "Manager", "Marketer", "Sales"],
     "Technical & Health": ["Healthcare Professional", "IT Professional", "Software Engineer", "Researcher"],
@@ -76,20 +72,41 @@ const profileCategories = {
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
-  const { profile, setProfile, customProfession, setCustomProfession, loading: profileLoading } = useProfile();
+  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession } = useProfile();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const [newProfession, setNewProfession] = useState("");
 
+  const [professionConfig, setProfessionConfig] = useState(initialProfessionConfig);
+  const [profileCategories, setProfileCategories] = useState(initialProfileCategories);
+  const [iconMap, setIconMap] = useState(initialIconMap);
+
   useEffect(() => {
-    if (profile === 'Custom') {
-      setNewProfession(customProfession);
-    } else {
-      setNewProfession("");
-    }
-  }, [profile, customProfession]);
+    const newConfig = { ...initialProfessionConfig };
+    const newCats = JSON.parse(JSON.stringify(initialProfileCategories));
+    const newIcons = { ...initialIconMap, BookCopy: BookCopy };
+
+    customProfessions.forEach(prof => {
+        newConfig[prof.name] = { icon: BookCopy, color: "border-slate-500/80 text-slate-400" };
+        if (newCats[prof.categoryGroup]) {
+            if (!newCats[prof.categoryGroup].includes(prof.name)) {
+                newCats[prof.categoryGroup].push(prof.name);
+            }
+        } else {
+            // This case handles if a category group was somehow deleted or changed.
+            newCats[prof.categoryGroup] = [prof.name];
+        }
+    });
+
+    setProfessionConfig(newConfig);
+    setProfileCategories(newCats);
+    setIconMap(newIcons);
+
+  }, [customProfessions]);
+
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -116,25 +133,27 @@ function RoutineCustomizationPage() {
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
   const handleGenerateByProfession = async () => {
-    if (!newProfession.trim()) {
+    const professionToGenerate = newProfession.trim();
+    if (!professionToGenerate) {
         toast({ title: "Please enter a profession.", variant: "destructive" });
         return;
     }
     setIsGenerating(true);
-    setCustomProfession(newProfession);
+
     try {
         const result = await generateRoutineByProfession({
-            profession: newProfession,
+            profession: professionToGenerate,
             availableIcons: getAvailableIcons(),
-            availableCategories: getAvailableCategories(),
+            availableCategories: getAvailableCategories(profile),
+            availableCategoryGroups: Object.keys(profileCategories),
         });
         
         if (result.tasks && result.tasks.length > 0) {
-            await clearAndSetPresetTasks(result.tasks);
-            await setProfile("Custom", newProfession);
+            await addCustomProfession({ name: professionToGenerate, categoryGroup: result.categoryGroup }, result.tasks);
+            setNewProfession("");
             toast({
-                title: `Routine for ${newProfession} Generated!`,
-                description: `${result.tasks.length} tasks have been added.`,
+                title: `Routine for ${professionToGenerate} Generated!`,
+                description: `${result.tasks.length} tasks have been added under the '${result.categoryGroup}' category.`,
             });
         } else {
             toast({
@@ -206,7 +225,9 @@ function RoutineCustomizationPage() {
                                     </CardHeader>
                                     <CardContent className="p-3 flex flex-wrap gap-2">
                                         {professions.map(prof => {
-                                            const { icon: Icon, color } = professionConfig[prof];
+                                            const config = professionConfig[prof];
+                                            if (!config) return null;
+                                            const { icon: Icon, color } = config;
                                             return (
                                                 <div key={prof}>
                                                     <RadioGroupItem value={prof} id={prof} className="sr-only" />
@@ -236,7 +257,7 @@ function RoutineCustomizationPage() {
                                     <WandSparkles className="text-primary"/>
                                     Or Generate a New One with AI
                                 </CardTitle>
-                                <CardDescription>Not seeing your profession? Enter it below to generate a custom routine.</CardDescription>
+                                <CardDescription>Not seeing your profession? Enter it below to generate a custom routine. The AI will categorize it and add it as a new chip.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2">

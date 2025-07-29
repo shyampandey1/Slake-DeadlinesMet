@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit, runTransaction } from 'firebase/firestore';
 import { useAuth } from './useAuth';
-import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
+import { Task, Preset, PresetTask, UserPresetTask, CustomProfession } from '@/types';
 import { useProfile } from './useProfile';
 
 const iconMap = {
@@ -279,7 +279,7 @@ export function useTasks() {
 
 export function usePresetTasks() {
     const { user } = useAuth();
-    const { profile } = useProfile();
+    const { profile, customProfessions } = useProfile();
     const [presetTasks, setPresetTasks] = useState<Preset>({});
     const [loading, setLoading] = useState(true);
 
@@ -288,20 +288,14 @@ export function usePresetTasks() {
     }
 
     const getAvailableIcons = () => iconNames;
-    const getAvailableCategories = () => {
-        const basePreset = profilePresets[profile] || profilePresets["General"];
-        return Object.keys(basePreset);
-    };
+    
+    const getAvailableCategories = useCallback((prof: string) => {
+        const preset = profilePresets[prof] || baseRoutine;
+        return Object.keys(preset);
+    }, []);
 
     useEffect(() => {
-        if (!user) {
-            const initialTasks = profilePresets[profile] || profilePresets["General"];
-            setPresetTasks(initialTasks);
-            setLoading(false);
-            return;
-        }
-
-        if ('isMockUser' in user && user.isMockUser) {
+        if (!user || ('isMockUser' in user && user.isMockUser)) {
             const initialTasks = profilePresets[profile] || profilePresets["General"];
             setPresetTasks(initialTasks);
             setLoading(false);
@@ -315,16 +309,20 @@ export function usePresetTasks() {
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string})[];
+            const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
             
             let newPresets: Preset = {};
+            const isCustomProfile = !Object.keys(profilePresets).includes(profile);
 
-            if (profile === 'Custom') {
+            if (isCustomProfile) {
                 const customPreset: Preset = {};
-                userTasks.forEach(task => {
+                const profileTasks = userTasks.filter(t => t.profession === profile);
+                profileTasks.forEach(task => {
                     if (!customPreset[task.category]) {
+                        // Find a color from the base routine, or use a default
+                        const baseCategory = baseRoutine[task.category];
                         customPreset[task.category] = {
-                            color: "bg-slate-800 text-slate-100", // Default color for custom categories
+                            color: baseCategory ? baseCategory.color : "bg-slate-800 text-slate-100",
                             tasks: []
                         };
                     }
@@ -335,19 +333,19 @@ export function usePresetTasks() {
                 const basePreset = profilePresets[profile] || profilePresets["General"];
                 newPresets = JSON.parse(JSON.stringify(basePreset));
                 
-                // Clear default tasks from categories that have custom tasks
-                const categoriesWithUserTasks = new Set(userTasks.map(t => t.category));
+                const userTasksForProfile = userTasks.filter(t => t.profession === profile);
+
+                const categoriesWithUserTasks = new Set(userTasksForProfile.map(t => t.category));
                 categoriesWithUserTasks.forEach(category => {
                     if (newPresets[category]) {
                         newPresets[category].tasks = [];
                     }
                 });
 
-                userTasks.forEach(task => {
+                userTasksForProfile.forEach(task => {
                     if (newPresets[task.category]) {
                         newPresets[task.category].tasks.push(task);
                     } else {
-                        // This case should ideally not happen if not a custom profile
                         newPresets[task.category] = {
                             color: "bg-gray-800 text-gray-100",
                             tasks: [task]
@@ -370,9 +368,9 @@ export function usePresetTasks() {
         });
 
         return () => unsubscribe();
-    }, [user, profile]);
+    }, [user, profile, customProfessions]);
 
-    const addPresetTask = useCallback(async (task: PresetTask & { category: string }) => {
+    const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
 
         const categoryTasks = presetTasks[task.category]?.tasks || [];
@@ -380,10 +378,11 @@ export function usePresetTasks() {
 
         await addDoc(collection(db, 'userPresetTasks'), {
             ...task,
+            profession: profile,
             order: maxOrder + 1,
             userId: user.uid
         });
-    }, [user, presetTasks]);
+    }, [user, presetTasks, profile]);
     
     const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
@@ -405,6 +404,7 @@ export function usePresetTasks() {
             collection(db, 'userPresetTasks'),
             where('userId', '==', user.uid),
             where('name', '==', taskName),
+            where('profession', '==', profile),
             limit(1)
         );
 
@@ -420,7 +420,7 @@ export function usePresetTasks() {
             console.error(`Failed to sync preset task '${taskName}':`, error);
         }
 
-    }, [user]);
+    }, [user, profile]);
 
     const reorderPresetTask = useCallback(async (taskId: string, direction: 'up' | 'down') => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
@@ -434,13 +434,14 @@ export function usePresetTasks() {
                     throw "Task does not exist!";
                 }
 
-                const taskData = taskDoc.data() as UserPresetTask & { category: string };
-                const { category, order } = taskData;
+                const taskData = taskDoc.data() as UserPresetTask & { category: string; profession: string };
+                const { category, order, profession } = taskData;
                 
                 const q = query(
                     collection(db, 'userPresetTasks'),
                     where('userId', '==', user.uid),
                     where('category', '==', category),
+                    where('profession', '==', profession),
                     orderBy('order')
                 );
                 
@@ -467,13 +468,17 @@ export function usePresetTasks() {
 
     }, [user]);
 
-    const clearAndSetPresetTasks = useCallback(async (tasks: (PresetTask & { category: string })[]) => {
+    const clearAndSetPresetTasks = useCallback(async (professionName: string, tasks: (PresetTask & { category: string })[]) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
     
         const batch = writeBatch(db);
     
-        // 1. Delete all existing user preset tasks
-        const q = query(collection(db, 'userPresetTasks'), where('userId', '==', user.uid));
+        // 1. Delete all existing user preset tasks for that profession
+        const q = query(
+            collection(db, 'userPresetTasks'), 
+            where('userId', '==', user.uid),
+            where('profession', '==', professionName)
+        );
         const snapshot = await getDocs(q);
         snapshot.forEach(doc => {
             batch.delete(doc.ref);
@@ -495,6 +500,7 @@ export function usePresetTasks() {
                     ...task,
                     order: index,
                     userId: user.uid,
+                    profession: professionName,
                 });
             });
         });
