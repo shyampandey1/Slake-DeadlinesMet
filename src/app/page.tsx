@@ -9,7 +9,7 @@ function HomeComponent() {
 
   return (
     <div className="flex flex-col h-screen">
-      <header className="w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
+      <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
           <div className="container mx-auto flex h-16 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
             <div>
               <h1 className="text-xl font-bold font-headline text-foreground/80">DeadlinesMet</h1>
@@ -18,7 +18,7 @@ function HomeComponent() {
             <HamburgerMenu />
           </div>
         </header>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pt-16">
         <div className="container mx-auto p-4 sm:p-6 md:p-8">
             <div className="w-full max-w-4xl mx-auto">
               <section className="mb-8">
