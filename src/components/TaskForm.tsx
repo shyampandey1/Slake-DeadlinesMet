@@ -162,7 +162,9 @@ export default function TaskForm() {
         params.append("category", values.category);
     }
     if (values.color) {
-        params.append("color", values.color);
+        // Extract the color name from the class, e.g., 'bg-sky-800' -> 'sky-800'
+        const colorName = values.color.split(' ')[0].replace('bg-', '');
+        params.append("color", colorName);
     }
     router.push(`/timer?${params.toString()}`);
   }

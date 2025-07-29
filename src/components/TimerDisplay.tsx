@@ -162,6 +162,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
 
+  // Extract HSL values from the color prop
+  const timerColor = color ? `hsl(var(--${color.replace('bg-', '')}))` : 'hsl(var(--primary))';
+
 
   return (
     <main
@@ -170,10 +173,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         {
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
-        }
+        },
+        color ? `timer-theme-${color.replace('bg-', '')}` : ''
       )}
       style={{
-        '--timer-primary-color': 'hsl(var(--primary))',
+        '--timer-primary-color': timerColor,
         '--timer-background-color': 'hsl(var(--background))',
       } as React.CSSProperties}
     >
@@ -189,7 +193,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           <CircularProgress progress={progress}>
             <div
               className="font-code text-5xl font-bold sm:text-6xl md:text-7xl"
-              style={{ color: 'hsl(var(--primary))' }}
+              style={{ color: 'var(--timer-primary-color)' }}
             >
               {formatTime(timeRemaining)}
             </div>

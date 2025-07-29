@@ -41,6 +41,15 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --sky-800: 197 89% 34%;
+    --blue-800: 221 83% 40%;
+    --indigo-800: 243 83% 45%;
+    --green-800: 142 76% 30%;
+    --purple-800: 269 84% 45%;
+    --amber-800: 38 92% 40%;
+    --orange-800: 25 95% 45%;
+    --rose-800: 347 87% 45%;
+    --slate-800: 222 47% 25%;
   }
   .dark {
     --background: 20 14% 4%;
