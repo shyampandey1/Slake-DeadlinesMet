@@ -70,7 +70,6 @@ export default function TaskForm() {
 
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
   const [dots, setDots] = useState<number[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -85,9 +84,8 @@ export default function TaskForm() {
     if (!api) return;
 
     const updateCarouselState = () => {
-        setCount(api.scrollSnapList().length);
-        setCurrent(api.selectedScrollSnap());
         setDots(api.scrollSnapList().map((_, index) => index));
+        setCurrent(api.selectedScrollSnap());
     };
     
     updateCarouselState();
@@ -123,7 +121,6 @@ export default function TaskForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Request audio permission on the first user interaction
     requestAudioPermission();
     const params = new URLSearchParams({
       task: values.taskName,
@@ -160,7 +157,7 @@ export default function TaskForm() {
             >
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <CarouselItem key={category} className="basis-1/2">
+                        <CarouselItem key={category} className="basis-full sm:basis-1/2 md:basis-1/3">
                             <Card className="h-full flex flex-col">
                                 <CardHeader>
                                     <Badge className={cn("w-fit", color)}>{category}</Badge>
@@ -176,7 +173,6 @@ export default function TaskForm() {
                                                 onDoubleClick={() => handleOpenDialog(task, category)}
                                                 className={cn(
                                                     "justify-start gap-2 h-auto py-1 px-2 whitespace-normal text-xs",
-                                                    color
                                                 )}
                                             >
                                                 <Icon className="w-4 h-4 shrink-0" />
@@ -187,7 +183,7 @@ export default function TaskForm() {
                                     })}
                                 </CardContent>
                                 <CardFooter>
-                                    <Button variant="ghost" className="w-full" onClick={() => handleOpenDialog(undefined, category)}>
+                                    <Button variant="ghost" className="w-full h-8 text-xs" onClick={() => handleOpenDialog(undefined, category)}>
                                         <Plus className="w-4 h-4 mr-2" /> Add Task
                                     </Button>
                                 </CardFooter>
