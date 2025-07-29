@@ -21,7 +21,7 @@ export default function MusicPlayer() {
   const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { isAudioEnabled, requestAudioPermission } = useAudio();
 
   useEffect(() => {
@@ -87,14 +87,16 @@ export default function MusicPlayer() {
 
   return (
     <div className="flex items-center gap-2 p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
-      <audio
-        ref={audioRef}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-        loop
-        src={currentTrack?.trackUrl ?? ''}
-      />
+      {currentTrack && (
+        <audio
+          ref={audioRef}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+          loop
+          src={currentTrack.trackUrl}
+        />
+      )}
       <Button onClick={togglePlayPause} variant="ghost" size="icon" disabled={!currentTrack}>
         {isPlaying ? <Music /> : <Music4 />}
       </Button>
