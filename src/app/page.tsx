@@ -4,7 +4,6 @@
 import TaskForm from '@/components/TaskForm';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import InfoDisplay from '@/components/InfoDisplay';
 
 function HomeComponent() {
 
