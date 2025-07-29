@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { Badge } from "./ui/badge";
+import { Slider } from "./ui/slider";
 
 
 const formSchema = z.object({
@@ -182,49 +183,52 @@ export default function TaskForm() {
             <Form {...form}>
             <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <Card>
-                    <CardContent className="pt-6">
-                        <div className="grid sm:grid-cols-3 gap-4">
-                            <div className="sm:col-span-2">
-                                <FormField
-                                    control={form.control}
-                                    name="taskName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Task Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g., Design the main page" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <div>
-                                <FormField
-                                    control={form.control}
-                                    name="duration"
-                                    render={({ field }) => (
-                                        <FormItem>
+                    <CardContent className="pt-6 grid gap-6">
+                        <FormField
+                            control={form.control}
+                            name="taskName"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Task Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Design the main page" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="duration"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex justify-between items-center mb-2">
                                         <FormLabel>Duration (min)</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                max={120}
-                                                {...field}
-                                                className="text-center font-bold"
-                                                onChange={(e) => {
-                                                    const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
-                                                    field.onChange(value);
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
+                                        <Input
+                                            type="number"
+                                            min={1}
+                                            max={120}
+                                            className="w-20 text-center font-bold"
+                                            value={field.value}
+                                            onChange={(e) => {
+                                                const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+                                                field.onChange(value);
+                                            }}
+                                        />
+                                    </div>
+                                    <FormControl>
+                                        <Slider
+                                            value={[field.value]}
+                                            onValueChange={(value) => field.onChange(value[0])}
+                                            min={1}
+                                            max={120}
+                                            step={1}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </CardContent>
                 </Card>
 
