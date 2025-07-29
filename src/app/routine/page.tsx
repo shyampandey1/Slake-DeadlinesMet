@@ -206,9 +206,23 @@ function RoutineCustomizationPage() {
                                     <SelectValue placeholder="Select a profile..." />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="Artist">Artist</SelectItem>
+                                    <SelectItem value="Consultant">Consultant</SelectItem>
+                                    <SelectItem value="Content Creator">Content Creator</SelectItem>
+                                    <SelectItem value="Designer">Designer</SelectItem>
+                                    <SelectItem value="Educator">Educator</SelectItem>
+                                    <SelectItem value="Entrepreneur">Entrepreneur</SelectItem>
+                                    <SelectItem value="Freelancer">Freelancer</SelectItem>
+                                    <SelectItem value="General">General</SelectItem>
+                                    <SelectItem value="Healthcare Professional">Healthcare Professional</SelectItem>
+                                    <SelectItem value="IT Professional">IT Professional</SelectItem>
+                                    <SelectItem value="Manager">Manager</SelectItem>
+                                    <SelectItem value="Marketer">Marketer</SelectItem>
+                                    <SelectItem value="Researcher">Researcher</SelectItem>
+                                    <SelectItem value="Sales">Sales</SelectItem>
                                     <SelectItem value="Software Engineer">Software Engineer</SelectItem>
                                     <SelectItem value="Student">Student</SelectItem>
-                                    <SelectItem value="General">General</SelectItem>
+                                    <SelectItem value="Writer">Writer</SelectItem>
                                     {profile === 'Custom' && <SelectItem value="Custom" disabled>Custom</SelectItem>}
                                 </SelectContent>
                             </Select>

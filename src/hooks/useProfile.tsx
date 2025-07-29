@@ -13,7 +13,7 @@ import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
-type ProfileType = "Software Engineer" | "Student" | "General" | "Custom";
+type ProfileType = "Artist" | "Consultant" | "Content Creator" | "Designer" | "Educator" | "Entrepreneur" | "Freelancer" | "General" | "Healthcare Professional" | "IT Professional" | "Manager" | "Marketer" | "Researcher" | "Sales" | "Software Engineer" | "Student" | "Writer" | "Custom";
 
 interface ProfileContextType {
   profile: ProfileType;
