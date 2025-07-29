@@ -5,7 +5,7 @@ import { useState } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
@@ -18,8 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useProfile } from "@/hooks/useProfile";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -42,6 +43,26 @@ const iconMap: { [key: string]: LucideIcon } = {
 };
 
 const iconNames = Object.keys(iconMap);
+
+const professionConfig: { [key: string]: { icon: LucideIcon, color: string } } = {
+    "Artist": { icon: Paintbrush, color: "bg-red-500/10 text-red-400 border-red-500/30" },
+    "Consultant": { icon: Briefcase, color: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
+    "Content Creator": { icon: Camera, color: "bg-orange-500/10 text-orange-400 border-orange-500/30" },
+    "Designer": { icon: PenTool, color: "bg-purple-500/10 text-purple-400 border-purple-500/30" },
+    "Educator": { icon: BookUser, color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" },
+    "Entrepreneur": { icon: Lightbulb, color: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+    "Freelancer": { icon: Laptop, color: "bg-lime-500/10 text-lime-400 border-lime-500/30" },
+    "General": { icon: User, color: "bg-gray-500/10 text-gray-400 border-gray-500/30" },
+    "Healthcare Professional": { icon: Stethoscope, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
+    "IT Professional": { icon: Server, color: "bg-sky-500/10 text-sky-400 border-sky-500/30" },
+    "Manager": { icon: Users, color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" },
+    "Marketer": { icon: Megaphone, color: "bg-rose-500/10 text-rose-400 border-rose-500/30" },
+    "Researcher": { icon: FlaskConical, color: "bg-teal-500/10 text-teal-400 border-teal-500/30" },
+    "Sales": { icon: TrendingUp, color: "bg-green-500/10 text-green-400 border-green-500/30" },
+    "Software Engineer": { icon: Code, color: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30" },
+    "Student": { icon: GraduationCap, color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
+    "Writer": { icon: Feather, color: "bg-stone-500/10 text-stone-400 border-stone-500/30" },
+};
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
@@ -201,31 +222,28 @@ function RoutineCustomizationPage() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="profile-select">Choose a Profile</Label>
-                             <Select onValueChange={(value) => setProfile(value as any)} value={profile} disabled={profileLoading || isGenerating}>
-                                <SelectTrigger id="profile-select">
-                                    <SelectValue placeholder="Select a profile..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Artist">Artist</SelectItem>
-                                    <SelectItem value="Consultant">Consultant</SelectItem>
-                                    <SelectItem value="Content Creator">Content Creator</SelectItem>
-                                    <SelectItem value="Designer">Designer</SelectItem>
-                                    <SelectItem value="Educator">Educator</SelectItem>
-                                    <SelectItem value="Entrepreneur">Entrepreneur</SelectItem>
-                                    <SelectItem value="Freelancer">Freelancer</SelectItem>
-                                    <SelectItem value="General">General</SelectItem>
-                                    <SelectItem value="Healthcare Professional">Healthcare Professional</SelectItem>
-                                    <SelectItem value="IT Professional">IT Professional</SelectItem>
-                                    <SelectItem value="Manager">Manager</SelectItem>
-                                    <SelectItem value="Marketer">Marketer</SelectItem>
-                                    <SelectItem value="Researcher">Researcher</SelectItem>
-                                    <SelectItem value="Sales">Sales</SelectItem>
-                                    <SelectItem value="Software Engineer">Software Engineer</SelectItem>
-                                    <SelectItem value="Student">Student</SelectItem>
-                                    <SelectItem value="Writer">Writer</SelectItem>
-                                    {profile === 'Custom' && <SelectItem value="Custom" disabled>Custom</SelectItem>}
-                                </SelectContent>
-                            </Select>
+                             <RadioGroup 
+                                value={profile} 
+                                onValueChange={(value) => setProfile(value as any)}
+                                className="flex flex-wrap gap-3"
+                                disabled={profileLoading || isGenerating}
+                            >
+                                {Object.entries(professionConfig).map(([prof, {icon: Icon, color}]) => (
+                                    <div key={prof}>
+                                        <RadioGroupItem value={prof} id={prof} className="sr-only" />
+                                        <Label htmlFor={prof}
+                                            className={cn(
+                                                "flex flex-col items-center justify-center gap-2 rounded-lg p-3 border-2 cursor-pointer w-28 h-24 transition-all",
+                                                profile === prof ? 'border-primary shadow-lg' : 'border-muted/20 hover:border-muted/50',
+                                                color
+                                            )}
+                                        >
+                                            <Icon className="w-8 h-8" />
+                                            <span className="text-xs font-medium">{prof}</span>
+                                        </Label>
+                                    </div>
+                                ))}
+                            </RadioGroup>
                         </div>
                     </CardContent>
                 </Card>
@@ -354,5 +372,7 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
 
     
