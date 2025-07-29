@@ -25,7 +25,7 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "./ui/carousel";
 import { Badge } from "./ui/badge";
 import { Slider } from "./ui/slider";
 
@@ -68,6 +68,11 @@ export default function TaskForm() {
   const customTaskFormRef = useRef<HTMLDivElement>(null);
   const { requestAudioPermission } = useAudio();
 
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
+  const [dots, setDots] = useState<number[]>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,6 +80,25 @@ export default function TaskForm() {
       duration: 25,
     },
   });
+
+  useEffect(() => {
+    if (!api) return;
+
+    const updateCarouselState = () => {
+        setCount(api.scrollSnapList().length);
+        setCurrent(api.selectedScrollSnap());
+        setDots(api.scrollSnapList().map((_, index) => index));
+    };
+    
+    updateCarouselState();
+    api.on("select", updateCarouselState);
+    api.on("reInit", updateCarouselState);
+
+    return () => {
+        api.off("select", updateCarouselState);
+        api.off("reInit", updateCarouselState);
+    }
+  }, [api]);
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -128,6 +152,7 @@ export default function TaskForm() {
                 <p className="text-muted-foreground">Select a preset task or add your own.</p>
             </div>
             <Carousel
+                setApi={setApi}
                 opts={{
                     align: "start",
                 }}
@@ -173,6 +198,19 @@ export default function TaskForm() {
                 <CarouselPrevious className="hidden sm:flex" />
                 <CarouselNext className="hidden sm:flex" />
             </Carousel>
+            <div className="flex justify-center gap-2 mt-4">
+                {dots.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => api?.scrollTo(index)}
+                        className={cn(
+                            "h-2 rounded-full bg-muted transition-all duration-300",
+                            current === index ? "w-6 bg-primary" : "w-2"
+                        )}
+                        aria-label={`Go to slide ${index + 1}`}
+                    />
+                ))}
+            </div>
         </div>
 
         <Separator />
