@@ -30,6 +30,7 @@ import {
 import { useAudio } from "@/hooks/useAudio";
 import CircularProgress from "./CircularProgress";
 import MusicPlayer from "./MusicPlayer";
+import InfoDisplay from "./InfoDisplay";
 
 interface TimerDisplayProps {
   taskName: string;
@@ -64,50 +65,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       intervalRef.current = null;
     }
   }, []);
-
-  useEffect(() => {
-    if (color) {
-        // Example color format from hook: 'bg-green-800 text-green-100'
-        const bgMatch = color.match(/bg-([a-z]+)-(\d+)/);
-        if (bgMatch) {
-            const [, colorName, strength] = bgMatch;
-            const newPrimaryStrength = Math.min(parseInt(strength) - 200, 900);
-            const newBgStrength = Math.max(parseInt(strength) + 100, 50);
-
-            // This is a rough approximation and depends heavily on your tailwind config.
-            // Using CSS variables directly might be a better approach if your colors are defined there.
-            // For now, we construct dynamic class names and rely on tailwind safelist.
-            // A more robust solution involves setting CSS variables dynamically.
-            
-            // Let's try setting CSS variables instead for better control
-            const root = document.documentElement;
-            const style = getComputedStyle(root);
-            
-            // This is an imperfect way to map tailwind color names to HSL values
-            // We'll hardcode some mappings for this to work. This is a simplification.
-            const colorMap: {[key: string]: string} = {
-              'slate': '222.2 47.4%',
-              'blue': '221.2 83.2%',
-              'green': '142.1 76.2%',
-              'orange': '24.6 95%',
-              'indigo': '243.1 94.8%',
-              'rose': '346.8 77.2%',
-            }
-            
-            if (colorName in colorMap) {
-                const baseHsl = colorMap[colorName];
-                const primaryLightness = strength === '800' ? '30%' : '40%';
-                const bgLightness = strength === '800' ? '15%' : '20%';
-                
-                setTimerTheme({
-                    primary: `hsl(${baseHsl} ${primaryLightness})`,
-                    background: `hsl(${baseHsl} ${bgLightness} / 0.4)`,
-                })
-            }
-        }
-    }
-  }, [color]);
-
 
   const playTickSound = useCallback(() => {
     if (tickAudioRef.current && isAudioEnabled) {
@@ -228,18 +185,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   return (
     <main
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-background",
         {
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
         }
       )}
       style={{
-        '--timer-primary-color': timerTheme.primary,
-        '--timer-background-color': timerTheme.background,
-         backgroundColor: 'var(--timer-background-color)'
+        '--timer-primary-color': 'hsl(var(--primary))',
+        '--timer-background-color': 'hsl(var(--background))',
       } as React.CSSProperties}
     >
+      <div className="absolute top-4">
+        <InfoDisplay />
+      </div>
       <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <h2 className="mb-2 text-xl font-medium tracking-wide text-foreground/80">{category || 'Focus Session'}</h2>
@@ -260,11 +219,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           <Button
             onClick={() => setIsPaused(!isPaused)}
             size="lg"
+            variant={isPaused ? "default" : "secondary"}
             className={cn("w-32 text-lg")}
-            style={{ 
-                backgroundColor: isPaused ? 'var(--timer-primary-color)' : 'hsl(var(--accent))',
-                color: isPaused ? 'hsl(var(--primary-foreground))' : 'hsl(var(--accent-foreground))'
-            }}
           >
             {isPaused ? <Play className="mr-2 h-6 w-6" /> : <Pause className="mr-2 h-6 w-6" />}
             {isPaused ? "Resume" : "Pause"}

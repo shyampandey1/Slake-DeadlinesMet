@@ -18,7 +18,6 @@ function HomeComponent() {
             </div>
             <div className="flex flex-col items-end gap-2">
                <HamburgerMenu />
-               <InfoDisplay />
             </div>
           </div>
         </header>
