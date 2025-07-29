@@ -66,14 +66,16 @@ export default function InfoDisplay() {
             if (weatherData?.current_weather) {
               const { temperature, weathercode } = weatherData.current_weather;
               const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-              const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village || 'Current Location';
+              const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village || "";
 
-              setWeather({
-                  location: locationName,
-                  temperature: Math.round(temperature),
-                  condition,
-                  icon,
-              });
+              if (locationName) {
+                setWeather({
+                    location: locationName,
+                    temperature: Math.round(temperature),
+                    condition,
+                    icon,
+                });
+              }
             }
         } catch (error) {
             console.error("Failed to fetch weather data:", error);
