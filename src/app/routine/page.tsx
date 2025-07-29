@@ -195,7 +195,7 @@ function RoutineCustomizationPage() {
                             Productivity Profile
                         </CardTitle>
                         <CardDescription>
-                            Select a default profile or generate a new one based on a profession to get started.
+                            Select a default profile to get started or create a new routine below.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -213,10 +213,20 @@ function RoutineCustomizationPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="relative">
-                            <Separator />
-                            <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-background px-2 text-xs text-muted-foreground">OR</span>
-                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                            <WandSparkles className="text-primary" />
+                            AI-Powered Generation
+                        </CardTitle>
+                        <CardDescription>
+                            Let AI craft a personalized routine for you.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="custom-profession">Generate for a Profession</Label>
                             <div className="flex gap-2">
@@ -232,38 +242,33 @@ function RoutineCustomizationPage() {
                                 </Button>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                            <WandSparkles className="text-primary" />
-                            Generate from Description
-                        </CardTitle>
-                        <CardDescription>
-                            Describe your daily routine in the text box below, and let AI organize it for you.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Textarea
-                            placeholder="e.g., 'I wake up, meditate for 10 mins, then do a 90-minute deep work session...'"
-                            value={routineDescription}
-                            onChange={(e) => setRoutineDescription(e.target.value)}
-                            rows={4}
-                            className="rounded-md"
-                            disabled={isGenerating}
-                        />
-                        <Button onClick={handleGenerateFromDescription} disabled={isGenerating || !routineDescription.trim()}>
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : (
-                                "Generate Routine"
-                            )}
-                        </Button>
+                        <div className="relative">
+                            <Separator />
+                            <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-2 text-xs text-muted-foreground">OR</span>
+                        </div>
+
+                        <div className="space-y-2">
+                             <Label htmlFor="custom-profession">Generate from Description</Label>
+                            <Textarea
+                                placeholder="e.g., 'I wake up, meditate for 10 mins, then do a 90-minute deep work session...'"
+                                value={routineDescription}
+                                onChange={(e) => setRoutineDescription(e.target.value)}
+                                rows={4}
+                                className="rounded-md"
+                                disabled={isGenerating}
+                            />
+                            <Button onClick={handleGenerateFromDescription} disabled={isGenerating || !routineDescription.trim()} className="mt-2 w-full">
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    "Generate from Description"
+                                )}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -335,3 +340,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
