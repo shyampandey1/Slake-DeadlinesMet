@@ -45,23 +45,30 @@ const iconMap: { [key: string]: LucideIcon } = {
 const iconNames = Object.keys(iconMap);
 
 const professionConfig: { [key: string]: { icon: LucideIcon, color: string } } = {
-    "Artist": { icon: Paintbrush, color: "bg-red-500/10 text-red-400 border-red-500/30" },
-    "Consultant": { icon: Briefcase, color: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
-    "Content Creator": { icon: Camera, color: "bg-orange-500/10 text-orange-400 border-orange-500/30" },
-    "Designer": { icon: PenTool, color: "bg-purple-500/10 text-purple-400 border-purple-500/30" },
-    "Educator": { icon: BookUser, color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" },
-    "Entrepreneur": { icon: Lightbulb, color: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
-    "Freelancer": { icon: Laptop, color: "bg-lime-500/10 text-lime-400 border-lime-500/30" },
-    "General": { icon: User, color: "bg-gray-500/10 text-gray-400 border-gray-500/30" },
-    "Healthcare Professional": { icon: Stethoscope, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-    "IT Professional": { icon: Server, color: "bg-sky-500/10 text-sky-400 border-sky-500/30" },
-    "Manager": { icon: Users, color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" },
-    "Marketer": { icon: Megaphone, color: "bg-rose-500/10 text-rose-400 border-rose-500/30" },
-    "Researcher": { icon: FlaskConical, color: "bg-teal-500/10 text-teal-400 border-teal-500/30" },
-    "Sales": { icon: TrendingUp, color: "bg-green-500/10 text-green-400 border-green-500/30" },
-    "Software Engineer": { icon: Code, color: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30" },
-    "Student": { icon: GraduationCap, color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
-    "Writer": { icon: Feather, color: "bg-stone-500/10 text-stone-400 border-stone-500/30" },
+    "Artist": { icon: Paintbrush, color: "border-red-500/80 text-red-400" },
+    "Consultant": { icon: Briefcase, color: "border-blue-500/80 text-blue-400" },
+    "Content Creator": { icon: Camera, color: "border-orange-500/80 text-orange-400" },
+    "Designer": { icon: PenTool, color: "border-purple-500/80 text-purple-400" },
+    "Educator": { icon: BookUser, color: "border-cyan-500/80 text-cyan-400" },
+    "Entrepreneur": { icon: Lightbulb, color: "border-amber-500/80 text-amber-400" },
+    "Freelancer": { icon: Laptop, color: "border-lime-500/80 text-lime-400" },
+    "General": { icon: User, color: "border-gray-500/80 text-gray-400" },
+    "Healthcare Professional": { icon: Stethoscope, color: "border-emerald-500/80 text-emerald-400" },
+    "IT Professional": { icon: Server, color: "border-sky-500/80 text-sky-400" },
+    "Manager": { icon: Users, color: "border-indigo-500/80 text-indigo-400" },
+    "Marketer": { icon: Megaphone, color: "border-rose-500/80 text-rose-400" },
+    "Researcher": { icon: FlaskConical, color: "border-teal-500/80 text-teal-400" },
+    "Sales": { icon: TrendingUp, color: "border-green-500/80 text-green-400" },
+    "Software Engineer": { icon: Code, color: "border-fuchsia-500/80 text-fuchsia-400" },
+    "Student": { icon: GraduationCap, color: "border-yellow-500/80 text-yellow-400" },
+    "Writer": { icon: Feather, color: "border-stone-500/80 text-stone-400" },
+};
+
+const profileCategories = {
+    "Creative & Media": ["Artist", "Content Creator", "Designer", "Writer"],
+    "Business & Management": ["Consultant", "Entrepreneur", "Manager", "Marketer", "Sales"],
+    "Technical & Health": ["Healthcare Professional", "IT Professional", "Software Engineer", "Researcher"],
+    "General & Freelance": ["Educator", "Freelancer", "Student", "General"],
 };
 
 function RoutineCustomizationPage() {
@@ -209,45 +216,44 @@ function RoutineCustomizationPage() {
 
         <main className="flex-1 overflow-y-auto pt-16 pb-20">
             <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                            <BrainCircuit className="text-primary" />
-                            Productivity Profile
-                        </CardTitle>
-                        <CardDescription>
-                            Select a default profile to get started or create a new routine below.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="profile-select">Choose a Profile</Label>
-                             <RadioGroup 
-                                value={profile} 
-                                onValueChange={(value) => setProfile(value as any)}
-                                className="flex flex-wrap gap-2"
-                                disabled={profileLoading || isGenerating}
-                            >
-                                {Object.entries(professionConfig).map(([prof, {icon: Icon, color}]) => (
-                                    <div key={prof}>
-                                        <RadioGroupItem value={prof} id={prof} className="sr-only" />
-                                        <Label htmlFor={prof}
-                                            className={cn(
-                                                "flex items-center gap-2 rounded-lg p-2 border-2 cursor-pointer w-32 transition-all",
-                                                profile === prof ? 'border-primary shadow-lg' : 'border-muted/20 hover:border-muted/50',
-                                                color
-                                            )}
-                                        >
-                                            <Icon className="w-5 h-5" />
-                                            <span className="text-xs font-medium text-center">{prof}</span>
-                                        </Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
-                        </div>
-                    </CardContent>
-                </Card>
-
+                <div className="space-y-2">
+                    <h2 className="font-headline text-2xl">Choose a Profile</h2>
+                    <RadioGroup 
+                        value={profile} 
+                        onValueChange={(value) => setProfile(value as any)}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                        disabled={profileLoading || isGenerating}
+                    >
+                        {Object.entries(profileCategories).map(([category, professions]) => (
+                            <Card key={category} className="overflow-hidden rounded-xl">
+                                <CardHeader className="bg-muted/30 p-3">
+                                    <CardTitle className="font-headline text-base">{category}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-3 flex flex-wrap gap-2">
+                                    {professions.map(prof => {
+                                        const { icon: Icon, color } = professionConfig[prof];
+                                        return (
+                                            <div key={prof}>
+                                                <RadioGroupItem value={prof} id={prof} className="sr-only" />
+                                                <Label htmlFor={prof}
+                                                    className={cn(
+                                                        "flex items-center gap-2 rounded-full p-2 border-2 cursor-pointer transition-all bg-card hover:bg-muted/50",
+                                                        profile === prof ? `shadow-lg ${color}` : 'border-transparent text-muted-foreground',
+                                                        color.replace('border', 'hover:border')
+                                                    )}
+                                                >
+                                                    <Icon className="w-5 h-5" />
+                                                    <span className="text-xs font-medium">{prof}</span>
+                                                </Label>
+                                            </div>
+                                        )
+                                    })}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </RadioGroup>
+                </div>
+                
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline text-2xl flex items-center gap-2">
@@ -372,8 +378,3 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
-
-    
-
-    
-
