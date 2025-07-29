@@ -433,13 +433,13 @@ export function usePresetTasks() {
                 const q = query(
                     collection(db, 'userPresetTasks'),
                     where('userId', '==', user.uid),
-                    where('category', '==', category),
-                    where('profession', '==', profession),
-                    orderBy('order')
+                    where('profession', '==', profession)
                 );
                 
-                const categoryTasksSnapshot = await getDocs(q);
-                const categoryTasks = categoryTasksSnapshot.docs.map(d => ({...d.data(), id: d.id} as UserPresetTask & {id: string}));
+                const allTasksSnapshot = await getDocs(q);
+                const allTasks = allTasksSnapshot.docs.map(d => ({...d.data(), id: d.id} as UserPresetTask & {id: string, category: string}));
+
+                const categoryTasks = allTasks.filter(t => t.category === category).sort((a,b) => a.order - b.order);
 
                 const taskIndex = categoryTasks.findIndex(t => t.id === taskId);
 
