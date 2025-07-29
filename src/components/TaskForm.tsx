@@ -37,6 +37,8 @@ const formSchema = z.object({
   duration: z.coerce.number().min(1, {
     message: "Duration must be at least 1 minute.",
   }),
+  category: z.string().optional(),
+  color: z.string().optional(),
 });
 
 const iconMap: { [key: string]: LucideIcon } = {
@@ -129,14 +131,22 @@ export default function TaskForm() {
       task: values.taskName,
       duration: values.duration.toString(),
     });
+    if (values.category) {
+        params.append("category", values.category);
+    }
+    if (values.color) {
+        params.append("color", values.color);
+    }
     router.push(`/timer?${params.toString()}`);
   }
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
-  const selectQuickStartTask = (task: UserPresetTask) => {
+  const selectQuickStartTask = (task: UserPresetTask, category: string, color: string) => {
     form.setValue("taskName", task.name);
     form.setValue("duration", task.duration);
+    form.setValue("category", category);
+    form.setValue("color", color);
     if (customTaskFormRef.current) {
         customTaskFormRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -171,10 +181,10 @@ export default function TaskForm() {
                                         return (
                                             <Button
                                                 key={task.id || task.name}
-                                                onClick={() => selectQuickStartTask(task)}
+                                                onClick={() => selectQuickStartTask(task, category, color)}
                                                 onDoubleClick={() => handleOpenDialog(task, category)}
                                                 variant="outline"
-                                                className="justify-start gap-3 h-10 px-3 whitespace-normal"
+                                                className="h-auto py-2 px-3 justify-start gap-3 whitespace-normal"
                                             >
                                                 <Icon className="w-5 h-5 shrink-0 text-muted-foreground" />
                                                 <span className="flex-1 text-left">{task.name}</span>

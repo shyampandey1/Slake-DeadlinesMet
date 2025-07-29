@@ -12,6 +12,8 @@ export default function TimerPageContent() {
   const taskName = searchParams.get('task');
   const durationStr = searchParams.get('duration');
   const duration = durationStr ? parseInt(durationStr, 10) : null;
+  const category = searchParams.get('category') ?? undefined;
+  const color = searchParams.get('color') ?? undefined;
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,8 @@ export default function TimerPageContent() {
     <TimerDisplay
       taskName={taskName!}
       initialDuration={duration!}
+      category={category}
+      color={color}
     />
   );
 }

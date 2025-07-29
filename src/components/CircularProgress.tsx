@@ -39,13 +39,13 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                 />
                 <circle
                     className="transform -rotate-90 origin-center"
-                    stroke="hsl(var(--primary))"
+                    stroke="var(--timer-primary-color, hsl(var(--primary)))"
                     fill="transparent"
                     strokeWidth={stroke}
                     strokeDasharray={circumference + ' ' + circumference}
                     style={{ 
                         strokeDashoffset,
-                        transition: 'stroke-dashoffset 1s linear' 
+                        transition: 'stroke-dashoffset 1s linear, stroke 0.5s ease' 
                     }}
                     strokeLinecap="round"
                     r={normalizedRadius}
@@ -54,12 +54,12 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                 />
                 {/* The moving dot */}
                 <circle
-                    fill="hsl(var(--primary))"
+                    fill="var(--timer-primary-color, hsl(var(--primary)))"
                     r="8"
                     cx={dotX}
                     cy={dotY}
                     style={{
-                      transition: 'all 1s linear'
+                      transition: 'all 1s linear, fill 0.5s ease'
                     }}
                 />
             </svg>

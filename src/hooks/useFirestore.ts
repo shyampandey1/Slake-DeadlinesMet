@@ -28,327 +28,210 @@ const iconMap = {
 };
 const iconNames = Object.keys(iconMap);
 
+const baseRoutine = {
+    'Morning Rituals': {
+        color: "bg-slate-800 text-slate-100",
+        tasks: [
+            { name: 'Freshen Up & Hydrate', duration: 15, icon: 'Droplets', order: 0 },
+            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
+            { name: 'Juice & Dry Fruits', duration: 10, icon: 'Utensils', order: 2 },
+        ]
+    },
+    'Health & Wellness': {
+        color: "bg-green-800 text-green-100",
+        tasks: [
+            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
+            { name: 'Grooming & Breakfast', duration: 30, icon: 'Utensils', order: 1 },
+        ]
+    },
+    'Daily Strategy': {
+        color: "bg-blue-800 text-blue-100",
+        tasks: [
+            { name: 'Plan & Prioritize Tasks', duration: 30, icon: 'ListChecks', order: 0 },
+        ]
+    },
+    'Work & Focus': {
+        color: "bg-indigo-800 text-indigo-100",
+        tasks: [
+            { name: 'Deep Work Session', duration: 180, icon: 'BrainCircuit', order: 0 },
+        ]
+    },
+    'Breaks & Meals': {
+        color: "bg-orange-800 text-orange-100",
+        tasks: [
+            { name: 'Relax & Recharge', duration: 30, icon: 'Coffee', order: 0 },
+            { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
+        ]
+    },
+    'Evening Wind-down': {
+        color: "bg-rose-800 text-rose-100",
+        tasks: [
+            { name: 'Work Progress Check', duration: 20, icon: 'Target', order: 0 },
+            { name: 'Breathing Exercise', duration: 5, icon: 'Wind', order: 1 },
+            { name: 'Short Nap / Meditation', duration: 20, icon: 'Bed', order: 2 },
+        ]
+    }
+};
+
 const profilePresets: { [key: string]: Preset } = {
     "Artist": {
-        'Studio Time': {
-            color: "bg-slate-800 text-slate-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Sketching & Ideation', duration: 60, icon: 'BookOpen', order: 0 },
-                { name: 'Deep Creative Work', duration: 180, icon: 'BrainCircuit', order: 1 },
-                { name: 'Clean Brushes & Studio', duration: 30, icon: 'Droplets', order: 2 },
+                { name: 'Creative Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Inspiration & Moodboarding', duration: 60, icon: 'ShoppingBag', order: 1 },
             ]
-        },
-        'Inspiration & Admin': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Visit Gallery/Museum', duration: 90, icon: 'Footprints', order: 0 },
-                { name: 'Reply to Inquiries', duration: 30, icon: 'Mail', order: 1 },
-            ]
-        },
+        }
     },
     "Consultant": {
-        'Client Focus': {
-            color: "bg-green-900/80 text-green-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Client Call', duration: 60, icon: 'Users', order: 0 },
-                { name: 'Prepare Presentation', duration: 90, icon: 'ListChecks', order: 1 },
+                { name: 'Client Project Work', duration: 120, icon: 'BrainCircuit', order: 0 },
+                { name: 'Client Calls & Meetings', duration: 60, icon: 'Users', order: 1 },
             ]
-        },
-        'Project Delivery': {
-            color: "bg-indigo-900/80 text-indigo-100",
-            tasks: [
-                { name: 'Deep Project Work', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Review Deliverables', duration: 60, icon: 'Target', order: 1 },
-            ]
-        },
-        'Business Development': {
-             color: "bg-orange-900/80 text-orange-100",
-             tasks: [
-                { name: 'Networking', duration: 60, icon: 'Users', order: 0 },
-                { name: 'Invoice & Admin', duration: 30, icon: 'Mail', order: 1 },
-             ]
         }
     },
     "Content Creator": {
-        'Content Production': {
-            color: "bg-slate-800 text-slate-100",
+         ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Scripting & Planning', duration: 60, icon: 'ListChecks', order: 0 },
-                { name: 'Filming / Recording', duration: 120, icon: 'BrainCircuit', order: 1 },
-                { name: 'Editing Session', duration: 180, icon: 'Wrench', order: 2 },
-            ]
-        },
-        'Community & Growth': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Engage on Social Media', duration: 45, icon: 'Users', order: 0 },
-                { name: 'Analyze Performance', duration: 30, icon: 'Target', order: 1 },
+                { name: 'Filming / Recording', duration: 120, icon: 'BrainCircuit', order: 0 },
+                { name: 'Editing Session', duration: 180, icon: 'Wrench', order: 1 },
             ]
         }
     },
     "Designer": {
-        'Creative & Design': {
-            color: "bg-indigo-900/80 text-indigo-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Moodboarding & Inspiration', duration: 45, icon: 'ShoppingBag', order: 0 },
-                { name: 'Deep Design Work', duration: 180, icon: 'BrainCircuit', order: 1 },
-                { name: 'Review & Refine', duration: 60, icon: 'Target', order: 2 },
-            ]
-        },
-        'Client & Collaboration': {
-            color: "bg-green-900/80 text-green-100",
-            tasks: [
-                { name: 'Client Meeting', duration: 60, icon: 'Users', order: 0 },
-                { name: 'Respond to Feedback', duration: 45, icon: 'Mail', order: 1 },
+                { name: 'UI/UX Design Session', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Handle Client Revisions', duration: 60, icon: 'Wrench', order: 1 },
             ]
         }
     },
     "Educator": {
-        'Preparation & Planning': {
-            color: "bg-slate-800 text-slate-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Lesson Planning', duration: 60, icon: 'ListChecks', order: 0 },
-                { name: 'Prepare Materials', duration: 45, icon: 'Wrench', order: 1 },
+                { name: 'Lesson Planning', duration: 90, icon: 'ListChecks', order: 0 },
+                { name: 'Grading Papers', duration: 90, icon: 'BookOpen', order: 1 },
             ]
-        },
-        'Instruction & Grading': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Teaching Block', duration: 120, icon: 'BrainCircuit', order: 0 },
-                { name: 'Grading', duration: 90, icon: 'BookOpen', order: 1 },
-            ]
-        },
+        }
     },
     "Entrepreneur": {
-        'Strategy & Vision': {
-            color: "bg-green-900/80 text-green-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Review Business Goals', duration: 30, icon: 'Target', order: 0 },
-                { name: 'Strategic Planning', duration: 60, icon: 'ListChecks', order: 1 },
-            ]
-        },
-        'Execution': {
-            color: "bg-indigo-900/80 text-indigo-100",
-            tasks: [
-                { name: 'Product Development', duration: 120, icon: 'Wrench', order: 0 },
-                { name: 'Team Meeting', duration: 60, icon: 'Users', order: 1 },
-                { name: 'Investor/Partner Outreach', duration: 60, icon: 'Mail', order: 2 },
+                { name: 'Business Strategy & Growth', duration: 120, icon: 'BrainCircuit', order: 0 },
+                { name: 'Networking & Emails', duration: 60, icon: 'Mail', order: 1 },
             ]
         }
     },
     "Freelancer": {
-        'Client Work': {
-            color: "bg-blue-900/80 text-blue-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Client Communication', duration: 30, icon: 'Mail', order: 1 },
-            ]
-        },
-        'Business Management': {
-            color: "bg-slate-800 text-slate-100",
-            tasks: [
-                { name: 'Find New Projects', duration: 60, icon: 'ShoppingBag', order: 0 },
-                { name: 'Invoicing & Finances', duration: 30, icon: 'ListChecks', order: 1 },
+                { name: 'Client Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Search for New Projects', duration: 60, icon: 'ShoppingBag', order: 1 },
             ]
         }
     },
-    "General": {
-        'Morning Routine': {
-            color: "bg-slate-800 text-slate-100",
-            tasks: [
-                { name: 'Plan Day', duration: 15, icon: 'ListChecks', order: 0 },
-                { name: 'Meditate', duration: 10, icon: 'Bed', order: 1 },
-            ]
-        },
-        'Work & Focus': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Focus Session', duration: 50, icon: 'BrainCircuit', order: 1 },
-                { name: 'Check Emails', duration: 15, icon: 'Mail', order: 2 },
-            ]
-        },
-        'Health & Wellness': {
-            color: "bg-green-900/80 text-green-100",
-            tasks: [
-                { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
-                { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true, order: 2 },
-            ]
-        },
-    },
+    "General": baseRoutine,
     "Healthcare Professional": {
-        'Patient Care': {
-            color: "bg-blue-900/80 text-blue-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Patient Rounds', duration: 120, icon: 'Footprints', order: 0 },
-                { name: 'Patient Consultations', duration: 180, icon: 'Users', order: 1 },
-            ]
-        },
-        'Admin & Learning': {
-            color: "bg-slate-800 text-slate-100",
-            tasks: [
-                { name: 'Update Patient Charts', duration: 60, icon: 'ListChecks', order: 0 },
-                { name: 'Medical Research', duration: 45, icon: 'BookOpen', order: 1 },
+                { name: 'Patient Consultations', duration: 180, icon: 'Users', order: 0 },
+                { name: 'Update Patient Charts', duration: 60, icon: 'ListChecks', order: 1 },
             ]
         }
     },
     "IT Professional": {
-        'Systems & Projects': {
-            color: "bg-indigo-900/80 text-indigo-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'System Maintenance', duration: 60, icon: 'Wrench', order: 0 },
-                { name: 'Project Development', duration: 120, icon: 'BrainCircuit', order: 1 },
-            ]
-        },
-        'Support & Communication': {
-            color: "bg-green-900/80 text-green-100",
-            tasks: [
-                { name: 'Handle Support Tickets', duration: 90, icon: 'Mail', order: 0 },
-                { name: 'Team Stand-up', duration: 15, icon: 'Users', order: 1 },
+                { name: 'System Development', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Handle Support Tickets', duration: 60, icon: 'Mail', order: 1 },
             ]
         }
     },
     "Manager": {
-        'Team & Meetings': {
-            color: "bg-green-900/80 text-green-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Team Sync', duration: 45, icon: 'Users', order: 0 },
-                { name: '1-on-1 Meetings', duration: 90, icon: 'Users', order: 1 },
-            ]
-        },
-        'Strategy & Reporting': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Strategic Planning', duration: 60, icon: 'ListChecks', order: 0 },
-                { name: 'Review Reports', duration: 45, icon: 'Target', order: 1 },
-                { name: 'Email Correspondence', duration: 60, icon: 'Mail', order: 2 },
+                { name: 'Team Meetings & 1-on-1s', duration: 120, icon: 'Users', order: 0 },
+                { name: 'Strategic Planning', duration: 60, icon: 'ListChecks', order: 1 },
             ]
         }
     },
     "Marketer": {
-        'Campaigns & Content': {
-            color: "bg-orange-900/80 text-orange-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Plan Campaign', duration: 60, icon: 'ListChecks', order: 0 },
-                { name: 'Create Content', duration: 120, icon: 'BrainCircuit', order: 1 },
-            ]
-        },
-        'Analytics & Meetings': {
-            color: "bg-indigo-900/80 text-indigo-100",
-            tasks: [
-                { name: 'Analyze Metrics', duration: 45, icon: 'Target', order: 0 },
-                { name: 'Marketing Team Sync', duration: 45, icon: 'Users', order: 1 },
+                { name: 'Campaign Strategy & Creation', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Analyze Performance Metrics', duration: 60, icon: 'Target', order: 1 },
             ]
         }
     },
     "Researcher": {
-        'Research & Analysis': {
-            color: "bg-slate-800 text-slate-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Literature Review', duration: 90, icon: 'BookOpen', order: 0 },
-                { name: 'Data Collection', duration: 120, icon: 'Wrench', order: 1 },
-                { name: 'Data Analysis', duration: 180, icon: 'BrainCircuit', order: 2 },
-            ]
-        },
-        'Writing & Collaboration': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Write Manuscript', duration: 120, icon: 'BookOpen', order: 0 },
-                { name: 'Collaborator Meeting', duration: 60, icon: 'Users', order: 1 },
+                { name: 'Data Analysis', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Literature Review', duration: 60, icon: 'BookOpen', order: 1 },
             ]
         }
     },
     "Sales": {
-        'Prospecting & Outreach': {
-            color: "bg-green-900/80 text-green-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Lead Prospecting', duration: 90, icon: 'ShoppingBag', order: 0 },
-                { name: 'Cold Calls & Emails', duration: 120, icon: 'Mail', order: 1 },
-            ]
-        },
-        'Meetings & Follow-ups': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Client Demo', duration: 60, icon: 'Users', order: 0 },
-                { name: 'Follow-up with Leads', duration: 45, icon: 'Mail', order: 1 },
-                { name: 'Update CRM', duration: 30, icon: 'ListChecks', order: 2 },
+                { name: 'Lead Prospecting & Outreach', duration: 180, icon: 'Mail', order: 0 },
+                { name: 'Client Demos & Calls', duration: 120, icon: 'Users', order: 1 },
             ]
         }
     },
     "Software Engineer": {
-        'Morning Foundation': {
-            color: "bg-slate-800 text-slate-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Freshen Up & Hydrate', duration: 25, icon: 'Droplets', order: 0 },
-                { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
-                { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
-            ]
-        },
-        'Daily Strategy': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Plan & Prioritize Tasks', duration: 30, icon: 'ListChecks', order: 0 },
-            ]
-        },
-        'Deep Work': {
-            color: "bg-green-900/80 text-green-100",
-            tasks: [
-                { name: 'Focus on Top Priority Tasks', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Focus on Secondary Tasks', duration: 150, icon: 'BrainCircuit', order: 1 },
-            ]
-        },
-        'Breaks & Meals': {
-            color: "bg-orange-900/80 text-orange-100",
-            tasks: [
-                { name: 'Short Drive', duration: 45, icon: 'Footprints', order: 0 },
-                { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
-            ]
-        },
-        'Afternoon Wrap-up': {
-            color: "bg-indigo-900/80 text-indigo-100",
-            tasks: [
-                { name: 'Progress Review & Analysis', duration: 30, icon: 'Target', order: 0 },
-                { name: 'Client App Refinements', duration: 30, icon: 'Wrench', order: 1 },
+                { name: 'Coding: Top Priority Task', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Code Reviews', duration: 60, icon: 'Wrench', order: 1 },
             ]
         }
     },
     "Student": {
-        'Morning Routine': {
-            color: "bg-slate-800 text-slate-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Review Notes', duration: 25, icon: 'BookOpen', order: 0 },
-                { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 1 },
-            ]
-        },
-        'Study Blocks': {
-            color: "bg-blue-900/80 text-blue-100",
-            tasks: [
-                { name: 'Study Session 1', duration: 90, icon: 'BrainCircuit', order: 0 },
-                { name: 'Study Session 2', duration: 90, icon: 'BrainCircuit', order: 1 },
-                { name: 'Practice Problems', duration: 60, icon: 'Wrench', order: 2 },
-            ]
-        },
-        'Breaks & Campus Life': {
-            color: "bg-green-900/80 text-green-100",
-            tasks: [
-                { name: 'Lunch with Friends', duration: 60, icon: 'Users', order: 0 },
-                { name: 'Walk on Campus', duration: 20, icon: 'Footprints', order: 1 },
+                { name: 'Study Session', duration: 120, icon: 'BrainCircuit', order: 0 },
+                { name: 'Review Lecture Notes', duration: 60, icon: 'BookOpen', order: 1 },
             ]
         }
     },
     "Writer": {
-        'Writing & Editing': {
-            color: "bg-indigo-900/80 text-indigo-100",
+        ...baseRoutine,
+        'Work & Focus': {
+            ...baseRoutine['Work & Focus'],
             tasks: [
-                { name: 'Morning Writing Session', duration: 120, icon: 'BookOpen', order: 0 },
-                { name: 'Research for Article', duration: 60, icon: 'BrainCircuit', order: 1 },
-                { name: 'Editing & Proofreading', duration: 90, icon: 'Wrench', order: 2 },
-            ]
-        },
-        'Admin & Outreach': {
-            color: "bg-slate-800 text-slate-100",
-            tasks: [
-                { name: 'Pitch Ideas to Editors', duration: 45, icon: 'Mail', order: 0 },
-                { name: 'Social Media Promotion', duration: 30, icon: 'Users', order: 1 },
+                { name: 'Writing Session', duration: 180, icon: 'BookOpen', order: 0 },
+                { name: 'Editing & Proofreading', duration: 60, icon: 'Wrench', order: 1 },
             ]
         }
     }

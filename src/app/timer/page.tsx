@@ -5,6 +5,7 @@ import AuthWrapper from '@/components/AuthWrapper';
 
 function TimerPage() {
   return (
+    // Suspense boundary is crucial for useSearchParams to work correctly
     <Suspense fallback={<TimerSkeleton />}>
       <TimerPageContent />
     </Suspense>
@@ -14,10 +15,10 @@ function TimerPage() {
 function TimerSkeleton() {
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <Skeleton className="mb-4 h-12 w-3/4" />
-        <Skeleton className="mb-8 h-8 w-1/2" />
-        <Skeleton className="mb-12 h-48 w-full font-code md:h-64" />
+       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
+        <Skeleton className="mb-2 h-8 w-1/2" />
+        <Skeleton className="mb-8 h-12 w-3/4" />
+        <Skeleton className="mb-12 h-[400px] w-[400px] rounded-full" />
         <div className="flex gap-4">
           <Skeleton className="h-14 w-32" />
           <Skeleton className="h-14 w-32" />
