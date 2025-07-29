@@ -161,11 +161,11 @@ export default function TaskForm() {
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
                         <CarouselItem key={category} className="md:basis-1/2 lg:basis-1/3">
-                            <Card className="h-full flex flex-col">
-                                <CardHeader className={color}>
-                                    <Badge variant="secondary" className="w-fit bg-transparent border-none">{category}</Badge>
+                            <Card className="h-full flex flex-col rounded-xl overflow-hidden">
+                                <CardHeader className={`${color} p-3`}>
+                                     <CardTitle className="font-headline text-base">{category}</CardTitle>
                                 </CardHeader>
-                                <CardContent className="flex flex-col gap-2 flex-grow">
+                                <CardContent className="p-3 pt-3 flex flex-col gap-2 flex-grow">
                                     {tasks.map((task) => {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
                                         return (
@@ -174,17 +174,17 @@ export default function TaskForm() {
                                                 onClick={() => selectQuickStartTask(task)}
                                                 onDoubleClick={() => handleOpenDialog(task, category)}
                                                 variant="outline"
-                                                className="justify-start gap-2 h-auto py-2 px-3 whitespace-normal"
+                                                className="justify-start gap-3 h-10 px-3 whitespace-normal"
                                             >
                                                 <Icon className="w-5 h-5 shrink-0 text-muted-foreground" />
-                                                <span className="flex-1 text-left font-semibold">{task.name}</span>
+                                                <span className="flex-1 text-left">{task.name}</span>
                                                 <span className="text-sm text-muted-foreground">{task.duration}m</span>
                                             </Button>
                                         );
                                     })}
                                 </CardContent>
-                                <CardFooter>
-                                    <Button variant="ghost" className="w-full h-8 text-xs border-2 border-dashed" onClick={() => handleOpenDialog(undefined, category)}>
+                                <CardFooter className="p-3 pt-0 mt-auto">
+                                    <Button variant="ghost" className="w-full h-10 text-sm border-2 border-dashed" onClick={() => handleOpenDialog(undefined, category)}>
                                         <Plus className="w-4 h-4 mr-2" /> Add Task
                                     </Button>
                                 </CardFooter>
