@@ -233,13 +233,13 @@ function RoutineCustomizationPage() {
                                         <RadioGroupItem value={prof} id={prof} className="sr-only" />
                                         <Label htmlFor={prof}
                                             className={cn(
-                                                "flex flex-col items-center justify-center gap-2 rounded-lg p-3 border-2 cursor-pointer w-36 text-center transition-all",
+                                                "flex items-center gap-2 rounded-lg p-2 border-2 cursor-pointer w-32 transition-all",
                                                 profile === prof ? 'border-primary shadow-lg' : 'border-muted/20 hover:border-muted/50',
                                                 color
                                             )}
                                         >
-                                            <Icon className="w-7 h-7" />
-                                            <span className="text-xs font-medium h-8 flex items-center">{prof}</span>
+                                            <Icon className="w-5 h-5" />
+                                            <span className="text-xs font-medium text-center">{prof}</span>
                                         </Label>
                                     </div>
                                 ))}
@@ -376,3 +376,4 @@ export default function WrappedRoutinePage() {
     
 
     
+
