@@ -15,6 +15,7 @@ export default {
     'bg-orange-800', 'text-orange-100', 'hover:border-orange-500/80',
     'bg-indigo-800', 'text-indigo-100', 'hover:border-indigo-500/80',
     'bg-rose-800', 'text-rose-100', 'hover:border-rose-500/80',
+    'bg-purple-800', 'text-purple-100',
     'border-red-500/80', 'text-red-400', 'hover:border-red-500/80',
     'border-blue-500/80', 'text-blue-400',
     'border-orange-500/80', 'text-orange-400',
@@ -129,3 +130,5 @@ export default {
   },
   plugins: [require('tailwindcss-animate'), require('tailwind-scrollbar-hide')],
 } satisfies Config;
+
+    

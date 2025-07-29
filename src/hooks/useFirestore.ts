@@ -64,12 +64,21 @@ const baseRoutine = {
             { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
         ]
     },
+    'End of Day': {
+        color: "bg-purple-800 text-purple-100",
+        tasks: [
+            { name: 'Work Progress Check', duration: 20, icon: 'Target', order: 0 },
+            { name: 'Commute / Transition from Work', duration: 30, icon: 'Footprints', order: 1 },
+        ],
+    },
     'Evening Wind-down': {
         color: "bg-rose-800 text-rose-100",
         tasks: [
-            { name: 'Work Progress Check', duration: 20, icon: 'Target', order: 0 },
-            { name: 'Breathing Exercise', duration: 5, icon: 'Wind', order: 1 },
-            { name: 'Short Nap / Meditation', duration: 20, icon: 'Bed', order: 2 },
+            { name: 'Dinner', duration: 45, icon: 'Utensils', order: 0 },
+            { name: 'Family/Social Time', duration: 60, icon: 'Users', order: 1 },
+            { name: 'Relax & Unwind (Hobby/TV)', duration: 60, icon: 'BookOpen', order: 2 },
+            { name: 'Plan Next Day', duration: 15, icon: 'ListChecks', order: 3 },
+            { name: 'Night Grooming & Prep', duration: 15, icon: 'Droplets', order: 4 },
         ]
     }
 };
@@ -550,3 +559,5 @@ export function usePresetTasks() {
 
     return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons };
 }
+
+    
