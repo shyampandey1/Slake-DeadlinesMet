@@ -202,8 +202,7 @@ export function useTasks() {
     setLoading(true);
     const q = query(
       collection(db, 'tasks'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -215,6 +214,8 @@ export function useTasks() {
             createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString()
           } as Task
       });
+      // Sort tasks by date on the client side
+      userTasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setTasks(userTasks);
       setLoading(false);
     }, (error) => {
