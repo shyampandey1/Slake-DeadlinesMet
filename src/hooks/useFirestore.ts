@@ -33,8 +33,10 @@ const baseRoutine: Preset = {
         color: "bg-sky-800 text-sky-100",
         tasks: [
             { name: 'Freshen Up', duration: 25, icon: 'Droplets', order: 0 },
-            { name: 'Meditate', duration: 10, icon: 'Wind', order: 1 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
+            { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 1 },
+            { name: 'Meditate', duration: 10, icon: 'Wind', order: 2 },
+            { name: 'Grooming', duration: 20, icon: 'Wrench', order: 3 },
+            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 4 },
         ]
     },
     'Strategy': {
@@ -47,6 +49,8 @@ const baseRoutine: Preset = {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
             { name: 'Focus on Top Priority Tasks', duration: 180, icon: 'BrainCircuit', order: 0 },
+            { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 },
+            { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 },
         ]
     },
     'Recharge': {
@@ -54,12 +58,15 @@ const baseRoutine: Preset = {
         tasks: [
             { name: 'Short Drive', duration: 45, icon: 'Footprints', order: 0 },
             { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
+            { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 },
         ]
     },
     'Work Session 2': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
             { name: 'Focus on Secondary Priority Tasks', duration: 150, icon: 'BrainCircuit', order: 0 },
+            { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 },
+            { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 },
         ]
     },
     'Wrap-up': {
@@ -74,6 +81,7 @@ const baseRoutine: Preset = {
         tasks: [
             { name: 'Disconnect & Decompress', duration: 45, icon: 'Coffee', order: 0 },
             { name: 'Hobby/Leisure', duration: 45, icon: 'Dumbbell', order: 1 },
+            { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 },
         ]
     },
     'Night': {
@@ -95,84 +103,84 @@ const baseRoutine: Preset = {
 const profilePresets: { [key: string]: Preset } = {
     "Artist": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Creative Deep Work: Painting/Sketching', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Digital Illustration & Design', duration: 150, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Creative Deep Work: Painting/Sketching', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Digital Illustration & Design', duration: 150, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Consultant": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Client Project: Strategy & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Calls & Presentations', duration: 150, icon: 'Users', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Client Project: Strategy & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Calls & Presentations', duration: 150, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Content Creator": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Scripting & Filming Session', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Video Editing & Post-Production', duration: 150, icon: 'Wrench', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Scripting & Filming Session', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Video Editing & Post-Production', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Designer": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'UI/UX Design: Wireframing & Prototyping', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'High-Fidelity Mockups & Revisions', duration: 150, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'UI/UX Design: Wireframing & Prototyping', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'High-Fidelity Mockups & Revisions', duration: 150, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Educator": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lesson Planning & Material Creation', duration: 180, icon: 'ListChecks', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Grading & Student Feedback', duration: 150, icon: 'BookOpen', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lesson Planning & Material Creation', duration: 180, icon: 'ListChecks', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Grading & Student Feedback', duration: 150, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Entrepreneur": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Business Development & Strategy', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Networking, Sales & Investor Meetings', duration: 150, icon: 'Users', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Business Development & Strategy', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Networking, Sales & Investor Meetings', duration: 150, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Freelancer": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Primary Client Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Secondary Projects & Prospecting', duration: 150, icon: 'ShoppingBag', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Primary Client Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Secondary Projects & Prospecting', duration: 150, icon: 'ShoppingBag', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "General": baseRoutine,
     "Healthcare Professional": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Patient Consultations & Rounds', duration: 180, icon: 'Users', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Updating Patient Charts & Research', duration: 150, icon: 'ListChecks', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Patient Consultations & Rounds', duration: 180, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Updating Patient Charts & Research', duration: 150, icon: 'ListChecks', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "IT Professional": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'System Architecture & Development', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Troubleshooting & Support Tickets', duration: 150, icon: 'Wrench', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'System Architecture & Development', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Troubleshooting & Support Tickets', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Manager": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Team Meetings, 1-on-1s & Syncs', duration: 180, icon: 'Users', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Strategic Planning & Reporting', duration: 150, icon: 'ListChecks', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Team Meetings, 1-on-1s & Syncs', duration: 180, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Strategic Planning & Reporting', duration: 150, icon: 'ListChecks', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Marketer": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Campaign Strategy & Content Creation', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Performance Analysis & Optimization', duration: 150, icon: 'Target', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Campaign Strategy & Content Creation', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Performance Analysis & Optimization', duration: 150, icon: 'Target', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Researcher": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Data Collection & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Literature Review & Writing', duration: 150, icon: 'BookOpen', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Data Collection & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Literature Review & Writing', duration: 150, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Sales": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lead Prospecting & Cold Outreach', duration: 180, icon: 'Mail', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Demos & Follow-ups', duration: 150, icon: 'Users', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lead Prospecting & Cold Outreach', duration: 180, icon: 'Mail', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Demos & Follow-ups', duration: 150, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Software Engineer": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Coding: Feature Development', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Bug Fixes & Code Reviews', duration: 150, icon: 'Wrench', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Coding: Feature Development', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Bug Fixes & Code Reviews', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Student": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Core Subject Study Session', duration: 180, icon: 'BrainCircuit', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Assignments & Practice Problems', duration: 150, icon: 'BookOpen', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Core Subject Study Session', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Assignments & Practice Problems', duration: 150, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     },
     "Writer": {
         ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Focused Writing Session', duration: 180, icon: 'BookOpen', order: 0 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Editing, Proofreading & Research', duration: 150, icon: 'Wrench', order: 0 }] },
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Focused Writing Session', duration: 180, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Editing, Proofreading & Research', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Hydration Reminder', duration: 2, icon: 'Droplets', order: 2 }] },
     }
 };
 
@@ -488,5 +496,7 @@ export function usePresetTasks() {
 
     return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons };
 }
+
+    
 
     
