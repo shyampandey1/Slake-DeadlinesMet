@@ -183,32 +183,38 @@ export default function TaskForm() {
             </div>
             
             <div className="relative space-y-4">
-              {timedTasks.map((task) => {
+              {timedTasks.map((task, index) => {
                 const Icon = iconMap[task.icon] || BrainCircuit;
                 const is_active = currentTime >= task.startTime && currentTime < task.endTime;
+                const is_past = currentTime >= task.endTime;
 
                 return (
-                  <div key={task.id || task.name} className="flex items-start gap-4 relative" ref={is_active ? activeTaskRef : null}>
-                      <div className="flex flex-col items-center gap-1">
-                          <div className={cn("w-3 h-3 rounded-full mt-2", is_active ? "bg-primary animate-pulse" : "bg-border")}></div>
-                          <div className={cn("w-px h-full", is_active ? "bg-primary" : "bg-border")}></div>
+                  <div key={task.id || task.name} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
+                      <div className="absolute left-0 top-0 flex flex-col items-center h-full">
+                          <div className={cn("w-3.5 h-3.5 rounded-full mt-1.5 border-2", 
+                            is_active ? "border-primary bg-primary/20" : "border-border",
+                            is_past ? "border-primary bg-primary" : ""
+                          )}></div>
+                          {index < timedTasks.length - 1 && (
+                            <div className={cn("w-px h-full my-1", is_past ? "bg-primary" : "bg-border")}></div>
+                          )}
                       </div>
 
-                      <div className="flex-1 -mt-1">
+                      <div className="flex-1 -mt-0.5">
                           <p className="text-xs text-muted-foreground">
-                            {format(task.startTime, 'p')} - {format(task.endTime, 'p')}
+                            {format(task.startTime, 'p')}
                           </p>
                           <Button
                               onClick={() => selectQuickStartTask(task, task.category, task.color)}
                               onDoubleClick={() => handleOpenDialog(task, task.category)}
                               variant="outline"
                               className={cn(
-                                "h-auto py-3 px-4 justify-start gap-3 whitespace-normal w-full mt-1",
+                                "h-auto py-2 px-3 justify-start gap-2.5 whitespace-normal w-full mt-1",
                                 is_active && "border-primary shadow-lg"
                               )}
                           >
-                              <Icon className="w-5 h-5 shrink-0 text-muted-foreground" />
-                              <span className="flex-1 text-left">{task.name}</span>
+                              <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+                              <span className="flex-1 text-left text-sm">{task.name}</span>
                               <Badge variant={is_active ? "default" : "secondary"}>
                                 <Clock4 className="w-3 h-3 mr-1.5"/>
                                 {task.duration}m
