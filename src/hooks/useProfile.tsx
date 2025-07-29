@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch, runTransaction } from "firebase/firestore";
 import type { ProfileType, CustomProfession, PresetTask } from "@/types";
 
 interface ProfileContextType {
@@ -82,63 +82,72 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const addCustomProfession = useCallback(async (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => {
     if (!user || ('isMockUser' in user)) return;
-    
+
+    const profileRef = doc(db, 'userProfiles', user.uid);
+    const tasksCollectionRef = collection(db, 'userPresetTasks');
+
     try {
-        const profileRef = doc(db, 'userProfiles', user.uid);
+        await runTransaction(db, async (transaction) => {
+            // 1. Get the current user profile
+            const profileDoc = await transaction.get(profileRef);
+            let currentCustomProfessions: CustomProfession[] = [];
 
-        // Add the new profession to the list of custom professions
-        await updateDoc(profileRef, {
-            customProfessions: arrayUnion(profession)
-        });
-
-        // Set the new profession as the active profile
-        await setProfile(profession.name);
-
-        // Batch write to replace tasks for the new profession
-        const batch = writeBatch(db);
-        
-        // 1. Delete all existing user preset tasks for that profession
-        const q = query(
-            collection(db, 'userPresetTasks'), 
-            where('userId', '==', user.uid),
-            where('profession', '==', profession.name)
-        );
-        const snapshot = await getDocs(q);
-        snapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-
-        // 2. Add the new tasks
-        const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
-        tasks.forEach(task => {
-            if (!tasksByCategory[task.category]) {
-                tasksByCategory[task.category] = [];
+            if (profileDoc.exists()) {
+                currentCustomProfessions = profileDoc.data().customProfessions || [];
             }
-            tasksByCategory[task.category].push(task);
-        });
-        
-        Object.values(tasksByCategory).forEach(categoryTasks => {
-            categoryTasks.forEach((task, index) => {
-                const newDocRef = doc(collection(db, 'userPresetTasks'));
-                batch.set(newDocRef, {
-                    name: task.name,
-                    duration: task.duration,
-                    icon: task.icon,
-                    category: task.category,
-                    order: index,
-                    userId: user.uid,
-                    profession: profession.name,
+            
+            // 2. Add the new profession if it doesn't exist
+            if (!currentCustomProfessions.some(p => p.name === profession.name)) {
+                currentCustomProfessions.push(profession);
+            }
+
+            // 3. Update the profile with the new profession list and set the active profile
+            transaction.set(profileRef, {
+                profile: profession.name,
+                customProfessions: currentCustomProfessions
+            }, { merge: true });
+            
+            // 4. Delete old tasks for this profession
+            const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profession.name));
+            const oldTasksSnapshot = await getDocs(q); // Use getDocs, not inside transaction
+            oldTasksSnapshot.forEach(doc => {
+                transaction.delete(doc.ref);
+            });
+
+            // 5. Add new tasks
+            const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
+            tasks.forEach(task => {
+                if (!tasksByCategory[task.category]) {
+                    tasksByCategory[task.category] = [];
+                }
+                tasksByCategory[task.category].push(task);
+            });
+
+            Object.values(tasksByCategory).forEach(categoryTasks => {
+                categoryTasks.forEach((task, index) => {
+                    const newDocRef = doc(tasksCollectionRef);
+                    transaction.set(newDocRef, {
+                        name: task.name,
+                        duration: task.duration,
+                        icon: task.icon,
+                        category: task.category,
+                        order: index,
+                        userId: user.uid,
+                        profession: profession.name,
+                    });
                 });
             });
         });
 
-        // 3. Commit the batch
-        await batch.commit();
+        // Manually set the profile state after transaction to trigger UI update
+        setProfileState(profession.name);
 
     } catch (error) {
         console.error("Failed to add custom profession and tasks: ", error);
+        throw error; // Re-throw to be caught by the calling function
     }
-  }, [user, setProfile]);
+  }, [user]);
+
 
   return (
     <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession }}>
