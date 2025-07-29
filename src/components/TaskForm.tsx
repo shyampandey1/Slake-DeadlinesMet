@@ -25,7 +25,7 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
-import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 
@@ -186,6 +186,8 @@ export default function TaskForm() {
                 )
             })}
         </CarouselContent>
+        <CarouselPrevious className="hidden md:flex" />
+        <CarouselNext className="hidden md:flex" />
       </Carousel>
 
 
