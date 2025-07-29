@@ -29,6 +29,7 @@ import { useAudio } from "@/hooks/useAudio";
 import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
+import { ScrollArea } from "./ui/scroll-area";
 
 
 const formSchema = z.object({
@@ -175,9 +176,9 @@ export default function TaskForm() {
             {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
                 const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
                 return (
-                <CarouselItem key={category} className="basis-1/2 lg:basis-1/3">
+                <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                    <Card className="overflow-hidden flex flex-col rounded-xl h-full">
+                    <Card className="overflow-hidden flex flex-col rounded-xl h-[350px]">
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
                             <CardTitle className="font-headline text-lg">{category}</CardTitle>
                             <Badge variant="secondary" className="gap-1.5">
@@ -185,7 +186,9 @@ export default function TaskForm() {
                                 {totalDuration} min
                             </Badge>
                         </CardHeader>
-                        <CardContent className="p-3 pt-3 space-y-2 flex-grow">
+                        <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
+                           <ScrollArea className="h-full pr-3">
+                            <div className="space-y-2">
                             {tasks.map((task) => {
                                 const Icon = iconMap[task.icon] || BrainCircuit;
                                 return (
@@ -202,6 +205,8 @@ export default function TaskForm() {
                                     </Button>
                                 );
                             })}
+                            </div>
+                           </ScrollArea>
                         </CardContent>
                         <CardFooter className="p-3 pt-0 mt-auto">
                             <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
@@ -231,7 +236,9 @@ export default function TaskForm() {
       </div>
 
 
-        <Separator className="my-6" />
+        <div className="my-2" />
+        <Separator />
+        <div className="my-2" />
 
         <div ref={customTaskFormRef}>
             <h3 className="font-headline text-2xl mb-2">Or Create a Custom Task</h3>
