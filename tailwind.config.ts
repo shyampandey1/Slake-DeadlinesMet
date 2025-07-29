@@ -8,6 +8,28 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/hooks/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    'bg-blue-300/80',
+    'text-blue-900',
+    'dark:bg-blue-800/70',
+    'dark:text-blue-100',
+    'bg-indigo-300/80',
+    'text-indigo-900',
+    'dark:bg-indigo-800/70',
+    'dark:text-indigo-100',
+    'bg-green-300/80',
+    'text-green-900',
+    'dark:bg-green-800/70',
+    'dark:text-green-100',
+    'bg-orange-300/80',
+    'text-orange-900',
+    'dark:bg-orange-800/70',
+    'dark:text-orange-100',
+    'bg-sky-300/80',
+    'text-sky-900',
+    'dark:bg-sky-800/70',
+    'dark:text-sky-100',
+  ],
   theme: {
     extend: {
       fontFamily: {
