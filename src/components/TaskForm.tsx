@@ -161,9 +161,9 @@ export default function TaskForm() {
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
                         <CarouselItem key={category} className="basis-full sm:basis-1/2 md:basis-1/3">
-                            <Card className={cn("h-full flex flex-col", color)}>
+                            <Card className="h-full flex flex-col">
                                 <CardHeader>
-                                    <Badge variant="outline" className="w-fit border-current text-current">{category}</Badge>
+                                    <Badge className="w-fit">{category}</Badge>
                                 </CardHeader>
                                 <CardContent className="flex flex-col gap-2 flex-grow">
                                     {tasks.map((task) => {
@@ -171,11 +171,11 @@ export default function TaskForm() {
                                         return (
                                             <Button
                                                 key={task.id || task.name}
-                                                variant="ghost"
                                                 onClick={() => selectQuickStartTask(task)}
                                                 onDoubleClick={() => handleOpenDialog(task, category)}
                                                 className={cn(
-                                                    "justify-start gap-2 h-auto py-1 px-2 whitespace-normal text-xs bg-card/20 hover:bg-card/40 text-card-foreground",
+                                                    "justify-start gap-2 h-auto py-1 px-2 whitespace-normal text-xs",
+                                                    color
                                                 )}
                                             >
                                                 <Icon className="w-4 h-4 shrink-0" />
