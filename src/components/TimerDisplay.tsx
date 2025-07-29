@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
-import { useTasks } from "@/hooks/useFirestore";
+import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +41,7 @@ type FlashState = 'none' | 'three-times' | 'continuous';
 export default function TimerDisplay({ taskName, initialDuration }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
+  const { findAndSyncPresetTask } = usePresetTasks();
   const { isAudioEnabled, requestAudioPermission } = useAudio();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
@@ -133,14 +134,18 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
   }
 
   const handleSaveTask = async (completed: boolean) => {
+    const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
+    const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
+
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
-      duration: initialDuration,
+      duration: actualDuration,
       completed,
     };
     await addTask(newTask);
 
     if (completed) {
+      await findAndSyncPresetTask(taskName, actualDuration);
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       try {

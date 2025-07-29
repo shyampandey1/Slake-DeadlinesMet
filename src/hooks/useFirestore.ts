@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
 
@@ -225,5 +225,29 @@ export function usePresetTasks() {
 
     }, [user]);
 
-    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask };
+    const findAndSyncPresetTask = useCallback(async (taskName: string, newDuration: number) => {
+        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+
+        const q = query(
+            collection(db, 'userPresetTasks'),
+            where('userId', '==', user.uid),
+            where('name', '==', taskName),
+            limit(1)
+        );
+
+        try {
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                const taskDoc = snapshot.docs[0];
+                const taskRef = doc(db, 'userPresetTasks', taskDoc.id);
+                await updateDoc(taskRef, { duration: newDuration });
+                console.log(`Synced preset task '${taskName}' to duration ${newDuration}.`);
+            }
+        } catch (error) {
+            console.error(`Failed to sync preset task '${taskName}':`, error);
+        }
+
+    }, [user]);
+
+    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask };
 }
