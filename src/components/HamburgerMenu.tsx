@@ -12,7 +12,7 @@ import {
   SheetClose
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, History, Sun, Moon, ClipboardList } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -73,8 +73,8 @@ export default function HamburgerMenu() {
                 </Button>
                 <SheetClose asChild>
                   <Button variant="ghost" onClick={navigateToHistory} className="w-full justify-start gap-2">
-                      <History className="h-5 w-5" />
-                      <span>Task History</span>
+                      <BookText className="h-5 w-5" />
+                      <span>Task Log Book</span>
                   </Button>
                 </SheetClose>
                  <SheetClose asChild>

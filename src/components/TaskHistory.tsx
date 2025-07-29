@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { History, ThumbsUp, ThumbsDown, Trash2, TrendingUp, Calendar, CheckCircle, Clock, RefreshCw, XCircle } from "lucide-react";
+import { BookText, ThumbsUp, ThumbsDown, Trash2, TrendingUp, Calendar, CheckCircle, Clock, RefreshCw, XCircle } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,7 @@ import type { Task } from "@/types";
 import AuthWrapper from "./AuthWrapper";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
-function TaskHistoryContent() {
+function TaskLogBookContent() {
   const { tasks, loading, clearTasks } = useTasks();
   const router = useRouter();
 
@@ -82,7 +82,7 @@ function TaskHistoryContent() {
              {tasks.length > 0 && !loading && (
               <Button variant="ghost" onClick={clearTasks} className="text-muted-foreground">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Clear History
+                Clear Log
               </Button>
             )}
         </div>
@@ -141,7 +141,7 @@ function TaskHistoryContent() {
                                               <div className="flex flex-col">
                                                   <span className="font-semibold">{task.name}</span>
                                                   <span className="text-sm text-muted-foreground">
-                                                    {task.duration} min &bull; {format(new Date(task.createdAt), "p")}
+                                                    Time taken: {task.duration} min &bull; {format(new Date(task.createdAt), "p")}
                                                   </span>
                                               </div>
                                               <div className="flex items-center gap-2">
@@ -174,9 +174,9 @@ function TaskHistoryContent() {
                     </Accordion>
                 ) : (
                     <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                        <History className="mx-auto h-12 w-12" />
-                        <h3 className="mt-4 text-lg font-semibold">No Task History</h3>
-                        <p className="mt-1 text-sm">Complete a task to see your history here.</p>
+                        <BookText className="mx-auto h-12 w-12" />
+                        <h3 className="mt-4 text-lg font-semibold">No Task Log Found</h3>
+                        <p className="mt-1 text-sm">Complete a task to see your log here.</p>
                     </div>
                 )}
             </>
@@ -188,7 +188,7 @@ function TaskHistoryContent() {
 export default function WrappedTaskHistory() {
   return (
     <AuthWrapper>
-      <TaskHistoryContent />
+      <TaskLogBookContent />
     </AuthWrapper>
   );
 }
