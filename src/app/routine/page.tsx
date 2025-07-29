@@ -63,7 +63,7 @@ function RoutineCustomizationPage() {
 
 
   const renderSkeleton = () => (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[...Array(4)].map((_, i) => (
             <Card key={i}>
                 <CardHeader>
@@ -94,13 +94,13 @@ function RoutineCustomizationPage() {
         <main className="flex-1 overflow-y-auto pt-16 pb-20">
             <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
                  {loading ? renderSkeleton() : (
-                    <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <Card key={category} className="overflow-hidden">
+                        <Card key={category} className="overflow-hidden flex flex-col">
                         <CardHeader className={color}>
                             <CardTitle className="font-headline">{category}</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-4 space-y-2">
+                        <CardContent className="p-4 space-y-2 flex-grow">
                             {tasks.map((task) => {
                             const Icon = iconMap[task.icon] || BrainCircuit;
                             return (
@@ -116,10 +116,12 @@ function RoutineCustomizationPage() {
                                 </Button>
                             );
                             })}
-                             <Button variant="ghost" className="w-full mt-2 border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                        </CardContent>
+                        <div className="p-4 pt-0 mt-auto">
+                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
                                 <Plus className="w-4 h-4 mr-2" /> Add Task
                             </Button>
-                        </CardContent>
+                        </div>
                         </Card>
                     ))}
                     </div>
