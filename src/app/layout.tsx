@@ -2,7 +2,6 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/useAuth';
-import { AudioProvider } from '@/hooks/useAudio';
 import BottomNav from '@/components/BottomNav';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { ProfileProvider } from '@/hooks/useProfile';
@@ -33,12 +32,10 @@ export default function RootLayout({
         >
           <AuthProvider>
             <ProfileProvider>
-              <AudioProvider>
-                <div className="flex flex-col min-h-screen">
-                  <main className="flex-1">{children}</main>
-                  <BottomNav />
-                </div>
-              </AudioProvider>
+              <div className="flex flex-col min-h-screen">
+                <main className="flex-1">{children}</main>
+                <BottomNav />
+              </div>
             </ProfileProvider>
           </AuthProvider>
           <Toaster />

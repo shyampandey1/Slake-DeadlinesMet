@@ -26,7 +26,6 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
-import { useAudio } from "@/hooks/useAudio";
 import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
@@ -71,7 +70,6 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
-  const { requestAudioPermission } = useAudio();
   const [carouselApi, setCarouselApi] = useState<EmblaCarouselType | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
@@ -156,7 +154,6 @@ export default function TaskForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    requestAudioPermission();
     const params = new URLSearchParams({
       task: values.taskName,
       duration: values.duration.toString(),

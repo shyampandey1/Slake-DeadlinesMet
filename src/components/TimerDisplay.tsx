@@ -27,7 +27,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useAudio } from "@/hooks/useAudio";
 import CircularProgress from "./CircularProgress";
 import InfoDisplay from "./InfoDisplay";
 
@@ -44,7 +43,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const router = useRouter();
   const { tasks, addTask } = useTasks();
   const { findAndSyncPresetTask } = usePresetTasks();
-  const { isAudioEnabled, requestAudioPermission } = useAudio();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -55,7 +53,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [flashState, setFlashState] = useState<FlashState>('none');
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const tickAudioRef = useRef<HTMLAudioElement | null>(null);
   
   const stopTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -63,13 +60,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       intervalRef.current = null;
     }
   }, []);
-
-  const playTickSound = useCallback(() => {
-    if (tickAudioRef.current && isAudioEnabled) {
-        tickAudioRef.current.currentTime = 0;
-        tickAudioRef.current.play().catch(e => console.error("Tick sound play failed", e));
-    }
-  }, [isAudioEnabled]);
 
   const startTimer = useCallback(() => {
     stopTimer();
@@ -88,17 +78,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           setFlashState('three-times');
         }
 
-        if (prev <= 11 && prev > 1) { 
-            playTickSound();
-        }
         return prev - 1;
       });
     }, 1000);
-  }, [stopTimer, playTickSound]);
-
-  useEffect(() => {
-    requestAudioPermission();
-  }, [requestAudioPermission]);
+  }, [stopTimer]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -197,7 +180,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       <div className="absolute top-4">
         <InfoDisplay />
       </div>
-      <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <h2 className="mb-2 text-xl font-medium tracking-wide text-foreground/80">{category || 'Focus Session'}</h2>
         <h1 className="mb-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl font-headline">
