@@ -13,8 +13,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Textarea } from "@/components/ui/textarea";
 import { organizeRoutine } from "@/ai/flows/organize-routine";
+import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { useProfile } from "@/hooks/useProfile";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -39,7 +44,8 @@ const iconMap: { [key: string]: LucideIcon } = {
 const iconNames = Object.keys(iconMap);
 
 function RoutineCustomizationPage() {
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
+  const { profile, setProfile, customProfession, setCustomProfession, loading: profileLoading } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [routineDescription, setRoutineDescription] = useState("");
@@ -71,7 +77,7 @@ function RoutineCustomizationPage() {
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
   const categoryNames = categoriesWithColors.map(c => c.name);
 
-  const handleGenerateRoutine = async () => {
+  const handleGenerateFromDescription = async () => {
     if (!routineDescription.trim()) {
         toast({ title: "Please describe your routine.", variant: "destructive" });
         return;
@@ -112,16 +118,54 @@ function RoutineCustomizationPage() {
     }
   };
 
+  const handleGenerateByProfession = async () => {
+    if (!customProfession.trim()) {
+        toast({ title: "Please enter a profession.", variant: "destructive" });
+        return;
+    }
+    setIsGenerating(true);
+    try {
+        const result = await generateRoutineByProfession({
+            profession: customProfession,
+            availableIcons: getAvailableIcons(),
+            availableCategories: getAvailableCategories(),
+        });
+        
+        if (result.tasks && result.tasks.length > 0) {
+            await clearAndSetPresetTasks(result.tasks);
+            setProfile("Custom");
+            toast({
+                title: `Routine for ${customProfession} Generated!`,
+                description: `${result.tasks.length} tasks have been added.`,
+            });
+        } else {
+            toast({
+                title: "No tasks were generated.",
+                description: "The AI couldn't generate a routine. Please try a different profession.",
+                variant: "destructive",
+            });
+        }
+    } catch (error) {
+        console.error("Failed to generate custom routine:", error);
+        toast({
+            title: "Generation Failed",
+            description: "An error occurred while generating the routine.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[...Array(4)].map((_, i) => (
-            <Card key={i} className="rounded-xl">
-                <CardHeader>
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-4 w-3/4" />
+            <Card key={i} className="rounded-xl overflow-hidden">
+                <CardHeader className="p-3">
+                    <Skeleton className="h-5 w-1/2" />
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="p-3 space-y-2">
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                 </CardContent>
@@ -147,8 +191,55 @@ function RoutineCustomizationPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                            <BrainCircuit className="text-primary" />
+                            Productivity Profile
+                        </CardTitle>
+                        <CardDescription>
+                            Select a default profile or generate a new one based on a profession to get started.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="profile-select">Choose a Profile</Label>
+                             <Select onValueChange={(value) => setProfile(value as any)} value={profile} disabled={profileLoading || isGenerating}>
+                                <SelectTrigger id="profile-select">
+                                    <SelectValue placeholder="Select a profile..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Software Engineer">Software Engineer</SelectItem>
+                                    <SelectItem value="Student">Student</SelectItem>
+                                    <SelectItem value="General">General</SelectItem>
+                                    {profile === 'Custom' && <SelectItem value="Custom" disabled>Custom</SelectItem>}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="relative">
+                            <Separator />
+                            <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-background px-2 text-xs text-muted-foreground">OR</span>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="custom-profession">Generate for a Profession</Label>
+                            <div className="flex gap-2">
+                                <Input 
+                                    id="custom-profession"
+                                    placeholder="e.g., Doctor, Artist"
+                                    value={customProfession}
+                                    onChange={(e) => setCustomProfession(e.target.value)}
+                                    disabled={isGenerating}
+                                />
+                                <Button onClick={handleGenerateByProfession} disabled={isGenerating || !customProfession.trim()}>
+                                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
                             <WandSparkles className="text-primary" />
-                            Generate with AI
+                            Generate from Description
                         </CardTitle>
                         <CardDescription>
                             Describe your daily routine in the text box below, and let AI organize it for you.
@@ -163,7 +254,7 @@ function RoutineCustomizationPage() {
                             className="rounded-md"
                             disabled={isGenerating}
                         />
-                        <Button onClick={handleGenerateRoutine} disabled={isGenerating || !routineDescription.trim()}>
+                        <Button onClick={handleGenerateFromDescription} disabled={isGenerating || !routineDescription.trim()}>
                             {isGenerating ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -178,11 +269,11 @@ function RoutineCustomizationPage() {
 
                 <Separator />
 
-                 {loading ? renderSkeleton() : (
+                 {presetTasksLoading ? renderSkeleton() : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
                         <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
-                            <CardHeader className={`${color} p-4`}>
+                            <CardHeader className={`${color} p-3`}>
                                 <CardTitle className="font-headline text-base">{category}</CardTitle>
                             </CardHeader>
                             <CardContent className="p-3 pt-3 space-y-2 flex-grow">
