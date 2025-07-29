@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { MapPin, Cloud, Thermometer, Clock, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, Haze, CloudFog } from "lucide-react";
+import { MapPin, Cloud, Thermometer, Clock, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, Haze, CloudFog, Calendar } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 
 interface WeatherData {
@@ -115,6 +115,10 @@ export default function InfoDisplay() {
   return (
     <div className="hidden sm:flex items-center gap-x-3 text-xs p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
       <div className="flex items-center gap-1.5">
+        <Calendar className="h-4 w-4" />
+        <span>{format(time, "PPP")}</span>
+      </div>
+       <div className="flex items-center gap-1.5">
         <Clock className="h-4 w-4" />
         <span>{format(time, "p")}</span>
       </div>
