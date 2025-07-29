@@ -66,7 +66,7 @@ export default function InfoDisplay() {
             if (weatherData?.current_weather) {
               const { temperature, weathercode } = weatherData.current_weather;
               const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-              const locationName = locationData.address?.city || "";
+              const locationName = locationData.address?.city;
 
               if (locationName) {
                 setWeather({
