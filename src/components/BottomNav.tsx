@@ -16,16 +16,17 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const activeTask = false; // Placeholder for when timer is active
+  
+  // In a real app, you might get this from a global state
+  const isTimerActive = pathname === '/timer';
 
   if (!user) {
     return null;
   }
   
-  // A new timer is started from the home page, so the timer icon links to home unless a task is active.
+  // The timer icon links to the active timer page if it's running, otherwise it links to the home page to start a new one.
   const getTimerHref = () => {
-    // In a real scenario, you'd have global state to know if a timer is running
-    return activeTask ? "/timer" : "/";
+    return isTimerActive ? "/timer" : "/";
   }
 
 
@@ -34,8 +35,17 @@ export default function BottomNav() {
         <div className="flex justify-around items-center h-16">
             {navItems.map(({ href, label, icon: Icon }) => {
                 const effectiveHref = label === 'Timer' ? getTimerHref() : href;
-                const isActive = (pathname === effectiveHref) || (pathname === '/timer' && label === 'Timer') || (pathname === '/' && label === 'Home' && !activeTask);
-                
+                // A link is active if the current path matches its href.
+                // Special case for 'Home': it should NOT be active if the timer page is active.
+                // Special case for 'Timer': it should BE active if the timer page is active.
+                let isActive = pathname === href;
+                if (label === 'Home') {
+                    isActive = pathname === '/' && !isTimerActive;
+                }
+                if (label === 'Timer') {
+                    isActive = isTimerActive;
+                }
+
                 return (
                     <Link
                         key={label}
