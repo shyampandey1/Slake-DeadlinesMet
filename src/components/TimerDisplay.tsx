@@ -208,7 +208,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
             {isPaused ? "Resume" : "Pause"}
           </Button>
           <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
-            <Square className="mr-2" />
+            <Square className="mr-2 h-5 w-5" />
             End
           </Button>
         </div>
