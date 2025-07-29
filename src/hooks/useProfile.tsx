@@ -31,13 +31,13 @@ const ProfileContext = createContext<ProfileContextType>({
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isOffline } = useAuth();
   const [profile, setProfileState] = useState<ProfileType>("General");
   const [customProfessions, setCustomProfessionsState] = useState<CustomProfession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || ('isMockUser' in user && user.isMockUser)) {
+    if (!user || isOffline) {
         setProfileState("General");
         setCustomProfessionsState([]);
         setLoading(false);
@@ -66,11 +66,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     
     return () => unsubscribe();
 
-  }, [user]);
+  }, [user, isOffline]);
 
   const setProfile = useCallback(async (newProfile: ProfileType) => {
     setProfileState(newProfile);
-    if (user && !('isMockUser' in user)) {
+    if (user && !isOffline) {
         try {
             const profileRef = doc(db, 'userProfiles', user.uid);
             await setDoc(profileRef, { profile: newProfile }, { merge: true });
@@ -78,10 +78,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             console.error("Failed to set profile: ", error);
         }
     }
-  }, [user]);
+  }, [user, isOffline]);
 
   const addCustomProfession = useCallback(async (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => {
-    if (!user || ('isMockUser' in user)) return;
+    if (!user || isOffline) return;
 
     const profileRef = doc(db, 'userProfiles', user.uid);
     const tasksCollectionRef = collection(db, 'userPresetTasks');
@@ -146,7 +146,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         console.error("Failed to add custom profession and tasks: ", error);
         throw error; // Re-throw to be caught by the calling function
     }
-  }, [user]);
+  }, [user, isOffline]);
 
 
   return (

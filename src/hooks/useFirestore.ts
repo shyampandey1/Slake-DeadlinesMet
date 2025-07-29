@@ -185,23 +185,16 @@ const profilePresets: { [key: string]: Preset } = {
 };
 
 export function useTasks() {
-  const { user } = useAuth();
+  const { user, isOffline } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setTasks([]);
-      setLoading(false);
-      return;
-    }
-    
-    if ('isMockUser' in user && user.isMockUser) {
-      const mockTasks: Task[] = [
+    if (!user || isOffline) {
+      setTasks(isOffline ? [
         { id: 'mock-1', userId: 'mock-user-01', name: 'Finish project proposal (mock)', duration: 60, completed: true, createdAt: new Date().toISOString() },
         { id: 'mock-2', userId: 'mock-user-01', name: 'Review design mockups (mock)', duration: 45, completed: false, createdAt: new Date(Date.now() - 86400000).toISOString() },
-      ];
-      setTasks(mockTasks);
+      ] : []);
       setLoading(false);
       return;
     }
@@ -230,12 +223,12 @@ export function useTasks() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, isOffline]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
     if (!user) throw new Error("User not authenticated");
 
-    if ('isMockUser' in user && user.isMockUser) {
+    if (isOffline) {
         const newTask: Task = {
             id: `mock-${Date.now()}`,
             userId: user.uid,
@@ -252,12 +245,12 @@ export function useTasks() {
       userId: user.uid,
       createdAt: serverTimestamp(),
     });
-  }, [user]);
+  }, [user, isOffline]);
   
   const clearTasks = useCallback(async () => {
     if (!user) throw new Error("User not authenticated");
 
-    if ('isMockUser' in user && user.isMockUser) {
+    if (isOffline) {
         setTasks([]);
         console.log("Mock tasks cleared");
         return;
@@ -271,14 +264,14 @@ export function useTasks() {
     });
     await batch.commit();
 
-  }, [user]);
+  }, [user, isOffline]);
 
 
   return { tasks, loading, addTask, clearTasks };
 }
 
 export function usePresetTasks() {
-    const { user } = useAuth();
+    const { user, isOffline } = useAuth();
     const { profile, customProfessions } = useProfile();
     const [presetTasks, setPresetTasks] = useState<Preset>({});
     const [loading, setLoading] = useState(true);
@@ -295,13 +288,14 @@ export function usePresetTasks() {
     }, []);
 
     useEffect(() => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) {
+        if (!user || isOffline) {
             const initialTasks = profilePresets[profile] || profilePresets["General"];
             setPresetTasks(initialTasks);
             setLoading(false);
             return;
         }
 
+        setLoading(true);
         const q = query(
             collection(db, 'userPresetTasks'),
             where('userId', '==', user.uid),
@@ -368,10 +362,10 @@ export function usePresetTasks() {
         });
 
         return () => unsubscribe();
-    }, [user, profile, customProfessions]);
+    }, [user, profile, customProfessions, isOffline]);
 
     const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }) => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        if (!user || isOffline) return;
 
         const categoryTasks = presetTasks[task.category]?.tasks || [];
         const maxOrder = categoryTasks.reduce((max, t) => Math.max(max, t.order), -1);
@@ -382,23 +376,23 @@ export function usePresetTasks() {
             order: maxOrder + 1,
             userId: user.uid
         });
-    }, [user, presetTasks, profile]);
+    }, [user, presetTasks, profile, isOffline]);
     
     const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        if (!user || isOffline) return;
         const taskRef = doc(db, 'userPresetTasks', taskId);
         await updateDoc(taskRef, task);
-    }, [user]);
+    }, [user, isOffline]);
 
     const deletePresetTask = useCallback(async (taskId: string) => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        if (!user || isOffline) return;
         
         await deleteDoc(doc(db, 'userPresetTasks', taskId));
 
-    }, [user]);
+    }, [user, isOffline]);
 
     const findAndSyncPresetTask = useCallback(async (taskName: string, newDuration: number) => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        if (!user || isOffline) return;
 
         const q = query(
             collection(db, 'userPresetTasks'),
@@ -420,10 +414,10 @@ export function usePresetTasks() {
             console.error(`Failed to sync preset task '${taskName}':`, error);
         }
 
-    }, [user, profile]);
+    }, [user, profile, isOffline]);
 
     const reorderPresetTask = useCallback(async (taskId: string, direction: 'up' | 'down') => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        if (!user || isOffline) return;
         
         try {
             await runTransaction(db, async (transaction) => {
@@ -466,10 +460,10 @@ export function usePresetTasks() {
             console.error("Failed to reorder task:", error);
         }
 
-    }, [user]);
+    }, [user, isOffline]);
 
     const clearAndSetPresetTasks = useCallback(async (professionName: string, tasks: (PresetTask & { category: string })[]) => {
-        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+        if (!user || isOffline) return;
     
         const batch = writeBatch(db);
     
@@ -508,7 +502,7 @@ export function usePresetTasks() {
         // 3. Commit the batch
         await batch.commit();
 
-    }, [user]);
+    }, [user, isOffline]);
 
     return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons };
 }

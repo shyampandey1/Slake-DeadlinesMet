@@ -17,6 +17,8 @@ import { mockLogin } from "@/lib/mockAuth";
 interface AuthContextType {
   user: User | MockUser | null;
   loading: boolean;
+  isOffline: boolean;
+  setIsOffline: (isOffline: boolean) => void;
   setMockUser: (user: MockUser | null) => void;
   signInWithGoogle: () => Promise<void>;
   mockLogin: (email: string, pass: string) => MockUser | null;
@@ -25,6 +27,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  isOffline: false,
+  setIsOffline: () => {},
   setMockUser: () => {},
   signInWithGoogle: async () => {},
   mockLogin: () => null,
@@ -33,8 +37,12 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | MockUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
   
   const setMockUser = useCallback((mockUser: MockUser | null) => {
+    if (mockUser) {
+        setIsOffline(true);
+    }
     setUser(mockUser);
   }, []);
 
@@ -42,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
+        setIsOffline(false);
     } catch(error) {
         console.error("Google sign-in error", error);
         throw error;
@@ -59,7 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
         if(firebaseUser) {
             setUser(firebaseUser);
+            setIsOffline(false);
         }
+        setLoading(false);
+    }, (error) => {
+        console.error("Auth state error:", error);
+        setIsOffline(true);
         setLoading(false);
     });
 
@@ -67,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, setMockUser, signInWithGoogle, mockLogin }}>
+    <AuthContext.Provider value={{ user, loading, isOffline, setIsOffline, setMockUser, signInWithGoogle, mockLogin }}>
       {children}
     </AuthContext.Provider>
   );

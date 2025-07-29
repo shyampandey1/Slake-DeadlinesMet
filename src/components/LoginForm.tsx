@@ -37,7 +37,7 @@ export default function LoginForm({ onBack }: LoginFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();
-  const { setMockUser } = useAuth();
+  const { setMockUser, setIsOffline } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,10 +52,25 @@ export default function LoginForm({ onBack }: LoginFormProps) {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       router.push("/");
     } catch (error: any) {
-        console.warn("Firebase login failed, attempting mock login:", error.message);
+        console.warn("Firebase login failed:", error.message);
         
+        // Specific check for database not existing error
+        if (error.code === 'failed-precondition' || error.message.includes('database')) {
+             const mockUser = mockLogin("user@test.com", "password123");
+             if (mockUser) {
+                setMockUser(mockUser);
+                setIsOffline(true);
+                router.push("/");
+                toast({
+                    title: "Switched to Guest Mode",
+                    description: "Firebase is unavailable. You are using the app with local data.",
+                });
+                return;
+             }
+        }
+        
+        // General fallback for other auth errors
         const mockUser = mockLogin(values.email, values.password);
-
         if (mockUser) {
             setMockUser(mockUser);
             router.push("/");
@@ -119,7 +134,7 @@ export default function LoginForm({ onBack }: LoginFormProps) {
             <TriangleAlert className="h-4 w-4" />
             <AlertTitle>Fallback Mode</AlertTitle>
             <AlertDescription>
-            If Firebase fails, you can log in with: <br/>
+            If Firebase fails, you can log in as a guest with: <br/>
             <b>Email:</b> user@test.com <br/>
             <b>Pass:</b> password123
             </AlertDescription>
