@@ -6,49 +6,112 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit, runTransaction } from 'firebase/firestore';
 import { useAuth } from './useAuth';
 import { Task, Preset, PresetTask, UserPresetTask } from '@/types';
+import { useProfile } from './useProfile';
 
+const iconMap = {
+    ListChecks: "ListChecks",
+    Bed: "Bed",
+    StretchHorizontal: "StretchHorizontal",
+    Dumbbell: "Dumbbell",
+    BrainCircuit: "BrainCircuit",
+    Mail: "Mail",
+    Users: "Users",
+    Coffee: "Coffee",
+    Footprints: "Footprints",
+    Utensils: "Utensils",
+    Wind: "Wind",
+    Droplets: "Droplets",
+    BookOpen: "BookOpen",
+    Wrench: "Wrench",
+    Target: "Target",
+    ShoppingBag: "ShoppingBag",
+};
+const iconNames = Object.keys(iconMap);
 
-const initialPresetTasks: Preset = {
-    'Morning Routine': {
-        color: "bg-slate-800 text-slate-200",
-        tasks: [
-            { name: 'Plan Day', duration: 15, icon: 'ListChecks', order: 0 },
-            { name: 'Meditate', duration: 10, icon: 'Bed', order: 1 },
-            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal', order: 2 },
-        ]
+const profilePresets: { [key: string]: Preset } = {
+    "Software Engineer": {
+        'Morning Foundation': {
+            color: "bg-slate-800 text-slate-200",
+            tasks: [
+                { name: 'Freshen Up & Hydrate', duration: 25, icon: 'Droplets', order: 0 },
+                { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
+                { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
+            ]
+        },
+        'Daily Strategy': {
+            color: "bg-blue-900/80 text-blue-200",
+            tasks: [
+                { name: 'Plan & Prioritize Tasks', duration: 30, icon: 'ListChecks', order: 0 },
+            ]
+        },
+        'Deep Work': {
+            color: "bg-green-900/80 text-green-200",
+            tasks: [
+                { name: 'Focus on Top Priority Tasks', duration: 180, icon: 'BrainCircuit', order: 0 },
+                { name: 'Focus on Secondary Tasks', duration: 150, icon: 'BrainCircuit', order: 1 },
+            ]
+        },
+        'Breaks & Meals': {
+            color: "bg-orange-900/80 text-orange-200",
+            tasks: [
+                { name: 'Short Drive', duration: 45, icon: 'Footprints', order: 0 },
+                { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
+            ]
+        },
+        'Afternoon Wrap-up': {
+            color: "bg-indigo-900/80 text-indigo-200",
+            tasks: [
+                { name: 'Progress Review & Analysis', duration: 30, icon: 'Target', order: 0 },
+                { name: 'Client App Refinements', duration: 30, icon: 'Wrench', order: 1 },
+            ]
+        }
     },
-    'Work & Focus': {
-        color: "bg-blue-900/80 text-blue-200",
-        tasks: [
-            { name: 'Deep Work', duration: 90, icon: 'BrainCircuit', order: 0 },
-            { name: 'Focus Session', duration: 50, icon: 'BrainCircuit', order: 1 },
-            { name: 'Check Emails', duration: 15, icon: 'Mail', order: 2 },
-            { name: 'Stand-up', duration: 15, icon: 'Users', order: 3 },
-        ]
+    "Student": {
+        'Morning Routine': {
+            color: "bg-slate-800 text-slate-200",
+            tasks: [
+                { name: 'Review Notes', duration: 25, icon: 'BookOpen', order: 0 },
+                { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 1 },
+            ]
+        },
+        'Study Blocks': {
+            color: "bg-blue-900/80 text-blue-200",
+            tasks: [
+                { name: 'Study Session 1', duration: 90, icon: 'BrainCircuit', order: 0 },
+                { name: 'Study Session 2', duration: 90, icon: 'BrainCircuit', order: 1 },
+                { name: 'Practice Problems', duration: 60, icon: 'Wrench', order: 2 },
+            ]
+        },
+        'Breaks & Campus Life': {
+            color: "bg-green-900/80 text-green-200",
+            tasks: [
+                { name: 'Lunch with Friends', duration: 60, icon: 'Users', order: 0 },
+                { name: 'Walk on Campus', duration: 20, icon: 'Footprints', order: 1 },
+            ]
+        }
     },
-    'Health & Wellness': {
-        color: "bg-green-900/80 text-green-200",
-        tasks: [
-            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
-            { name: 'Stretching', duration: 10, icon: 'StretchHorizontal', order: 1 },
-            { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true, order: 2 },
-        ]
-    },
-    'Breaks & Meals': {
-        color: "bg-orange-900/80 text-orange-200",
-        tasks: [
-            { name: 'Short Break', duration: 5, icon: 'Coffee', recurring: true, order: 0 },
-            { name: 'Walk', duration: 15, icon: 'Footprints', order: 1 },
-            { name: 'Lunch Break', duration: 45, icon: 'Utensils', order: 2 },
-            { name: 'Breathing Practice', duration: 5, icon: 'Wind', recurring: true, order: 3 },
-        ]
-    },
-    'Evening Wind-down': {
-        color: "bg-indigo-900/80 text-indigo-200",
-        tasks: [
-            { name: 'Read a book', duration: 30, icon: 'BookOpen', order: 0 },
-            { name: 'Journal', duration: 15, icon: 'ListChecks', order: 1 },
-        ]
+    "General": {
+        'Morning Routine': {
+            color: "bg-slate-800 text-slate-200",
+            tasks: [
+                { name: 'Plan Day', duration: 15, icon: 'ListChecks', order: 0 },
+                { name: 'Meditate', duration: 10, icon: 'Bed', order: 1 },
+            ]
+        },
+        'Work & Focus': {
+            color: "bg-blue-900/80 text-blue-200",
+            tasks: [
+                { name: 'Focus Session', duration: 50, icon: 'BrainCircuit', order: 1 },
+                { name: 'Check Emails', duration: 15, icon: 'Mail', order: 2 },
+            ]
+        },
+        'Health & Wellness': {
+            color: "bg-green-900/80 text-green-200",
+            tasks: [
+                { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
+                { name: 'Drink Water', duration: 1, icon: 'Droplets', recurring: true, order: 2 },
+            ]
+        },
     }
 };
 
@@ -147,22 +210,31 @@ export function useTasks() {
 
 export function usePresetTasks() {
     const { user } = useAuth();
-    const [presetTasks, setPresetTasks] = useState<Preset>(initialPresetTasks);
+    const { profile } = useProfile();
+    const [presetTasks, setPresetTasks] = useState<Preset>({});
     const [loading, setLoading] = useState(true);
 
     const isDefaultTask = (task: UserPresetTask) => {
         return !task.id;
     }
 
+    const getAvailableIcons = () => iconNames;
+    const getAvailableCategories = () => {
+        const basePreset = profilePresets[profile] || profilePresets["General"];
+        return Object.keys(basePreset);
+    };
+
     useEffect(() => {
         if (!user) {
-            setPresetTasks(initialPresetTasks);
+            const initialTasks = profilePresets[profile] || profilePresets["General"];
+            setPresetTasks(initialTasks);
             setLoading(false);
             return;
         }
 
         if ('isMockUser' in user && user.isMockUser) {
-            setPresetTasks(initialPresetTasks);
+            const initialTasks = profilePresets[profile] || profilePresets["General"];
+            setPresetTasks(initialTasks);
             setLoading(false);
             return;
         }
@@ -176,24 +248,35 @@ export function usePresetTasks() {
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string})[];
             
-            const newPresets: Preset = JSON.parse(JSON.stringify(initialPresetTasks));
+            const basePreset = profilePresets[profile] || profilePresets["General"];
+            const newPresets: Preset = JSON.parse(JSON.stringify(basePreset));
 
-            // Clear dynamic tasks before adding them again
-            Object.keys(newPresets).forEach(category => {
-                newPresets[category].tasks = newPresets[category].tasks.filter(t => !t.id);
-            });
-
+            // If profile is custom, we don't start with base tasks
+            if (profile === 'Custom') {
+                Object.keys(newPresets).forEach(category => {
+                    newPresets[category].tasks = [];
+                });
+            }
 
             userTasks.forEach(task => {
                 if (newPresets[task.category]) {
+                    // Avoid duplicating default tasks that now have an ID
+                    const existingIndex = newPresets[task.category].tasks.findIndex(t => t.name === task.name && !t.id);
+                    if (existingIndex !== -1) {
+                        newPresets[task.category].tasks.splice(existingIndex, 1);
+                    }
                     newPresets[task.category].tasks.push(task);
                 } else {
-                    // This case is for user-created categories, which we are not supporting via the UI yet.
-                    // If a task belongs to a category not in initialPresetTasks, it won't be displayed.
+                   // For custom-generated categories
+                   if (profile === 'Custom') {
+                        newPresets[task.category] = {
+                            color: "bg-gray-800 text-gray-200", // A default color
+                            tasks: [task]
+                        };
+                   }
                 }
             });
             
-             // Ensure tasks within each category are sorted by the order property
             Object.keys(newPresets).forEach(category => {
                 newPresets[category].tasks.sort((a, b) => a.order - b.order);
             });
@@ -202,12 +285,13 @@ export function usePresetTasks() {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching preset tasks:", error);
-            setPresetTasks(initialPresetTasks);
+            const initialTasks = profilePresets[profile] || profilePresets["General"];
+            setPresetTasks(initialTasks);
             setLoading(false);
         });
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user, profile]);
 
     const addPresetTask = useCallback(async (task: PresetTask & { category: string }) => {
         if (!user || ('isMockUser' in user && user.isMockUser)) return;
@@ -304,5 +388,42 @@ export function usePresetTasks() {
 
     }, [user]);
 
-    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask };
+    const clearAndSetPresetTasks = useCallback(async (tasks: (PresetTask & { category: string })[]) => {
+        if (!user || ('isMockUser' in user && user.isMockUser)) return;
+    
+        const batch = writeBatch(db);
+    
+        // 1. Delete all existing user preset tasks
+        const q = query(collection(db, 'userPresetTasks'), where('userId', '==', user.uid));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+    
+        // 2. Add the new tasks
+        const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
+        tasks.forEach(task => {
+            if (!tasksByCategory[task.category]) {
+                tasksByCategory[task.category] = [];
+            }
+            tasksByCategory[task.category].push(task);
+        });
+        
+        Object.values(tasksByCategory).forEach(categoryTasks => {
+            categoryTasks.forEach((task, index) => {
+                const newDocRef = doc(collection(db, 'userPresetTasks'));
+                batch.set(newDocRef, {
+                    ...task,
+                    order: index,
+                    userId: user.uid,
+                });
+            });
+        });
+    
+        // 3. Commit the batch
+        await batch.commit();
+
+    }, [user]);
+
+    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons };
 }
