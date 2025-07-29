@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import type { ProfileType, CustomProfession, PresetTask } from "@/types";
 
 interface ProfileContextType {
@@ -71,15 +71,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const setProfile = useCallback(async (newProfile: ProfileType) => {
     setProfileState(newProfile);
     if (user && !('isMockUser' in user)) {
-        const profileRef = doc(db, 'userProfiles', user.uid);
-        await updateDoc(profileRef, { profile: newProfile });
+        try {
+            const profileRef = doc(db, 'userProfiles', user.uid);
+            await setDoc(profileRef, { profile: newProfile }, { merge: true });
+        } catch (error) {
+            console.error("Failed to set profile: ", error);
+        }
     }
   }, [user]);
 
   const addCustomProfession = useCallback(async (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => {
-    if (user && !('isMockUser' in user)) {
+    if (!user || ('isMockUser' in user)) return;
+    
+    try {
         const profileRef = doc(db, 'userProfiles', user.uid);
-        
+
         // Add the new profession to the list of custom professions
         await updateDoc(profileRef, {
             customProfessions: arrayUnion(profession)
@@ -88,14 +94,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         // Set the new profession as the active profile
         await setProfile(profession.name);
 
-        // Overwrite tasks for that profession name
-        const q = query(collection(db, 'userPresetTasks'), where('userId', '==', user.uid), where('profession', '==', profession.name));
-        const snapshot = await getDocs(q);
+        // Batch write to replace tasks for the new profession
         const batch = writeBatch(db);
+        
+        // 1. Delete all existing user preset tasks for that profession
+        const q = query(
+            collection(db, 'userPresetTasks'), 
+            where('userId', '==', user.uid),
+            where('profession', '==', profession.name)
+        );
+        const snapshot = await getDocs(q);
         snapshot.forEach(doc => {
             batch.delete(doc.ref);
         });
 
+        // 2. Add the new tasks
         const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
         tasks.forEach(task => {
             if (!tasksByCategory[task.category]) {
@@ -108,7 +121,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             categoryTasks.forEach((task, index) => {
                 const newDocRef = doc(collection(db, 'userPresetTasks'));
                 batch.set(newDocRef, {
-                    ...task,
+                    name: task.name,
+                    duration: task.duration,
+                    icon: task.icon,
+                    category: task.category,
                     order: index,
                     userId: user.uid,
                     profession: profession.name,
@@ -116,7 +132,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             });
         });
 
+        // 3. Commit the batch
         await batch.commit();
+
+    } catch (error) {
+        console.error("Failed to add custom profession and tasks: ", error);
     }
   }, [user, setProfile]);
 

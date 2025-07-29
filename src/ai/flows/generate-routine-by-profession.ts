@@ -73,11 +73,11 @@ const prompt = ai.definePrompt({
   Example for "Graphic Designer":
   {
     "tasks": [
-      { "name": "Review Design Briefs", "duration": 30, "icon": "ListChecks", "category": "Daily Strategy" },
-      { "name": "Creative Deep Work", "duration": 180, "icon": "BrainCircuit", "category": "Deep Work" },
-      { "name": "Client Feedback & Revisions", "duration": 60, "icon": "Mail", "category": "Work & Focus" },
-      { "name": "Inspiration & Moodboarding", "duration": 45, "icon": "ShoppingBag", "category": "Work & Focus" },
-      { "name": "Lunch & Walk", "duration": 60, "icon": "Utensils", "category": "Breaks & Meals" }
+      { "name": "Review Design Briefs", "duration": 30, "icon": "ListChecks", "category": "Strategy" },
+      { "name": "Creative Deep Work", "duration": 180, "icon": "BrainCircuit", "category": "Work Session 1" },
+      { "name": "Client Feedback & Revisions", "duration": 60, "icon": "Mail", "category": "Work Session 2" },
+      { "name": "Inspiration & Moodboarding", "duration": 45, "icon": "ShoppingBag", "category": "Wrap-up" },
+      { "name": "Lunch & Walk", "duration": 60, "icon": "Utensils", "category": "Recharge" }
     ],
     "categoryGroup": "Creative & Media"
   }
@@ -95,7 +95,11 @@ const generateRoutineByProfessionFlow = ai.defineFlow(
   async input => {
     try {
       const {output} = await prompt(input);
-      return output!;
+      if (!output || !output.tasks || output.tasks.length === 0) {
+        console.error("AI call for profession-based routine generation returned empty tasks.");
+        return { tasks: [], categoryGroup: 'General & Freelance' };
+      }
+      return output;
     } catch(e) {
       console.error("AI call for profession-based routine generation failed", e);
       return { tasks: [], categoryGroup: 'General & Freelance' };
