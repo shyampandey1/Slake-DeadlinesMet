@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon } from 'lucide-react';
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import useEmblaCarousel from 'embla-carousel-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +24,8 @@ import { Separator } from "./ui/separator";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { cn } from "@/lib/utils";
+import { useAudio } from "@/hooks/useAudio";
 
 
 const formSchema = z.object({
@@ -63,6 +64,18 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
+  const { isAudioEnabled, requestAudioPermission } = useAudio();
+  const revolverSoundRef = useRef<HTMLAudioElement>(null);
+
+  const allTasks = Object.entries(presetTasks).flatMap(([category, { tasks, color }]) =>
+    tasks.map(task => ({ ...task, category, color }))
+  );
+  
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    axis: 'y',
+    loop: true,
+  });
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,15 +85,31 @@ export default function TaskForm() {
     },
   });
   
-  const handlePresetClick = (preset: UserPresetTask) => {
-    form.setValue("taskName", preset.name);
-    form.setValue("duration", preset.duration);
-    
-    customTaskFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
-  }
+  const playRevolverSound = useCallback(() => {
+    if (revolverSoundRef.current && isAudioEnabled) {
+      revolverSoundRef.current.currentTime = 0;
+      revolverSoundRef.current.play().catch(e => console.error("Sound play failed", e));
+    }
+  }, [isAudioEnabled]);
+
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    const selectedTask = allTasks[emblaApi.selectedScrollSnap()];
+    if (selectedTask) {
+        form.setValue("taskName", selectedTask.name);
+        form.setValue("duration", selectedTask.duration);
+        playRevolverSound();
+    }
+  }, [emblaApi, allTasks, form, playRevolverSound]);
+
+  useEffect(() => {
+    if (emblaApi) {
+        emblaApi.on('select', onSelect);
+        // Set initial task
+        onSelect();
+    }
+  }, [emblaApi, onSelect]);
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : undefined;
@@ -105,6 +134,8 @@ export default function TaskForm() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Request audio permission on the first user interaction
+    requestAudioPermission();
     const params = new URLSearchParams({
       task: values.taskName,
       duration: values.duration.toString(),
@@ -120,44 +151,31 @@ export default function TaskForm() {
     <Card className="overflow-hidden">
         <CardHeader>
             <CardTitle className="font-headline text-2xl">Quick Start Tasks</CardTitle>
-            <CardDescription>Choose from a list of common tasks to get started quickly.</CardDescription>
+            <CardDescription>Spin the wheel to select a task and get started.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Carousel
-                opts={{
-                    align: "start",
-                }}
-                className="w-full"
-            >
-                <CarouselContent>
-                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <CarouselItem key={category} className="basis-auto">
-                             <div className="p-1">
-                                <h3 className="font-semibold text-foreground/90 mb-3">{category}</h3>
-                                <div className="flex flex-col gap-2">
-                                    {tasks.map((task) => {
-                                        const Icon = iconMap[task.icon] || BrainCircuit;
-                                        return (
-                                            <Button
-                                                key={task.name}
-                                                onClick={() => handlePresetClick(task)}
-                                                className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal w-48", color)}
-                                            >
-                                                <Icon className="w-4 h-4 shrink-0" />
-                                                <span className="flex-1 text-left font-normal text-sm">{task.name}</span>
-                                                <span className="text-xs opacity-80">{task.duration}</span>
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-                             </div>
-                        </CarouselItem>
-                    ))}
-                </CarouselContent>
-                 <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-            </Carousel>
-           
+            <audio ref={revolverSoundRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_96c21e72e3.mp3" preload="auto" />
+            <div className="relative h-48 overflow-hidden" ref={emblaRef}>
+                <div className="flex flex-col h-full">
+                    {allTasks.map((task, index) => {
+                         const Icon = iconMap[task.icon] || BrainCircuit;
+                        return (
+                        <div key={`${task.name}-${index}`} className="flex-shrink-0 h-16 flex items-center justify-center">
+                            <Button
+                                variant="ghost"
+                                className={cn("justify-start gap-4 h-auto py-3 px-6 whitespace-normal w-64 text-lg", task.color)}
+                            >
+                                <Icon className="w-5 h-5 shrink-0" />
+                                <span className="flex-1 text-left font-semibold">{task.name}</span>
+                                <span className="text-sm opacity-80">{task.duration}m</span>
+                            </Button>
+                        </div>
+                    )})}
+                </div>
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-full h-16 border-y-2 border-primary/50" />
+                </div>
+            </div>
 
             <Separator className="my-8" />
 
