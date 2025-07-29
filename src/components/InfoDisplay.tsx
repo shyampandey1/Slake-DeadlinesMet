@@ -86,30 +86,15 @@ export default function InfoDisplay() {
     }
 
     if ("geolocation" in navigator) {
-        navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
-            const handlePosition = (position: GeolocationPosition) => {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
                 fetchWeather(position.coords.latitude, position.coords.longitude);
-            };
-            const handleError = () => {
-                console.log("Geolocation permission denied or failed.");
+            },
+            (error) => {
+                console.error("Geolocation error:", error.message);
                 setLoading(false);
-            };
-
-            if (permissionStatus.state === 'granted') {
-                navigator.geolocation.getCurrentPosition(handlePosition, handleError);
-            } else if (permissionStatus.state === 'prompt') {
-                 navigator.geolocation.getCurrentPosition(handlePosition, handleError);
-            } else { // denied
-                handleError();
             }
-            permissionStatus.onchange = () => {
-                if (permissionStatus.state === 'granted') {
-                    navigator.geolocation.getCurrentPosition(handlePosition, handleError);
-                } else {
-                    handleError();
-                }
-            };
-        });
+        );
     } else {
         setLoading(false);
     }
