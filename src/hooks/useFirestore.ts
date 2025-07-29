@@ -298,8 +298,7 @@ export function usePresetTasks() {
         setLoading(true);
         const q = query(
             collection(db, 'userPresetTasks'),
-            where('userId', '==', user.uid),
-            orderBy('order', 'asc')
+            where('userId', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
