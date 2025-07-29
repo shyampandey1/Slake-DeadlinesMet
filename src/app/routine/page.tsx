@@ -23,11 +23,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { add, format, set } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -269,59 +264,54 @@ function RoutineCustomizationPage() {
         <main className="flex-1 overflow-y-auto pt-16 pb-20">
             <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
                 
-                <Collapsible>
-                    <CollapsibleTrigger className="w-full">
-                      <div className="flex items-center justify-between px-1 mb-4 group">
-                          <div>
-                            <h2 className="font-headline text-2xl">Today's Routine</h2>
-                            <p className="text-muted-foreground">Your daily schedule at a glance. Click to expand.</p>
-                          </div>
-                          <ChevronDown className="h-6 w-6 transition-transform duration-300 group-data-[state=open]:rotate-180" />
+                <div>
+                  <div className="flex items-center justify-between px-1 mb-4 group">
+                      <div>
+                        <h2 className="font-headline text-2xl">Today's Routine</h2>
+                        <p className="text-muted-foreground">Your daily schedule at a glance.</p>
                       </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="relative space-y-4">
-                        {timedTasks.map((task, index) => {
-                          const Icon = iconMap[task.icon] || BrainCircuit;
-                          const is_active = currentTime >= task.startTime && currentTime < task.endTime;
-                          const is_past = currentTime >= task.endTime;
+                  </div>
+                  <div className="relative space-y-4 max-h-[400px] overflow-y-auto pr-4">
+                    {timedTasks.map((task, index) => {
+                      const Icon = iconMap[task.icon] || BrainCircuit;
+                      const is_active = currentTime >= task.startTime && currentTime < task.endTime;
+                      const is_past = currentTime >= task.endTime;
 
-                          return (
-                            <div key={task.id || task.name} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
-                                <div className="absolute left-0 top-0 flex flex-col items-center h-full">
-                                    <div className={cn("w-3.5 h-3.5 rounded-full mt-1.5 border-2", 
-                                      is_active ? "border-primary bg-primary/20" : "border-border",
-                                      is_past ? "border-primary bg-primary" : ""
-                                    )}></div>
-                                    {index < timedTasks.length - 1 && (
-                                      <div className={cn("w-px h-full my-1", is_past ? "bg-primary" : "bg-border")}></div>
+                      return (
+                        <div key={task.id || task.name} className="flex items-start gap-3 relative pl-6" ref={is_active ? activeTaskRef : null}>
+                            <div className="absolute left-0 top-0 flex flex-col items-center h-full">
+                                <div className={cn("w-3.5 h-3.5 rounded-full mt-1.5 border-2", 
+                                  is_active ? "border-primary bg-primary/20" : "border-border",
+                                  is_past ? "border-primary bg-primary" : ""
+                                )}></div>
+                                {index < timedTasks.length - 1 && (
+                                  <div className={cn("w-px h-full my-1", is_past ? "bg-primary" : "bg-border")}></div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 -mt-0.5">
+                                <p className="text-xs text-muted-foreground">
+                                  {format(task.startTime, 'p')}
+                                </p>
+                                <div
+                                    className={cn(
+                                      "h-auto py-2 px-3 justify-start gap-2.5 whitespace-normal w-full mt-1 border rounded-lg flex items-center",
+                                      is_active && "border-primary shadow-lg"
                                     )}
-                                </div>
-
-                                <div className="flex-1 -mt-0.5">
-                                    <p className="text-xs text-muted-foreground">
-                                      {format(task.startTime, 'p')}
-                                    </p>
-                                    <div
-                                        className={cn(
-                                          "h-auto py-2 px-3 justify-start gap-2.5 whitespace-normal w-full mt-1 border rounded-lg flex items-center",
-                                          is_active && "border-primary shadow-lg"
-                                        )}
-                                    >
-                                        <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                                        <span className="flex-1 text-left text-sm">{task.name}</span>
-                                        <Badge variant={is_active ? "default" : "secondary"}>
-                                          <Clock4 className="w-3 h-3 mr-1.5"/>
-                                          {task.duration}m
-                                        </Badge>
-                                    </div>
+                                >
+                                    <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+                                    <span className="flex-1 text-left text-sm">{task.name}</span>
+                                    <Badge variant={is_active ? "default" : "secondary"}>
+                                      <Clock4 className="w-3 h-3 mr-1.5"/>
+                                      {task.duration}m
+                                    </Badge>
                                 </div>
                             </div>
-                          )
-                        })}
-                      </div>
-                    </CollapsibleContent>
-                </Collapsible>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
 
 
                 <Separator />

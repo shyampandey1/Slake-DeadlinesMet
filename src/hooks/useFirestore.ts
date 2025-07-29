@@ -28,57 +28,66 @@ const iconMap = {
 };
 const iconNames = Object.keys(iconMap);
 
-const baseRoutine = {
-    'Morning Rituals': {
-        color: "bg-slate-800 text-slate-100",
+const baseRoutine: Preset = {
+    'Morning': {
+        color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Freshen Up & Hydrate', duration: 15, icon: 'Droplets', order: 0 },
-            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
-            { name: 'Juice & Dry Fruits', duration: 10, icon: 'Utensils', order: 2 },
-        ]
-    },
-    'Health & Wellness': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
-            { name: 'Grooming', duration: 20, icon: 'Droplets', order: 1 },
+            { name: 'Freshen Up', duration: 25, icon: 'Droplets', order: 0 },
+            { name: 'Meditate', duration: 10, icon: 'Wind', order: 1 },
             { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
         ]
     },
-    'Daily Strategy': {
+    'Strategy': {
         color: "bg-blue-800 text-blue-100",
         tasks: [
             { name: 'Plan & Prioritize Tasks', duration: 30, icon: 'ListChecks', order: 0 },
         ]
     },
-    'Work & Focus': {
+    'Work Session 1': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Deep Work Session', duration: 180, icon: 'BrainCircuit', order: 0 },
+            { name: 'Focus on Top Priority Tasks', duration: 180, icon: 'BrainCircuit', order: 0 },
         ]
     },
-    'Breaks & Meals': {
-        color: "bg-orange-800 text-orange-100",
+    'Recharge': {
+        color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Relax & Recharge', duration: 30, icon: 'Coffee', order: 0 },
+            { name: 'Short Drive', duration: 45, icon: 'Footprints', order: 0 },
             { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
         ]
     },
-    'End of Day': {
+    'Work Session 2': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Work Progress Check', duration: 20, icon: 'Target', order: 0 },
-            { name: 'Commute / Transition from Work', duration: 30, icon: 'Footprints', order: 1 },
-        ],
+            { name: 'Focus on Secondary Priority Tasks', duration: 150, icon: 'BrainCircuit', order: 0 },
+        ]
     },
-    'Evening Wind-down': {
+    'Wrap-up': {
+        color: "bg-amber-800 text-amber-100",
+        tasks: [
+            { name: 'Review & Analysis', duration: 30, icon: 'Target', order: 0 },
+            { name: 'Client App Refinements', duration: 30, icon: 'Wrench', order: 1 },
+        ]
+    },
+    'Evening': {
+        color: "bg-orange-800 text-orange-100",
+        tasks: [
+            { name: 'Disconnect & Decompress', duration: 45, icon: 'Coffee', order: 0 },
+            { name: 'Hobby/Leisure', duration: 45, icon: 'Dumbbell', order: 1 },
+        ]
+    },
+    'Night': {
         color: "bg-rose-800 text-rose-100",
         tasks: [
             { name: 'Dinner', duration: 45, icon: 'Utensils', order: 0 },
             { name: 'Family/Social Time', duration: 60, icon: 'Users', order: 1 },
-            { name: 'Relax & Unwind (Hobby/TV)', duration: 60, icon: 'BookOpen', order: 2 },
-            { name: 'Plan Next Day', duration: 15, icon: 'ListChecks', order: 3 },
-            { name: 'Night Grooming & Prep', duration: 15, icon: 'Droplets', order: 4 },
+        ]
+    },
+    'Shutdown Ritual': {
+        color: "bg-slate-800 text-slate-100",
+        tasks: [
+            { name: 'Digital Detox & Reading', duration: 30, icon: 'BookOpen', order: 0 },
+            { name: 'Tidy & Prep for Tomorrow', duration: 15, icon: 'ListChecks', order: 1 },
         ]
     }
 };
@@ -86,164 +95,84 @@ const baseRoutine = {
 const profilePresets: { [key: string]: Preset } = {
     "Artist": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Creative Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Inspiration & Moodboarding', duration: 60, icon: 'ShoppingBag', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Creative Deep Work: Painting/Sketching', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Digital Illustration & Design', duration: 150, icon: 'BrainCircuit', order: 0 }] },
     },
     "Consultant": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Client Project Work', duration: 120, icon: 'BrainCircuit', order: 0 },
-                { name: 'Client Calls & Meetings', duration: 60, icon: 'Users', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Client Project: Strategy & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Calls & Presentations', duration: 150, icon: 'Users', order: 0 }] },
     },
     "Content Creator": {
-         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Filming / Recording', duration: 120, icon: 'BrainCircuit', order: 0 },
-                { name: 'Editing Session', duration: 180, icon: 'Wrench', order: 1 },
-            ]
-        }
+        ...baseRoutine,
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Scripting & Filming Session', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Video Editing & Post-Production', duration: 150, icon: 'Wrench', order: 0 }] },
     },
     "Designer": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'UI/UX Design Session', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Handle Client Revisions', duration: 60, icon: 'Wrench', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'UI/UX Design: Wireframing & Prototyping', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'High-Fidelity Mockups & Revisions', duration: 150, icon: 'BrainCircuit', order: 0 }] },
     },
     "Educator": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Lesson Planning', duration: 90, icon: 'ListChecks', order: 0 },
-                { name: 'Grading Papers', duration: 90, icon: 'BookOpen', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lesson Planning & Material Creation', duration: 180, icon: 'ListChecks', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Grading & Student Feedback', duration: 150, icon: 'BookOpen', order: 0 }] },
     },
     "Entrepreneur": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Business Strategy & Growth', duration: 120, icon: 'BrainCircuit', order: 0 },
-                { name: 'Networking & Emails', duration: 60, icon: 'Mail', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Business Development & Strategy', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Networking, Sales & Investor Meetings', duration: 150, icon: 'Users', order: 0 }] },
     },
     "Freelancer": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Client Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Search for New Projects', duration: 60, icon: 'ShoppingBag', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Primary Client Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Secondary Projects & Prospecting', duration: 150, icon: 'ShoppingBag', order: 0 }] },
     },
     "General": baseRoutine,
     "Healthcare Professional": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Patient Consultations', duration: 180, icon: 'Users', order: 0 },
-                { name: 'Update Patient Charts', duration: 60, icon: 'ListChecks', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Patient Consultations & Rounds', duration: 180, icon: 'Users', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Updating Patient Charts & Research', duration: 150, icon: 'ListChecks', order: 0 }] },
     },
     "IT Professional": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'System Development', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Handle Support Tickets', duration: 60, icon: 'Mail', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'System Architecture & Development', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Troubleshooting & Support Tickets', duration: 150, icon: 'Wrench', order: 0 }] },
     },
     "Manager": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Team Meetings & 1-on-1s', duration: 120, icon: 'Users', order: 0 },
-                { name: 'Strategic Planning', duration: 60, icon: 'ListChecks', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Team Meetings, 1-on-1s & Syncs', duration: 180, icon: 'Users', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Strategic Planning & Reporting', duration: 150, icon: 'ListChecks', order: 0 }] },
     },
     "Marketer": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Campaign Strategy & Creation', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Analyze Performance Metrics', duration: 60, icon: 'Target', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Campaign Strategy & Content Creation', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Performance Analysis & Optimization', duration: 150, icon: 'Target', order: 0 }] },
     },
     "Researcher": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Data Analysis', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Literature Review', duration: 60, icon: 'BookOpen', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Data Collection & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Literature Review & Writing', duration: 150, icon: 'BookOpen', order: 0 }] },
     },
     "Sales": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Lead Prospecting & Outreach', duration: 180, icon: 'Mail', order: 0 },
-                { name: 'Client Demos & Calls', duration: 120, icon: 'Users', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lead Prospecting & Cold Outreach', duration: 180, icon: 'Mail', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Demos & Follow-ups', duration: 150, icon: 'Users', order: 0 }] },
     },
     "Software Engineer": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Coding: Top Priority Task', duration: 180, icon: 'BrainCircuit', order: 0 },
-                { name: 'Code Reviews', duration: 60, icon: 'Wrench', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Coding: Feature Development', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Bug Fixes & Code Reviews', duration: 150, icon: 'Wrench', order: 0 }] },
     },
     "Student": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Study Session', duration: 120, icon: 'BrainCircuit', order: 0 },
-                { name: 'Review Lecture Notes', duration: 60, icon: 'BookOpen', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Core Subject Study Session', duration: 180, icon: 'BrainCircuit', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Assignments & Practice Problems', duration: 150, icon: 'BookOpen', order: 0 }] },
     },
     "Writer": {
         ...baseRoutine,
-        'Work & Focus': {
-            ...baseRoutine['Work & Focus'],
-            tasks: [
-                { name: 'Writing Session', duration: 180, icon: 'BookOpen', order: 0 },
-                { name: 'Editing & Proofreading', duration: 60, icon: 'Wrench', order: 1 },
-            ]
-        }
+        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Focused Writing Session', duration: 180, icon: 'BookOpen', order: 0 }] },
+        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Editing, Proofreading & Research', duration: 150, icon: 'Wrench', order: 0 }] },
     }
 };
 

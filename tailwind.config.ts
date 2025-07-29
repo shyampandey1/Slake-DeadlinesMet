@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -15,11 +16,13 @@ export default {
     'bg-orange-800', 'text-orange-100', 'hover:border-orange-500/80',
     'bg-indigo-800', 'text-indigo-100', 'hover:border-indigo-500/80',
     'bg-rose-800', 'text-rose-100', 'hover:border-rose-500/80',
-    'bg-purple-800', 'text-purple-100',
+    'bg-purple-800', 'text-purple-100', 'hover:border-purple-500/80',
+    'bg-sky-800', 'text-sky-100',
+    'bg-amber-800', 'text-amber-100',
     'border-red-500/80', 'text-red-400', 'hover:border-red-500/80',
     'border-blue-500/80', 'text-blue-400',
     'border-orange-500/80', 'text-orange-400',
-    'border-purple-500/80', 'text-purple-400', 'hover:border-purple-500/80',
+    'border-purple-500/80', 'text-purple-400',
     'border-cyan-500/80', 'text-cyan-400', 'hover:border-cyan-500/80',
     'border-amber-500/80', 'text-amber-400', 'hover:border-amber-500/80',
     'border-lime-500/80', 'text-lime-400', 'hover:border-lime-500/80',
