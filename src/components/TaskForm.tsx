@@ -141,7 +141,6 @@ export default function TaskForm() {
                                         return (
                                             <Button
                                                 key={task.name}
-                                                variant="secondary"
                                                 onClick={() => handlePresetClick(task)}
                                                 className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal", color)}
                                             >
