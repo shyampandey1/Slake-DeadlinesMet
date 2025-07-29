@@ -26,6 +26,7 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
+import { Badge } from "./ui/badge";
 
 
 const formSchema = z.object({
@@ -132,7 +133,7 @@ export default function TaskForm() {
         </CardHeader>
         <CardContent>
             <Tabs defaultValue={categories[0]} className="w-full">
-                <TabsList className="mb-4 w-full overflow-x-auto justify-start">
+                <TabsList className="mb-4 w-full overflow-x-auto justify-start scrollbar-hide">
                     {categories.map((category) => (
                         <TabsTrigger key={category} value={category}>{category}</TabsTrigger>
                     ))}
@@ -143,13 +144,18 @@ export default function TaskForm() {
                             {tasks.map((task) => {
                                 const Icon = iconMap[task.icon] || BrainCircuit;
                                 return (
-                                    <Card
+                                     <Card
                                         key={task.id || task.name}
                                         onClick={() => handlePresetClick(task)}
                                         className={cn("cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1")}
                                     >
                                         <CardContent className="flex flex-col items-center justify-center p-4 text-center">
-                                            <Icon className="w-8 h-8 mb-3" />
+                                            <Badge className={cn(
+                                                "w-12 h-12 mb-3 flex items-center justify-center rounded-full",
+                                                color
+                                            )}>
+                                                <Icon className="w-6 h-6 text-white" />
+                                            </Badge>
                                             <p className="font-semibold text-sm leading-tight">{task.name}</p>
                                             <p className="text-xs opacity-80 mt-1">{task.duration} min</p>
                                         </CardContent>
