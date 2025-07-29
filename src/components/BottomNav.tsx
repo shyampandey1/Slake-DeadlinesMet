@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChartHorizontal, History, Timer } from "lucide-react";
+import { Home, History, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -15,8 +15,9 @@ import {
 
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: BarChartHorizontal },
   { href: "/history", label: "History", icon: History },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/timer", label: "New Timer", icon: Timer },
 ];
 
 export default function BottomNav() {
@@ -27,8 +28,11 @@ export default function BottomNav() {
     return null;
   }
   
-  // A link to start a new timer should go to the homepage where the task form is
-  const newTimerHref = "/";
+  const timerLink = navItems.find(item => item.label === 'New Timer');
+  if (timerLink) {
+    timerLink.href = "/";
+  }
+
 
   return (
     <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center">
@@ -41,15 +45,13 @@ export default function BottomNav() {
                                 href={href}
                                 className={cn(
                                     "flex items-center justify-center gap-2 rounded-full transition-all duration-300 ease-in-out",
-                                    pathname === href
+                                    (pathname === href && label !== 'New Timer')
                                     ? "bg-white text-slate-900 font-semibold px-4 py-2"
                                     : "w-10 h-10 hover:bg-white/10"
                                 )}
                                 >
-                                <Icon className={cn("h-5 w-5", 
-                                    label === 'Dashboard' && '-rotate-90'
-                                )} />
-                                {pathname === href && <span className="hidden sm:inline">{label}</span>}
+                                <Icon className={cn("h-5 w-5")} />
+                                {(pathname === href && label !== 'New Timer') && <span className="hidden sm:inline">{label}</span>}
                             </Link>
                         </TooltipTrigger>
                         {pathname !== href && (
@@ -59,21 +61,6 @@ export default function BottomNav() {
                         )}
                     </Tooltip>
                 ))}
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Link
-                            href={newTimerHref}
-                            className={cn(
-                                "flex items-center justify-center gap-2 rounded-full transition-all duration-300 ease-in-out w-10 h-10 hover:bg-white/10"
-                            )}
-                            >
-                            <Timer className="h-5 w-5" />
-                        </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>New Timer</p>
-                    </TooltipContent>
-                </Tooltip>
             </nav>
         </TooltipProvider>
     </div>
