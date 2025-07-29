@@ -160,6 +160,7 @@ function RoutineCustomizationPage() {
                             value={routineDescription}
                             onChange={(e) => setRoutineDescription(e.target.value)}
                             rows={4}
+                            className="rounded-md"
                             disabled={isGenerating}
                         />
                         <Button onClick={handleGenerateRoutine} disabled={isGenerating || !routineDescription.trim()}>
@@ -180,43 +181,43 @@ function RoutineCustomizationPage() {
                  {loading ? renderSkeleton() : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <Card key={category} className="overflow-hidden flex flex-col">
-                        <CardHeader className={color}>
-                            <CardTitle className="font-headline">{category}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-2 flex-grow">
-                            {tasks.map((task, index) => {
-                            const Icon = iconMap[task.icon] || BrainCircuit;
-                            return (
-                                <div key={task.id || task.name} className="flex items-center gap-1">
-                                    <Button
-                                    variant="ghost"
-                                    className="w-full justify-start gap-4 flex-grow"
-                                    onClick={() => handleOpenDialog(task, category)}
-                                    >
-                                    <Icon className="w-5 h-5 text-muted-foreground" />
-                                    <span className="flex-1 text-left font-semibold">{task.name}</span>
-                                    <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                    </Button>
-                                    {task.id && (
-                                        <div className="flex flex-col">
-                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
-                                                <ArrowUp className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
-                                                <ArrowDown className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                            })}
-                        </CardContent>
-                        <div className="p-4 pt-0 mt-auto">
-                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                                <Plus className="w-4 h-4 mr-2" /> Add Task
-                            </Button>
-                        </div>
+                        <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
+                            <CardHeader className={`${color} p-4`}>
+                                <CardTitle className="font-headline text-base">{category}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-3 space-y-2 flex-grow">
+                                {tasks.map((task, index) => {
+                                const Icon = iconMap[task.icon] || BrainCircuit;
+                                return (
+                                    <div key={task.id || task.name} className="flex items-center gap-1">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start gap-3 h-10 px-3 flex-grow"
+                                            onClick={() => handleOpenDialog(task, category)}
+                                            >
+                                            <Icon className="w-5 h-5 text-muted-foreground" />
+                                            <span className="flex-1 text-left font-semibold">{task.name}</span>
+                                            <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                        </Button>
+                                        {task.id && (
+                                            <div className="flex flex-col">
+                                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
+                                                    <ArrowUp className="h-4 w-4" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
+                                                    <ArrowDown className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                                })}
+                            </CardContent>
+                            <div className="p-3 pt-0 mt-auto">
+                                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                    <Plus className="w-4 h-4 mr-2" /> Add Task
+                                </Button>
+                            </div>
                         </Card>
                     ))}
                     </div>
