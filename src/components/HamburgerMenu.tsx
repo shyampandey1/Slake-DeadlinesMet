@@ -12,16 +12,18 @@ import {
   SheetClose
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, History } from "lucide-react";
+import { Menu, LogOut, User, X, History, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
+import { useTheme } from "@/hooks/useTheme";
 
 
 export default function HamburgerMenu() {
   const { user } = useAuth();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -60,6 +62,10 @@ export default function HamburgerMenu() {
             )}
           </div>
           <ScrollArea className="flex-1 pr-4">
+            <Button variant="ghost" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-full justify-start gap-2">
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                <span>Toggle Theme</span>
+            </Button>
             <SheetClose asChild>
               <Button variant="ghost" onClick={navigateToHistory} className="w-full justify-start gap-2">
                   <History className="h-5 w-5" />
