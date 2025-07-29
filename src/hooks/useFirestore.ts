@@ -317,34 +317,44 @@ export function usePresetTasks() {
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string})[];
             
-            const basePreset = profilePresets[profile] || profilePresets["General"];
-            const newPresets: Preset = JSON.parse(JSON.stringify(basePreset));
+            let newPresets: Preset = {};
 
-            // If profile is custom, we don't start with base tasks
             if (profile === 'Custom') {
-                Object.keys(newPresets).forEach(category => {
-                    newPresets[category].tasks = [];
-                });
-            }
-
-            userTasks.forEach(task => {
-                if (newPresets[task.category]) {
-                    // Avoid duplicating default tasks that now have an ID
-                    const existingIndex = newPresets[task.category].tasks.findIndex(t => t.name === task.name && !t.id);
-                    if (existingIndex !== -1) {
-                        newPresets[task.category].tasks.splice(existingIndex, 1);
+                const customPreset: Preset = {};
+                userTasks.forEach(task => {
+                    if (!customPreset[task.category]) {
+                        customPreset[task.category] = {
+                            color: "bg-slate-800 text-slate-100", // Default color for custom categories
+                            tasks: []
+                        };
                     }
-                    newPresets[task.category].tasks.push(task);
-                } else {
-                   // For custom-generated categories
-                   if (profile === 'Custom') {
+                    customPreset[task.category].tasks.push(task);
+                });
+                newPresets = customPreset;
+            } else {
+                const basePreset = profilePresets[profile] || profilePresets["General"];
+                newPresets = JSON.parse(JSON.stringify(basePreset));
+                
+                // Clear default tasks from categories that have custom tasks
+                const categoriesWithUserTasks = new Set(userTasks.map(t => t.category));
+                categoriesWithUserTasks.forEach(category => {
+                    if (newPresets[category]) {
+                        newPresets[category].tasks = [];
+                    }
+                });
+
+                userTasks.forEach(task => {
+                    if (newPresets[task.category]) {
+                        newPresets[task.category].tasks.push(task);
+                    } else {
+                        // This case should ideally not happen if not a custom profile
                         newPresets[task.category] = {
-                            color: "bg-gray-800 text-gray-100", // A default color
+                            color: "bg-gray-800 text-gray-100",
                             tasks: [task]
                         };
-                   }
-                }
-            });
+                    }
+                });
+            }
             
             Object.keys(newPresets).forEach(category => {
                 newPresets[category].tasks.sort((a, b) => a.order - b.order);
@@ -496,7 +506,3 @@ export function usePresetTasks() {
 
     return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons };
 }
-
-    
-
-    

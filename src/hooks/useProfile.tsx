@@ -17,7 +17,7 @@ type ProfileType = "Artist" | "Consultant" | "Content Creator" | "Designer" | "E
 
 interface ProfileContextType {
   profile: ProfileType;
-  setProfile: (profile: ProfileType) => void;
+  setProfile: (profile: ProfileType, customProfession?: string) => void;
   customProfession: string;
   setCustomProfession: (profession: string) => void;
   loading: boolean;
@@ -34,12 +34,13 @@ const ProfileContext = createContext<ProfileContextType>({
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [profile, setProfileState] = useState<ProfileType>("General");
-  const [customProfession, setCustomProfession] = useState("");
+  const [customProfession, setCustomProfessionState] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user || ('isMockUser' in user && user.isMockUser)) {
         setProfileState("General");
+        setCustomProfessionState("");
         setLoading(false);
         return;
     }
@@ -51,13 +52,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (docSnap.exists()) {
             const data = docSnap.data();
             setProfileState(data.profile || "General");
-            if (data.profile === 'Custom') {
-              setCustomProfession(data.customProfession || "");
-            }
+            setCustomProfessionState(data.customProfession || "");
         } else {
             // If no profile, set default "General"
-            setDoc(profileRef, { profile: "General" });
+            setDoc(profileRef, { profile: "General", customProfession: "" });
             setProfileState("General");
+            setCustomProfessionState("");
         }
         setLoading(false);
     }, (error) => {
@@ -69,17 +69,27 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   }, [user]);
 
-  const setProfile = useCallback(async (newProfile: ProfileType) => {
+  const setProfile = useCallback(async (newProfile: ProfileType, newCustomProfession?: string) => {
     setProfileState(newProfile);
+    if (newProfile === 'Custom' && newCustomProfession) {
+        setCustomProfessionState(newCustomProfession);
+    }
+    
     if (user && !('isMockUser' in user)) {
         const profileRef = doc(db, 'userProfiles', user.uid);
-        let dataToSet: { profile: ProfileType, customProfession?: string } = { profile: newProfile };
-        if (newProfile === 'Custom' && customProfession) {
-          dataToSet.customProfession = customProfession;
+        const dataToSet: { profile: ProfileType, customProfession?: string } = { profile: newProfile };
+        if (newProfile === 'Custom') {
+          dataToSet.customProfession = newCustomProfession || customProfession;
+        } else {
+          dataToSet.customProfession = "";
         }
         await setDoc(profileRef, dataToSet, { merge: true });
     }
   }, [user, customProfession]);
+
+  const setCustomProfession = useCallback((profession: string) => {
+    setCustomProfessionState(profession);
+  }, []);
 
   return (
     <ProfileContext.Provider value={{ profile, setProfile, loading, customProfession, setCustomProfession }}>

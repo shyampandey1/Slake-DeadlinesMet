@@ -81,6 +81,15 @@ function RoutineCustomizationPage() {
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const [newProfession, setNewProfession] = useState("");
+
+  useEffect(() => {
+    if (profile === 'Custom') {
+      setNewProfession(customProfession);
+    } else {
+      setNewProfession("");
+    }
+  }, [profile, customProfession]);
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -107,23 +116,24 @@ function RoutineCustomizationPage() {
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
   const handleGenerateByProfession = async () => {
-    if (!customProfession.trim()) {
+    if (!newProfession.trim()) {
         toast({ title: "Please enter a profession.", variant: "destructive" });
         return;
     }
     setIsGenerating(true);
+    setCustomProfession(newProfession);
     try {
         const result = await generateRoutineByProfession({
-            profession: customProfession,
+            profession: newProfession,
             availableIcons: getAvailableIcons(),
             availableCategories: getAvailableCategories(),
         });
         
         if (result.tasks && result.tasks.length > 0) {
             await clearAndSetPresetTasks(result.tasks);
-            setProfile("Custom");
+            await setProfile("Custom", newProfession);
             toast({
-                title: `Routine for ${customProfession} Generated!`,
+                title: `Routine for ${newProfession} Generated!`,
                 description: `${result.tasks.length} tasks have been added.`,
             });
         } else {
@@ -232,11 +242,11 @@ function RoutineCustomizationPage() {
                                 <div className="flex gap-2">
                                     <Input 
                                         placeholder="e.g., 'Video Game Streamer'" 
-                                        value={customProfession}
-                                        onChange={(e) => setCustomProfession(e.target.value)}
+                                        value={newProfession}
+                                        onChange={(e) => setNewProfession(e.target.value)}
                                         disabled={isGenerating}
                                     />
-                                    <Button onClick={handleGenerateByProfession} disabled={isGenerating || !customProfession.trim()}>
+                                    <Button onClick={handleGenerateByProfession} disabled={isGenerating || !newProfession.trim()}>
                                         {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
                                     </Button>
                                 </div>
@@ -319,5 +329,3 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
-
-    
