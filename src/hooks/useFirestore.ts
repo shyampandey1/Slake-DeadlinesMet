@@ -41,7 +41,8 @@ const baseRoutine = {
         color: "bg-green-800 text-green-100",
         tasks: [
             { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
-            { name: 'Grooming & Breakfast', duration: 30, icon: 'Utensils', order: 1 },
+            { name: 'Grooming', duration: 20, icon: 'Droplets', order: 1 },
+            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
         ]
     },
     'Daily Strategy': {
