@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock } from 'lucide-react';
 import React, { useState, useRef, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
 import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 import { Slider } from "./ui/slider";
+import { Badge } from "./ui/badge";
 
 
 const formSchema = z.object({
@@ -136,38 +137,56 @@ export default function TaskForm() {
             Select a preset task or add your own. Double-click to edit.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-            <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
-            <CardHeader className={cn("p-4", color)}>
-                <CardTitle className="font-headline text-lg">{category}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-3 space-y-2 flex-grow">
-                {tasks.map((task) => {
-                    const Icon = iconMap[task.icon] || BrainCircuit;
-                    return (
-                        <Button
-                            key={task.name}
-                            variant="outline"
-                            className="w-full justify-start gap-3 h-10 px-3"
-                            onClick={() => selectQuickStartTask(task, category, color)}
-                            onDoubleClick={() => handleOpenDialog(task, category)}
-                        >
-                            <Icon className="w-5 h-5 text-muted-foreground" />
-                            <span className="flex-1 text-left font-normal">{task.name}</span>
-                            <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                        </Button>
-                    );
-                })}
-            </CardContent>
-             <CardFooter className="p-3 pt-0 mt-auto">
-                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                    <Plus className="w-4 h-4 mr-2" /> Add Task
-                </Button>
-            </CardFooter>
-            </Card>
-        ))}
-      </div>
+      <Carousel
+        opts={{
+            align: "start",
+        }}
+        className="w-full"
+        >
+        <CarouselContent>
+            {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
+                const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
+                return (
+                <CarouselItem key={category} className="basis-full md:basis-1/2">
+                    <div className="p-1">
+                    <Card className="overflow-hidden flex flex-col rounded-xl h-full">
+                        <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
+                            <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                            <Badge variant="secondary" className="gap-1.5">
+                                <Clock className="w-3.5 h-3.5"/>
+                                {totalDuration} min
+                            </Badge>
+                        </CardHeader>
+                        <CardContent className="p-3 pt-3 space-y-2 flex-grow">
+                            {tasks.map((task) => {
+                                const Icon = iconMap[task.icon] || BrainCircuit;
+                                return (
+                                    <Button
+                                        key={task.name}
+                                        variant="outline"
+                                        className="w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal"
+                                        onClick={() => selectQuickStartTask(task, category, color)}
+                                        onDoubleClick={() => handleOpenDialog(task, category)}
+                                    >
+                                        <Icon className="w-5 h-5 text-muted-foreground" />
+                                        <span className="flex-1 text-left font-normal">{task.name}</span>
+                                        <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                    </Button>
+                                );
+                            })}
+                        </CardContent>
+                        <CardFooter className="p-3 pt-0 mt-auto">
+                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                <Plus className="w-4 h-4 mr-2" /> Add Task
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                    </div>
+                </CarouselItem>
+                )
+            })}
+        </CarouselContent>
+      </Carousel>
 
 
         <Separator />
