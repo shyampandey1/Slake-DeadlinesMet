@@ -5,12 +5,16 @@ import { useState } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2 } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import HamburgerMenu from "@/components/HamburgerMenu";
+import { Textarea } from "@/components/ui/textarea";
+import { organizeRoutine } from "@/ai/flows/organize-routine";
+import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -32,10 +36,15 @@ const iconMap: { [key: string]: LucideIcon } = {
     ShoppingBag: ShoppingBag,
 };
 
+const iconNames = Object.keys(iconMap);
+
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
+  const [routineDescription, setRoutineDescription] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -60,6 +69,48 @@ function RoutineCustomizationPage() {
   };
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
+  const categoryNames = categoriesWithColors.map(c => c.name);
+
+  const handleGenerateRoutine = async () => {
+    if (!routineDescription.trim()) {
+        toast({ title: "Please describe your routine.", variant: "destructive" });
+        return;
+    }
+    setIsGenerating(true);
+    try {
+        const result = await organizeRoutine({
+            description: routineDescription,
+            availableIcons: iconNames,
+            availableCategories: categoryNames,
+        });
+
+        if (result.tasks && result.tasks.length > 0) {
+            for (const task of result.tasks) {
+                await addPresetTask(task);
+            }
+            toast({
+                title: "Routine Generated!",
+                description: `${result.tasks.length} tasks have been added to your routine.`,
+            });
+            setRoutineDescription("");
+        } else {
+            toast({
+                title: "No tasks were generated.",
+                description: "Try describing your routine in more detail.",
+                variant: "destructive",
+            });
+        }
+    } catch (error) {
+        console.error("Failed to generate routine:", error);
+        toast({
+            title: "Generation Failed",
+            description: "An error occurred while generating the routine.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
 
 
   const renderSkeleton = () => (
@@ -92,7 +143,40 @@ function RoutineCustomizationPage() {
         </header>
 
         <main className="flex-1 overflow-y-auto pt-16 pb-20">
-            <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+            <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                            <WandSparkles className="text-primary" />
+                            Generate with AI
+                        </CardTitle>
+                        <CardDescription>
+                            Describe your daily routine in the text box below, and let AI organize it for you.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Textarea
+                            placeholder="e.g., 'I wake up, meditate for 10 mins, then do a 90-minute deep work session...'"
+                            value={routineDescription}
+                            onChange={(e) => setRoutineDescription(e.target.value)}
+                            rows={4}
+                            disabled={isGenerating}
+                        />
+                        <Button onClick={handleGenerateRoutine} disabled={isGenerating || !routineDescription.trim()}>
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : (
+                                "Generate Routine"
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Separator />
+
                  {loading ? renderSkeleton() : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
