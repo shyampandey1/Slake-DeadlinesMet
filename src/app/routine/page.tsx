@@ -116,7 +116,7 @@ function RoutineCustomizationPage() {
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[...Array(4)].map((_, i) => (
-            <Card key={i}>
+            <Card key={i} className="rounded-xl">
                 <CardHeader>
                     <Skeleton className="h-6 w-1/2" />
                     <Skeleton className="h-4 w-3/4" />
@@ -196,7 +196,7 @@ function RoutineCustomizationPage() {
                                             onClick={() => handleOpenDialog(task, category)}
                                             >
                                             <Icon className="w-5 h-5 text-muted-foreground" />
-                                            <span className="flex-1 text-left font-semibold">{task.name}</span>
+                                            <span className="flex-1 text-left">{task.name}</span>
                                             <span className="text-sm text-muted-foreground">{task.duration}m</span>
                                         </Button>
                                         {task.id && (
