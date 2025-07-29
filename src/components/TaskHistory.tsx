@@ -1,35 +1,24 @@
 
 "use client";
 
-import { History, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { useMemo } from "react";
+import { History, ThumbsUp, ThumbsDown, Trash2, TrendingUp, Calendar, CheckCircle, Clock, RefreshCw, XCircle } from "lucide-react";
+import { format, isToday, isYesterday } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
 import AuthWrapper from "./AuthWrapper";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
 function TaskHistoryContent() {
   const { tasks, loading, clearTasks } = useTasks();
   const router = useRouter();
 
-  const clearHistory = () => {
-    clearTasks();
-  };
-  
   const handleTaskClick = (task: Task) => {
     if (!task.completed) {
       const params = new URLSearchParams({
@@ -40,81 +29,166 @@ function TaskHistoryContent() {
     }
   };
 
+  const stats = useMemo(() => {
+    if (loading || tasks.length === 0) {
+      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0 };
+    }
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const totalTime = tasks.reduce((acc, t) => acc + t.duration, 0);
+    const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+    return {
+      totalTasks: tasks.length,
+      completedTasks,
+      totalTime,
+      completionRate
+    };
+  }, [tasks, loading]);
+
+  const groupedTasks = useMemo(() => {
+    const groups: { [key: string]: Task[] } = {
+      Today: [],
+      Yesterday: [],
+      Older: []
+    };
+    tasks.forEach(task => {
+      const taskDate = new Date(task.createdAt);
+      if (isToday(taskDate)) {
+        groups.Today.push(task);
+      } else if (isYesterday(taskDate)) {
+        groups.Yesterday.push(task);
+      } else {
+        groups.Older.push(task);
+      }
+    });
+    return groups;
+  }, [tasks]);
+
+  const renderSkeleton = () => (
+    <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+        </div>
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+    </div>
+  );
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <History className="h-6 w-6" />
-          <CardTitle className="font-headline text-2xl">Task History</CardTitle>
+    <div className="space-y-8">
+        <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
+             {tasks.length > 0 && !loading && (
+              <Button variant="ghost" onClick={clearTasks} className="text-muted-foreground">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear History
+              </Button>
+            )}
         </div>
-        {tasks.length > 0 && (
-          <Button variant="ghost" size="icon" onClick={clearHistory}>
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Clear History</span>
-          </Button>
+      
+        {loading ? renderSkeleton() : (
+            <>
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.completedTasks}</div>
+                            <p className="text-xs text-muted-foreground">out of {stats.totalTasks} total tasks</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Time Focused</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.totalTime} min</div>
+                            <p className="text-xs text-muted-foreground">across all sessions</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                            <p className="text-xs text-muted-foreground">Keep up the great work!</p>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                {tasks.length > 0 ? (
+                    <Accordion type="multiple" defaultValue={["Today", "Yesterday"]} className="w-full space-y-4">
+                      {Object.entries(groupedTasks).map(([day, dayTasks]) => (
+                        dayTasks.length > 0 && (
+                          <AccordionItem value={day} key={day} className="border-none">
+                              <Card>
+                                  <AccordionTrigger className="p-4 border-b">
+                                      <div className="flex items-center gap-2">
+                                          <Calendar className="h-5 w-5" />
+                                          <h3 className="font-headline text-lg">{day}</h3>
+                                      </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="p-4">
+                                      <div className="space-y-4">
+                                      {dayTasks.map((task) => (
+                                          <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-card border">
+                                              <div className="flex flex-col">
+                                                  <span className="font-semibold">{task.name}</span>
+                                                  <span className="text-sm text-muted-foreground">
+                                                    {task.duration} min &bull; {format(new Date(task.createdAt), "p")}
+                                                  </span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  {task.completed ? (
+                                                      <div className="flex items-center gap-1 text-green-500">
+                                                          <ThumbsUp className="h-4 w-4" />
+                                                          <span className="text-sm font-medium">Done</span>
+                                                      </div>
+                                                  ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-1 text-red-500">
+                                                            <XCircle className="h-4 w-4" />
+                                                            <span className="text-sm font-medium">Not Done</span>
+                                                        </div>
+                                                        <Button size="sm" variant="outline" onClick={() => handleTaskClick(task)}>
+                                                            <RefreshCw className="mr-2 h-3 w-3" />
+                                                            Retry
+                                                        </Button>
+                                                    </div>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      ))}
+                                      </div>
+                                  </AccordionContent>
+                              </Card>
+                          </AccordionItem>
+                        )
+                      ))}
+                    </Accordion>
+                ) : (
+                    <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                        <History className="mx-auto h-12 w-12" />
+                        <h3 className="mt-4 text-lg font-semibold">No Task History</h3>
+                        <p className="mt-1 text-sm">Complete a task to see your history here.</p>
+                    </div>
+                )}
+            </>
         )}
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : tasks.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Task</TableHead>
-                <TableHead className="text-center">Duration</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Completed</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow 
-                  key={task.id} 
-                  onClick={() => handleTaskClick(task)}
-                  className={cn(!task.completed && "cursor-pointer hover:bg-muted/50")}
-                >
-                  <TableCell className="font-medium">{task.name}</TableCell>
-                  <TableCell className="text-center">{task.duration} min</TableCell>
-                  <TableCell className="text-center">
-                    {task.completed ? (
-                      <Badge variant="secondary" className="bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100">
-                        <ThumbsUp className="mr-1 h-3 w-3" /> Done
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">
-                        <ThumbsDown className="mr-1 h-3 w-3" /> Not Done
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {task.createdAt ? formatDistanceToNow(new Date(task.createdAt), {
-                      addSuffix: true,
-                    }) : 'Just now'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="py-8 text-center text-muted-foreground">
-            <p>No tasks completed yet. Start a new one!</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
-export default function TaskHistory() {
+export default function WrappedTaskHistory() {
   return (
     <AuthWrapper>
       <TaskHistoryContent />
     </AuthWrapper>
-  )
+  );
 }
