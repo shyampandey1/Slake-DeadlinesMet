@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "./ui/separator";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
@@ -76,7 +76,7 @@ export default function TaskForm() {
   });
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
-    const initialTask = task && category ? { ...task, category } : undefined;
+    const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
     setTaskToEdit(initialTask);
     setIsDialogOpen(true);
   };
@@ -124,7 +124,7 @@ export default function TaskForm() {
         <div>
             <div className="px-1 mb-4">
                 <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
-                <p className="text-muted-foreground">Select a preset task to get started quickly.</p>
+                <p className="text-muted-foreground">Select a preset task or add your own.</p>
             </div>
             <Carousel
                 opts={{
@@ -134,20 +134,24 @@ export default function TaskForm() {
             >
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <CarouselItem key={category} className="basis-full sm:basis-1/2">
-                            <Card className="h-full">
+                        <CarouselItem key={category} className="basis-1/2">
+                            <Card className="h-full flex flex-col">
                                 <CardHeader>
                                     <Badge className={cn("w-fit", color)}>{category}</Badge>
                                 </CardHeader>
-                                <CardContent className="flex flex-col gap-2">
+                                <CardContent className="flex flex-col gap-2 flex-grow">
                                     {tasks.map((task) => {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
                                         return (
                                             <Button
-                                                key={task.name}
+                                                key={task.id || task.name}
                                                 variant="ghost"
                                                 onClick={() => selectQuickStartTask(task)}
-                                                className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal text-sm", color)}
+                                                onDoubleClick={() => handleOpenDialog(task, category)}
+                                                className={cn(
+                                                    "justify-start gap-2 h-auto py-1 px-2 whitespace-normal text-xs",
+                                                    color
+                                                )}
                                             >
                                                 <Icon className="w-4 h-4 shrink-0" />
                                                 <span className="flex-1 text-left font-semibold">{task.name}</span>
@@ -156,6 +160,11 @@ export default function TaskForm() {
                                         );
                                     })}
                                 </CardContent>
+                                <CardFooter>
+                                    <Button variant="ghost" className="w-full" onClick={() => handleOpenDialog(undefined, category)}>
+                                        <Plus className="w-4 h-4 mr-2" /> Add Task
+                                    </Button>
+                                </CardFooter>
                             </Card>
                         </CarouselItem>
                     ))}
