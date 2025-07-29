@@ -199,6 +199,7 @@ export default function TaskForm() {
         <CarouselContent>
             {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
                 const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
+                const roundedDuration = Math.round(totalDuration / 5) * 5;
                 return (
                 <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
@@ -207,7 +208,7 @@ export default function TaskForm() {
                             <CardTitle className="font-headline text-lg">{category}</CardTitle>
                             <Badge variant="secondary" className="gap-1.5">
                                 <Clock className="w-3.5 h-3.5"/>
-                                {totalDuration} min
+                                {roundedDuration} min
                             </Badge>
                         </CardHeader>
                         <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
