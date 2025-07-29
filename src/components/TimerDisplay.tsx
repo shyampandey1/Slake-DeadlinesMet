@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import { useAudio } from "@/hooks/useAudio";
 import CircularProgress from "./CircularProgress";
-import MusicPlayer from "./MusicPlayer";
 import InfoDisplay from "./InfoDisplay";
 
 interface TimerDisplayProps {
@@ -54,7 +53,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
-  const [timerTheme, setTimerTheme] = useState({ primary: 'hsl(var(--primary))', background: 'hsl(var(--background))'});
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const tickAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -209,7 +207,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           <CircularProgress progress={progress}>
             <div
               className="font-code text-5xl font-bold sm:text-6xl md:text-7xl"
-              style={{ color: 'var(--timer-primary-color)' }}
+              style={{ color: 'hsl(var(--primary))' }}
             >
               {formatTime(timeRemaining)}
             </div>
@@ -230,10 +228,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             End
           </Button>
         </div>
-      </div>
-
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <MusicPlayer />
       </div>
 
       <AlertDialog open={isFinished} onOpenChange={setIsFinished}>
