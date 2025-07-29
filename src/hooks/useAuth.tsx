@@ -9,20 +9,25 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { User, onAuthStateChanged } from "firebase/auth";
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, analytics } from "@/lib/firebase";
 import { MockUser } from "@/types";
+import { mockLogin } from "@/lib/mockAuth";
 
 interface AuthContextType {
   user: User | MockUser | null;
   loading: boolean;
   setMockUser: (user: MockUser | null) => void;
+  signInWithGoogle: () => Promise<void>;
+  mockLogin: (email: string, pass: string) => MockUser | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   setMockUser: () => {},
+  signInWithGoogle: async () => {},
+  mockLogin: () => null,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -31,6 +36,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const setMockUser = useCallback((mockUser: MockUser | null) => {
     setUser(mockUser);
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+    } catch(error) {
+        console.error("Google sign-in error", error);
+        throw error;
+    }
   }, []);
 
   useEffect(() => {
@@ -52,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, setMockUser }}>
+    <AuthContext.Provider value={{ user, loading, setMockUser, signInWithGoogle, mockLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -25,7 +25,11 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-export default function SignupForm() {
+interface SignupFormProps {
+    onBack?: () => void;
+}
+
+export default function SignupForm({ onBack }: SignupFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();

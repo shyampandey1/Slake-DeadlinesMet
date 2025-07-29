@@ -29,7 +29,11 @@ const formSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }),
 });
 
-export default function LoginForm() {
+interface LoginFormProps {
+    onBack?: () => void;
+}
+
+export default function LoginForm({ onBack }: LoginFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth();
