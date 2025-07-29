@@ -56,13 +56,17 @@ export default function InfoDisplay() {
             const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
             const weatherData = await weatherResponse.json();
             
-            const locationResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const locationResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+                headers: {
+                    'User-Agent': 'DeadlinesMet'
+                }
+            });
             const locationData = await locationResponse.json();
 
             if (weatherData?.current_weather) {
               const { temperature, weathercode } = weatherData.current_weather;
               const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-              const locationName = locationData.address?.city || locationData.address?.town || 'Current Location';
+              const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village || 'Current Location';
 
               setWeather({
                   location: locationName,
@@ -81,19 +85,28 @@ export default function InfoDisplay() {
 
     if ("geolocation" in navigator) {
         navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
-            if (permissionStatus.state === 'granted') {
-                navigator.geolocation.getCurrentPosition(
-                    position => fetchWeather(position.coords.latitude, position.coords.longitude),
-                    () => setLoading(false) // Handle error in getting position
-                );
-            } else if (permissionStatus.state === 'prompt') {
-                 navigator.geolocation.getCurrentPosition(
-                    position => fetchWeather(position.coords.latitude, position.coords.longitude),
-                    () => setLoading(false) // User likely denied
-                );
-            } else { // denied
+            const handlePosition = (position: GeolocationPosition) => {
+                fetchWeather(position.coords.latitude, position.coords.longitude);
+            };
+            const handleError = () => {
+                console.log("Geolocation permission denied or failed.");
                 setLoading(false);
+            };
+
+            if (permissionStatus.state === 'granted') {
+                navigator.geolocation.getCurrentPosition(handlePosition, handleError);
+            } else if (permissionStatus.state === 'prompt') {
+                 navigator.geolocation.getCurrentPosition(handlePosition, handleError);
+            } else { // denied
+                handleError();
             }
+            permissionStatus.onchange = () => {
+                if (permissionStatus.state === 'granted') {
+                    navigator.geolocation.getCurrentPosition(handlePosition, handleError);
+                } else {
+                    handleError();
+                }
+            };
         });
     } else {
         setLoading(false);
