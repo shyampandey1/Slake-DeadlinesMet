@@ -147,11 +147,11 @@ export default function TaskForm() {
                                                 key={task.name}
                                                 variant="ghost"
                                                 onClick={() => selectQuickStartTask(task)}
-                                                className={cn("justify-start gap-4 h-auto py-3 px-4 whitespace-normal", color)}
+                                                className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal text-sm", color)}
                                             >
-                                                <Icon className="w-5 h-5 shrink-0" />
+                                                <Icon className="w-4 h-4 shrink-0" />
                                                 <span className="flex-1 text-left font-semibold">{task.name}</span>
-                                                <span className="text-sm opacity-80">{task.duration}m</span>
+                                                <span className="text-xs opacity-80">{task.duration}m</span>
                                             </Button>
                                         );
                                     })}
@@ -219,7 +219,7 @@ export default function TaskForm() {
                     </CardContent>
                 </Card>
 
-                <Button type="submit" size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button type="submit" size="lg" className="w-full">
                     Start
                 </Button>
             </form>
