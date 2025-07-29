@@ -178,7 +178,7 @@ export default function TaskForm() {
                 return (
                 <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                    <Card className="overflow-hidden flex flex-col rounded-xl h-[350px]">
+                    <Card className="overflow-hidden flex flex-col rounded-xl h-[280px]">
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
                             <CardTitle className="font-headline text-lg">{category}</CardTitle>
                             <Badge variant="secondary" className="gap-1.5">
