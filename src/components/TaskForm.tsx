@@ -6,7 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock } from 'lucide-react';
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import type { EmblaCarouselType } from 'embla-carousel-react'
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,7 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAudio } from "@/hooks/useAudio";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 
@@ -69,6 +70,9 @@ export default function TaskForm() {
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
   const { requestAudioPermission } = useAudio();
+  const [carouselApi, setCarouselApi] = useState<EmblaCarouselType | undefined>()
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,6 +81,29 @@ export default function TaskForm() {
       duration: 25,
     },
   });
+  
+  const scrollTo = useCallback(
+    (index: number) => carouselApi && carouselApi.scrollTo(index),
+    [carouselApi]
+  )
+
+  const onSelect = useCallback(() => {
+    if (!carouselApi) return
+    setSelectedIndex(carouselApi.selectedScrollSnap())
+  }, [carouselApi, setSelectedIndex])
+
+
+  useEffect(() => {
+    if (!carouselApi) return
+    onSelect()
+    setScrollSnaps(carouselApi.scrollSnapList())
+    carouselApi.on('select', onSelect)
+    carouselApi.on('reInit', onSelect)
+    return () => {
+        carouselApi.off('select', onSelect)
+    }
+  }, [carouselApi, setScrollSnaps, onSelect]);
+
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -130,7 +157,7 @@ export default function TaskForm() {
 
   return (
     <>
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div>
         <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
         <p className="text-muted-foreground">
@@ -138,6 +165,7 @@ export default function TaskForm() {
         </p>
       </div>
       <Carousel
+        setApi={setCarouselApi}
         opts={{
             align: "start",
         }}
@@ -186,9 +214,21 @@ export default function TaskForm() {
                 )
             })}
         </CarouselContent>
-        <CarouselPrevious className="hidden md:flex" />
-        <CarouselNext className="hidden md:flex" />
       </Carousel>
+
+      <div className="flex justify-center gap-2">
+        {scrollSnaps.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => scrollTo(index)}
+            className={cn(
+              "h-2 w-2 rounded-full transition-all duration-300",
+              index === selectedIndex ? "w-4 bg-primary" : "bg-muted"
+            )}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
 
 
         <Separator />
