@@ -27,9 +27,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import InfoDisplay from "./InfoDisplay";
 import { useAudio } from "@/hooks/useAudio";
 import CircularProgress from "./CircularProgress";
+import MusicPlayer from "./MusicPlayer";
 
 interface TimerDisplayProps {
   taskName: string;
@@ -183,7 +183,6 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
     )}>
       <audio ref={tickAudioRef} src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8b16498ab.mp3" preload="auto" />
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <p className="mb-4 text-lg text-muted-foreground md:text-xl font-headline">FOCUSING ON:</p>
         <h1 className="mb-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl font-headline">
           {taskName}
         </h1>
@@ -216,7 +215,7 @@ export default function TimerDisplay({ taskName, initialDuration }: TimerDisplay
       </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <InfoDisplay />
+        <MusicPlayer />
       </div>
 
       <AlertDialog open={isFinished} onOpenChange={setIsFinished}>
