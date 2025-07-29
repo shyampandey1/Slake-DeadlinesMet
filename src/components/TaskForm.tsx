@@ -131,7 +131,7 @@ export default function TaskForm() {
             >
                 <CarouselContent>
                     {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                        <CarouselItem key={category} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
+                        <CarouselItem key={category} className="basis-auto">
                              <div className="p-1">
                                 <h3 className="font-semibold text-foreground/90 mb-3">{category}</h3>
                                 <div className="flex flex-col gap-2">
@@ -141,7 +141,7 @@ export default function TaskForm() {
                                             <Button
                                                 key={task.name}
                                                 onClick={() => handlePresetClick(task)}
-                                                className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal", color)}
+                                                className={cn("justify-start gap-2 h-auto py-2 px-3 whitespace-normal w-48", color)}
                                             >
                                                 <Icon className="w-4 h-4 shrink-0" />
                                                 <span className="flex-1 text-left font-normal text-sm">{task.name}</span>
