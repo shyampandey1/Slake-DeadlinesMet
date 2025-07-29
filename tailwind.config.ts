@@ -15,14 +15,10 @@ export default {
     'text-indigo-100',
     'bg-green-900/80',
     'text-green-100',
-    'bg-orange-300/80',
-    'text-orange-900',
-    'dark:bg-orange-800/70',
-    'dark:text-orange-100',
+    'bg-amber-800',
+    'text-amber-100',
     'bg-sky-900/80',
     'text-sky-100',
-    'bg-amber-800',
-    'text-amber-100'
   ],
   theme: {
     extend: {
