@@ -3,12 +3,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, History } from "lucide-react";
+import { BarChartHorizontal, History, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 
 const navItems = [
-  { href: "/", label: "Home", icon: Home },
+  { href: "/", label: "Dashboard", icon: BarChartHorizontal },
   { href: "/history", label: "History", icon: History },
 ];
 
@@ -19,24 +26,56 @@ export default function BottomNav() {
   if (!user) {
     return null;
   }
+  
+  // A link to start a new timer should go to the homepage where the task form is
+  const newTimerHref = "/";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border flex justify-around items-center z-50">
-      {navItems.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "flex flex-col items-center justify-center w-full h-full text-sm",
-            pathname === href
-              ? "text-primary"
-              : "text-muted-foreground"
-          )}
-        >
-          <Icon className="h-6 w-6 mb-1" />
-          <span>{label}</span>
-        </Link>
-      ))}
-    </nav>
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+        <TooltipProvider>
+            <nav className="flex items-center gap-2 p-2 rounded-full bg-slate-900 text-white shadow-lg">
+                {navItems.map(({ href, label, icon: Icon }) => (
+                    <Tooltip key={href}>
+                        <TooltipTrigger asChild>
+                            <Link
+                                href={href}
+                                className={cn(
+                                    "flex items-center justify-center gap-2 rounded-full transition-all duration-300 ease-in-out",
+                                    pathname === href
+                                    ? "bg-white text-slate-900 font-semibold px-4 py-2"
+                                    : "w-10 h-10 hover:bg-white/10"
+                                )}
+                                >
+                                <Icon className={cn("h-5 w-5", 
+                                    label === 'Dashboard' && '-rotate-90'
+                                )} />
+                                {pathname === href && <span>{label}</span>}
+                            </Link>
+                        </TooltipTrigger>
+                        {pathname !== href && (
+                             <TooltipContent>
+                                <p>{label}</p>
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                ))}
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Link
+                            href={newTimerHref}
+                            className={cn(
+                                "flex items-center justify-center gap-2 rounded-full transition-all duration-300 ease-in-out w-10 h-10 hover:bg-white/10"
+                            )}
+                            >
+                            <Timer className="h-5 w-5" />
+                        </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>New Timer</p>
+                    </TooltipContent>
+                </Tooltip>
+            </nav>
+        </TooltipProvider>
+    </div>
   );
 }
