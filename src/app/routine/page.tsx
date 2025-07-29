@@ -70,19 +70,30 @@ const initialProfileCategories: { [key: string]: string[] } = {
     "General & Freelance": ["Educator", "Freelancer", "Student", "General"],
 };
 
+type GeneratingStatus = "idle" | "generating" | "saving" | "done";
+
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
   const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingStatus, setGeneratingStatus] = useState<GeneratingStatus>("idle");
   const { toast } = useToast();
   const [newProfession, setNewProfession] = useState("");
 
   const [professionConfig, setProfessionConfig] = useState(initialProfessionConfig);
   const [profileCategories, setProfileCategories] = useState(initialProfileCategories);
   const [iconMap, setIconMap] = useState(initialIconMap);
+  
+  const isGenerating = generatingStatus === 'generating' || generatingStatus === 'saving';
+
+  const generateButtonText: { [key in GeneratingStatus]: string } = {
+      idle: "Generate",
+      generating: "Generating tasks...",
+      saving: "Saving routine...",
+      done: "Done!",
+  };
 
   useEffect(() => {
     const newConfig = { ...initialProfessionConfig };
@@ -138,7 +149,7 @@ function RoutineCustomizationPage() {
         toast({ title: "Please enter a profession.", variant: "destructive" });
         return;
     }
-    setIsGenerating(true);
+    setGeneratingStatus("generating");
 
     try {
         const result = await generateRoutineByProfession({
@@ -149,6 +160,7 @@ function RoutineCustomizationPage() {
         });
         
         if (result.tasks && result.tasks.length > 0) {
+            setGeneratingStatus("saving");
             await addCustomProfession({ name: professionToGenerate, categoryGroup: result.categoryGroup }, result.tasks);
             setNewProfession("");
             toast({
@@ -170,7 +182,7 @@ function RoutineCustomizationPage() {
             variant: "destructive"
         });
     } finally {
-        setIsGenerating(false);
+        setGeneratingStatus("idle");
     }
   };
 
@@ -267,8 +279,9 @@ function RoutineCustomizationPage() {
                                         onChange={(e) => setNewProfession(e.target.value)}
                                         disabled={isGenerating}
                                     />
-                                    <Button onClick={handleGenerateByProfession} disabled={isGenerating || !newProfession.trim()}>
-                                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generate'}
+                                    <Button onClick={handleGenerateByProfession} disabled={isGenerating || !newProfession.trim()} className="w-48">
+                                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                        {generateButtonText[generatingStatus]}
                                     </Button>
                                 </div>
                             </CardContent>
