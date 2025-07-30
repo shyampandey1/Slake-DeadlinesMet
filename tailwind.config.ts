@@ -120,7 +120,7 @@ export default {
         },
         flash: {
             '0%, 100%': { backgroundColor: 'var(--timer-background-color)' },
-            '50%': { backgroundColor: 'hsl(var(--primary) / 0.5)' },
+            '50%': { backgroundColor: 'hsl(0 0% 100% / 0.5)' },
         }
       },
       animation: {
