@@ -9,6 +9,7 @@ import { ProfileProvider } from '@/hooks/useProfile';
 export const metadata: Metadata = {
   title: 'DeadlinesMet',
   description: 'Meet your deadlines, one task at a time.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
