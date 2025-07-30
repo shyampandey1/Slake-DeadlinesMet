@@ -12,10 +12,12 @@ import AuthWrapper from "@/components/AuthWrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
+import { organizeRoutine } from "@/ai/flows/organize-routine";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -74,13 +76,13 @@ type GeneratingStatus = "idle" | "generating" | "saving" | "done";
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
-  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession } = useProfile();
+  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, addTasksToCurrentProfile } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [generatingStatus, setGeneratingStatus] = useState<GeneratingStatus>("idle");
   const { toast } = useToast();
-  const [newProfession, setNewProfession] = useState("");
+  const [routineDescription, setRoutineDescription] = useState("");
 
   const [professionConfig, setProfessionConfig] = useState(initialProfessionConfig);
   const [profileCategories, setProfileCategories] = useState(initialProfileCategories);
@@ -89,9 +91,9 @@ function RoutineCustomizationPage() {
   const isGenerating = generatingStatus === 'generating' || generatingStatus === 'saving';
 
   const generateButtonText: { [key in GeneratingStatus]: string } = {
-      idle: "Generate",
-      generating: "Generating tasks...",
-      saving: "Saving routine...",
+      idle: "Enhance",
+      generating: "Enhancing...",
+      saving: "Saving tasks...",
       done: "Done!",
   };
 
@@ -107,7 +109,6 @@ function RoutineCustomizationPage() {
                 newCats[prof.categoryGroup].push(prof.name);
             }
         } else {
-            // This case handles if a category group was somehow deleted or changed.
             newCats[prof.categoryGroup] = [prof.name];
         }
     });
@@ -143,42 +144,41 @@ function RoutineCustomizationPage() {
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
-  const handleGenerateByProfession = async () => {
-    const professionToGenerate = newProfession.trim();
-    if (!professionToGenerate) {
-        toast({ title: "Please enter a profession.", variant: "destructive" });
+  const handleEnhanceSchedule = async () => {
+    const description = routineDescription.trim();
+    if (!description) {
+        toast({ title: "Please describe the tasks you want to add.", variant: "destructive" });
         return;
     }
     setGeneratingStatus("generating");
 
     try {
-        const result = await generateRoutineByProfession({
-            profession: professionToGenerate,
+        const result = await organizeRoutine({
+            description,
             availableIcons: getAvailableIcons(),
             availableCategories: getAvailableCategories(profile),
-            availableCategoryGroups: Object.keys(profileCategories),
         });
         
         if (result.tasks && result.tasks.length > 0) {
             setGeneratingStatus("saving");
-            await addCustomProfession({ name: professionToGenerate, categoryGroup: result.categoryGroup }, result.tasks);
-            setNewProfession("");
+            await addTasksToCurrentProfile(result.tasks);
+            setRoutineDescription("");
             toast({
-                title: `Routine for ${professionToGenerate} Generated!`,
-                description: `${result.tasks.length} tasks have been added under the '${result.categoryGroup}' category.`,
+                title: `Routine Enhanced!`,
+                description: `${result.tasks.length} new tasks have been added to your schedule.`,
             });
         } else {
             toast({
                 title: "No tasks were generated.",
-                description: "The AI couldn't generate a routine. Please try a different profession.",
+                description: "The AI couldn't understand the description. Please try rephrasing.",
                 variant: "destructive"
             });
         }
     } catch (error) {
-        console.error("Failed to generate custom routine:", error);
+        console.error("Failed to enhance routine:", error);
         toast({
-            title: "Generation Failed",
-            description: "An error occurred while generating the routine.",
+            title: "Enhancement Failed",
+            description: "An error occurred while adding tasks.",
             variant: "destructive"
         });
     } finally {
@@ -260,32 +260,6 @@ function RoutineCustomizationPage() {
                                 </Card>
                             ))}
                         </RadioGroup>
-
-                        <Separator />
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline text-base flex items-center gap-2">
-                                    <WandSparkles className="text-primary"/>
-                                    Enhance My Schedule
-                                </CardTitle>
-                                <CardDescription>Not seeing your profession? Enter it below to generate a custom routine. The AI will categorize it and add it as a new chip.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex gap-2">
-                                    <Input 
-                                        placeholder="e.g., 'Video Game Streamer'" 
-                                        value={newProfession}
-                                        onChange={(e) => setNewProfession(e.target.value)}
-                                        disabled={isGenerating}
-                                    />
-                                    <Button onClick={handleGenerateByProfession} disabled={isGenerating || !newProfession.trim()} className="w-48">
-                                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                        {generateButtonText[generatingStatus]}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
                     </CollapsibleContent>
                 </Collapsible>
                 
@@ -294,7 +268,7 @@ function RoutineCustomizationPage() {
                         <ChevronDown className="h-6 w-6 transition-transform [&[data-state=open]]:-rotate-180" />
                         2. Customize Your Tasks
                     </CollapsibleTrigger>
-                     <CollapsibleContent className="pt-4">
+                     <CollapsibleContent className="space-y-6 pt-4">
                         {presetTasksLoading ? renderSkeleton() : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
@@ -339,6 +313,31 @@ function RoutineCustomizationPage() {
                             ))}
                             </div>
                         )}
+                        <Separator />
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline text-base flex items-center gap-2">
+                                    <WandSparkles className="text-primary"/>
+                                    Enhance My Schedule
+                                </CardTitle>
+                                <CardDescription>Describe the tasks you want to add, and the AI will organize them into your routine. e.g., "Add a 30 min workout in the morning and read for 20 mins at night."</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col gap-2">
+                                    <Textarea 
+                                        placeholder="Type here..." 
+                                        value={routineDescription}
+                                        onChange={(e) => setRoutineDescription(e.target.value)}
+                                        disabled={isGenerating}
+                                        rows={3}
+                                    />
+                                    <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end">
+                                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                        {generateButtonText[generatingStatus]}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
                      </CollapsibleContent>
                 </Collapsible>
             </div>

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch, runTransaction } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch, runTransaction, addDoc, serverTimestamp } from "firebase/firestore";
 import type { ProfileType, CustomProfession, PresetTask } from "@/types";
 
 interface ProfileContextType {
@@ -19,6 +19,7 @@ interface ProfileContextType {
   setProfile: (profile: ProfileType) => void;
   customProfessions: CustomProfession[];
   addCustomProfession: (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => Promise<void>;
+  addTasksToCurrentProfile: (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => Promise<void>;
   loading: boolean;
 }
 
@@ -27,6 +28,7 @@ const ProfileContext = createContext<ProfileContextType>({
   setProfile: () => {},
   customProfessions: [],
   addCustomProfession: async () => {},
+  addTasksToCurrentProfile: async () => {},
   loading: true,
 });
 
@@ -88,7 +90,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     try {
         await runTransaction(db, async (transaction) => {
-            // 1. Get the current user profile
             const profileDoc = await transaction.get(profileRef);
             let currentCustomProfessions: CustomProfession[] = [];
 
@@ -96,25 +97,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 currentCustomProfessions = profileDoc.data().customProfessions || [];
             }
             
-            // 2. Add the new profession if it doesn't exist
             if (!currentCustomProfessions.some(p => p.name === profession.name)) {
                 currentCustomProfessions.push(profession);
             }
 
-            // 3. Update the profile with the new profession list and set the active profile
             transaction.set(profileRef, {
                 profile: profession.name,
                 customProfessions: currentCustomProfessions
             }, { merge: true });
             
-            // 4. Delete old tasks for this profession
             const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profession.name));
-            const oldTasksSnapshot = await getDocs(q); // Use getDocs, not inside transaction
+            const oldTasksSnapshot = await getDocs(q); 
             oldTasksSnapshot.forEach(doc => {
                 transaction.delete(doc.ref);
             });
 
-            // 5. Add new tasks
             const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
             tasks.forEach(task => {
                 if (!tasksByCategory[task.category]) {
@@ -139,18 +136,45 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             });
         });
 
-        // Manually set the profile state after transaction to trigger UI update
         setProfileState(profession.name);
 
     } catch (error) {
         console.error("Failed to add custom profession and tasks: ", error);
-        throw error; // Re-throw to be caught by the calling function
+        throw error;
     }
   }, [user, isOffline]);
 
+  const addTasksToCurrentProfile = useCallback(async (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => {
+    if (!user || isOffline) return;
+
+    try {
+        const batch = writeBatch(db);
+        const tasksCollectionRef = collection(db, 'userPresetTasks');
+
+        for (const task of tasks) {
+            const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profile), where('category', '==', task.category));
+            const snapshot = await getDocs(q);
+            const maxOrder = snapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order), -1);
+
+            const newDocRef = doc(tasksCollectionRef);
+            batch.set(newDocRef, {
+                ...task,
+                order: maxOrder + 1,
+                userId: user.uid,
+                profession: profile,
+            });
+        }
+        await batch.commit();
+
+    } catch(error) {
+        console.error("Failed to add tasks to current profile", error);
+        throw error;
+    }
+  }, [user, profile, isOffline]);
+
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession }}>
+    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession, addTasksToCurrentProfile }}>
       {children}
     </ProfileContext.Provider>
   );
