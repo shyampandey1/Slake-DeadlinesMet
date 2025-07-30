@@ -23,13 +23,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
     const { user } = useAuth();
     const { clearTasks } = useTasks();
-    const { isAudioEnabled, setAudioEnabled, testSound } = useAudioSettings();
+    const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
 
     const handleClearHistory = () => {
@@ -70,9 +73,9 @@ function SettingsPageComponent() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline text-lg">Audio</CardTitle>
-                            <CardDescription>Manage audio cues for the timer.</CardDescription>
+                            <CardDescription>Manage audio cues and volume for the timer.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <label htmlFor="audio-switch" className="font-medium flex items-center gap-2">
                                     <Bell className="h-4 w-4" />
@@ -84,6 +87,29 @@ function SettingsPageComponent() {
                                     onCheckedChange={setAudioEnabled}
                                 />
                             </div>
+                            
+                            <div className="space-y-2">
+                                <Label>Sound</Label>
+                                <RadioGroup value={selectedSound} onValueChange={setSelectedSound} className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {sounds.map((sound) => (
+                                        <Label key={sound.name} htmlFor={sound.name} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary">
+                                            <RadioGroupItem value={sound.name} id={sound.name}/>
+                                            {sound.name}
+                                        </Label>
+                                    ))}
+                                </RadioGroup>
+                            </div>
+
+                             <div className="space-y-2">
+                                <Label>Volume</Label>
+                                <Slider
+                                    value={[volume]}
+                                    onValueChange={setVolume}
+                                    max={1}
+                                    step={0.1}
+                                />
+                            </div>
+                            
                             <Button variant="outline" onClick={testSound}>
                                 <Volume2 className="mr-2 h-4 w-4" />
                                 Test Sound
