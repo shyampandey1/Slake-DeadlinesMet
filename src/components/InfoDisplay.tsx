@@ -62,16 +62,14 @@ export default function InfoDisplay() {
           if (weatherData?.current_weather) {
             const { temperature, weathercode } = weatherData.current_weather;
             const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-            const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village;
+            const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village || "Current Location";
 
-            if (locationName) {
-              setWeather({
-                  location: locationName,
-                  temperature: Math.round(temperature),
-                  condition,
-                  icon,
-              });
-            }
+            setWeather({
+                location: locationName,
+                temperature: Math.round(temperature),
+                condition,
+                icon,
+            });
           }
       } catch (error) {
           console.error("Failed to fetch weather data:", error);
@@ -82,6 +80,7 @@ export default function InfoDisplay() {
   }
 
   const requestGeolocation = () => {
+    setLoading(true);
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -104,21 +103,8 @@ export default function InfoDisplay() {
       setTime(new Date());
     }, 1000 * 60); // Update time every minute
     
-    // Initial attempt to get location without asking
-    if ("permissions" in navigator) {
-        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-            if (result.state === 'granted') {
-                requestGeolocation();
-            } else {
-                setLoading(false);
-                 if (result.state === 'denied') {
-                    setPermissionDenied(true);
-                }
-            }
-        });
-    } else {
-        setLoading(false); // Fallback for older browsers
-    }
+    // Set loading to false initially, let the user click the button
+    setLoading(false);
 
 
     return () => clearInterval(timer);
@@ -162,11 +148,12 @@ export default function InfoDisplay() {
         </div>
         </>
       ) : (
-          <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2">
+          <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2" disabled={permissionDenied}>
             <LocateFixed className="h-4 w-4" />
-            Show Weather
+            {permissionDenied ? 'Location denied' : 'Show Weather'}
           </Button>
       )}
     </div>
   );
 }
+
