@@ -22,7 +22,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 
 const initialIconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -383,5 +383,7 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
 
     
