@@ -7,7 +7,13 @@ const AUDIO_ENABLED_KEY = 'timerAudioEnabled';
 
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  // Initialize the Audio object directly in the state.
+  const [audio] = useState<HTMLAudioElement | null>(() => {
+    if (typeof window !== 'undefined') {
+      return new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3');
+    }
+    return null;
+  });
 
   useEffect(() => {
     try {
@@ -19,11 +25,6 @@ export function useAudioSettings() {
         // If localStorage is not available, proceed with default
         console.warn("localStorage not available for audio settings.");
     }
-    
-    // Use a free, reliable audio source.
-    const audioInstance = new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3');
-    setAudio(audioInstance);
-
   }, []);
 
   const setAudioEnabled = useCallback((enabled: boolean) => {
