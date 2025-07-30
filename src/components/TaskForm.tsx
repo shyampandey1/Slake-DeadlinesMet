@@ -100,9 +100,18 @@ export default function TaskForm() {
     carouselApi.on('select', onSelect)
     carouselApi.on('reInit', onSelect)
     return () => {
-        carouselApi.off('select', onSelect)
+        if (carouselApi) {
+          carouselApi.off('select', onSelect)
+        }
     }
   }, [carouselApi, setScrollSnaps, onSelect]);
+
+  useEffect(() => {
+    if (carouselApi) {
+      carouselApi.reInit();
+    }
+  }, [presetTasks, carouselApi]);
+
 
   useEffect(() => {
     if (Object.keys(presetTasks).length > 0 && carouselApi) {
