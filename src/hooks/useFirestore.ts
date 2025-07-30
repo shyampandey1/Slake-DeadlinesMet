@@ -203,7 +203,8 @@ export function useTasks() {
     setLoading(true);
     const q = query(
       collection(db, 'tasks'),
-      where('userId', '==', user.uid)
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -215,7 +216,6 @@ export function useTasks() {
             createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString()
           } as Task
       });
-      userTasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setTasks(userTasks);
       setLoading(false);
     }, (error) => {
@@ -593,7 +593,11 @@ export function useCalendarEvents() {
         }
 
         setLoading(true);
-        const q = query(collection(db, 'userEvents'), where('userId', '==', user.uid));
+        const q = query(
+            collection(db, 'userEvents'), 
+            where('userId', '==', user.uid),
+            orderBy('date')
+        );
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const userEvents = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -603,7 +607,6 @@ export function useCalendarEvents() {
                     date: (data.date as Timestamp).toDate().toISOString(),
                 } as UserEvent;
             });
-            userEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             setEvents(userEvents);
             setLoading(false);
         }, (error) => {
