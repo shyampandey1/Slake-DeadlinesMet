@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
-import { add, set, isBefore } from "date-fns";
+import { add, set, isBefore, isAfter } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -98,10 +98,14 @@ export default function TaskForm() {
     onSelect()
     setScrollSnaps(carouselApi.scrollSnapList())
     carouselApi.on('select', onSelect)
-    carouselApi.on('reInit', onSelect)
+    carouselApi.on('reInit', () => {
+        onSelect();
+        setScrollSnaps(carouselApi.scrollSnapList());
+    });
     return () => {
         if (carouselApi) {
           carouselApi.off('select', onSelect)
+          carouselApi.off('reInit', onSelect)
         }
     }
   }, [carouselApi, setScrollSnaps, onSelect]);
@@ -109,9 +113,40 @@ export default function TaskForm() {
   useEffect(() => {
     if (carouselApi) {
       carouselApi.reInit();
-      setScrollSnaps(carouselApi.scrollSnapList());
     }
   }, [presetTasks, carouselApi]);
+
+  useEffect(() => {
+    if (!carouselApi || Object.keys(presetTasks).length === 0) return;
+
+    const now = new Date();
+    let cumulativeTime = set(now, { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 }); 
+    const categories = Object.keys(presetTasks);
+
+    let foundIndex = -1;
+
+    for (let i = 0; i < categories.length; i++) {
+        const category = categories[i];
+        const { tasks } = presetTasks[category];
+        const categoryDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
+
+        const startTime = cumulativeTime;
+        const endTime = add(startTime, { minutes: categoryDuration });
+
+        if (isAfter(now, startTime) && isBefore(now, endTime)) {
+            foundIndex = i;
+            break;
+        }
+
+        cumulativeTime = endTime;
+    }
+
+    if (foundIndex !== -1) {
+        scrollTo(foundIndex);
+    }
+
+  }, [carouselApi, presetTasks, scrollTo]);
+
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -323,3 +358,4 @@ export default function TaskForm() {
     </>
   );
 }
+
