@@ -3,8 +3,9 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { MapPin, Cloud, Thermometer, Clock, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, Haze, CloudFog, Calendar } from "lucide-react";
+import { MapPin, Cloud, Thermometer, Clock, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, Haze, CloudFog, Calendar, LocateFixed } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { Button } from "./ui/button";
 
 interface WeatherData {
   location: string;
@@ -42,49 +43,45 @@ export default function InfoDisplay() {
   const [time, setTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000 * 60); // Update time every minute
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    async function fetchWeather(latitude: number, longitude: number) {
-        try {
-            const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-            const weatherData = await weatherResponse.json();
-            
-            const locationResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
-                headers: {
-                    'User-Agent': 'DeadlinesMet'
-                }
-            });
-            const locationData = await locationResponse.json();
-
-            if (weatherData?.current_weather) {
-              const { temperature, weathercode } = weatherData.current_weather;
-              const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-              const locationName = locationData.address?.city;
-
-              if (locationName) {
-                setWeather({
-                    location: locationName,
-                    temperature: Math.round(temperature),
-                    condition,
-                    icon,
-                });
+  async function fetchWeather(latitude: number, longitude: number) {
+      setLoading(true);
+      setPermissionDenied(false);
+      try {
+          const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+          const weatherData = await weatherResponse.json();
+          
+          const locationResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+              headers: {
+                  'User-Agent': 'DeadlinesMet'
               }
-            }
-        } catch (error) {
-            console.error("Failed to fetch weather data:", error);
-            setWeather(null); // Clear weather on error
-        } finally {
-            setLoading(false);
-        }
-    }
+          });
+          const locationData = await locationResponse.json();
 
+          if (weatherData?.current_weather) {
+            const { temperature, weathercode } = weatherData.current_weather;
+            const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
+            const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village;
+
+            if (locationName) {
+              setWeather({
+                  location: locationName,
+                  temperature: Math.round(temperature),
+                  condition,
+                  icon,
+              });
+            }
+          }
+      } catch (error) {
+          console.error("Failed to fetch weather data:", error);
+          setWeather(null); // Clear weather on error
+      } finally {
+          setLoading(false);
+      }
+  }
+
+  const requestGeolocation = () => {
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -92,12 +89,39 @@ export default function InfoDisplay() {
             },
             (error) => {
                 console.error("Geolocation error:", error.message);
+                setPermissionDenied(true);
                 setLoading(false);
             }
         );
     } else {
+        setPermissionDenied(true);
         setLoading(false);
     }
+  }
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000 * 60); // Update time every minute
+    
+    // Initial attempt to get location without asking
+    if ("permissions" in navigator) {
+        navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+            if (result.state === 'granted') {
+                requestGeolocation();
+            } else {
+                setLoading(false);
+                 if (result.state === 'denied') {
+                    setPermissionDenied(true);
+                }
+            }
+        });
+    } else {
+        setLoading(false); // Fallback for older browsers
+    }
+
+
+    return () => clearInterval(timer);
   }, []);
 
   const renderSkeleton = () => (
@@ -122,7 +146,7 @@ export default function InfoDisplay() {
         <Clock className="h-4 w-4" />
         <span>{format(time, "p")}</span>
       </div>
-      {weather && (
+      {weather ? (
         <>
         <div className="flex items-center gap-1.5">
             <MapPin className="h-4 w-4" />
@@ -137,6 +161,11 @@ export default function InfoDisplay() {
             <span>{weather.condition}</span>
         </div>
         </>
+      ) : (
+          <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2">
+            <LocateFixed className="h-4 w-4" />
+            Show Weather
+          </Button>
       )}
     </div>
   );
