@@ -7,8 +7,8 @@ const AUDIO_ENABLED_KEY = 'timerAudioEnabled';
 
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  // Initialize the Audio object directly in the state.
-  const [audio] = useState<HTMLAudioElement | null>(() => {
+  // Initialize the Audio object lazily and only on the client-side.
+  const [audio] = useState(() => {
     if (typeof window !== 'undefined') {
       return new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3');
     }
