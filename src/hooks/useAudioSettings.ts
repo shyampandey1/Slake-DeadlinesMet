@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Howl } from 'howler';
 
 const AUDIO_ENABLED_KEY = 'timerAudioEnabled';
@@ -16,29 +16,13 @@ const sounds = [
     { name: 'Calm', src: 'https://cdn.pixabay.com/audio/2022/05/29/audio_a7568558a2.mp3' },
 ];
 
-let soundInstances: { [key: string]: Howl } = {};
-
-const initializeSounds = (volume: number) => {
-    if (typeof window !== 'undefined') { // Ensure this runs only on the client
-        sounds.forEach(s => {
-            // Unload existing sound if it exists, to prevent memory leaks
-            if (soundInstances[s.name]) {
-                soundInstances[s.name].unload();
-            }
-            soundInstances[s.name] = new Howl({
-                src: [s.src],
-                html5: true, // Improves compatibility
-                volume: volume,
-            });
-        });
-    }
-}
-
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(sounds[0].name);
   const [volume, setVolumeState] = useState(0.5);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const soundInstances = useRef<{ [key: string]: Howl }>({});
 
   useEffect(() => {
     // Load settings from localStorage only on the client side
@@ -52,15 +36,36 @@ export function useAudioSettings() {
       const storedVolume = localStorage.getItem(VOLUME_KEY);
       const initialVolume = storedVolume !== null ? parseFloat(storedVolume) : 0.5;
       setVolumeState(initialVolume);
-      
-      // Initialize sounds with the loaded (or default) volume
-      initializeSounds(initialVolume);
+
+      // Initialize sounds
+      sounds.forEach(s => {
+        soundInstances.current[s.name] = new Howl({
+            src: [s.src],
+            html5: true,
+            volume: initialVolume,
+        });
+      });
 
     } catch (error) {
         console.warn("localStorage not available, using default audio settings.");
-        initializeSounds(0.5); // Fallback initialization
+        // Fallback initialization
+         sounds.forEach(s => {
+            soundInstances.current[s.name] = new Howl({
+                src: [s.src],
+                html5: true,
+                volume: 0.5,
+            });
+        });
     }
     setIsInitialized(true);
+    
+    // Cleanup on unmount
+    return () => {
+        Object.values(soundInstances.current).forEach(howl => {
+            howl.unload();
+        });
+        soundInstances.current = {};
+    }
   }, []);
 
   const setAudioEnabled = useCallback((enabled: boolean) => {
@@ -86,7 +91,7 @@ export function useAudioSettings() {
       setVolumeState(vol);
       
       // Update volume for all existing Howl instances
-      Object.values(soundInstances).forEach(howl => {
+      Object.values(soundInstances.current).forEach(howl => {
           howl.volume(vol);
       });
 
@@ -99,7 +104,7 @@ export function useAudioSettings() {
   
   const playSound = useCallback(() => {
     if (!isAudioEnabled || !isInitialized) return;
-    const sound = soundInstances[selectedSound];
+    const sound = soundInstances.current[selectedSound];
     if (sound) {
         sound.play();
     }
@@ -107,12 +112,11 @@ export function useAudioSettings() {
 
   const testSound = useCallback(() => {
     if (!isInitialized) return;
-    const sound = soundInstances[selectedSound];
+    const sound = soundInstances.current[selectedSound];
     if (sound) {
         if (sound.playing()) {
             sound.stop();
         }
-        // The volume is already set on the instance, so just play.
         sound.play();
     }
   }, [selectedSound, isInitialized]);
