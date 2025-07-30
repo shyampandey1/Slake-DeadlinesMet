@@ -165,12 +165,12 @@ function CalendarPageComponent() {
                                                     <span className="font-medium">{event.name}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <Badge variant="secondary" className="gap-1.5">
+                                                    <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
                                                         <Clock className="h-3.5 w-3.5"/>
                                                         {event.duration} min
                                                     </Badge>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => deleteEvent(event.id)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-destructive" onClick={() => deleteEvent(event.id)}>
+                                                        <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </div>
