@@ -109,6 +109,8 @@ export default function TaskForm() {
   useEffect(() => {
     if (carouselApi) {
       carouselApi.reInit();
+      // Directly update the scroll snaps when tasks change
+      setScrollSnaps(carouselApi.scrollSnapList());
     }
   }, [presetTasks, carouselApi]);
 
