@@ -30,6 +30,14 @@ import { Badge } from "./ui/badge";
 
 const changelog = [
   {
+      version: "v1.1",
+      date: "Day 2",
+      features: [
+        { name: "Calendar Scheduling", description: "Added an event calendar to schedule tasks for specific days, which sync with the daily routine.", icon: Calendar },
+        { name: "Bug Fixes & Stability", description: "Resolved several Firestore indexing errors and improved guest mode fallback.", icon: StickyNote },
+      ]
+  },
+  {
     version: "v1.0",
     date: "Day 1",
     features: [
@@ -38,14 +46,6 @@ const changelog = [
         { name: "UI/UX Enhancements", description: "Improved visual feedback for AI generation and added scroll indicators.", icon: Palette },
     ]
   },
-  {
-      version: "v1.1",
-      date: "Day 2",
-      features: [
-        { name: "Calendar Scheduling", description: "Added an event calendar to schedule tasks for specific days, which sync with the daily routine.", icon: Calendar },
-        { name: "Bug Fixes & Stability", description: "Resolved several Firestore indexing errors and improved guest mode fallback.", icon: StickyNote },
-      ]
-  }
 ];
 
 export default function HamburgerMenu() {
