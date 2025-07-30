@@ -267,7 +267,7 @@ function RoutineCustomizationPage() {
                             <CardHeader>
                                 <CardTitle className="font-headline text-base flex items-center gap-2">
                                     <WandSparkles className="text-primary"/>
-                                    Build with Your AI Architect
+                                    Enhance My Schedule
                                 </CardTitle>
                                 <CardDescription>Not seeing your profession? Enter it below to generate a custom routine. The AI will categorize it and add it as a new chip.</CardDescription>
                             </CardHeader>
