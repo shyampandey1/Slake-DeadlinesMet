@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useCalendarEvents } from "@/hooks/useFirestore";
 import type { UserEvent } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ListChecks, BrainCircuit, LucideIcon, Clock } from "lucide-react";
+import { Plus, Trash2, ListChecks, BrainCircuit, LucideIcon, Clock, CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
@@ -19,10 +19,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
     BrainCircuit: BrainCircuit,
+    Calendar: CalendarIcon,
 };
 
 const formSchema = z.object({
@@ -98,7 +100,7 @@ function CalendarPageComponent() {
             await addEvent({
                 name: data.name,
                 duration: data.duration,
-                icon: "ListChecks", // Default icon
+                icon: "Calendar", // Default icon
                 date: selectedDate.toISOString()
             });
         }
@@ -137,7 +139,7 @@ function CalendarPageComponent() {
                                     hasEvent: events.map(e => new Date(e.date))
                                 }}
                                 modifiersClassNames={{
-                                    hasEvent: 'bg-primary/20'
+                                    hasEvent: 'has-event'
                                 }}
                             />
                         </CardContent>
@@ -176,8 +178,10 @@ function CalendarPageComponent() {
                                     })}
                                 </div>
                             ) : (
-                                <div className="text-center text-muted-foreground py-10">
-                                    <p>No tasks scheduled for this day.</p>
+                                <div className="text-center text-muted-foreground py-10 flex flex-col items-center justify-center h-full">
+                                    <CalendarIcon className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                                    <p className="font-semibold">No tasks scheduled</p>
+                                    <p className="text-sm">Add a task to see it here.</p>
                                 </div>
                             )}
                         </CardContent>
