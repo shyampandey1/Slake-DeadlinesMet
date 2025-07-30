@@ -8,7 +8,6 @@ import { Skeleton } from "./ui/skeleton";
 import { Button } from "./ui/button";
 
 interface WeatherData {
-  location: string;
   temperature: number;
   condition: string;
   icon: React.ReactNode;
@@ -52,22 +51,11 @@ export default function InfoDisplay() {
           const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
           const weatherData = await weatherResponse.json();
           
-          const locationResponse = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
-              headers: {
-                  'User-Agent': 'DeadlinesMet'
-              }
-          });
-          const locationData = await locationResponse.json();
-
           if (weatherData?.current_weather) {
             const { temperature, weathercode } = weatherData.current_weather;
             const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-            const city = locationData.address?.city || locationData.address?.town || locationData.address?.village || locationData.address?.county;
-            const country = locationData.address?.country;
-            const locationName = city && country ? `${city}, ${country}` : "Current Location";
 
             setWeather({
-                location: locationName,
                 temperature: Math.round(temperature),
                 condition,
                 icon,
@@ -118,7 +106,7 @@ export default function InfoDisplay() {
     </div>
   )
 
-  if (loading) {
+  if (loading && !weather) {
     return renderSkeleton();
   }
 
@@ -134,10 +122,6 @@ export default function InfoDisplay() {
       </div>
       {weather ? (
         <>
-        <div className="flex items-center gap-1.5">
-            <MapPin className="h-4 w-4" />
-            <span>{weather.location}</span>
-        </div>
         <div className="flex items-center gap-1.5">
             <Thermometer className="h-4 w-4" />
             <span>{weather.temperature}°C</span>
