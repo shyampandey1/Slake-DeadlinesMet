@@ -62,7 +62,7 @@ export default function InfoDisplay() {
           if (weatherData?.current_weather) {
             const { temperature, weathercode } = weatherData.current_weather;
             const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-            const city = locationData.address?.city || locationData.address?.town || locationData.address?.village;
+            const city = locationData.address?.city || locationData.address?.town || locationData.address?.village || locationData.address?.county;
             const country = locationData.address?.country;
             const locationName = city && country ? `${city}, ${country}` : "Current Location";
 
@@ -104,6 +104,8 @@ export default function InfoDisplay() {
     const timer = setInterval(() => {
       setTime(new Date());
     }, 1000 * 60); // Update time every minute
+    
+    requestGeolocation();
 
     return () => clearInterval(timer);
   }, []);
