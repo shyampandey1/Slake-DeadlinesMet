@@ -417,8 +417,7 @@ export function usePresetTasks() {
             collection(db, 'userEvents'),
             where('userId', '==', user.uid),
             where('date', '>=', Timestamp.fromDate(todayStart)),
-            where('date', '<=', Timestamp.fromDate(todayEnd)),
-            orderBy('date')
+            where('date', '<=', Timestamp.fromDate(todayEnd))
         );
 
         const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
