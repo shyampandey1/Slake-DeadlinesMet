@@ -220,6 +220,7 @@ export function useTasks() {
       setLoading(false);
     }, (error) => {
         console.error("Error fetching tasks:", error);
+        setTasks([]);
         setLoading(false);
     });
 
@@ -418,8 +419,8 @@ export function usePresetTasks() {
         const eventsQuery = query(
             collection(db, 'userEvents'),
             where('userId', '==', user.uid),
-            where('date', '>=', Timestamp.fromDate(todayStart)),
-            where('date', '<=', Timestamp.fromDate(todayEnd))
+            where('date', '>=', todayStart),
+            where('date', '<=', todayEnd)
         );
 
         const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
@@ -595,8 +596,7 @@ export function useCalendarEvents() {
         setLoading(true);
         const q = query(
             collection(db, 'userEvents'), 
-            where('userId', '==', user.uid),
-            orderBy('date')
+            where('userId', '==', user.uid)
         );
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const userEvents = snapshot.docs.map(doc => {
@@ -606,7 +606,7 @@ export function useCalendarEvents() {
                     ...data,
                     date: (data.date as Timestamp).toDate().toISOString(),
                 } as UserEvent;
-            });
+            }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             setEvents(userEvents);
             setLoading(false);
         }, (error) => {
