@@ -12,7 +12,7 @@ import {
   SheetClose
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -30,12 +30,8 @@ export default function HamburgerMenu() {
     router.push('/auth');
   };
   
-  const navigateToHistory = () => {
-    router.push('/history');
-  }
-  
-  const navigateToRoutine = () => {
-    router.push('/routine');
+  const navigateTo = (path: string) => {
+    router.push(path);
   }
 
   return (
@@ -72,15 +68,21 @@ export default function HamburgerMenu() {
                     <span>Toggle Theme</span>
                 </Button>
                 <SheetClose asChild>
-                  <Button variant="ghost" onClick={navigateToHistory} className="w-full justify-start gap-2">
+                  <Button variant="ghost" onClick={() => navigateTo('/history')} className="w-full justify-start gap-2">
                       <BookText className="h-5 w-5" />
                       <span>Task Log Book</span>
                   </Button>
                 </SheetClose>
                  <SheetClose asChild>
-                  <Button variant="ghost" onClick={navigateToRoutine} className="w-full justify-start gap-2">
+                  <Button variant="ghost" onClick={() => navigateTo('/routine')} className="w-full justify-start gap-2">
                       <ClipboardList className="h-5 w-5" />
                       <span>Customize Routine</span>
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button variant="ghost" onClick={() => navigateTo('/calendar')} className="w-full justify-start gap-2">
+                      <Calendar className="h-5 w-5" />
+                      <span>Event Calendar</span>
                   </Button>
                 </SheetClose>
 

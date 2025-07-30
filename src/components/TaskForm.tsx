@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
-import { add, set } from "date-fns";
+import { add, set, isBefore } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +66,7 @@ const iconMap: { [key: string]: LucideIcon } = {
 
 export default function TaskForm() {
   const router = useRouter();
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, todaysEvents } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
@@ -109,7 +109,6 @@ export default function TaskForm() {
   useEffect(() => {
     if (carouselApi) {
       carouselApi.reInit();
-      // Directly update the scroll snaps when tasks change
       setScrollSnaps(carouselApi.scrollSnapList());
     }
   }, [presetTasks, carouselApi]);
@@ -130,16 +129,17 @@ export default function TaskForm() {
         });
 
         const currentTime = new Date();
-        const activeTask = allTasksWithTimes.find(task => currentTime >= task.startTime && currentTime < task.endTime);
+        const activeTaskIndex = allTasksWithTimes.findIndex(task => isBefore(currentTime, task.endTime));
         
-        if (activeTask) {
+        if (activeTaskIndex !== -1) {
+            const activeTask = allTasksWithTimes[activeTaskIndex];
             const categoryIndex = Object.keys(presetTasks).findIndex(cat => cat === activeTask.category);
-            if (categoryIndex !== -1) {
-                scrollTo(categoryIndex);
+            if (categoryIndex !== -1 && categoryIndex !== selectedIndex) {
+                 scrollTo(categoryIndex);
             }
         }
     }
-  }, [presetTasks, carouselApi, scrollTo]);
+  }, [presetTasks, carouselApi, scrollTo, selectedIndex]);
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -173,7 +173,6 @@ export default function TaskForm() {
         params.append("category", values.category);
     }
     if (values.color) {
-        // Extract the color name from the class, e.g., 'bg-sky-800' -> 'sky-800'
         const colorName = values.color.split(' ')[0].replace('bg-', '');
         params.append("color", colorName);
     }
@@ -191,7 +190,6 @@ export default function TaskForm() {
         customTaskFormRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }
-
 
   return (
     <>
@@ -231,11 +229,11 @@ export default function TaskForm() {
                                 const Icon = iconMap[task.icon] || BrainCircuit;
                                 return (
                                     <Button
-                                        key={task.name}
+                                        key={task.id || task.name}
                                         variant="outline"
                                         className="w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal"
                                         onClick={() => selectQuickStartTask(task, category, color)}
-                                        onDoubleClick={() => handleOpenDialog(task, category)}
+                                        onDoubleClick={() => task.id && handleOpenDialog(task, category)}
                                     >
                                         <Icon className="w-5 h-5 text-muted-foreground" />
                                         <span className="flex-1 text-left font-normal">{task.name}</span>

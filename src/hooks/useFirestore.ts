@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit, runTransaction } from 'firebase/firestore';
 import { useAuth } from './useAuth';
-import { Task, Preset, PresetTask, UserPresetTask, CustomProfession } from '@/types';
+import { Task, Preset, PresetTask, UserPresetTask, CustomProfession, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
+import { startOfDay, endOfDay, isBefore, add, set } from 'date-fns';
 
 const iconMap = {
     ListChecks: "ListChecks",
@@ -214,7 +215,6 @@ export function useTasks() {
             createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString()
           } as Task
       });
-      // Sort tasks by date on the client side
       userTasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setTasks(userTasks);
       setLoading(false);
@@ -275,6 +275,7 @@ export function usePresetTasks() {
     const { user, isOffline } = useAuth();
     const { profile, customProfessions } = useProfile();
     const [presetTasks, setPresetTasks] = useState<Preset>({});
+    const [todaysEvents, setTodaysEvents] = useState<UserEvent[]>([]);
     const [loading, setLoading] = useState(true);
 
     const isDefaultTask = (task: UserPresetTask) => {
@@ -288,21 +289,71 @@ export function usePresetTasks() {
         return Object.keys(preset);
     }, []);
 
+    const processedTasks = useMemo(() => {
+        const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
+
+        if (todaysEvents.length > 0) {
+            let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+            let injected = false;
+            
+            Object.keys(newPresetTasks).forEach(category => {
+                const categoryTasks = newPresetTasks[category].tasks.map((task: UserPresetTask) => {
+                    const startTime = cumulativeTime;
+                    const endTime = add(startTime, { minutes: task.duration });
+                    cumulativeTime = endTime;
+                    return { ...task, startTime, endTime };
+                });
+                newPresetTasks[category].tasks = categoryTasks;
+            });
+
+            const now = new Date();
+            for (const category of Object.keys(newPresetTasks)) {
+                const lastTask = newPresetTasks[category].tasks[newPresetTasks[category].tasks.length - 1];
+                if (lastTask && isBefore(now, lastTask.endTime) && !injected) {
+                    todaysEvents.forEach((event, index) => {
+                         newPresetTasks[category].tasks.push({
+                            name: event.name,
+                            duration: event.duration,
+                            icon: event.icon || 'ListChecks',
+                            order: newPresetTasks[category].tasks.length,
+                            id: `event-${event.id}-${index}`
+                        });
+                    });
+                    injected = true;
+                }
+            }
+            if (!injected && newPresetTasks['Work Session 1']) {
+                 todaysEvents.forEach((event, index) => {
+                    newPresetTasks['Work Session 1'].tasks.push({
+                        name: event.name,
+                        duration: event.duration,
+                        icon: event.icon || 'ListChecks',
+                        order: newPresetTasks['Work Session 1'].tasks.length,
+                        id: `event-${event.id}-${index}`
+                    });
+                });
+            }
+        }
+        return newPresetTasks;
+
+    }, [presetTasks, todaysEvents]);
+
     useEffect(() => {
         if (!user || isOffline) {
             const initialTasks = profilePresets[profile] || profilePresets["General"];
             setPresetTasks(initialTasks);
+            setTodaysEvents([]);
             setLoading(false);
             return;
         }
 
         setLoading(true);
+
         const q = query(
             collection(db, 'userPresetTasks'),
             where('userId', '==', user.uid)
         );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribePresets = onSnapshot(q, (snapshot) => {
             const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
             
             let newPresets: Preset = {};
@@ -313,7 +364,6 @@ export function usePresetTasks() {
                 const profileTasks = userTasks.filter(t => t.profession === profile);
                 profileTasks.forEach(task => {
                     if (!customPreset[task.category]) {
-                        // Find a color from the base routine, or use a default
                         const baseCategory = baseRoutine[task.category];
                         customPreset[task.category] = {
                             color: baseCategory ? baseCategory.color : "bg-slate-800 text-slate-100",
@@ -361,7 +411,32 @@ export function usePresetTasks() {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        const todayStart = startOfDay(new Date());
+        const todayEnd = endOfDay(new Date());
+        const eventsQuery = query(
+            collection(db, 'userEvents'),
+            where('userId', '==', user.uid),
+            where('date', '>=', Timestamp.fromDate(todayStart)),
+            where('date', '<=', Timestamp.fromDate(todayEnd)),
+            orderBy('date')
+        );
+
+        const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
+            const events = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                date: (doc.data().date as Timestamp).toDate().toISOString()
+            })) as UserEvent[];
+            setTodaysEvents(events);
+        }, (error) => {
+            console.error("Error fetching today's events:", error);
+        });
+
+
+        return () => {
+            unsubscribePresets();
+            unsubscribeEvents();
+        };
     }, [user, profile, customProfessions, isOffline]);
 
     const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }) => {
@@ -467,7 +542,6 @@ export function usePresetTasks() {
     
         const batch = writeBatch(db);
     
-        // 1. Delete all existing user preset tasks for that profession
         const q = query(
             collection(db, 'userPresetTasks'), 
             where('userId', '==', user.uid),
@@ -478,7 +552,6 @@ export function usePresetTasks() {
             batch.delete(doc.ref);
         });
     
-        // 2. Add the new tasks
         const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
         tasks.forEach(task => {
             if (!tasksByCategory[task.category]) {
@@ -499,10 +572,59 @@ export function usePresetTasks() {
             });
         });
     
-        // 3. Commit the batch
         await batch.commit();
 
     }, [user, isOffline]);
 
-    return { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons };
+    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents };
+}
+
+export function useCalendarEvents() {
+    const { user, isOffline } = useAuth();
+    const [events, setEvents] = useState<UserEvent[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user || isOffline) {
+            setEvents([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        const q = query(collection(db, 'userEvents'), where('userId', '==', user.uid), orderBy('date'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const userEvents = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    date: (data.date as Timestamp).toDate().toISOString(),
+                } as UserEvent;
+            });
+            setEvents(userEvents);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching calendar events:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user, isOffline]);
+
+    const addEvent = useCallback(async (event: Omit<UserEvent, 'id' | 'userId'>) => {
+        if (!user || isOffline) return;
+        await addDoc(collection(db, 'userEvents'), {
+            ...event,
+            userId: user.uid,
+            date: Timestamp.fromDate(new Date(event.date)),
+        });
+    }, [user, isOffline]);
+
+    const deleteEvent = useCallback(async (eventId: string) => {
+        if (!user || isOffline) return;
+        await deleteDoc(doc(db, 'userEvents', eventId));
+    }, [user, isOffline]);
+
+    return { events, loading, addEvent, deleteEvent };
 }

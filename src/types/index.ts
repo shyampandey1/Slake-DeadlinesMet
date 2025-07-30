@@ -51,3 +51,12 @@ export type CustomProfession = {
     name: string;
     categoryGroup: string;
 }
+
+export type UserEvent = {
+    id: string;
+    userId: string;
+    name: string;
+    duration: number;
+    icon: string;
+    date: string; // ISO string
+};
