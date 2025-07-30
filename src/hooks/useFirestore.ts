@@ -592,7 +592,7 @@ export function useCalendarEvents() {
         }
 
         setLoading(true);
-        const q = query(collection(db, 'userEvents'), where('userId', '==', user.uid), orderBy('date'));
+        const q = query(collection(db, 'userEvents'), where('userId', '==', user.uid));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const userEvents = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -602,6 +602,7 @@ export function useCalendarEvents() {
                     date: (data.date as Timestamp).toDate().toISOString(),
                 } as UserEvent;
             });
+            userEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             setEvents(userEvents);
             setLoading(false);
         }, (error) => {
