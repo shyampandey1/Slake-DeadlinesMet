@@ -47,7 +47,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { tasks, addTask } = useTasks();
   const { findAndSyncPresetTask } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
-  const { playSound, audio } = useAudioSettings();
+  const { playSound } = useAudioSettings();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -56,7 +56,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
-  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
 
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -129,11 +128,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   
   const handleInteraction = () => {
     showUI();
-    if (audio && !isAudioUnlocked) {
-      audio.play().catch(() => {});
-      audio.pause();
-      setIsAudioUnlocked(true);
-    }
   };
 
   const handleSaveTask = async (completed: boolean) => {

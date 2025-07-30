@@ -2,19 +2,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { Howl } from 'howler';
 
 const AUDIO_ENABLED_KEY = 'timerAudioEnabled';
 
+// Define the sound instance outside the hook so it's only created once.
+let sound: Howl | null = null;
+if (typeof window !== 'undefined') {
+  sound = new Howl({
+    src: ['https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3'],
+    html5: true, // Helps with compatibility and autoplay policies
+  });
+}
+
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Lazily create the Audio object for the timer playback
-    if (typeof window !== 'undefined' && !audio) {
-        setAudio(new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3'));
-    }
-
     try {
       const storedValue = localStorage.getItem(AUDIO_ENABLED_KEY);
       if (storedValue !== null) {
@@ -23,7 +27,7 @@ export function useAudioSettings() {
     } catch (error) {
         console.warn("localStorage not available for audio settings.");
     }
-  }, [audio]);
+  }, []);
 
   const setAudioEnabled = useCallback((enabled: boolean) => {
     setIsAudioEnabled(enabled);
@@ -35,17 +39,16 @@ export function useAudioSettings() {
   }, []);
   
   const playSound = useCallback(() => {
-    if (isAudioEnabled && audio) {
-        audio.currentTime = 0;
-        audio.play().catch(e => console.error("Audio playback failed:", e));
+    if (isAudioEnabled && sound && !sound.playing()) {
+        sound.play();
     }
-  }, [isAudioEnabled, audio]);
+  }, [isAudioEnabled]);
 
   const testSound = useCallback(() => {
-    // Create a new Audio object on demand to ensure it's triggered by user interaction.
-    const testAudio = new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3');
-    testAudio.play().catch(e => console.error("Audio playback failed:", e));
+    if (sound) {
+        sound.play();
+    }
   }, []);
 
-  return { isAudioEnabled, setAudioEnabled, playSound, testSound, audio };
+  return { isAudioEnabled, setAudioEnabled, playSound, testSound };
 }
