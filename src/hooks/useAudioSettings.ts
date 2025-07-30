@@ -18,27 +18,26 @@ const sounds = [
 
 let soundInstances: { [key: string]: Howl } = {};
 
-const initializeSounds = () => {
+const initializeSounds = (volume: number) => {
     if (typeof window !== 'undefined') {
         sounds.forEach(s => {
-            if (!soundInstances[s.name]) {
-                soundInstances[s.name] = new Howl({
-                    src: [s.src],
-                    html5: true,
-                });
+            if (soundInstances[s.name]) {
+                soundInstances[s.name].unload();
             }
+            soundInstances[s.name] = new Howl({
+                src: [s.src],
+                html5: true,
+                volume: volume,
+            });
         });
     }
 }
-
-// Initialize sounds on script load
-initializeSounds();
-
 
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(sounds[0].name);
   const [volume, setVolume] = useState(0.5);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     try {
@@ -49,16 +48,16 @@ export function useAudioSettings() {
       if (storedSound && sounds.some(s => s.name === storedSound)) setSelectedSound(storedSound);
 
       const storedVolume = localStorage.getItem(VOLUME_KEY);
-      if (storedVolume !== null) {
-          const parsedVolume = JSON.parse(storedVolume);
-          setVolume(parsedVolume);
-          Howler.volume(parsedVolume);
-      } else {
-          Howler.volume(volume);
-      }
+      const initialVolume = storedVolume !== null ? JSON.parse(storedVolume) : 0.5;
+      setVolume(initialVolume);
+      
+      initializeSounds(initialVolume);
+      setIsInitialized(true);
 
     } catch (error) {
         console.warn("localStorage not available for audio settings.");
+        initializeSounds(0.5);
+        setIsInitialized(true);
     }
   }, []);
 
@@ -83,7 +82,7 @@ export function useAudioSettings() {
   const handleSetVolume = useCallback((newVolume: number[]) => {
       const vol = newVolume[0];
       setVolume(vol);
-      Howler.volume(vol);
+      Howler.volume(vol); // Set global volume for all Howl instances
       try {
         localStorage.setItem(VOLUME_KEY, JSON.stringify(vol));
       } catch (error) {
@@ -92,21 +91,24 @@ export function useAudioSettings() {
   }, []);
   
   const playSound = useCallback(() => {
+    if (!isAudioEnabled || !isInitialized) return;
     const sound = soundInstances[selectedSound];
-    if (isAudioEnabled && sound) {
+    if (sound) {
         sound.play();
     }
-  }, [isAudioEnabled, selectedSound]);
+  }, [isAudioEnabled, selectedSound, isInitialized]);
 
   const testSound = useCallback(() => {
+    if (!isInitialized) return;
     const sound = soundInstances[selectedSound];
     if (sound) {
         if (sound.playing()) {
             sound.stop();
         }
+        sound.volume(volume); // Ensure the instance volume is up-to-date
         sound.play();
     }
-  }, [selectedSound]);
+  }, [selectedSound, volume, isInitialized]);
 
   return { 
       isAudioEnabled, 
