@@ -11,7 +11,7 @@ import LoginForm from "@/components/LoginForm";
 import SignupForm from "@/components/SignupForm";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { GoogleIcon, GithubIcon } from "@/components/SocialIcons";
+import { GoogleIcon } from "@/components/SocialIcons";
 
 
 type AuthView = "initial" | "login" | "signup";
@@ -75,16 +75,10 @@ export default function AuthPage() {
           <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-                <Button onClick={handleGoogleLogin} size="lg" variant="outline">
-                    <GoogleIcon className="mr-2 h-5 w-5" />
-                    Google
-                </Button>
-                 <Button size="lg" variant="outline">
-                    <GithubIcon className="mr-2 h-5 w-5" />
-                    GitHub
-                </Button>
-            </div>
+            <Button onClick={handleGoogleLogin} size="lg" variant="outline">
+                <GoogleIcon className="mr-2 h-5 w-5" />
+                Google
+            </Button>
             
             <div className="flex items-center gap-2">
                 <Separator className="flex-1"/>
