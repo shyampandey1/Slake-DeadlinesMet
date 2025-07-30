@@ -22,6 +22,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "../ui/badge";
 
 const initialIconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -73,6 +74,12 @@ const initialProfileCategories: { [key: string]: string[] } = {
 };
 
 type GeneratingStatus = "idle" | "generating" | "saving" | "done";
+
+const examplePrompts = [
+    "Add a 30 min workout in the morning.",
+    "Read for 20 mins at night.",
+    "Schedule 'Team Sync' for 45 minutes in the afternoon.",
+];
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
@@ -235,7 +242,19 @@ function RoutineCustomizationPage() {
                                 disabled={isGenerating}
                                 rows={3}
                             />
-                            <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end">
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {examplePrompts.map((prompt, index) => (
+                                    <Badge 
+                                        key={index}
+                                        variant="outline" 
+                                        className="cursor-pointer hover:bg-muted"
+                                        onClick={() => setRoutineDescription(prompt)}
+                                    >
+                                        {prompt}
+                                    </Badge>
+                                ))}
+                            </div>
+                            <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end mt-2">
                                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 {generateButtonText[generatingStatus]}
                             </Button>
