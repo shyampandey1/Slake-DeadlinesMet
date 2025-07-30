@@ -42,7 +42,7 @@ const weatherCodeMapping: { [key: number]: { condition: string, icon: React.Reac
 export default function InfoDisplay() {
   const [time, setTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   async function fetchWeather(latitude: number, longitude: number) {
@@ -62,7 +62,9 @@ export default function InfoDisplay() {
           if (weatherData?.current_weather) {
             const { temperature, weathercode } = weatherData.current_weather;
             const { condition, icon } = weatherCodeMapping[weathercode] || { condition: 'Clear', icon: <Sun className="h-4 w-4" /> };
-            const locationName = locationData.address?.city || locationData.address?.town || locationData.address?.village || "Current Location";
+            const city = locationData.address?.city || locationData.address?.town || locationData.address?.village;
+            const country = locationData.address?.country;
+            const locationName = city && country ? `${city}, ${country}` : "Current Location";
 
             setWeather({
                 location: locationName,
@@ -102,10 +104,6 @@ export default function InfoDisplay() {
     const timer = setInterval(() => {
       setTime(new Date());
     }, 1000 * 60); // Update time every minute
-    
-    // Set loading to false initially, let the user click the button
-    setLoading(false);
-
 
     return () => clearInterval(timer);
   }, []);
@@ -156,4 +154,3 @@ export default function InfoDisplay() {
     </div>
   );
 }
-
