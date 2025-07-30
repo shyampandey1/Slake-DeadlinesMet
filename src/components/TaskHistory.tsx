@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { BookText, ThumbsUp, ThumbsDown, Trash2, TrendingUp, Calendar, CheckCircle, Clock, RefreshCw, XCircle } from "lucide-react";
+import { BookText, ThumbsUp, ThumbsDown, Trash2, TrendingUp, Calendar, CheckCircle, Clock, RefreshCw, XCircle, Pause, Play } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -145,14 +145,14 @@ function TaskLogBookContent() {
                                                           <span className="text-sm font-medium">Done</span>
                                                       </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="flex items-center gap-1 text-red-500">
-                                                            <XCircle className="h-4 w-4" />
-                                                            <span className="text-sm font-medium">Not Done</span>
+                                                    <div className="inline-flex items-center">
+                                                        <div className="flex items-center gap-1 text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-l-md px-3 py-1.5">
+                                                            <Pause className="h-4 w-4" />
+                                                            <span className="text-sm font-medium">Paused</span>
                                                         </div>
-                                                        <Button size="sm" variant="outline" onClick={() => handleTaskClick(task)}>
-                                                            <RefreshCw className="mr-2 h-3 w-3" />
-                                                            Retry
+                                                        <Button size="sm" variant="outline" onClick={() => handleTaskClick(task)} className="rounded-l-none border-l-0 px-3 py-1.5 h-auto">
+                                                            <Play className="mr-2 h-3 w-3" />
+                                                            Continue
                                                         </Button>
                                                     </div>
                                                   )}
