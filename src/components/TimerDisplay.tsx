@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/dialog";
 import CircularProgress from "./CircularProgress";
 import InfoDisplay from "./InfoDisplay";
+import { useTimerUI } from "@/hooks/useTimerUI";
+
 
 interface TimerDisplayProps {
   taskName: string;
@@ -43,6 +45,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const router = useRouter();
   const { tasks, addTask } = useTasks();
   const { findAndSyncPresetTask } = usePresetTasks();
+  const { isUIVisible, showUI } = useTimerUI();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -168,6 +171,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   return (
     <main
+      onClick={showUI}
+      onMouseMove={showUI}
       className={cn(
         "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-background",
         {
@@ -182,7 +187,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         '--flash-color': 'hsl(0 0% 100% / 0.5)',
       } as React.CSSProperties}
     >
-      <div className="absolute top-4">
+      <div className={cn(
+        "absolute top-4 transition-opacity duration-300",
+        !isUIVisible && "opacity-30"
+      )}>
         <InfoDisplay />
       </div>
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
