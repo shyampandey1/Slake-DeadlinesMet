@@ -79,6 +79,8 @@ const examplePrompts = [
     "Add a 30 min workout in the morning.",
     "Read for 20 mins at night.",
     "Schedule 'Team Sync' for 45 minutes in the afternoon.",
+    "Plan my day for 15 mins",
+    "Work on presentation for 1 hour"
 ];
 
 function RoutineCustomizationPage() {
@@ -231,7 +233,7 @@ function RoutineCustomizationPage() {
                             <WandSparkles className="text-primary"/>
                             Enhance my schedule
                         </CardTitle>
-                        <CardDescription>Describe the tasks you want to add, and the AI will organize them into your routine. e.g., "Add a 30 min workout in the morning and read for 20 mins at night."</CardDescription>
+                        <CardDescription>Describe tasks you want to add and AI will organize them into your routine.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col gap-2">
