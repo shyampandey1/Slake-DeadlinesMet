@@ -30,6 +30,7 @@ import {
 import CircularProgress from "./CircularProgress";
 import InfoDisplay from "./InfoDisplay";
 import { useTimerUI } from "@/hooks/useTimerUI";
+import { useAudioSettings } from "@/hooks/useAudioSettings";
 
 
 interface TimerDisplayProps {
@@ -46,6 +47,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { tasks, addTask } = useTasks();
   const { findAndSyncPresetTask } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
+  const { playSound } = useAudioSettings();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -72,19 +74,21 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           stopTimer();
           setIsFinished(true);
           setFlashState('none');
+          playSound();
           return 0;
         }
         
         if (prev <= 4) {
           setFlashState('continuous');
-        } else if (prev <= 11) {
-          setFlashState('three-times');
+          playSound();
+        } else if (prev <= 11 && prev > 4) {
+           setFlashState('none');
         }
 
         return prev - 1;
       });
     }, 1000);
-  }, [stopTimer]);
+  }, [stopTimer, playSound]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -184,7 +188,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       style={{
         '--timer-primary-color': timerColor,
         '--timer-background-color': 'hsl(var(--background))',
-        '--flash-color': 'hsl(0 0% 100% / 0.5)',
+        '--flash-color': 'hsl(0 0% 100% / 0.1)',
       } as React.CSSProperties}
     >
       <div className={cn(

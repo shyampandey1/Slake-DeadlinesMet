@@ -6,10 +6,11 @@ import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User } from "lucide-react";
+import { Moon, Sun, Trash2, User, Volume2, Bell } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
+import { useAudioSettings } from "@/hooks/useAudioSettings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,13 +21,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 
 
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
     const { user } = useAuth();
     const { clearTasks } = useTasks();
+    const { isAudioEnabled, setAudioEnabled, testSound } = useAudioSettings();
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
 
     const handleClearHistory = () => {
@@ -61,6 +64,30 @@ function SettingsPageComponent() {
                                     <span className="sr-only">Toggle theme</span>
                                 </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg">Audio</CardTitle>
+                            <CardDescription>Manage audio cues for the timer.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="audio-switch" className="font-medium flex items-center gap-2">
+                                    <Bell className="h-4 w-4" />
+                                    Timer Cues
+                                </label>
+                                <Switch
+                                    id="audio-switch"
+                                    checked={isAudioEnabled}
+                                    onCheckedChange={setAudioEnabled}
+                                />
+                            </div>
+                            <Button variant="outline" onClick={testSound}>
+                                <Volume2 className="mr-2 h-4 w-4" />
+                                Test Sound
+                            </Button>
                         </CardContent>
                     </Card>
 
