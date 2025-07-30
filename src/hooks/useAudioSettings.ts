@@ -7,12 +7,13 @@ const AUDIO_ENABLED_KEY = 'timerAudioEnabled';
 
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  // Initialize the Audio object lazily and only on the client-side.
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // This effect runs only on the client
-    setAudio(new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3'));
+    // Lazily create the Audio object for the timer playback
+    if (typeof window !== 'undefined' && !audio) {
+        setAudio(new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3'));
+    }
 
     try {
       const storedValue = localStorage.getItem(AUDIO_ENABLED_KEY);
@@ -20,10 +21,9 @@ export function useAudioSettings() {
         setIsAudioEnabled(JSON.parse(storedValue));
       }
     } catch (error) {
-        // If localStorage is not available, proceed with default
         console.warn("localStorage not available for audio settings.");
     }
-  }, []);
+  }, [audio]);
 
   const setAudioEnabled = useCallback((enabled: boolean) => {
     setIsAudioEnabled(enabled);
@@ -42,11 +42,10 @@ export function useAudioSettings() {
   }, [isAudioEnabled, audio]);
 
   const testSound = useCallback(() => {
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(e => console.error("Audio playback failed:", e));
-    }
-  }, [audio]);
+    // Create a new Audio object on demand to ensure it's triggered by user interaction.
+    const testAudio = new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_c668156e54.mp3');
+    testAudio.play().catch(e => console.error("Audio playback failed:", e));
+  }, []);
 
   return { isAudioEnabled, setAudioEnabled, playSound, testSound, audio };
 }
