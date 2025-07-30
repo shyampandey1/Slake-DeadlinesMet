@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +55,6 @@ export default function LoginForm({ onBack }: LoginFormProps) {
     } catch (error: any) {
         console.warn("Firebase login failed:", error.message);
         
-        // Specific check for database not existing error
         if (error.code === 'failed-precondition' || error.message.includes('database')) {
              const mockUser = mockLogin("user@test.com", "password123");
              if (mockUser) {
@@ -69,7 +69,6 @@ export default function LoginForm({ onBack }: LoginFormProps) {
              }
         }
         
-        // General fallback for other auth errors
         const mockUser = mockLogin(values.email, values.password);
         if (mockUser) {
             setMockUser(mockUser);
@@ -124,8 +123,8 @@ export default function LoginForm({ onBack }: LoginFormProps) {
               )}
             />
             <div className="text-right">
-                <Button variant="link" type="button" className="p-0 h-auto text-xs">
-                    Forgot Password?
+                <Button variant="link" type="button" className="p-0 h-auto text-xs" asChild>
+                    <Link href="/forgot-password">Forgot Password?</Link>
                 </Button>
             </div>
             <Button type="submit" className="w-full !mt-6 bg-gradient-to-r from-purple-500 to-blue-500 text-white">
