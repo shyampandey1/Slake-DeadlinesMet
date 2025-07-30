@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -428,7 +429,6 @@ export function usePresetTasks() {
             const events = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
-                date: (doc.data().date as Timestamp).toDate().toISOString()
             })) as UserEvent[];
             setTodaysEvents(events);
         }, (error) => {
@@ -606,7 +606,7 @@ export function useCalendarEvents() {
                 return {
                     id: doc.id,
                     ...data,
-                    date: (data.date as Timestamp).toDate().toISOString(),
+                    date: data.date, 
                 } as UserEvent;
             });
             setEvents(userEvents);
@@ -624,7 +624,6 @@ export function useCalendarEvents() {
         await addDoc(collection(db, 'userEvents'), {
             ...event,
             userId: user.uid,
-            date: Timestamp.fromDate(new Date(event.date)),
         });
     }, [user, isOffline]);
 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, set } from "date-fns";
 import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,13 +30,14 @@ const iconMap: { [key: string]: LucideIcon } = {
 const formSchema = z.object({
   name: z.string().min(1, "Task name is required."),
   duration: z.coerce.number().min(1, "Duration must be at least 1 minute."),
+  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Please enter a valid time in HH:mm format."),
 });
 
 
 function AddEventDialog({ isOpen, onClose, onSave, selectedDate }: { isOpen: boolean, onClose: () => void, onSave: (data: z.infer<typeof formSchema>) => void, selectedDate: Date }) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: { name: "", duration: 30 },
+        defaultValues: { name: "", duration: 30, time: "09:00" },
     });
 
     const handleSubmit = (data: z.infer<typeof formSchema>) => {
@@ -65,17 +66,30 @@ function AddEventDialog({ isOpen, onClose, onSave, selectedDate }: { isOpen: boo
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="duration"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Duration (minutes)</FormLabel>
-                                <FormControl><Input type="number" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="duration"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Duration (min)</FormLabel>
+                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="time"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Time</FormLabel>
+                                    <FormControl><Input type="time" {...field} /></FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
                             <Button type="submit">Add Event</Button>
@@ -93,15 +107,21 @@ function CalendarPageComponent() {
     const { events, loading, addEvent, deleteEvent } = useCalendarEvents();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const selectedDayEvents = events.filter(event => selectedDate && isSameDay(new Date(event.date), selectedDate));
+    const selectedDayEvents = events
+        .filter(event => selectedDate && isSameDay(new Date(event.date), selectedDate))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
 
     const handleSaveEvent = async (data: z.infer<typeof formSchema>) => {
         if (selectedDate) {
+            const [hours, minutes] = data.time.split(':').map(Number);
+            const eventDate = set(selectedDate, { hours, minutes });
+
             await addEvent({
                 name: data.name,
                 duration: data.duration,
-                icon: "Calendar", // Default icon
-                date: selectedDate.toISOString()
+                icon: "ListChecks", 
+                date: eventDate.toISOString()
             });
         }
     };
@@ -162,7 +182,10 @@ function CalendarPageComponent() {
                                             <div key={event.id} className="flex items-center justify-between p-3 rounded-lg bg-card border">
                                                 <div className="flex items-center gap-3">
                                                     <Icon className="h-5 w-5 text-muted-foreground" />
-                                                    <span className="font-medium">{event.name}</span>
+                                                    <div>
+                                                        <span className="font-medium">{event.name}</span>
+                                                        <div className="text-xs text-muted-foreground">{format(new Date(event.date), "p")}</div>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
