@@ -19,14 +19,15 @@ const sounds = [
 let soundInstances: { [key: string]: Howl } = {};
 
 const initializeSounds = (volume: number) => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') { // Ensure this runs only on the client
         sounds.forEach(s => {
+            // Unload existing sound if it exists, to prevent memory leaks
             if (soundInstances[s.name]) {
                 soundInstances[s.name].unload();
             }
             soundInstances[s.name] = new Howl({
                 src: [s.src],
-                html5: true,
+                html5: true, // Improves compatibility
                 volume: volume,
             });
         });
@@ -36,10 +37,11 @@ const initializeSounds = (volume: number) => {
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(sounds[0].name);
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolumeState] = useState(0.5);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // Load settings from localStorage only on the client side
     try {
       const storedEnabled = localStorage.getItem(AUDIO_ENABLED_KEY);
       if (storedEnabled !== null) setIsAudioEnabled(JSON.parse(storedEnabled));
@@ -48,17 +50,17 @@ export function useAudioSettings() {
       if (storedSound && sounds.some(s => s.name === storedSound)) setSelectedSound(storedSound);
 
       const storedVolume = localStorage.getItem(VOLUME_KEY);
-      const initialVolume = storedVolume !== null ? JSON.parse(storedVolume) : 0.5;
-      setVolume(initialVolume);
+      const initialVolume = storedVolume !== null ? parseFloat(storedVolume) : 0.5;
+      setVolumeState(initialVolume);
       
+      // Initialize sounds with the loaded (or default) volume
       initializeSounds(initialVolume);
-      setIsInitialized(true);
 
     } catch (error) {
-        console.warn("localStorage not available for audio settings.");
-        initializeSounds(0.5);
-        setIsInitialized(true);
+        console.warn("localStorage not available, using default audio settings.");
+        initializeSounds(0.5); // Fallback initialization
     }
+    setIsInitialized(true);
   }, []);
 
   const setAudioEnabled = useCallback((enabled: boolean) => {
@@ -79,10 +81,15 @@ export function useAudioSettings() {
       }
   }, []);
 
-  const handleSetVolume = useCallback((newVolume: number[]) => {
+  const setVolume = useCallback((newVolume: number[]) => {
       const vol = newVolume[0];
-      setVolume(vol);
-      Howler.volume(vol); // Set global volume for all Howl instances
+      setVolumeState(vol);
+      
+      // Update volume for all existing Howl instances
+      Object.values(soundInstances).forEach(howl => {
+          howl.volume(vol);
+      });
+
       try {
         localStorage.setItem(VOLUME_KEY, JSON.stringify(vol));
       } catch (error) {
@@ -105,10 +112,10 @@ export function useAudioSettings() {
         if (sound.playing()) {
             sound.stop();
         }
-        sound.volume(volume); // Ensure the instance volume is up-to-date
+        // The volume is already set on the instance, so just play.
         sound.play();
     }
-  }, [selectedSound, volume, isInitialized]);
+  }, [selectedSound, isInitialized]);
 
   return { 
       isAudioEnabled, 
@@ -117,7 +124,7 @@ export function useAudioSettings() {
       selectedSound,
       setSelectedSound: handleSetSound,
       volume,
-      setVolume: handleSetVolume,
+      setVolume,
       playSound, 
       testSound 
     };
