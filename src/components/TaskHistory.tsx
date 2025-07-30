@@ -79,12 +79,6 @@ function TaskLogBookContent() {
     <div className="space-y-8">
         <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
-             {tasks.length > 0 && !loading && (
-              <Button variant="ghost" onClick={clearTasks} className="text-muted-foreground">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear Log
-              </Button>
-            )}
         </div>
       
         {loading ? renderSkeleton() : (
