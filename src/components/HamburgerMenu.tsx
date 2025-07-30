@@ -51,8 +51,8 @@ const changelog = [
 export default function HamburgerMenu() {
   const { user } = useAuth();
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -61,11 +61,17 @@ export default function HamburgerMenu() {
   
   const navigateTo = (path: string) => {
     router.push(path);
+    setIsMenuOpen(false);
+  }
+
+  const openChangelog = () => {
+    setIsMenuOpen(false);
+    setIsChangelogOpen(true);
   }
 
   return (
-      <Dialog open={isChangelogOpen} onOpenChange={setIsChangelogOpen}>
-      <Sheet>
+    <>
+      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <SheetTrigger asChild>
             <Button variant="outline" size="icon">
                 <Menu className="h-6 w-6" />
@@ -83,99 +89,88 @@ export default function HamburgerMenu() {
           </SheetHeader>
           <div className="py-4">
             {user && (
-              <SheetClose asChild>
               <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3" onClick={() => navigateTo('/settings')}>
                 <User className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground truncate">
                   {user.email}
                 </span>
               </Button>
-              </SheetClose>
             )}
           </div>
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4">
-                <SheetClose asChild>
-                  <Button variant="ghost" onClick={() => navigateTo('/history')} className="w-full justify-start gap-2">
-                      <BookText className="h-5 w-5" />
-                      <span>Task Log Book</span>
-                  </Button>
-                </SheetClose>
-                 <SheetClose asChild>
-                  <Button variant="ghost" onClick={() => navigateTo('/routine')} className="w-full justify-start gap-2">
-                      <ClipboardList className="h-5 w-5" />
-                      <span>Customize Routine</span>
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button variant="ghost" onClick={() => navigateTo('/calendar')} className="w-full justify-start gap-2">
-                      <Calendar className="h-5 w-5" />
-                      <span>Event Calendar</span>
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button variant="ghost" onClick={() => navigateTo('/settings')} className="w-full justify-start gap-2">
-                      <Settings className="h-5 w-5" />
-                      <span>Settings</span>
-                  </Button>
-                </SheetClose>
+                <Button variant="ghost" onClick={() => navigateTo('/history')} className="w-full justify-start gap-2">
+                    <BookText className="h-5 w-5" />
+                    <span>Task Log Book</span>
+                </Button>
+                <Button variant="ghost" onClick={() => navigateTo('/routine')} className="w-full justify-start gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    <span>Customize Routine</span>
+                </Button>
+                <Button variant="ghost" onClick={() => navigateTo('/calendar')} className="w-full justify-start gap-2">
+                    <Calendar className="h-5 w-5" />
+                    <span>Event Calendar</span>
+                </Button>
+                <Button variant="ghost" onClick={() => navigateTo('/settings')} className="w-full justify-start gap-2">
+                    <Settings className="h-5 w-5" />
+                    <span>Settings</span>
+                </Button>
                 
-                <DialogTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    <span>What's New</span>
-                  </Button>
-                </DialogTrigger>
+                <Button variant="ghost" onClick={openChangelog} className="w-full justify-start gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  <span>What's New</span>
+                </Button>
 
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto pt-4">
-            <SheetClose asChild>
-                <Button onClick={handleLogout} variant="outline" className="w-full">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-                </Button>
-            </SheetClose>
+            <Button onClick={handleLogout} variant="outline" className="w-full">
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
-      <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-2xl flex items-center gap-2">
-                <Sparkles className="text-primary"/>
-                What's New
-            </DialogTitle>
-            <DialogDescription>
-              A timeline of all the awesome features we've added to the app.
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-6">
-              {changelog.map((entry) => (
-                <div key={entry.version}>
-                    <div className="flex items-center gap-3 mb-3">
-                        <Badge variant="secondary">{entry.version}</Badge>
-                        <p className="text-sm text-muted-foreground">{entry.date}</p>
-                    </div>
-                    <div className="space-y-3">
-                        {entry.features.map(feature => {
-                            const Icon = feature.icon;
-                            return (
-                            <div key={feature.name} className="flex gap-4 p-3 rounded-lg border bg-card/50">
-                                <Icon className="h-5 w-5 text-primary mt-1" />
-                                <div>
-                                    <p className="font-semibold">{feature.name}</p>
-                                    <p className="text-sm text-muted-foreground">{feature.description}</p>
-                                </div>
-                            </div>
-                            )
-                        })}
-                    </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-      </DialogContent>
+      
+      <Dialog open={isChangelogOpen} onOpenChange={setIsChangelogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl flex items-center gap-2">
+                  <Sparkles className="text-primary"/>
+                  What's New
+              </DialogTitle>
+              <DialogDescription>
+                A timeline of all the awesome features we've added to the app.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] pr-4">
+              <div className="space-y-6">
+                {changelog.map((entry) => (
+                  <div key={entry.version}>
+                      <div className="flex items-center gap-3 mb-3">
+                          <Badge variant="secondary">{entry.version}</Badge>
+                          <p className="text-sm text-muted-foreground">{entry.date}</p>
+                      </div>
+                      <div className="space-y-3">
+                          {entry.features.map(feature => {
+                              const Icon = feature.icon;
+                              return (
+                              <div key={feature.name} className="flex gap-4 p-3 rounded-lg border bg-card/50">
+                                  <Icon className="h-5 w-5 text-primary mt-1" />
+                                  <div>
+                                      <p className="font-semibold">{feature.name}</p>
+                                      <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                  </div>
+                              </div>
+                              )
+                          })}
+                      </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+        </DialogContent>
       </Dialog>
+    </>
   );
 }
