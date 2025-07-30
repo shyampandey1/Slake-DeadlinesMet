@@ -20,13 +20,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
-import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 
 const changelog = [
@@ -84,20 +83,18 @@ export default function HamburgerMenu() {
           </SheetHeader>
           <div className="py-4">
             {user && (
-              <div className="flex items-center gap-3 rounded-lg bg-muted p-3 mb-4">
+              <SheetClose asChild>
+              <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3" onClick={() => navigateTo('/settings')}>
                 <User className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground truncate">
                   {user.email}
                 </span>
-              </div>
+              </Button>
+              </SheetClose>
             )}
           </div>
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4">
-                <Button variant="ghost" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-full justify-start gap-2">
-                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                    <span>Toggle Theme</span>
-                </Button>
                 <SheetClose asChild>
                   <Button variant="ghost" onClick={() => navigateTo('/history')} className="w-full justify-start gap-2">
                       <BookText className="h-5 w-5" />
@@ -114,6 +111,12 @@ export default function HamburgerMenu() {
                   <Button variant="ghost" onClick={() => navigateTo('/calendar')} className="w-full justify-start gap-2">
                       <Calendar className="h-5 w-5" />
                       <span>Event Calendar</span>
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button variant="ghost" onClick={() => navigateTo('/settings')} className="w-full justify-start gap-2">
+                      <Settings className="h-5 w-5" />
+                      <span>Settings</span>
                   </Button>
                 </SheetClose>
                 

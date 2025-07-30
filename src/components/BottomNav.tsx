@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookText, ClipboardList } from "lucide-react";
+import { Home, BookText, ClipboardList, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/history", label: "Log Book", icon: BookText },
   { href: "/", label: "Home", icon: Home },
   { href: "/routine", label: "Routine", icon: ClipboardList },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function BottomNav() {
