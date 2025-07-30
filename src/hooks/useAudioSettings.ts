@@ -49,7 +49,13 @@ export function useAudioSettings() {
       if (storedSound && sounds.some(s => s.name === storedSound)) setSelectedSound(storedSound);
 
       const storedVolume = localStorage.getItem(VOLUME_KEY);
-      if (storedVolume !== null) setVolume(JSON.parse(storedVolume));
+      if (storedVolume !== null) {
+          const parsedVolume = JSON.parse(storedVolume);
+          setVolume(parsedVolume);
+          Howler.volume(parsedVolume);
+      } else {
+          Howler.volume(volume);
+      }
 
     } catch (error) {
         console.warn("localStorage not available for audio settings.");
@@ -77,9 +83,9 @@ export function useAudioSettings() {
   const handleSetVolume = useCallback((newVolume: number[]) => {
       const vol = newVolume[0];
       setVolume(vol);
+      Howler.volume(vol);
       try {
         localStorage.setItem(VOLUME_KEY, JSON.stringify(vol));
-        Object.values(soundInstances).forEach(howl => howl.volume(vol));
       } catch (error) {
         console.warn("localStorage not available for audio settings.");
       }
@@ -87,11 +93,10 @@ export function useAudioSettings() {
   
   const playSound = useCallback(() => {
     const sound = soundInstances[selectedSound];
-    if (isAudioEnabled && sound && !sound.playing()) {
-        sound.volume(volume);
+    if (isAudioEnabled && sound) {
         sound.play();
     }
-  }, [isAudioEnabled, selectedSound, volume]);
+  }, [isAudioEnabled, selectedSound]);
 
   const testSound = useCallback(() => {
     const sound = soundInstances[selectedSound];
@@ -99,10 +104,9 @@ export function useAudioSettings() {
         if (sound.playing()) {
             sound.stop();
         }
-        sound.volume(volume);
         sound.play();
     }
-  }, [selectedSound, volume]);
+  }, [selectedSound]);
 
   return { 
       isAudioEnabled, 
