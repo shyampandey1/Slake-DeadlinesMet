@@ -9,7 +9,7 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile } from "firebase/auth";
 import { auth, analytics } from "@/lib/firebase";
 import { MockUser } from "@/types";
 import { mockLogin } from "@/lib/mockAuth";
@@ -22,6 +22,7 @@ interface AuthContextType {
   setMockUser: (user: MockUser | null) => void;
   signInWithGoogle: () => Promise<void>;
   mockLogin: (email: string, pass: string) => MockUser | null;
+  updateUserDisplayName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   setMockUser: () => {},
   signInWithGoogle: async () => {},
   mockLogin: () => null,
+  updateUserDisplayName: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -57,6 +59,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateUserDisplayName = useCallback(async (name: string) => {
+    if (user) {
+        if ('isMockUser' in user && user.isMockUser) {
+            setUser({ ...user, displayName: name });
+        } else if (auth.currentUser) {
+            await updateProfile(auth.currentUser, { displayName: name });
+            setUser({ ...auth.currentUser, displayName: name } as User); // Force refresh of user state
+        } else {
+            throw new Error("No user is currently signed in.");
+        }
+    }
+  }, [user]);
+
   useEffect(() => {
     // Ensure analytics is initialized
     analytics.then(instance => {
@@ -81,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, isOffline, setIsOffline, setMockUser, signInWithGoogle, mockLogin }}>
+    <AuthContext.Provider value={{ user, loading, isOffline, setIsOffline, setMockUser, signInWithGoogle, mockLogin, updateUserDisplayName }}>
       {children}
     </AuthContext.Provider>
   );

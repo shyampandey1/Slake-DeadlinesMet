@@ -14,6 +14,7 @@ export type Task = {
 export type MockUser = {
   uid: string;
   email: string;
+  displayName?: string | null;
   isMockUser: true;
 }
 

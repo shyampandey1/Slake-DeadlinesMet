@@ -9,6 +9,7 @@ export function mockLogin(email: string, password_provided: string): MockUser | 
     return {
       uid: "mock-user-01",
       email: MOCK_USER_EMAIL,
+      displayName: "Guest User",
       isMockUser: true,
     };
   }

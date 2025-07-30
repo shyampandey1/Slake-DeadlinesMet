@@ -6,7 +6,7 @@ import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User, Volume2, Bell } from "lucide-react";
+import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
@@ -26,19 +26,43 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
-    const { user } = useAuth();
+    const { user, updateUserDisplayName } = useAuth();
     const { clearTasks } = useTasks();
     const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+    
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [displayName, setDisplayName] = useState(user?.displayName || "");
+    const [isSavingName, setIsSavingName] = useState(false);
+    const { toast } = useToast();
 
     const handleClearHistory = () => {
         clearTasks();
         setIsClearDialogOpen(false);
     }
+    
+    const handleNameSave = async () => {
+        if (!displayName.trim()) {
+            toast({ title: "Name cannot be empty.", variant: "destructive" });
+            return;
+        }
+        setIsSavingName(true);
+        try {
+            await updateUserDisplayName(displayName);
+            toast({ title: "Name updated successfully!" });
+            setIsEditingName(false);
+        } catch (error: any) {
+            toast({ title: "Failed to update name.", description: error.message, variant: "destructive" });
+        } finally {
+            setIsSavingName(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-screen">
@@ -122,15 +146,42 @@ function SettingsPageComponent() {
                             <CardTitle className="font-headline text-lg">Account</CardTitle>
                             <CardDescription>Manage your account information.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                             {user && (
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium">Email</span>
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                       <User className="h-4 w-4" />
-                                       <span>{user.email}</span>
+                        <CardContent className="space-y-4">
+                            {user && (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-medium">Name</span>
+                                        {isEditingName ? (
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    value={displayName}
+                                                    onChange={(e) => setDisplayName(e.target.value)}
+                                                    className="h-9"
+                                                />
+                                                <Button size="icon" onClick={handleNameSave} disabled={isSavingName} className="h-9 w-9">
+                                                    {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                                </Button>
+                                                <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)} className="h-9 w-9">
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <span>{user.displayName || "Guest"}</span>
+                                                <Button size="icon" variant="ghost" onClick={() => setIsEditingName(true)} className="h-8 w-8">
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-medium">Email</span>
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                           <User className="h-4 w-4" />
+                                           <span className="truncate max-w-[150px] sm:max-w-xs">{user.email}</span>
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </CardContent>
                     </Card>
