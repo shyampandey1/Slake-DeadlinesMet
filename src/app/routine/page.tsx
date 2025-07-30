@@ -218,6 +218,33 @@ function RoutineCustomizationPage() {
         <main className="flex-1 overflow-y-auto pt-16 pb-20">
             <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
 
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-base flex items-center gap-2">
+                            <WandSparkles className="text-primary"/>
+                            Enhance my schedule
+                        </CardTitle>
+                        <CardDescription>Describe the tasks you want to add, and the AI will organize them into your routine. e.g., "Add a 30 min workout in the morning and read for 20 mins at night."</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col gap-2">
+                            <Textarea 
+                                placeholder="Type here..." 
+                                value={routineDescription}
+                                onChange={(e) => setRoutineDescription(e.target.value)}
+                                disabled={isGenerating}
+                                rows={3}
+                            />
+                            <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end">
+                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                {generateButtonText[generatingStatus]}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                <Separator />
+                
                  <Collapsible defaultOpen={true}>
                     <CollapsibleTrigger className="flex items-center gap-2 text-2xl font-headline w-full">
                         <ChevronDown className="h-6 w-6 transition-transform [&[data-state=open]]:-rotate-180" />
@@ -313,31 +340,6 @@ function RoutineCustomizationPage() {
                             ))}
                             </div>
                         )}
-                        <Separator />
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline text-base flex items-center gap-2">
-                                    <WandSparkles className="text-primary"/>
-                                    Enhance My Schedule
-                                </CardTitle>
-                                <CardDescription>Describe the tasks you want to add, and the AI will organize them into your routine. e.g., "Add a 30 min workout in the morning and read for 20 mins at night."</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col gap-2">
-                                    <Textarea 
-                                        placeholder="Type here..." 
-                                        value={routineDescription}
-                                        onChange={(e) => setRoutineDescription(e.target.value)}
-                                        disabled={isGenerating}
-                                        rows={3}
-                                    />
-                                    <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end">
-                                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                        {generateButtonText[generatingStatus]}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
                      </CollapsibleContent>
                 </Collapsible>
             </div>
@@ -362,3 +364,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
