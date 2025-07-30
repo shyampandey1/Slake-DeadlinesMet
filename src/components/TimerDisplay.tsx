@@ -179,6 +179,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       style={{
         '--timer-primary-color': timerColor,
         '--timer-background-color': 'hsl(var(--background))',
+        '--flash-color': 'hsl(0 0% 100% / 0.5)',
       } as React.CSSProperties}
     >
       <div className="absolute top-4">

@@ -135,7 +135,7 @@ function TaskLogBookContent() {
                                               <div className="flex flex-col">
                                                   <span className="font-semibold">{task.name}</span>
                                                   <span className="text-sm text-muted-foreground">
-                                                    Time taken: {task.duration} min &bull; {format(new Date(task.createdAt), "p")}
+                                                    Time spent: {task.duration} min &bull; {format(new Date(task.createdAt), "p")}
                                                   </span>
                                               </div>
                                               <div className="flex items-center gap-2">
