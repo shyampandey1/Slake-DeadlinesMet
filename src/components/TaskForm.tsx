@@ -114,34 +114,6 @@ export default function TaskForm() {
   }, [presetTasks, carouselApi]);
 
 
-  useEffect(() => {
-    if (Object.keys(presetTasks).length > 0 && carouselApi) {
-        let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
-        const allTasksWithTimes: (UserPresetTask & { category: string; startTime: Date; endTime: Date; })[] = [];
-
-        Object.entries(presetTasks).forEach(([category, { tasks }]) => {
-            tasks.forEach(task => {
-                const startTime = cumulativeTime;
-                const endTime = add(startTime, { minutes: task.duration });
-                allTasksWithTimes.push({ ...task, category, startTime, endTime });
-                cumulativeTime = endTime;
-            });
-        });
-
-        const currentTime = new Date();
-        const activeTaskIndex = allTasksWithTimes.findIndex(task => isBefore(currentTime, task.endTime));
-        
-        if (activeTaskIndex !== -1) {
-            const activeTask = allTasksWithTimes[activeTaskIndex];
-            const categoryIndex = Object.keys(presetTasks).findIndex(cat => cat === activeTask.category);
-            if (categoryIndex !== -1 && categoryIndex !== selectedIndex) {
-                 scrollTo(categoryIndex);
-            }
-        }
-    }
-  }, [presetTasks, carouselApi, scrollTo, selectedIndex]);
-
-
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
     setTaskToEdit(initialTask);
