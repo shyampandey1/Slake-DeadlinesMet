@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
 import { add, set, isBefore, isAfter } from "date-fns";
@@ -61,12 +61,13 @@ const iconMap: { [key: string]: LucideIcon } = {
     Wrench: Wrench,
     Target: Target,
     ShoppingBag: ShoppingBag,
+    Calendar: Calendar,
 };
 
 
 export default function TaskForm() {
   const router = useRouter();
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, todaysEvents } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
@@ -234,13 +235,14 @@ export default function TaskForm() {
                             <div className="space-y-2">
                             {tasks.map((task) => {
                                 const Icon = iconMap[task.icon] || BrainCircuit;
+                                const isEventTask = task.isEvent;
                                 return (
                                     <Button
                                         key={task.id || task.name}
-                                        variant="outline"
-                                        className="w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal"
+                                        variant={isEventTask ? "default" : "outline"}
+                                        className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 border-primary/50 hover:bg-primary/30": isEventTask })}
                                         onClick={() => selectQuickStartTask(task, category, color)}
-                                        onDoubleClick={() => task.id && handleOpenDialog(task, category)}
+                                        onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
                                     >
                                         <Icon className="w-5 h-5 text-muted-foreground" />
                                         <span className="flex-1 text-left font-normal">{task.name}</span>
@@ -358,4 +360,3 @@ export default function TaskForm() {
     </>
   );
 }
-

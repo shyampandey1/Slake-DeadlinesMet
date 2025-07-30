@@ -316,7 +316,8 @@ export function usePresetTasks() {
                             duration: event.duration,
                             icon: event.icon || 'ListChecks',
                             order: newPresetTasks[category].tasks.length,
-                            id: `event-${event.id}-${index}`
+                            id: `event-${event.id}-${index}`,
+                            isEvent: true,
                         });
                     });
                     injected = true;
@@ -329,7 +330,8 @@ export function usePresetTasks() {
                         duration: event.duration,
                         icon: event.icon || 'ListChecks',
                         order: newPresetTasks['Work Session 1'].tasks.length,
-                        id: `event-${event.id}-${index}`
+                        id: `event-${event.id}-${index}`,
+                        isEvent: true,
                     });
                 });
             }

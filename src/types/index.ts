@@ -35,6 +35,7 @@ export type PresetTask = {
 // Represents a task stored in Firestore, which will have an ID.
 export type UserPresetTask = PresetTask & {
   id?: string; // Default tasks won't have an ID
+  isEvent?: boolean; // Flag to identify calendar events
 };
 
 
