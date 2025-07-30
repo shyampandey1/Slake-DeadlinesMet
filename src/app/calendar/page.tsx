@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const iconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -30,14 +30,15 @@ const iconMap: { [key: string]: LucideIcon } = {
 const formSchema = z.object({
   name: z.string().min(1, "Task name is required."),
   duration: z.coerce.number().min(1, "Duration must be at least 1 minute."),
-  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Please enter a valid time in HH:mm format."),
+  hour: z.string(),
+  minute: z.string(),
 });
 
 
 function AddEventDialog({ isOpen, onClose, onSave, selectedDate }: { isOpen: boolean, onClose: () => void, onSave: (data: z.infer<typeof formSchema>) => void, selectedDate: Date }) {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: { name: "", duration: 30, time: "09:00" },
+        defaultValues: { name: "", duration: 30, hour: "09", minute: "00" },
     });
 
     const handleSubmit = (data: z.infer<typeof formSchema>) => {
@@ -78,17 +79,51 @@ function AddEventDialog({ isOpen, onClose, onSave, selectedDate }: { isOpen: boo
                                     </FormItem>
                                 )}
                             />
-                             <FormField
-                                control={form.control}
-                                name="time"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Time</FormLabel>
-                                    <FormControl><Input type="time" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="space-y-2">
+                                <FormLabel>Time</FormLabel>
+                                <div className="flex gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="hour"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Hour" />
+                                                    </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(hour => (
+                                                            <SelectItem key={hour} value={hour}>{hour}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="minute"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Minute" />
+                                                    </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(minute => (
+                                                            <SelectItem key={minute} value={minute}>{minute}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
                         </div>
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
@@ -114,7 +149,8 @@ function CalendarPageComponent() {
 
     const handleSaveEvent = async (data: z.infer<typeof formSchema>) => {
         if (selectedDate) {
-            const [hours, minutes] = data.time.split(':').map(Number);
+            const hours = parseInt(data.hour, 10);
+            const minutes = parseInt(data.minute, 10);
             const eventDate = set(selectedDate, { hours, minutes });
 
             await addEvent({
