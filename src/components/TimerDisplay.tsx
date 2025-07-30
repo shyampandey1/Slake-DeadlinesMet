@@ -47,7 +47,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { tasks, addTask } = useTasks();
   const { findAndSyncPresetTask } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
-  const { playSound } = useAudioSettings();
+  const { playSound, audio } = useAudioSettings();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -56,6 +56,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -124,6 +126,15 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     });
     router.push(`/timer?${params.toString()}`);
   }
+  
+  const handleInteraction = () => {
+    showUI();
+    if (audio && !isAudioUnlocked) {
+      audio.play().catch(() => {});
+      audio.pause();
+      setIsAudioUnlocked(true);
+    }
+  };
 
   const handleSaveTask = async (completed: boolean) => {
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
@@ -175,8 +186,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   return (
     <main
-      onClick={showUI}
-      onMouseMove={showUI}
+      onClick={handleInteraction}
+      onMouseMove={handleInteraction}
       className={cn(
         "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-background",
         {
