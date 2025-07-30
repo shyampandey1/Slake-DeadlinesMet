@@ -90,13 +90,13 @@ export default function LoginForm({ onBack }: LoginFormProps) {
 
   return (
     <div className="flex flex-col justify-center h-full">
-      <CardHeader>
+      <CardHeader className="pt-12">
         <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
         <CardDescription>Log in to your DeadlinesMet account.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"
@@ -123,23 +123,17 @@ export default function LoginForm({ onBack }: LoginFormProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <div className="text-right">
+                <Button variant="link" type="button" className="p-0 h-auto text-xs">
+                    Forgot Password?
+                </Button>
+            </div>
+            <Button type="submit" className="w-full !mt-6 bg-gradient-to-r from-purple-500 to-blue-500 text-white">
               Log In
             </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter>
-        <Alert variant="destructive">
-            <TriangleAlert className="h-4 w-4" />
-            <AlertTitle>Fallback Mode</AlertTitle>
-            <AlertDescription>
-            If Firebase fails, you can log in as a guest with: <br/>
-            <b>Email:</b> user@test.com <br/>
-            <b>Pass:</b> password123
-            </AlertDescription>
-        </Alert>
-      </CardFooter>
     </div>
   );
 }

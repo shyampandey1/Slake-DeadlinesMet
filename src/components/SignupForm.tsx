@@ -63,7 +63,7 @@ export default function SignupForm({ onBack }: SignupFormProps) {
       </CardHeader>
       <CardContent className="w-full">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"
@@ -90,8 +90,8 @@ export default function SignupForm({ onBack }: SignupFormProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Sign Up
+            <Button type="submit" className="w-full !mt-6">
+              Create Account
             </Button>
           </form>
         </Form>
