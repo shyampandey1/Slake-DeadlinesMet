@@ -185,7 +185,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-black text-white",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 text-white",
         {
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
@@ -193,8 +193,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         color ? `timer-theme-${color.replace('bg-', '')}` : ''
       )}
       style={{
+        backgroundColor: '#0a0a0a',
         '--timer-primary-color': 'lightgray',
-        '--timer-background-color': 'hsl(var(--background))',
+        '--timer-background-color': '#0a0a0a',
         '--flash-color': 'hsl(0 0% 100% / 0.1)',
       } as React.CSSProperties}
     >
