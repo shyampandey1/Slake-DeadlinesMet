@@ -30,6 +30,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
+import { useProfile } from "@/hooks/useProfile";
 
 
 const formSchema = z.object({
@@ -68,6 +69,7 @@ const iconMap: { [key: string]: LucideIcon } = {
 export default function TaskForm() {
   const router = useRouter();
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
+  const { profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
@@ -163,7 +165,7 @@ export default function TaskForm() {
     if (taskId) {
       await updatePresetTask(taskId, taskData);
     } else {
-      await addPresetTask(taskData);
+      await addPresetTask(taskData, profile);
     }
   };
 

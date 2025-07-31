@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit, runTransaction } from 'firebase/firestore';
 import { useAuth } from './useAuth';
-import { Task, Preset, PresetTask, UserPresetTask, CustomProfession, UserEvent } from '@/types';
+import { Task, Preset, PresetTask, UserPresetTask, CustomProfession, UserEvent, ProfileType } from '@/types';
 import { useProfile } from './useProfile';
 import { startOfDay, endOfDay, isBefore, add, set } from 'date-fns';
 
@@ -443,19 +443,19 @@ export function usePresetTasks() {
         };
     }, [user, profile, customProfessions, isOffline]);
 
-    const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }) => {
+    const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }, taskProfile: ProfileType) => {
         if (!user || isOffline) return;
-
+    
         const categoryTasks = presetTasks[task.category]?.tasks || [];
         const maxOrder = categoryTasks.reduce((max, t) => Math.max(max, t.order), -1);
-
+    
         await addDoc(collection(db, 'userPresetTasks'), {
             ...task,
-            profession: profile,
+            profession: taskProfile,
             order: maxOrder + 1,
             userId: user.uid
         });
-    }, [user, presetTasks, profile, isOffline]);
+    }, [user, presetTasks, isOffline]);
     
     const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
         if (!user || isOffline) return;
