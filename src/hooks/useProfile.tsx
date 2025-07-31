@@ -19,6 +19,7 @@ interface ProfileContextType {
   setProfile: (profile: ProfileType) => void;
   customProfessions: CustomProfession[];
   addCustomProfession: (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => Promise<void>;
+  deleteCustomProfession: (professionName: string) => Promise<void>;
   addTasksToCurrentProfile: (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => Promise<void>;
   loading: boolean;
 }
@@ -28,6 +29,7 @@ const ProfileContext = createContext<ProfileContextType>({
   setProfile: () => {},
   customProfessions: [],
   addCustomProfession: async () => {},
+  deleteCustomProfession: async () => {},
   addTasksToCurrentProfile: async () => {},
   loading: true,
 });
@@ -143,6 +145,42 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         throw error;
     }
   }, [user, isOffline]);
+  
+  const deleteCustomProfession = useCallback(async (professionName: string) => {
+    if (!user || isOffline) return;
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const profileRef = doc(db, 'userProfiles', user.uid);
+            const profileDoc = await transaction.get(profileRef);
+
+            if (profileDoc.exists()) {
+                const currentCustomProfessions = (profileDoc.data().customProfessions || []).filter(
+                    (p: CustomProfession) => p.name !== professionName
+                );
+                
+                transaction.update(profileRef, { customProfessions: currentCustomProfessions });
+
+                if (profile === professionName) {
+                    transaction.update(profileRef, { profile: "General" });
+                    setProfileState("General");
+                }
+            }
+            
+            const tasksQuery = query(
+                collection(db, 'userPresetTasks'),
+                where('userId', '==', user.uid),
+                where('profession', '==', professionName)
+            );
+            const tasksSnapshot = await getDocs(tasksQuery);
+            tasksSnapshot.forEach(doc => transaction.delete(doc.ref));
+        });
+    } catch (error) {
+        console.error(`Failed to delete profession ${professionName}:`, error);
+        throw error;
+    }
+
+  }, [user, isOffline, profile]);
 
   const addTasksToCurrentProfile = useCallback(async (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => {
     if (!user || isOffline) return;
@@ -174,7 +212,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession, addTasksToCurrentProfile }}>
+    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession, deleteCustomProfession, addTasksToCurrentProfile }}>
       {children}
     </ProfileContext.Provider>
   );

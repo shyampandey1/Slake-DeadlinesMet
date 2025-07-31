@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy, X, Trash2 } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
@@ -23,6 +23,18 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const initialIconMap: { [key: string]: LucideIcon } = {
     ListChecks: ListChecks,
@@ -83,9 +95,35 @@ const examplePrompts = [
     "Work on presentation for 1 hour"
 ];
 
+function DeleteProfessionButton({ professionName, onDelete }: { professionName: string, onDelete: (name: string) => void }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 text-destructive-foreground hover:bg-destructive z-10 opacity-0 group-hover/chip:opacity-100 transition-opacity">
+                    <X className="h-3 w-3" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the "{professionName}" routine and all of its tasks. This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDelete(professionName)} className="bg-destructive hover:bg-destructive/90">
+                        Yes, delete it
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
-  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, addTasksToCurrentProfile } = useProfile();
+  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, deleteCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
@@ -241,20 +279,24 @@ function RoutineCustomizationPage() {
                                             const config = professionConfig[prof];
                                             if (!config) return null;
                                             const { icon: Icon, color } = config;
+                                            const isCustom = customProfessions.some(p => p.name === prof);
+
                                             return (
-                                                <Button 
-                                                    key={prof}
-                                                    variant="outline"
-                                                    onClick={() => setProfile(prof as any)}
-                                                    className={cn(
-                                                        "flex items-center gap-2 rounded-full p-2 h-auto text-xs font-medium cursor-pointer transition-all bg-card hover:bg-muted/50",
-                                                        profile === prof ? `shadow-lg ${color}` : 'border-transparent text-muted-foreground',
-                                                        color.replace('border', 'hover:border')
-                                                    )}
-                                                >
-                                                    <Icon className="w-5 h-5" />
-                                                    <span>{prof}</span>
-                                                </Button>
+                                                <div key={prof} className="relative group/chip">
+                                                    <Button 
+                                                        variant="outline"
+                                                        onClick={() => setProfile(prof as any)}
+                                                        className={cn(
+                                                            "flex items-center gap-2 rounded-full p-2 h-auto text-xs font-medium cursor-pointer transition-all bg-card hover:bg-muted/50",
+                                                            profile === prof ? `shadow-lg ${color}` : 'border-transparent text-muted-foreground',
+                                                            color.replace('border', 'hover:border')
+                                                        )}
+                                                    >
+                                                        <Icon className="w-5 h-5" />
+                                                        <span>{prof}</span>
+                                                    </Button>
+                                                    {isCustom && <DeleteProfessionButton professionName={prof} onDelete={deleteCustomProfession} />}
+                                                </div>
                                             )
                                         })}
                                     </div>
