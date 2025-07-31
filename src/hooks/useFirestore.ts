@@ -306,6 +306,32 @@ const profilePresets: { [key: string]: Preset } = {
     "General": businessRoutine, // Defaulting to business
 };
 
+const routineStartTimes: { [key: string]: { hours: number, minutes: number } } = {
+    // Creative
+    "Artist": { hours: 8, minutes: 0 },
+    "Content Creator": { hours: 8, minutes: 0 },
+    "Designer": { hours: 8, minutes: 0 },
+    "Writer": { hours: 8, minutes: 0 },
+    // Business
+    "Consultant": { hours: 6, minutes: 0 },
+    "Manager": { hours: 6, minutes: 0 },
+    "Marketer": { hours: 6, minutes: 0 },
+    "Entrepreneur": { hours: 6, minutes: 0 },
+    // Technical
+    "Software Engineer": { hours: 7, minutes: 0 },
+    "IT Professional": { hours: 7, minutes: 0 },
+    "Researcher": { hours: 7, minutes: 0 },
+    // On-The-Go
+    "Sales": { hours: 6, minutes: 30 },
+    // Healthcare
+    "Healthcare Professional": { hours: 5, minutes: 30 },
+    // General
+    "Freelancer": { hours: 8, minutes: 0 },
+    "Student": { hours: 7, minutes: 0 },
+    "General": { hours: 7, minutes: 0 },
+};
+
+
 export function useTasks() {
   const { user, isOffline } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -471,7 +497,9 @@ export function usePresetTasks() {
         }
     
         const now = new Date();
-        let cumulativeTime = set(now, { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+        const startTimeConfig = routineStartTimes[profile] || { hours: 7, minutes: 0 };
+        let cumulativeTime = set(now, startTimeConfig);
+        
         let currentActiveCategory: string | null = null;
         let nextUpcomingCategory: string | null = null;
     
@@ -492,7 +520,9 @@ export function usePresetTasks() {
                 }
     
                 if (isAfter(endTime, now) && !nextUpcomingCategory) {
-                    nextUpcomingCategory = category;
+                    if (isAfter(startTime, now)) {
+                         nextUpcomingCategory = category;
+                    }
                 }
     
                 cumulativeTime = endTime;
@@ -503,7 +533,7 @@ export function usePresetTasks() {
             categoryTimeRanges: ranges, 
             activeCategory: currentActiveCategory || nextUpcomingCategory || categories[0] 
         };
-    }, [processedTasks]);
+    }, [processedTasks, profile]);
 
     useEffect(() => {
         if (!user || isOffline) {
