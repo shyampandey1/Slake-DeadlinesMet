@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
-import { add, set, isBefore, isAfter } from "date-fns";
+import { add, set, isBefore, isAfter, format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -201,6 +201,29 @@ export default function TaskForm() {
     }
   }
 
+  const categoryTimeRanges = useMemo(() => {
+    const ranges: { [category: string]: { start: Date, end: Date, isCurrent: boolean } } = {};
+    let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+    const now = new Date();
+
+    for (const category in presetTasks) {
+        const { tasks } = presetTasks[category];
+        const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
+        
+        const startTime = cumulativeTime;
+        const endTime = add(startTime, { minutes: totalDuration });
+
+        ranges[category] = {
+            start: startTime,
+            end: endTime,
+            isCurrent: isAfter(now, startTime) && isBefore(now, endTime)
+        };
+
+        cumulativeTime = endTime;
+    }
+    return ranges;
+  }, [presetTasks]);
+
   return (
     <>
     <div className="space-y-4">
@@ -219,17 +242,23 @@ export default function TaskForm() {
         >
         <CarouselContent>
             {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
-                const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
-                const roundedDuration = Math.round(totalDuration / 5) * 5;
+                const timeRange = categoryTimeRanges[category];
                 return (
                 <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                    <Card className="overflow-hidden flex flex-col rounded-xl h-[280px]">
+                    <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", timeRange?.isCurrent && "border-primary ring-2 ring-primary shadow-lg")}>
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
-                            <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                            <div>
+                                <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                                {timeRange && (
+                                    <p className="text-xs font-mono opacity-80">
+                                        {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                    </p>
+                                )}
+                            </div>
                             <Badge variant="secondary" className="gap-1.5">
                                 <Clock className="w-3.5 h-3.5"/>
-                                {roundedDuration} min
+                                {tasks.reduce((acc, task) => acc + task.duration, 0)} min
                             </Badge>
                         </CardHeader>
                         <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
@@ -362,3 +391,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    
