@@ -308,7 +308,7 @@ const routineStartTimes: { [key: string]: { hours: number, minutes: number } } =
     "Manager": { hours: 6, minutes: 0 },
     "Marketer": { hours: 6, minutes: 0 },
     "Entrepreneur": { hours: 6, minutes: 0 },
-    "Sales": { hours: 6, minutes: 0 },
+    "Sales": { hours: 6, minutes: 30 },
     // Technical
     "Software Engineer": { hours: 7, minutes: 0 },
     "IT Professional": { hours: 7, minutes: 0 },
