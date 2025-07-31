@@ -123,7 +123,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       task: suggestedTask,
       duration: "25",
     });
-    router.push(`/timer?${params.toString()}`);
+    // Use window.location.href to force a full page reload with the new params
+    window.location.href = `/timer?${params.toString()}`;
   }
   
   const handleInteraction = () => {
