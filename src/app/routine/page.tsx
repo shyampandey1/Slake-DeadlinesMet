@@ -213,10 +213,10 @@ function RoutineCustomizationPage() {
   );
 
   return (
-    <div>
+    <div className="flex flex-col">
         <header className="sticky top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
-          <div className="container mx-auto flex h-16 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
-            <div>
+          <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col gap-2">
               <h1 className="text-xl font-bold font-headline text-foreground/80">Customize Routine</h1>
               <p className="text-sm text-muted-foreground">Tailor your daily tasks from morning to night.</p>
             </div>
@@ -224,9 +224,48 @@ function RoutineCustomizationPage() {
           </div>
         </header>
 
-        <main className="pb-20">
+        <main className="flex-1 pb-20">
             <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
+                 <Collapsible defaultOpen={true}>
+                    <CollapsibleTrigger className="flex items-center gap-2 text-2xl font-headline w-full">
+                        <ChevronDown className="h-6 w-6 transition-transform [&[data-state=open]]:-rotate-180" />
+                        1. Choose Your Base Routine
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-6 pt-4">
+                        <div className="space-y-4">
+                            {Object.entries(profileCategories).map(([category, professions]) => (
+                                <div key={category}>
+                                    <h3 className="font-headline text-lg mb-3">{category}</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {professions.map(prof => {
+                                            const config = professionConfig[prof];
+                                            if (!config) return null;
+                                            const { icon: Icon, color } = config;
+                                            return (
+                                                <Button 
+                                                    key={prof}
+                                                    variant="outline"
+                                                    onClick={() => setProfile(prof as any)}
+                                                    className={cn(
+                                                        "flex items-center gap-2 rounded-full p-2 h-auto text-xs font-medium cursor-pointer transition-all bg-card hover:bg-muted/50",
+                                                        profile === prof ? `shadow-lg ${color}` : 'border-transparent text-muted-foreground',
+                                                        color.replace('border', 'hover:border')
+                                                    )}
+                                                >
+                                                    <Icon className="w-5 h-5" />
+                                                    <span>{prof}</span>
+                                                </Button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
 
+                <Separator />
+                
                  <Card>
                     <CardHeader>
                         <CardTitle className="font-headline text-base flex items-center gap-2">
@@ -265,51 +304,6 @@ function RoutineCustomizationPage() {
                 </Card>
                 
                 <Separator />
-                
-                 <Collapsible defaultOpen={true}>
-                    <CollapsibleTrigger className="flex items-center gap-2 text-2xl font-headline w-full">
-                        <ChevronDown className="h-6 w-6 transition-transform [&[data-state=open]]:-rotate-180" />
-                        1. Choose Your Base Routine
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-6 pt-4">
-                        <RadioGroup 
-                            value={profile} 
-                            onValueChange={(value) => setProfile(value as any)}
-                            className="space-y-4"
-                            disabled={profileLoading || isGenerating}
-                        >
-                            {Object.entries(profileCategories).map(([category, professions]) => (
-                                <Card key={category} className="overflow-hidden rounded-xl">
-                                    <CardHeader className="bg-muted/30 p-3">
-                                        <CardTitle className="font-headline text-base">{category}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-3 flex flex-wrap gap-2">
-                                        {professions.map(prof => {
-                                            const config = professionConfig[prof];
-                                            if (!config) return null;
-                                            const { icon: Icon, color } = config;
-                                            return (
-                                                <div key={prof}>
-                                                    <RadioGroupItem value={prof} id={prof} className="sr-only" />
-                                                    <Label htmlFor={prof}
-                                                        className={cn(
-                                                            "flex items-center gap-2 rounded-full p-2 border-2 cursor-pointer transition-all bg-card hover:bg-muted/50",
-                                                            profile === prof ? `shadow-lg ${color}` : 'border-transparent text-muted-foreground',
-                                                            color.replace('border', 'hover:border')
-                                                        )}
-                                                    >
-                                                        <Icon className="w-5 h-5" />
-                                                        <span className="text-xs font-medium">{prof}</span>
-                                                    </Label>
-                                                </div>
-                                            )
-                                        })}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </RadioGroup>
-                    </CollapsibleContent>
-                </Collapsible>
                 
                 <Collapsible defaultOpen={true}>
                      <CollapsibleTrigger className="flex items-center gap-2 text-2xl font-headline w-full">
@@ -385,9 +379,3 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
-
-    
-
-    
-
-    

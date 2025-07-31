@@ -30,37 +30,34 @@ const iconMap = {
 };
 const iconNames = Object.keys(iconMap);
 
-
 const creativeRoutine: Preset = {
     'Morning': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
             { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Mindfulness: Meditation or Journaling', duration: 15, icon: 'Wind', order: 1 },
-            { name: 'Light Movement: Stretching or Yoga', duration: 20, icon: 'StretchHorizontal', order: 2 },
+            { name: 'Mindfulness', duration: 15, icon: 'Wind', order: 1 },
+            { name: 'Light Movement', duration: 20, icon: 'StretchHorizontal', order: 2 },
             { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
         ]
     },
     'Deep Creative Session': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Deep Work on Primary Project', duration: 180, icon: 'BrainCircuit', order: 0 },
-            { name: 'Hydration Break', duration: 1, icon: 'Droplets', order: 1 },
-            { name: 'Deep Work Continued', duration: 60, icon: 'BrainCircuit', order: 2 },
+            { name: 'Deep Work on Project', duration: 180, icon: 'BrainCircuit', order: 0 },
         ]
     },
     'Lunch & Recharge': {
         color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Mindful Meal (No Workspace)', duration: 45, icon: 'Utensils', order: 0 },
+            { name: 'Mindful Meal', duration: 45, icon: 'Utensils', order: 0 },
             { name: 'Short Walk', duration: 15, icon: 'Footprints', order: 1 },
         ]
     },
     'Afternoon Tasks': {
         color: "bg-amber-800 text-amber-100",
         tasks: [
-            { name: 'Admin (Emails, Planning)', duration: 90, icon: 'Mail', order: 0 },
-            { name: 'Inspiration (Reading, Tutorials)', duration: 90, icon: 'ShoppingBag', order: 1 },
+            { name: 'Admin & Emails', duration: 90, icon: 'Mail', order: 0 },
+            { name: 'Inspiration Time', duration: 90, icon: 'ShoppingBag', order: 1 },
         ]
     },
     'Evening': {
@@ -68,14 +65,14 @@ const creativeRoutine: Preset = {
         tasks: [
             { name: 'Exercise/Workout', duration: 45, icon: 'Dumbbell', order: 0 },
             { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
-            { name: 'Leisure & Social Time', duration: 90, icon: 'Users', order: 2},
+            { name: 'Leisure Time', duration: 90, icon: 'Users', order: 2},
         ]
     },
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Plan Tomorrow\'s Creative Task', duration: 5, icon: 'ListChecks', order: 0 },
-            { name: 'Screen-free Wind-down (Reading)', duration: 30, icon: 'BookOpen', order: 1 },
+            { name: 'Plan Tomorrow', duration: 5, icon: 'ListChecks', order: 0 },
+            { name: 'Screen-free Wind-down', duration: 30, icon: 'BookOpen', order: 1 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
         ]
     }
@@ -86,50 +83,49 @@ const businessRoutine: Preset = {
         color: "bg-sky-800 text-sky-100",
         tasks: [
             { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Breathing Exercise for Focus', duration: 5, icon: 'Wind', order: 1 },
-            { name: 'Workout/Exercise', duration: 30, icon: 'Dumbbell', order: 2 },
-            { name: 'Plan Top 3 Priorities', duration: 10, icon: 'ListChecks', order: 3 },
-            { name: 'Breakfast & News', duration: 20, icon: 'Utensils', order: 4 },
+            { name: 'Focus Breathing', duration: 5, icon: 'Wind', order: 1 },
+            { name: 'Workout', duration: 30, icon: 'Dumbbell', order: 2 },
+            { name: 'Plan Priorities', duration: 10, icon: 'ListChecks', order: 3 },
+            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 4 },
         ]
     },
-    'Strategic Work Block': {
+    'Strategic Work': {
         color: "bg-blue-800 text-blue-100",
         tasks: [
-            { name: 'Tackle Most Important Task', duration: 180, icon: 'BrainCircuit', order: 0 },
-            { name: 'Stand & Stretch Break', duration: 5, icon: 'StretchHorizontal', order: 1 },
+            { name: 'Tackle Top Task', duration: 180, icon: 'BrainCircuit', order: 0 },
         ]
     },
     'Lunch': {
         color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Power Lunch (No Work Talk)', duration: 60, icon: 'Utensils', order: 0 },
+            { name: 'Power Lunch', duration: 60, icon: 'Utensils', order: 0 },
         ]
     },
-    'Meetings & Collaboration': {
+    'Meetings & Comms': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Meetings & Collaborative Tasks', duration: 120, icon: 'Users', order: 0 },
-            { name: 'Pomodoro: Emails & Small Tasks', duration: 120, icon: 'Mail', order: 1 },
+            { name: 'Meetings & Calls', duration: 120, icon: 'Users', order: 0 },
+            { name: 'Email & Messages', duration: 120, icon: 'Mail', order: 1 },
         ]
     },
     'Decompression': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Transition: Podcast/Music', duration: 30, icon: 'Wind', order: 0 },
-            { name: 'Leisure: Hobby/Video Games', duration: 60, icon: 'ShoppingBag', order: 1 },
+            { name: 'Work Transition', duration: 30, icon: 'Wind', order: 0 },
+            { name: 'Leisure/Hobby', duration: 60, icon: 'ShoppingBag', order: 1 },
         ]
     },
     'Evening': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Dinner with Family/Friends', duration: 45, icon: 'Utensils', order: 0 },
+            { name: 'Dinner', duration: 45, icon: 'Utensils', order: 0 },
         ]
     },
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Light Reading (Non-Work)', duration: 30, icon: 'BookOpen', order: 0 },
-            { name: 'Meditation for Stress Release', duration: 10, icon: 'Wind', order: 1 },
+            { name: 'Light Reading', duration: 30, icon: 'BookOpen', order: 0 },
+            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
         ]
     }
@@ -142,14 +138,13 @@ const technicalRoutine: Preset = {
             { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
             { name: 'Light Exercise', duration: 20, icon: 'StretchHorizontal', order: 2 },
-            { name: 'Breakfast (No Screens)', duration: 20, icon: 'Utensils', order: 3 },
+            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
         ]
     },
     'Deep Focus Block': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
             { name: 'Coding/Problem-Solving', duration: 240, icon: 'BrainCircuit', order: 0 },
-            { name: '20-20-20 Eye Break & Hydrate', duration: 1, icon: 'Droplets', order: 1 },
         ]
     },
     'Lunch': {
@@ -167,7 +162,7 @@ const technicalRoutine: Preset = {
     'Evening': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Log Off & Workout', duration: 45, icon: 'Dumbbell', order: 0 },
+            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
             { name: 'Leisure/Personal Project', duration: 90, icon: 'ShoppingBag', order: 1 },
             { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2},
         ]
@@ -175,8 +170,8 @@ const technicalRoutine: Preset = {
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Plan Tomorrow\'s Main Task', duration: 5, icon: 'Target', order: 0 },
-            { name: 'Read a Physical Book', duration: 30, icon: 'BookOpen', order: 1 },
+            { name: 'Plan Tomorrow', duration: 5, icon: 'Target', order: 0 },
+            { name: 'Read a Book', duration: 30, icon: 'BookOpen', order: 1 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
         ]
     }
@@ -187,38 +182,37 @@ const onTheGoRoutine: Preset = {
         color: "bg-sky-800 text-sky-100",
         tasks: [
             { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Quick HIIT or Run', duration: 20, icon: 'Dumbbell', order: 1 },
-            { name: 'High-Protein Breakfast', duration: 20, icon: 'Utensils', order: 2 },
-            { name: 'Review Route & Appointments', duration: 15, icon: 'ListChecks', order: 3 },
+            { name: 'Quick Workout', duration: 20, icon: 'Dumbbell', order: 1 },
+            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
+            { name: 'Review Day', duration: 15, icon: 'ListChecks', order: 3 },
         ]
     },
     'On The Road': {
         color: "bg-blue-800 text-blue-100",
         tasks: [
-            { name: 'Travel Time: Calls/Podcasts', duration: 60, icon: 'Footprints', order: 0 },
-            { name: 'Reset: Breathing Exercises in Car', duration: 5, icon: 'Wind', order: 1 },
-            { name: 'Hydrate (250ml)', duration: 1, icon: 'Droplets', order: 2 },
+            { name: 'Travel Time', duration: 60, icon: 'Footprints', order: 0 },
+            { name: 'Reset Break', duration: 5, icon: 'Wind', order: 1 },
         ]
     },
     'Afternoon Appointments': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Client Meetings & Follow-ups', duration: 180, icon: 'Users', order: 0 },
-            { name: 'Packed Lunch/Healthy Snack', duration: 20, icon: 'Utensils', order: 1 },
+            { name: 'Client Meetings', duration: 180, icon: 'Users', order: 0 },
+            { name: 'Lunch', duration: 20, icon: 'Utensils', order: 1 },
         ]
     },
     'Wrap Up': {
         color: "bg-amber-800 text-amber-100",
         tasks: [
-            { name: 'Log Reports & Plan Tomorrow', duration: 30, icon: 'Mail', order: 0 },
+            { name: 'Log Reports', duration: 30, icon: 'Mail', order: 0 },
         ]
     },
     'Evening Wind-down': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Full Meal for Dinner', duration: 30, icon: 'Utensils', order: 0 },
-            { name: 'Relaxing Activity (TV, Games)', duration: 60, icon: 'ShoppingBag', order: 1 },
-            { name: 'Stretching for Travel Tension', duration: 15, icon: 'StretchHorizontal', order: 2},
+            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 0 },
+            { name: 'Relax', duration: 60, icon: 'ShoppingBag', order: 1 },
+            { name: 'Stretching', duration: 15, icon: 'StretchHorizontal', order: 2},
         ]
     },
     'Night Routine': {
@@ -235,16 +229,14 @@ const healthcareRoutine: Preset = {
         color: "bg-sky-800 text-sky-100",
         tasks: [
             { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Energy-Boosting Snack', duration: 10, icon: 'Utensils', order: 1 },
-            { name: 'Deep Breathing for Focus', duration: 5, icon: 'Wind', order: 2 },
+            { name: 'Energy Snack', duration: 10, icon: 'Utensils', order: 1 },
+            { name: 'Deep Breathing', duration: 5, icon: 'Wind', order: 2 },
         ]
     },
-    'During Shift (AM)': {
+    'Shift AM': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Patient Rounds & Care', duration: 240, icon: 'Users', order: 0 },
-            { name: 'Hydration Break', duration: 1, icon: 'Droplets', order: 1 },
-            { name: 'Micro-Break: Deep Breaths', duration: 1, icon: 'Wind', order: 2 },
+            { name: 'Patient Care', duration: 240, icon: 'Users', order: 0 },
         ]
     },
     'Mid-Shift Break': {
@@ -253,29 +245,26 @@ const healthcareRoutine: Preset = {
             { name: 'High-Energy Meal', duration: 30, icon: 'Utensils', order: 0 },
         ]
     },
-    'During Shift (PM)': {
+    'Shift PM': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
             { name: 'Patient Care & Charting', duration: 240, icon: 'ListChecks', order: 0 },
-            { name: 'Hydration Break', duration: 1, icon: 'Droplets', order: 1 },
-            { name: 'Micro-Break: Deep Breaths', duration: 1, icon: 'Wind', order: 2 },
         ]
     },
     'Post-Shift': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Decompression Commute (Music/Podcast)', duration: 30, icon: 'Footprints', order: 0 },
-            { name: 'Hydrate Again', duration: 1, icon: 'Droplets', order: 1 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2 },
+            { name: 'Decompression Commute', duration: 30, icon: 'Footprints', order: 0 },
+            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
         ]
     },
     'Evening Recovery': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
             { name: 'Gentle Stretching', duration: 15, icon: 'StretchHorizontal', order: 0 },
-            { name: 'Connect with Family/Partner', duration: 45, icon: 'Users', order: 1 },
-            { name: 'Relaxing Hobby (No Screens)', duration: 30, icon: 'BookOpen', order: 2 },
-            { name: 'Warm Shower & Bedtime', duration: 15, icon: 'Bed', order: 3 },
+            { name: 'Connect', duration: 45, icon: 'Users', order: 1 },
+            { name: 'Relaxing Hobby', duration: 30, icon: 'BookOpen', order: 2 },
+            { name: 'Bedtime', duration: 15, icon: 'Bed', order: 3 },
         ]
     }
 };
@@ -292,18 +281,19 @@ const profilePresets: { [key: string]: Preset } = {
     "Manager": businessRoutine,
     "Marketer": businessRoutine,
     "Entrepreneur": businessRoutine,
+    "Sales": businessRoutine,
     // Technical
     "Software Engineer": technicalRoutine,
     "IT Professional": technicalRoutine,
     "Researcher": technicalRoutine,
+    "Student": technicalRoutine,
     // On-The-Go
-    "Sales": onTheGoRoutine,
+    "Freelancer": onTheGoRoutine,
     // Healthcare
     "Healthcare Professional": healthcareRoutine,
     // General
-    "Freelancer": creativeRoutine, // Defaulting to creative
-    "Student": technicalRoutine, // Defaulting to technical
-    "General": businessRoutine, // Defaulting to business
+    "General": businessRoutine,
+    "Educator": creativeRoutine,
 };
 
 const routineStartTimes: { [key: string]: { hours: number, minutes: number } } = {
@@ -312,22 +302,23 @@ const routineStartTimes: { [key: string]: { hours: number, minutes: number } } =
     "Content Creator": { hours: 8, minutes: 0 },
     "Designer": { hours: 8, minutes: 0 },
     "Writer": { hours: 8, minutes: 0 },
+    "Educator": { hours: 8, minutes: 0 },
     // Business
     "Consultant": { hours: 6, minutes: 0 },
     "Manager": { hours: 6, minutes: 0 },
     "Marketer": { hours: 6, minutes: 0 },
     "Entrepreneur": { hours: 6, minutes: 0 },
+    "Sales": { hours: 6, minutes: 0 },
     // Technical
     "Software Engineer": { hours: 7, minutes: 0 },
     "IT Professional": { hours: 7, minutes: 0 },
     "Researcher": { hours: 7, minutes: 0 },
+    "Student": { hours: 7, minutes: 0 },
     // On-The-Go
-    "Sales": { hours: 6, minutes: 30 },
+    "Freelancer": { hours: 6, minutes: 30 },
     // Healthcare
     "Healthcare Professional": { hours: 5, minutes: 30 },
     // General
-    "Freelancer": { hours: 8, minutes: 0 },
-    "Student": { hours: 7, minutes: 0 },
     "General": { hours: 7, minutes: 0 },
 };
 
