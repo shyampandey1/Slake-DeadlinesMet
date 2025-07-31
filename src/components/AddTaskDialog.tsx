@@ -16,6 +16,17 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -260,10 +271,28 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
             />
             <DialogFooter className="sm:justify-between">
                 {isEditMode && initialTask && !isDefaultTask(initialTask) && (
-                    <Button type="button" variant="destructive" onClick={handleDelete} className="sm:mr-auto">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Task
-                    </Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button type="button" variant="destructive" className="sm:mr-auto">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Task
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the preset task from your routine.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 )}
                 <div className="flex gap-2 justify-end">
                     <DialogClose asChild>

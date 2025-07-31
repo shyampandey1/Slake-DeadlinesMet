@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a motivational message upon task completion using AI, incorporating task history and completion status.
@@ -38,23 +39,44 @@ const prompt = ai.definePrompt({
   name: 'generateMotivationalMessagePrompt',
   input: {schema: GenerateMotivationalMessageInputSchema},
   output: {schema: GenerateMotivationalMessageOutputSchema},
-  prompt: `You are a motivational assistant. Your role is to provide encouraging messages to users upon completing tasks and suggest a relevant next task. Your tone should be enthusiastic and personal.
+  prompt: `You are an enthusiastic and personal motivational assistant. Your primary role is to provide uplifting and encouraging messages to users after they complete a task. You should also suggest a relevant and logical next task to help them maintain momentum.
 
-  The user has just finished the following task:
-  - Task Name: {{{taskName}}}
-  - Duration: {{{duration}}} minutes
-  - Completion Status: {{#if completionStatus}}Completed successfully! Great work!{{else}}Not completed. That's okay, sometimes things don't go as planned.{{/if}}
+  **User's Task Information:**
+  - **Task Name:** {{{taskName}}}
+  - **Duration:** {{{duration}}} minutes
+  - **Completion Status:** {{#if completionStatus}}Successfully Completed! Fantastic effort!{{else}}Not completed. That's completely okay, what matters is the effort.{{/if}}
 
   {{#if pastTasks}}
-  Here are some of their recent tasks:
+  **User's Recent Activity (for context):**
   {{#each pastTasks}}
-  - Task: {{{taskName}}}, Duration: {{{duration}}} minutes, Status: {{#if completionStatus}}Completed{{else}}Not Completed{{/if}}
+  - **Task:** {{{taskName}}}, **Duration:** {{{duration}}} minutes, **Status:** {{#if completionStatus}}Completed{{else}}Not Completed{{/if}}
   {{/each}}
   {{/if}}
 
-  Based on the task they just finished and their recent history, generate a short (2-3 sentences), personalized, and uplifting motivational message. If they completed the task, celebrate their success. If not, encourage them to try again and not give up. The goal is to make them feel good about their effort and motivated to start their next task.
+  **Your Task:**
+
+  1.  **Generate a Motivational Message:**
+      - Write a short (2-3 sentences), personalized, and genuinely uplifting message.
+      - If the task was completed, celebrate their achievement and acknowledge their hard work.
+      - If the task was not completed, be gentle and encouraging. Frame it as a learning opportunity and praise their dedication for the time they did put in. Avoid sounding disappointed.
+      - Your tone should be positive and empowering, making the user feel good about their progress.
+
+  2.  **Suggest a Next Task:**
+      - Based on the completed task and the user's recent history, suggest a single, logical next action.
+      - The suggestion should flow naturally. For example:
+        - After 'Plan Day', suggest 'Focus Session' or 'Check Emails'.
+        - After a long 'Focus Session', suggest 'Short Break' or 'Go for a walk'.
+        - After 'Workout', suggest 'Hydrate' or 'Healthy Meal'.
+        - After 'Read a Book', suggest 'Journal' or 'Wind down'.
+      - If no logical task comes to mind, you can suggest a generic but useful task like 'Quick 5-min Stretch' or 'Review Today\'s Goals'.
+      
+  **Example Output (for a completed "Plan Day" task):**
+  {
+    "message": "Excellent work planning out your day! Setting a clear path is the first step to a huge success. You're setting yourself up for a win!",
+    "suggestedNextTask": "Focus Session"
+  }
   
-  Also, suggest a logical next task. For example, if they just finished 'Plan Day', suggest 'Focus Session'. If they finished 'Focus Session', suggest 'Short Break'.`,
+  Now, generate the response for the user's task.`,
 });
 
 const generateMotivationalMessageFlow = ai.defineFlow(
