@@ -270,7 +270,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
               )}
             />
             <DialogFooter className="sm:justify-between">
-                {isEditMode && initialTask && !isDefaultTask(initialTask) && (
+                {isEditMode && initialTask && !isDefaultTask(initialTask) ? (
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button type="button" variant="destructive" className="sm:mr-auto">
@@ -293,7 +293,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
-                )}
+                ) : <div />}
                 <div className="flex gap-2 justify-end">
                     <DialogClose asChild>
                         <Button type="button" variant="ghost">Cancel</Button>
