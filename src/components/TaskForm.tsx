@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
 import { format } from "date-fns";
 
@@ -121,13 +121,11 @@ export default function TaskForm() {
 
   useEffect(() => {
     if (!carouselApi || Object.keys(presetTasks).length === 0 || !activeCategory) return;
-
     const activeIndex = Object.keys(presetTasks).findIndex(category => category === activeCategory);
-
-    if (activeIndex !== -1 && activeIndex !== selectedIndex) {
+    if (activeIndex !== -1) {
         scrollTo(activeIndex);
     }
-  }, [carouselApi, presetTasks, activeCategory, scrollTo, selectedIndex]);
+  }, [carouselApi, presetTasks, activeCategory, scrollTo]);
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -202,7 +200,7 @@ export default function TaskForm() {
                 return (
                 <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                    <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-primary ring-2 ring-primary shadow-lg")}>
+                    <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-border shadow-lg")}>
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
                             <div>
                                 <CardTitle className="font-headline text-lg">{category}</CardTitle>
