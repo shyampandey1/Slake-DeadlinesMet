@@ -184,7 +184,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-background",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-background text-white",
         {
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
@@ -204,8 +204,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         <InfoDisplay />
       </div>
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <h2 className="mb-2 text-xl font-medium tracking-wide text-foreground/80">{category || 'Focus Session'}</h2>
-        <h1 className="mb-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl font-headline">
+        <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
+        <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
           {taskName}
         </h1>
         <div className="mb-12">
