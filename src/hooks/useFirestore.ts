@@ -194,8 +194,8 @@ export function useTasks() {
   useEffect(() => {
     if (!user || isOffline) {
       setTasks(isOffline ? [
-        { id: 'mock-1', userId: 'mock-user-01', name: 'Finish project proposal (mock)', duration: 60, completed: true, createdAt: new Date().toISOString() },
-        { id: 'mock-2', userId: 'mock-user-01', name: 'Review design mockups (mock)', duration: 45, completed: false, createdAt: new Date(Date.now() - 86400000).toISOString() },
+        { id: 'mock-1', userId: 'mock-user-01', name: 'Finish project proposal (mock)', duration: 60, initialDuration: 60, completed: true, createdAt: new Date().toISOString() },
+        { id: 'mock-2', userId: 'mock-user-01', name: 'Review design mockups (mock)', duration: 20, initialDuration: 45, completed: false, createdAt: new Date(Date.now() - 86400000).toISOString() },
       ] : []);
       setLoading(false);
       return;
@@ -213,7 +213,8 @@ export function useTasks() {
           return {
             id: doc.id,
             ...data,
-            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString()
+            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+            initialDuration: data.initialDuration || data.duration, // Backwards compatibility
           } as Task
       });
       // Sort tasks by creation date descending

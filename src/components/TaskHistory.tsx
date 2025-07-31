@@ -21,9 +21,10 @@ function TaskLogBookContent() {
 
   const handleTaskClick = (task: Task) => {
     if (!task.completed) {
+      const remainingDuration = task.initialDuration - task.duration;
       const params = new URLSearchParams({
         task: task.name,
-        duration: task.duration.toString(),
+        duration: Math.max(1, remainingDuration).toString(),
       });
       router.push(`/timer?${params.toString()}`);
     }
@@ -135,7 +136,11 @@ function TaskLogBookContent() {
                                               <div className="flex flex-col">
                                                   <span className="font-semibold">{task.name}</span>
                                                   <span className="text-sm text-muted-foreground">
-                                                    Time spent: {task.duration} min &bull; {format(new Date(task.createdAt), "p")}
+                                                     {task.completed
+                                                        ? `Time spent: ${task.duration} min`
+                                                        : `Time spent: ${task.duration} of ${task.initialDuration} min`
+                                                     }
+                                                     &nbsp;&bull;&nbsp;{format(new Date(task.createdAt), "p")}
                                                   </span>
                                               </div>
                                               <div className="flex items-center gap-2">

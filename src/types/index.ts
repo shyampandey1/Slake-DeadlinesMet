@@ -6,7 +6,8 @@ export type Task = {
   id: string;
   userId: string;
   name: string;
-  duration: number; // in minutes
+  duration: number; // in minutes, time spent
+  initialDuration: number; // in minutes, original planned duration
   completed: boolean;
   createdAt: any; // Can be a server timestamp
 };

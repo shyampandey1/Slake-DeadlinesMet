@@ -138,6 +138,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
       duration: actualDuration,
+      initialDuration: initialDuration,
       completed,
     };
     await addTask(newTask);
