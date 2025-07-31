@@ -184,7 +184,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-background text-white",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 bg-black text-white",
         {
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
@@ -211,8 +211,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         <div className="mb-12">
           <CircularProgress progress={progress}>
             <div
-              className="font-code text-5xl font-bold sm:text-6xl md:text-7xl"
-              style={{ color: 'var(--timer-primary-color)' }}
+              className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white"
             >
               {formatTime(timeRemaining)}
             </div>
