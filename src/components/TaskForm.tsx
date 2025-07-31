@@ -6,9 +6,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
-import { add, set, isBefore, isAfter, format } from "date-fns";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -68,7 +68,7 @@ const iconMap: { [key: string]: LucideIcon } = {
 
 export default function TaskForm() {
   const router = useRouter();
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory } = usePresetTasks();
   const { profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
@@ -120,36 +120,14 @@ export default function TaskForm() {
   }, [presetTasks, carouselApi]);
 
   useEffect(() => {
-    if (!carouselApi || Object.keys(presetTasks).length === 0) return;
+    if (!carouselApi || Object.keys(presetTasks).length === 0 || !activeCategory) return;
 
-    const now = new Date();
-    let cumulativeTime = set(now, { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 }); 
-    const categories = Object.keys(presetTasks);
+    const activeIndex = Object.keys(presetTasks).findIndex(category => category === activeCategory);
 
-    let foundIndex = -1;
-
-    for (let i = 0; i < categories.length; i++) {
-        const category = categories[i];
-        const { tasks } = presetTasks[category];
-        const categoryDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
-
-        const startTime = cumulativeTime;
-        const endTime = add(startTime, { minutes: categoryDuration });
-
-        if (isAfter(now, startTime) && isBefore(now, endTime)) {
-            foundIndex = i;
-            break;
-        }
-
-        cumulativeTime = endTime;
+    if (activeIndex !== -1 && activeIndex !== selectedIndex) {
+        scrollTo(activeIndex);
     }
-
-    if (foundIndex !== -1) {
-        scrollTo(foundIndex);
-    }
-
-  }, [carouselApi, presetTasks, scrollTo]);
-
+  }, [carouselApi, presetTasks, activeCategory, scrollTo, selectedIndex]);
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -201,29 +179,6 @@ export default function TaskForm() {
     }
   }
 
-  const categoryTimeRanges = useMemo(() => {
-    const ranges: { [category: string]: { start: Date, end: Date, isCurrent: boolean } } = {};
-    let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
-    const now = new Date();
-
-    for (const category in presetTasks) {
-        const { tasks } = presetTasks[category];
-        const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
-        
-        const startTime = cumulativeTime;
-        const endTime = add(startTime, { minutes: totalDuration });
-
-        ranges[category] = {
-            start: startTime,
-            end: endTime,
-            isCurrent: isAfter(now, startTime) && isBefore(now, endTime)
-        };
-
-        cumulativeTime = endTime;
-    }
-    return ranges;
-  }, [presetTasks]);
-
   return (
     <>
     <div className="space-y-4">
@@ -243,10 +198,11 @@ export default function TaskForm() {
         <CarouselContent>
             {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
                 const timeRange = categoryTimeRanges[category];
+                const isCurrent = category === activeCategory;
                 return (
                 <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                    <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", timeRange?.isCurrent && "border-primary ring-2 ring-primary shadow-lg")}>
+                    <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-primary ring-2 ring-primary shadow-lg")}>
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
                             <div>
                                 <CardTitle className="font-headline text-lg">{category}</CardTitle>

@@ -8,7 +8,7 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy,
 import { useAuth } from './useAuth';
 import { Task, Preset, PresetTask, UserPresetTask, CustomProfession, UserEvent, ProfileType } from '@/types';
 import { useProfile } from './useProfile';
-import { startOfDay, endOfDay, isBefore, add, set } from 'date-fns';
+import { startOfDay, endOfDay, isBefore, isAfter, add, set } from 'date-fns';
 
 const iconMap = {
     ListChecks: "ListChecks",
@@ -343,6 +343,47 @@ export function usePresetTasks() {
         return newPresetTasks;
 
     }, [presetTasks, todaysEvents]);
+    
+    const { categoryTimeRanges, activeCategory } = useMemo(() => {
+        const ranges: { [category: string]: { start: Date, end: Date } } = {};
+        if (Object.keys(processedTasks).length === 0) {
+            return { categoryTimeRanges: ranges, activeCategory: null };
+        }
+    
+        const now = new Date();
+        let cumulativeTime = set(now, { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
+        let currentActiveCategory: string | null = null;
+        let nextUpcomingCategory: string | null = null;
+    
+        const categories = Object.keys(processedTasks);
+    
+        for (const category of categories) {
+            const { tasks } = processedTasks[category];
+            const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
+    
+            if (totalDuration > 0) {
+                const startTime = cumulativeTime;
+                const endTime = add(startTime, { minutes: totalDuration });
+    
+                ranges[category] = { start: startTime, end: endTime };
+    
+                if (isAfter(now, startTime) && isBefore(now, endTime)) {
+                    currentActiveCategory = category;
+                }
+    
+                if (isAfter(endTime, now) && !nextUpcomingCategory) {
+                    nextUpcomingCategory = category;
+                }
+    
+                cumulativeTime = endTime;
+            }
+        }
+    
+        return { 
+            categoryTimeRanges: ranges, 
+            activeCategory: currentActiveCategory || nextUpcomingCategory || categories[0] 
+        };
+    }, [processedTasks]);
 
     useEffect(() => {
         if (!user || isOffline) {
@@ -580,7 +621,7 @@ export function usePresetTasks() {
 
     }, [user, isOffline]);
 
-    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents };
+    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents, categoryTimeRanges, activeCategory };
 }
 
 export function useCalendarEvents() {
@@ -635,5 +676,3 @@ export function useCalendarEvents() {
 
     return { events, loading, addEvent, deleteEvent };
 }
-
-    
