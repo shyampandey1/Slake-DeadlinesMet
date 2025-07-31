@@ -30,160 +30,280 @@ const iconMap = {
 };
 const iconNames = Object.keys(iconMap);
 
-const baseRoutine: Preset = {
+
+const creativeRoutine: Preset = {
     'Morning': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Freshen Up', duration: 25, icon: 'Droplets', order: 0 },
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 1 },
-            { name: 'Meditate', duration: 10, icon: 'Wind', order: 2 },
-            { name: 'Grooming', duration: 20, icon: 'Wrench', order: 3 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 4 },
+            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Mindfulness: Meditation or Journaling', duration: 15, icon: 'Wind', order: 1 },
+            { name: 'Light Movement: Stretching or Yoga', duration: 20, icon: 'StretchHorizontal', order: 2 },
+            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
         ]
     },
-    'Strategy': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Plan & Prioritize Tasks', duration: 30, icon: 'ListChecks', order: 0 },
-        ]
-    },
-    'Work Session 1': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Focus on Top Priority Tasks', duration: 180, icon: 'BrainCircuit', order: 0 },
-            { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 },
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 },
-        ]
-    },
-    'Recharge': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Short Drive', duration: 45, icon: 'Footprints', order: 0 },
-            { name: 'Lunch', duration: 45, icon: 'Utensils', order: 1 },
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 },
-        ]
-    },
-    'Work Session 2': {
+    'Deep Creative Session': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Focus on Secondary Priority Tasks', duration: 150, icon: 'BrainCircuit', order: 0 },
-            { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 },
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 },
+            { name: 'Deep Work on Primary Project', duration: 180, icon: 'BrainCircuit', order: 0 },
+            { name: 'Hydration Break', duration: 1, icon: 'Droplets', order: 1 },
+            { name: 'Deep Work Continued', duration: 60, icon: 'BrainCircuit', order: 2 },
         ]
     },
-    'Wrap-up': {
+    'Lunch & Recharge': {
+        color: "bg-green-800 text-green-100",
+        tasks: [
+            { name: 'Mindful Meal (No Workspace)', duration: 45, icon: 'Utensils', order: 0 },
+            { name: 'Short Walk', duration: 15, icon: 'Footprints', order: 1 },
+        ]
+    },
+    'Afternoon Tasks': {
         color: "bg-amber-800 text-amber-100",
         tasks: [
-            { name: 'Review & Analysis', duration: 30, icon: 'Target', order: 0 },
-            { name: 'Client App Refinements', duration: 30, icon: 'Wrench', order: 1 },
+            { name: 'Admin (Emails, Planning)', duration: 90, icon: 'Mail', order: 0 },
+            { name: 'Inspiration (Reading, Tutorials)', duration: 90, icon: 'ShoppingBag', order: 1 },
         ]
     },
     'Evening': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Disconnect & Decompress', duration: 45, icon: 'Coffee', order: 0 },
-            { name: 'Hobby/Leisure', duration: 45, icon: 'Dumbbell', order: 1 },
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 },
+            { name: 'Exercise/Workout', duration: 45, icon: 'Dumbbell', order: 0 },
+            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
+            { name: 'Leisure & Social Time', duration: 90, icon: 'Users', order: 2},
         ]
     },
-    'Night': {
-        color: "bg-rose-800 text-rose-100",
-        tasks: [
-            { name: 'Dinner', duration: 45, icon: 'Utensils', order: 0 },
-            { name: 'Family/Social Time', duration: 60, icon: 'Users', order: 1 },
-        ]
-    },
-    'Shutdown Ritual': {
+    'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Digital Detox & Reading', duration: 30, icon: 'BookOpen', order: 0 },
-            { name: 'Tidy & Prep for Tomorrow', duration: 15, icon: 'ListChecks', order: 1 },
+            { name: 'Plan Tomorrow\'s Creative Task', duration: 5, icon: 'ListChecks', order: 0 },
+            { name: 'Screen-free Wind-down (Reading)', duration: 30, icon: 'BookOpen', order: 1 },
+            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
         ]
     }
 };
 
-const profilePresets: { [key: string]: Preset } = {
-    "Artist": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Creative Deep Work: Painting/Sketching', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Digital Illustration & Design', duration: 150, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+const businessRoutine: Preset = {
+    'Morning Power-Up': {
+        color: "bg-sky-800 text-sky-100",
+        tasks: [
+            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Breathing Exercise for Focus', duration: 5, icon: 'Wind', order: 1 },
+            { name: 'Workout/Exercise', duration: 30, icon: 'Dumbbell', order: 2 },
+            { name: 'Plan Top 3 Priorities', duration: 10, icon: 'ListChecks', order: 3 },
+            { name: 'Breakfast & News', duration: 20, icon: 'Utensils', order: 4 },
+        ]
     },
-    "Consultant": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Client Project: Strategy & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Calls & Presentations', duration: 150, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+    'Strategic Work Block': {
+        color: "bg-blue-800 text-blue-100",
+        tasks: [
+            { name: 'Tackle Most Important Task', duration: 180, icon: 'BrainCircuit', order: 0 },
+            { name: 'Stand & Stretch Break', duration: 5, icon: 'StretchHorizontal', order: 1 },
+        ]
     },
-    "Content Creator": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Scripting & Filming Session', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Video Editing & Post-Production', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+    'Lunch': {
+        color: "bg-green-800 text-green-100",
+        tasks: [
+            { name: 'Power Lunch (No Work Talk)', duration: 60, icon: 'Utensils', order: 0 },
+        ]
     },
-    "Designer": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'UI/UX Design: Wireframing & Prototyping', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'High-Fidelity Mockups & Revisions', duration: 150, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+    'Meetings & Collaboration': {
+        color: "bg-indigo-800 text-indigo-100",
+        tasks: [
+            { name: 'Meetings & Collaborative Tasks', duration: 120, icon: 'Users', order: 0 },
+            { name: 'Pomodoro: Emails & Small Tasks', duration: 120, icon: 'Mail', order: 1 },
+        ]
     },
-    "Educator": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lesson Planning & Material Creation', duration: 180, icon: 'ListChecks', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Grading & Student Feedback', duration: 150, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+    'Decompression': {
+        color: "bg-purple-800 text-purple-100",
+        tasks: [
+            { name: 'Transition: Podcast/Music', duration: 30, icon: 'Wind', order: 0 },
+            { name: 'Leisure: Hobby/Video Games', duration: 60, icon: 'ShoppingBag', order: 1 },
+        ]
     },
-    "Entrepreneur": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Business Development & Strategy', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Networking, Sales & Investor Meetings', duration: 150, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+    'Evening': {
+        color: "bg-orange-800 text-orange-100",
+        tasks: [
+            { name: 'Dinner with Family/Friends', duration: 45, icon: 'Utensils', order: 0 },
+        ]
     },
-    "Freelancer": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Primary Client Project Deep Work', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Secondary Projects & Prospecting', duration: 150, icon: 'ShoppingBag', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "General": baseRoutine,
-    "Healthcare Professional": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Patient Consultations & Rounds', duration: 180, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Updating Patient Charts & Research', duration: 150, icon: 'ListChecks', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "IT Professional": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'System Architecture & Development', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Troubleshooting & Support Tickets', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Manager": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Team Meetings, 1-on-1s & Syncs', duration: 180, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Strategic Planning & Reporting', duration: 150, icon: 'ListChecks', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Marketer": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Campaign Strategy & Content Creation', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Performance Analysis & Optimization', duration: 150, icon: 'Target', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Researcher": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Data Collection & Analysis', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Literature Review & Writing', duration: 150, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Sales": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Lead Prospecting & Cold Outreach', duration: 180, icon: 'Mail', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Client Demos & Follow-ups', duration: 150, icon: 'Users', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Software Engineer": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Coding: Feature Development', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Bug Fixes & Code Reviews', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Student": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Core Subject Study Session', duration: 180, icon: 'BrainCircuit', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Assignments & Practice Problems', duration: 150, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-    },
-    "Writer": {
-        ...baseRoutine,
-        'Work Session 1': { ...baseRoutine['Work Session 1'], tasks: [{ name: 'Focused Writing Session', duration: 180, icon: 'BookOpen', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
-        'Work Session 2': { ...baseRoutine['Work Session 2'], tasks: [{ name: 'Editing, Proofreading & Research', duration: 150, icon: 'Wrench', order: 0 }, { name: 'Short Break', duration: 5, icon: 'Coffee', order: 1 }, { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 2 }] },
+    'Night Routine': {
+        color: "bg-slate-800 text-slate-100",
+        tasks: [
+            { name: 'Light Reading (Non-Work)', duration: 30, icon: 'BookOpen', order: 0 },
+            { name: 'Meditation for Stress Release', duration: 10, icon: 'Wind', order: 1 },
+            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
+        ]
     }
+};
+
+const technicalRoutine: Preset = {
+    'Morning': {
+        color: "bg-sky-800 text-sky-100",
+        tasks: [
+            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
+            { name: 'Light Exercise', duration: 20, icon: 'StretchHorizontal', order: 2 },
+            { name: 'Breakfast (No Screens)', duration: 20, icon: 'Utensils', order: 3 },
+        ]
+    },
+    'Deep Focus Block': {
+        color: "bg-indigo-800 text-indigo-100",
+        tasks: [
+            { name: 'Coding/Problem-Solving', duration: 240, icon: 'BrainCircuit', order: 0 },
+            { name: '20-20-20 Eye Break & Hydrate', duration: 1, icon: 'Droplets', order: 1 },
+        ]
+    },
+    'Lunch': {
+        color: "bg-green-800 text-green-100",
+        tasks: [
+            { name: 'Screen-Free Lunch & Walk', duration: 60, icon: 'Utensils', order: 0 },
+        ]
+    },
+    'Afternoon Tasks': {
+        color: "bg-blue-800 text-blue-100",
+        tasks: [
+            { name: 'Code Reviews, Meetings, Docs', duration: 180, icon: 'ListChecks', order: 0 },
+        ]
+    },
+    'Evening': {
+        color: "bg-orange-800 text-orange-100",
+        tasks: [
+            { name: 'Log Off & Workout', duration: 45, icon: 'Dumbbell', order: 0 },
+            { name: 'Leisure/Personal Project', duration: 90, icon: 'ShoppingBag', order: 1 },
+            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2},
+        ]
+    },
+    'Night Routine': {
+        color: "bg-slate-800 text-slate-100",
+        tasks: [
+            { name: 'Plan Tomorrow\'s Main Task', duration: 5, icon: 'Target', order: 0 },
+            { name: 'Read a Physical Book', duration: 30, icon: 'BookOpen', order: 1 },
+            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
+        ]
+    }
+};
+
+const onTheGoRoutine: Preset = {
+    'Morning Prep': {
+        color: "bg-sky-800 text-sky-100",
+        tasks: [
+            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Quick HIIT or Run', duration: 20, icon: 'Dumbbell', order: 1 },
+            { name: 'High-Protein Breakfast', duration: 20, icon: 'Utensils', order: 2 },
+            { name: 'Review Route & Appointments', duration: 15, icon: 'ListChecks', order: 3 },
+        ]
+    },
+    'On The Road': {
+        color: "bg-blue-800 text-blue-100",
+        tasks: [
+            { name: 'Travel Time: Calls/Podcasts', duration: 60, icon: 'Footprints', order: 0 },
+            { name: 'Reset: Breathing Exercises in Car', duration: 5, icon: 'Wind', order: 1 },
+            { name: 'Hydrate (250ml)', duration: 1, icon: 'Droplets', order: 2 },
+        ]
+    },
+    'Afternoon Appointments': {
+        color: "bg-indigo-800 text-indigo-100",
+        tasks: [
+            { name: 'Client Meetings & Follow-ups', duration: 180, icon: 'Users', order: 0 },
+            { name: 'Packed Lunch/Healthy Snack', duration: 20, icon: 'Utensils', order: 1 },
+        ]
+    },
+    'Wrap Up': {
+        color: "bg-amber-800 text-amber-100",
+        tasks: [
+            { name: 'Log Reports & Plan Tomorrow', duration: 30, icon: 'Mail', order: 0 },
+        ]
+    },
+    'Evening Wind-down': {
+        color: "bg-orange-800 text-orange-100",
+        tasks: [
+            { name: 'Full Meal for Dinner', duration: 30, icon: 'Utensils', order: 0 },
+            { name: 'Relaxing Activity (TV, Games)', duration: 60, icon: 'ShoppingBag', order: 1 },
+            { name: 'Stretching for Travel Tension', duration: 15, icon: 'StretchHorizontal', order: 2},
+        ]
+    },
+    'Night Routine': {
+        color: "bg-slate-800 text-slate-100",
+        tasks: [
+            { name: 'Prepare for Next Day', duration: 15, icon: 'Wrench', order: 0 },
+            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 1 },
+        ]
+    }
+};
+
+const healthcareRoutine: Preset = {
+    'Pre-Shift': {
+        color: "bg-sky-800 text-sky-100",
+        tasks: [
+            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Energy-Boosting Snack', duration: 10, icon: 'Utensils', order: 1 },
+            { name: 'Deep Breathing for Focus', duration: 5, icon: 'Wind', order: 2 },
+        ]
+    },
+    'During Shift (AM)': {
+        color: "bg-indigo-800 text-indigo-100",
+        tasks: [
+            { name: 'Patient Rounds & Care', duration: 240, icon: 'Users', order: 0 },
+            { name: 'Hydration Break', duration: 1, icon: 'Droplets', order: 1 },
+            { name: 'Micro-Break: Deep Breaths', duration: 1, icon: 'Wind', order: 2 },
+        ]
+    },
+    'Mid-Shift Break': {
+        color: "bg-green-800 text-green-100",
+        tasks: [
+            { name: 'High-Energy Meal', duration: 30, icon: 'Utensils', order: 0 },
+        ]
+    },
+    'During Shift (PM)': {
+        color: "bg-purple-800 text-purple-100",
+        tasks: [
+            { name: 'Patient Care & Charting', duration: 240, icon: 'ListChecks', order: 0 },
+            { name: 'Hydration Break', duration: 1, icon: 'Droplets', order: 1 },
+            { name: 'Micro-Break: Deep Breaths', duration: 1, icon: 'Wind', order: 2 },
+        ]
+    },
+    'Post-Shift': {
+        color: "bg-orange-800 text-orange-100",
+        tasks: [
+            { name: 'Decompression Commute (Music/Podcast)', duration: 30, icon: 'Footprints', order: 0 },
+            { name: 'Hydrate Again', duration: 1, icon: 'Droplets', order: 1 },
+            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2 },
+        ]
+    },
+    'Evening Recovery': {
+        color: "bg-slate-800 text-slate-100",
+        tasks: [
+            { name: 'Gentle Stretching', duration: 15, icon: 'StretchHorizontal', order: 0 },
+            { name: 'Connect with Family/Partner', duration: 45, icon: 'Users', order: 1 },
+            { name: 'Relaxing Hobby (No Screens)', duration: 30, icon: 'BookOpen', order: 2 },
+            { name: 'Warm Shower & Bedtime', duration: 15, icon: 'Bed', order: 3 },
+        ]
+    }
+};
+
+
+const profilePresets: { [key: string]: Preset } = {
+    // Creative
+    "Artist": creativeRoutine,
+    "Content Creator": creativeRoutine,
+    "Designer": creativeRoutine,
+    "Writer": creativeRoutine,
+    // Business
+    "Consultant": businessRoutine,
+    "Manager": businessRoutine,
+    "Marketer": businessRoutine,
+    "Entrepreneur": businessRoutine,
+    // Technical
+    "Software Engineer": technicalRoutine,
+    "IT Professional": technicalRoutine,
+    "Researcher": technicalRoutine,
+    // On-The-Go
+    "Sales": onTheGoRoutine,
+    // Healthcare
+    "Healthcare Professional": healthcareRoutine,
+    // General
+    "Freelancer": creativeRoutine, // Defaulting to creative
+    "Student": technicalRoutine, // Defaulting to technical
+    "General": businessRoutine, // Defaulting to business
 };
 
 export function useTasks() {
@@ -289,7 +409,7 @@ export function usePresetTasks() {
     const getAvailableIcons = () => iconNames;
     
     const getAvailableCategories = useCallback((prof: string) => {
-        const preset = profilePresets[prof] || baseRoutine;
+        const preset = profilePresets[prof] || businessRoutine;
         return Object.keys(preset);
     }, []);
 
@@ -411,9 +531,9 @@ export function usePresetTasks() {
                 const profileTasks = userTasks.filter(t => t.profession === profile);
                 profileTasks.forEach(task => {
                     if (!customPreset[task.category]) {
-                        const baseCategory = baseRoutine[task.category];
+                        // Creating a default category structure if it doesn't exist.
                         customPreset[task.category] = {
-                            color: baseCategory ? baseCategory.color : "bg-slate-800 text-slate-100",
+                            color: "bg-slate-800 text-slate-100",
                             tasks: []
                         };
                     }
