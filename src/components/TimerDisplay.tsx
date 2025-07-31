@@ -192,7 +192,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         color ? `timer-theme-${color.replace('bg-', '')}` : ''
       )}
       style={{
-        '--timer-primary-color': timerColor,
+        '--timer-primary-color': 'white',
         '--timer-background-color': 'hsl(var(--background))',
         '--flash-color': 'hsl(0 0% 100% / 0.1)',
       } as React.CSSProperties}
@@ -211,8 +211,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         <div className="mb-12">
           <CircularProgress progress={progress}>
             <div
-              className="font-code text-5xl font-bold sm:text-6xl md:text-7xl"
-              style={{ color: 'var(--timer-primary-color)' }}
+              className="font-code text-5xl font-bold text-white sm:text-6xl md:text-7xl"
             >
               {formatTime(timeRemaining)}
             </div>
