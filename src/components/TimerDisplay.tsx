@@ -182,7 +182,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
 
   // Dynamically set CSS variables for the timer theme
-  const timerColor = color ? `hsl(var(--${color}))` : 'hsl(var(--primary))';
+  const timerColor = 'hsl(var(--primary))';
 
 
   return (
@@ -198,9 +198,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         }
       )}
       style={{
-        backgroundColor: 'hsl(var(--background))',
+        backgroundColor: 'hsl(20 14% 4%)', // Always dark background
         '--timer-primary-color': timerColor,
-        '--timer-background-color': 'hsl(var(--background))',
+        '--timer-background-color': 'hsl(20 14% 4%)',
         '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >

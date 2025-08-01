@@ -41,7 +41,6 @@ const formSchema = z.object({
     message: "Duration must be at least 1 minute.",
   }),
   category: z.string().optional(),
-  color: z.string().optional(),
 });
 
 const iconMap: { [key: string]: LucideIcon } = {
@@ -158,20 +157,15 @@ export default function TaskForm() {
     if (values.category) {
         params.append("category", values.category);
     }
-    if (values.color) {
-        const colorName = values.color.split(' ')[0].replace('bg-', '');
-        params.append("color", colorName);
-    }
     router.push(`/timer?${params.toString()}`);
   }
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
-  const selectQuickStartTask = (task: UserPresetTask, category: string, color: string) => {
+  const selectQuickStartTask = (task: UserPresetTask, category: string) => {
     form.setValue("taskName", task.name);
     form.setValue("duration", task.duration);
     form.setValue("category", category);
-    form.setValue("color", color);
     if (customTaskFormRef.current) {
         customTaskFormRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -226,7 +220,7 @@ export default function TaskForm() {
                                         key={task.id || task.name}
                                         variant={isEventTask ? "default" : "outline"}
                                         className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 border-primary/50 hover:bg-primary/30": isEventTask })}
-                                        onClick={() => selectQuickStartTask(task, category, color)}
+                                        onClick={() => selectQuickStartTask(task, category)}
                                         onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
                                     >
                                         <Icon className="w-5 h-5 text-muted-foreground" />
