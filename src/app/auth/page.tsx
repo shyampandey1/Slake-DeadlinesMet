@@ -58,7 +58,20 @@ export default function AuthPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <div className="w-24 h-24 text-primary">
+                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="256" cy="256" r="240" stroke="currentColor" strokeWidth="20"/>
+                    <path d="M256 40V120" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M256 472V392" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M472 256H392" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M120 256H40" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M256 256L358 154" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                </svg>
+            </div>
+        </div>
+    );
   }
   
   if (user) {
@@ -69,7 +82,16 @@ export default function AuthPage() {
     <>
         <CardHeader>
           <div className="flex justify-center items-center mb-4 text-primary">
-            <Clock className="w-16 h-16" />
+            <div className="w-16 h-16">
+                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="256" cy="256" r="240" stroke="currentColor" strokeWidth="20"/>
+                    <path d="M256 40V120" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M256 472V392" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M472 256H392" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M120 256H40" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                    <path d="M256 256L358 154" stroke="currentColor" strokeWidth="20" strokeLinecap="round"/>
+                </svg>
+            </div>
           </div>
           <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
           <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
