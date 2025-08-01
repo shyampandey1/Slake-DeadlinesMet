@@ -122,7 +122,7 @@ function DeleteProfessionButton({ professionName, onDelete }: { professionName: 
 }
 
 function RoutineCustomizationPage() {
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
   const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, deleteCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -374,16 +374,6 @@ function RoutineCustomizationPage() {
                                                     <span className="flex-1 text-left">{task.name}</span>
                                                     <span className="text-sm text-muted-foreground">{task.duration}m</span>
                                                 </Button>
-                                                {task.id && (
-                                                    <div className="flex flex-col">
-                                                        <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
-                                                            <ArrowUp className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
-                                                            <ArrowDown className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                )}
                                             </div>
                                         );
                                         })}

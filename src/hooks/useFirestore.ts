@@ -703,52 +703,6 @@ export function usePresetTasks() {
 
     }, [user, profile, isOffline]);
 
-    const reorderPresetTask = useCallback(async (taskId: string, direction: 'up' | 'down') => {
-        if (!user || isOffline) return;
-        
-        try {
-            await runTransaction(db, async (transaction) => {
-                const taskRef = doc(db, 'userPresetTasks', taskId);
-                const taskDoc = await transaction.get(taskRef);
-
-                if (!taskDoc.exists()) {
-                    throw "Task does not exist!";
-                }
-
-                const taskData = taskDoc.data() as UserPresetTask & { category: string; profession: string };
-                const { category, order, profession } = taskData;
-                
-                const q = query(
-                    collection(db, 'userPresetTasks'),
-                    where('userId', '==', user.uid),
-                    where('profession', '==', profession)
-                );
-                
-                const allTasksSnapshot = await getDocs(q);
-                const allTasks = allTasksSnapshot.docs.map(d => ({...d.data(), id: d.id} as UserPresetTask & {id: string, category: string}));
-
-                const categoryTasks = allTasks.filter(t => t.category === category).sort((a,b) => a.order - b.order);
-
-                const taskIndex = categoryTasks.findIndex(t => t.id === taskId);
-
-                if (direction === 'up' && taskIndex > 0) {
-                    const otherTask = categoryTasks[taskIndex - 1];
-                    const otherTaskRef = doc(db, 'userPresetTasks', otherTask.id);
-                    transaction.update(taskRef, { order: otherTask.order });
-                    transaction.update(otherTaskRef, { order: order });
-                } else if (direction === 'down' && taskIndex < categoryTasks.length - 1) {
-                    const otherTask = categoryTasks[taskIndex + 1];
-                    const otherTaskRef = doc(db, 'userPresetTasks', otherTask.id);
-                    transaction.update(taskRef, { order: otherTask.order });
-                    transaction.update(otherTaskRef, { order: order });
-                }
-            });
-        } catch (error) {
-            console.error("Failed to reorder task:", error);
-        }
-
-    }, [user, isOffline]);
-
     const clearAndSetPresetTasks = useCallback(async (professionName: string, tasks: (PresetTask & { category: string })[]) => {
         if (!user || isOffline) return;
     
@@ -788,7 +742,7 @@ export function usePresetTasks() {
 
     }, [user, isOffline]);
 
-    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents, categoryTimeRanges, activeCategory };
+    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents, categoryTimeRanges, activeCategory };
 }
 
 export function useCalendarEvents() {
