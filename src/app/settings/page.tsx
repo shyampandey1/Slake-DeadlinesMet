@@ -147,17 +147,22 @@ function SettingsPageComponent() {
                             <CardDescription>Manage your account information and data sync.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                             <div className="flex items-center justify-between">
-                                <label htmlFor="sync-switch" className="font-medium flex items-center gap-2">
-                                    {isSyncEnabled ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
-                                    Firebase Sync
-                                </label>
-                                <Switch
-                                    id="sync-switch"
-                                    checked={isSyncEnabled}
-                                    onCheckedChange={setIsSyncEnabled}
-                                />
-                            </div>
+                             <div>
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="sync-switch" className="font-medium flex items-center gap-2">
+                                        {isSyncEnabled ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+                                        Cloud Sync
+                                    </label>
+                                    <Switch
+                                        id="sync-switch"
+                                        checked={isSyncEnabled}
+                                        onCheckedChange={setIsSyncEnabled}
+                                    />
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    When enabled, your data is securely stored and encrypted in the cloud, ensuring your privacy and safety.
+                                </p>
+                             </div>
                             {user && (
                                 <>
                                     <div className="flex items-center justify-between">
@@ -241,5 +246,3 @@ export default function SettingsPage() {
         </AuthWrapper>
     );
 }
-
-    
