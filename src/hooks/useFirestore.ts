@@ -34,7 +34,7 @@ const creativeRoutine: Preset = {
     'Morning': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Mindfulness', duration: 15, icon: 'Wind', order: 1 },
             { name: 'Light Movement', duration: 20, icon: 'StretchHorizontal', order: 2 },
             { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
@@ -43,14 +43,14 @@ const creativeRoutine: Preset = {
     'Deep Creative Session': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Deep Work on Project', duration: 180, icon: 'BrainCircuit', order: 1 },
         ]
     },
     'Lunch & Recharge': {
         color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Mindful Meal', duration: 45, icon: 'Utensils', order: 1 },
             { name: 'Short Walk', duration: 15, icon: 'Footprints', order: 2 },
         ]
@@ -58,7 +58,7 @@ const creativeRoutine: Preset = {
     'Afternoon Tasks': {
         color: "bg-amber-800 text-amber-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Admin & Emails', duration: 90, icon: 'Mail', order: 1 },
             { name: 'Inspiration Time', duration: 90, icon: 'ShoppingBag', order: 2 },
         ]
@@ -66,7 +66,7 @@ const creativeRoutine: Preset = {
     'Evening': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Exercise/Workout', duration: 45, icon: 'Dumbbell', order: 1 },
             { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2 },
             { name: 'Leisure Time', duration: 90, icon: 'Users', order: 3},
@@ -75,7 +75,7 @@ const creativeRoutine: Preset = {
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Plan Tomorrow', duration: 5, icon: 'ListChecks', order: 1 },
             { name: 'Screen-free Wind-down', duration: 30, icon: 'BookOpen', order: 2 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 3 },
@@ -87,7 +87,7 @@ const businessRoutine: Preset = {
     'Morning Power-Up': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Focus Breathing', duration: 5, icon: 'Wind', order: 1 },
             { name: 'Workout', duration: 30, icon: 'Dumbbell', order: 2 },
             { name: 'Plan Priorities', duration: 10, icon: 'ListChecks', order: 3 },
@@ -97,21 +97,21 @@ const businessRoutine: Preset = {
     'Strategic Work': {
         color: "bg-blue-800 text-blue-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Tackle Top Task', duration: 180, icon: 'BrainCircuit', order: 1 },
         ]
     },
     'Lunch': {
         color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Power Lunch', duration: 60, icon: 'Utensils', order: 1 },
         ]
     },
     'Meetings & Comms': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Meetings & Calls', duration: 120, icon: 'Users', order: 1 },
             { name: 'Email & Messages', duration: 120, icon: 'Mail', order: 2 },
         ]
@@ -119,7 +119,7 @@ const businessRoutine: Preset = {
     'Decompression': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Work Transition', duration: 30, icon: 'Wind', order: 1 },
             { name: 'Leisure/Hobby', duration: 60, icon: 'ShoppingBag', order: 2 },
         ]
@@ -127,14 +127,14 @@ const businessRoutine: Preset = {
     'Evening': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Dinner', duration: 45, icon: 'Utensils', order: 1 },
         ]
     },
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Light Reading', duration: 30, icon: 'BookOpen', order: 1 },
             { name: 'Meditation', duration: 10, icon: 'Wind', order: 2 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 3 },
@@ -146,7 +146,7 @@ const technicalRoutine: Preset = {
     'Morning': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
             { name: 'Light Exercise', duration: 20, icon: 'StretchHorizontal', order: 2 },
             { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
@@ -155,28 +155,28 @@ const technicalRoutine: Preset = {
     'Deep Focus Block': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Coding/Problem-Solving', duration: 240, icon: 'BrainCircuit', order: 1 },
         ]
     },
     'Lunch': {
         color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Screen-Free Lunch & Walk', duration: 60, icon: 'Utensils', order: 1 },
         ]
     },
     'Afternoon Tasks': {
         color: "bg-blue-800 text-blue-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Code Reviews, Meetings, Docs', duration: 180, icon: 'ListChecks', order: 1 },
         ]
     },
     'Evening': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 1 },
             { name: 'Leisure/Personal Project', duration: 90, icon: 'ShoppingBag', order: 2 },
             { name: 'Dinner', duration: 30, icon: 'Utensils', order: 3},
@@ -185,7 +185,7 @@ const technicalRoutine: Preset = {
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Plan Tomorrow', duration: 5, icon: 'Target', order: 1 },
             { name: 'Read a Book', duration: 30, icon: 'BookOpen', order: 2 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 3 },
@@ -197,7 +197,7 @@ const onTheGoRoutine: Preset = {
     'Morning Prep': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Quick Workout', duration: 20, icon: 'Dumbbell', order: 1 },
             { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
             { name: 'Review Day', duration: 15, icon: 'ListChecks', order: 3 },
@@ -206,7 +206,7 @@ const onTheGoRoutine: Preset = {
     'On The Road': {
         color: "bg-blue-800 text-blue-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Travel Time', duration: 60, icon: 'Footprints', order: 1 },
             { name: 'Reset Break', duration: 5, icon: 'Wind', order: 2 },
         ]
@@ -214,7 +214,7 @@ const onTheGoRoutine: Preset = {
     'Afternoon Appointments': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Client Meetings', duration: 180, icon: 'Users', order: 1 },
             { name: 'Lunch', duration: 20, icon: 'Utensils', order: 2 },
         ]
@@ -222,14 +222,14 @@ const onTheGoRoutine: Preset = {
     'Wrap Up': {
         color: "bg-amber-800 text-amber-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Log Reports', duration: 30, icon: 'Mail', order: 1 },
         ]
     },
     'Evening Wind-down': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
             { name: 'Relax', duration: 60, icon: 'ShoppingBag', order: 2 },
             { name: 'Stretching', duration: 15, icon: 'StretchHorizontal', order: 3},
@@ -238,7 +238,7 @@ const onTheGoRoutine: Preset = {
     'Night Routine': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Prepare for Next Day', duration: 15, icon: 'Wrench', order: 1 },
             { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
         ]
@@ -249,7 +249,7 @@ const healthcareRoutine: Preset = {
     'Pre-Shift': {
         color: "bg-sky-800 text-sky-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Energy Snack', duration: 10, icon: 'Utensils', order: 1 },
             { name: 'Deep Breathing', duration: 5, icon: 'Wind', order: 2 },
         ]
@@ -257,28 +257,28 @@ const healthcareRoutine: Preset = {
     'Shift AM': {
         color: "bg-indigo-800 text-indigo-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Patient Care', duration: 240, icon: 'Users', order: 1 },
         ]
     },
     'Mid-Shift Break': {
         color: "bg-green-800 text-green-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'High-Energy Meal', duration: 30, icon: 'Utensils', order: 1 },
         ]
     },
     'Shift PM': {
         color: "bg-purple-800 text-purple-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Patient Care & Charting', duration: 240, icon: 'ListChecks', order: 1 },
         ]
     },
     'Post-Shift': {
         color: "bg-orange-800 text-orange-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Decompression Commute', duration: 30, icon: 'Footprints', order: 1 },
             { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2 },
         ]
@@ -286,7 +286,7 @@ const healthcareRoutine: Preset = {
     'Evening Recovery': {
         color: "bg-slate-800 text-slate-100",
         tasks: [
-            { name: 'Hydrate', duration: 1, icon: 'Droplets', order: 0 },
+            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
             { name: 'Gentle Stretching', duration: 15, icon: 'StretchHorizontal', order: 1 },
             { name: 'Connect', duration: 45, icon: 'Users', order: 2 },
             { name: 'Relaxing Hobby', duration: 30, icon: 'BookOpen', order: 3 },
