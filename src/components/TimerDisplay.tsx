@@ -255,13 +255,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           <AlertDialogFooter>
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
                 <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-muted text-muted-foreground hover:bg-muted/80"
                 onClick={() => handleSaveTask(false)}
                 >
                 No
                 </AlertDialogAction>
                 <AlertDialogAction
-                className="bg-green-600 hover:bg-green-700"
                 onClick={() => handleSaveTask(true)}
                 >
                 Yes!
