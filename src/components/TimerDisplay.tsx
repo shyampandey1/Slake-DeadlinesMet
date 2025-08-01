@@ -207,7 +207,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     >
       <div className={cn(
         "absolute top-4 transition-opacity duration-300",
-        !isUIVisible && "opacity-0 pointer-events-none"
+        !isUIVisible && "opacity-20"
       )}>
         <InfoDisplay />
       </div>
