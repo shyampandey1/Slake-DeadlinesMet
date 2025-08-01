@@ -111,7 +111,7 @@ export default function InfoDisplay() {
   }
 
   return (
-    <div className="hidden sm:flex items-center gap-x-3 text-xs p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
+    <div className="flex flex-wrap justify-center items-center gap-x-3 text-xs p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
       <div className="flex items-center gap-1.5">
         <Calendar className="h-4 w-4" />
         <span>{format(time, "PPP")}</span>
