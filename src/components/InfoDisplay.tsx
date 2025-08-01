@@ -41,7 +41,7 @@ const weatherCodeMapping: { [key: number]: { condition: string, icon: React.Reac
 export default function InfoDisplay() {
   const [time, setTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   async function fetchWeather(latitude: number, longitude: number) {
@@ -106,7 +106,7 @@ export default function InfoDisplay() {
     </div>
   )
 
-  if (loading && !weather) {
+  if (loading && !weather && !permissionDenied) {
     return renderSkeleton();
   }
 
@@ -132,7 +132,7 @@ export default function InfoDisplay() {
         </div>
         </>
       ) : (
-          <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2" disabled={permissionDenied}>
+          <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2">
             <LocateFixed className="h-4 w-4" />
             {permissionDenied ? 'Location denied' : 'Show Weather'}
           </Button>
