@@ -127,6 +127,7 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'flash-continuous': 'flash 0.5s ease-in-out infinite',
+        'flash-breathing': 'flash 2s ease-in-out infinite',
         'flash-three-times': 'flash 1s ease-in-out 3',
       },
     },

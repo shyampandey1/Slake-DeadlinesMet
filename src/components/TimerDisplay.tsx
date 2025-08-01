@@ -40,7 +40,7 @@ interface TimerDisplayProps {
   color?: string;
 }
 
-type FlashState = 'none' | 'three-times' | 'continuous';
+type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
 
 export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
   const router = useRouter();
@@ -79,11 +79,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           return 0;
         }
         
-        if (prev <= 4) {
-          setFlashState('continuous');
-          playSound();
-        } else if (prev <= 11 && prev > 4) {
-           setFlashState('none');
+        // Flashing logic
+        if (prev > 10) {
+            setFlashState('none');
+        } else if (prev > 5) {
+            setFlashState('breathing');
+        } else if (prev > 3) {
+            setFlashState('three-times');
+        } else {
+            setFlashState('continuous');
+            playSound();
         }
 
         return prev - 1;
@@ -187,6 +192,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       className={cn(
         "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 text-white",
         {
+          'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
         },
