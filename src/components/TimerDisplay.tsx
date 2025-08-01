@@ -212,10 +212,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         <InfoDisplay />
       </div>
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <div className={cn(
-            "flex w-full flex-col items-center justify-center text-center transition-opacity duration-300",
-            !isUIVisible && "opacity-0 pointer-events-none"
-        )}>
+        <div className="flex w-full flex-col items-center justify-center text-center transition-opacity duration-300">
             <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
             <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
               {taskName}
@@ -230,10 +227,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
           </CircularProgress>
         </div>
-        <div className={cn(
-            "flex items-center gap-4 transition-opacity duration-300",
-            !isUIVisible && "opacity-0 pointer-events-none"
-        )}>
+        <div className="flex items-center gap-4 transition-opacity duration-300">
           <Button
             onClick={() => setIsPaused(!isPaused)}
             size="lg"
