@@ -25,14 +25,11 @@ export default function BottomNav() {
   if (!user) {
     return null;
   }
-  
-  if (!isUIVisible && isTimerPage) {
-    return null;
-  }
 
   return (
     <nav className={cn(
         "fixed bottom-0 inset-x-0 z-50 bg-background border-t border-border shadow-lg transition-transform duration-300",
+        isTimerPage && !isUIVisible && "translate-y-full"
     )}>
         <div className="flex justify-around items-center h-16">
             {navItems.map(({ href, label, icon: Icon }) => {
