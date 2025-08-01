@@ -181,8 +181,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
 
-  // Extract HSL values from the color prop
-  const timerColor = color ? `hsl(var(--${color.replace('bg-', '')}))` : 'hsl(var(--primary))';
+  // Dynamically set CSS variables for the timer theme
+  const timerColor = color ? `hsl(var(--${color}))` : 'hsl(var(--primary))';
 
 
   return (
@@ -195,13 +195,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
-        },
-        color ? `timer-theme-${color.replace('bg-', '')}` : ''
+        }
       )}
       style={{
-        backgroundColor: '#0a0a0a',
+        backgroundColor: 'hsl(var(--background))',
         '--timer-primary-color': timerColor,
-        '--timer-background-color': '#0a0a0a',
+        '--timer-background-color': 'hsl(var(--background))',
         '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
@@ -261,7 +260,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 No
                 </AlertDialogAction>
                 <AlertDialogAction
-                onClick={() => handleSaveTask(true)}
+                 onClick={() => handleSaveTask(true)}
+                 style={{ backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
                 >
                 Yes!
                 </AlertDialogAction>
