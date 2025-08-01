@@ -202,7 +202,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         backgroundColor: '#0a0a0a',
         '--timer-primary-color': 'lightgray',
         '--timer-background-color': '#0a0a0a',
-        '--flash-color': 'hsl(0 0% 100% / 0.1)',
+        '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
       <div className={cn(
