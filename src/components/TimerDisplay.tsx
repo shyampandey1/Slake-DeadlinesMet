@@ -205,7 +205,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       } as React.CSSProperties}
     >
       <div className={cn(
-        "absolute top-4 transition-opacity duration-300",
+        "absolute top-4 w-full max-w-xs sm:max-w-sm md:max-w-md px-4 transition-opacity duration-300",
         !isUIVisible && "opacity-20"
       )}>
         <InfoDisplay />

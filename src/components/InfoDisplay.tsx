@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { MapPin, Cloud, Thermometer, Clock, Sun, CloudRain, CloudSnow, CloudLightning, CloudDrizzle, Haze, CloudFog, Calendar, LocateFixed } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 interface WeatherData {
   temperature: number;
@@ -107,36 +108,49 @@ export default function InfoDisplay() {
   )
 
   if (loading && !weather && !permissionDenied) {
-    return renderSkeleton();
+    return (
+        <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+            <div className="overflow-x-auto scrollbar-hide">
+                {renderSkeleton()}
+            </div>
+        </div>
+    );
   }
 
   return (
-    <div className="flex flex-wrap justify-center items-center gap-x-3 text-xs p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
-      <div className="flex items-center gap-1.5">
-        <Calendar className="h-4 w-4" />
-        <span>{format(time, "PPP")}</span>
-      </div>
-       <div className="flex items-center gap-1.5">
-        <Clock className="h-4 w-4" />
-        <span>{format(time, "p")}</span>
-      </div>
-      {weather ? (
-        <>
-        <div className="flex items-center gap-1.5">
-            <Thermometer className="h-4 w-4" />
-            <span>{weather.temperature}°C</span>
+    <div className={cn(
+        "relative before:absolute before:inset-y-0 before:left-0 before:w-8 before:bg-gradient-to-r before:from-[var(--timer-background-color)] before:to-transparent before:pointer-events-none before:z-10",
+        "after:absolute after:inset-y-0 after:right-0 after:w-8 after:bg-gradient-to-l after:from-[var(--timer-background-color)] after:to-transparent after:pointer-events-none after:z-10"
+    )}>
+        <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex items-center justify-start gap-x-4 text-xs p-3 rounded-lg bg-card/50 backdrop-blur-sm border border-border whitespace-nowrap">
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <Calendar className="h-4 w-4" />
+                    <span>{format(time, "PPP")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <Clock className="h-4 w-4" />
+                    <span>{format(time, "p")}</span>
+                </div>
+                {weather ? (
+                    <>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <Thermometer className="h-4 w-4" />
+                        <span>{weather.temperature}°C</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {weather.icon}
+                        <span className="truncate">{weather.condition}</span>
+                    </div>
+                    </>
+                ) : (
+                    <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2 shrink-0">
+                        <LocateFixed className="h-4 w-4" />
+                        {permissionDenied ? 'Location denied' : 'Show Weather'}
+                    </Button>
+                )}
+            </div>
         </div>
-        <div className="flex items-center gap-1.5">
-            {weather.icon}
-            <span>{weather.condition}</span>
-        </div>
-        </>
-      ) : (
-          <Button variant="ghost" size="sm" onClick={requestGeolocation} className="text-xs h-auto py-1 px-2 gap-2">
-            <LocateFixed className="h-4 w-4" />
-            {permissionDenied ? 'Location denied' : 'Show Weather'}
-          </Button>
-      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 
 import type {Config} from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 export default {
   darkMode: ['class'],
@@ -132,5 +133,12 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate'), require('tailwind-scrollbar-hide')],
+  plugins: [
+    require('tailwindcss-animate'), 
+    require('tailwind-scrollbar-hide'),
+    plugin(function({ addVariant }) {
+        addVariant('before', '&::before');
+        addVariant('after', '&::after');
+    })
+  ],
 } satisfies Config;
