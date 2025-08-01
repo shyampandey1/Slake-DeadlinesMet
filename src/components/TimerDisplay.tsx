@@ -200,22 +200,27 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       )}
       style={{
         backgroundColor: '#0a0a0a',
-        '--timer-primary-color': 'lightgray',
+        '--timer-primary-color': timerColor,
         '--timer-background-color': '#0a0a0a',
         '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
       <div className={cn(
         "absolute top-4 transition-opacity duration-300",
-        !isUIVisible && "opacity-30"
+        !isUIVisible && "opacity-0 pointer-events-none"
       )}>
         <InfoDisplay />
       </div>
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
-        <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
-          {taskName}
-        </h1>
+        <div className={cn(
+            "flex w-full flex-col items-center justify-center text-center transition-opacity duration-300",
+            !isUIVisible && "opacity-0 pointer-events-none"
+        )}>
+            <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
+            <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
+              {taskName}
+            </h1>
+        </div>
         <div className="mb-12">
           <CircularProgress progress={progress}>
             <div
@@ -225,7 +230,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
           </CircularProgress>
         </div>
-        <div className="flex items-center gap-4">
+        <div className={cn(
+            "flex items-center gap-4 transition-opacity duration-300",
+            !isUIVisible && "opacity-0 pointer-events-none"
+        )}>
           <Button
             onClick={() => setIsPaused(!isPaused)}
             size="lg"

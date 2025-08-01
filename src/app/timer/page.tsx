@@ -2,12 +2,15 @@ import { Suspense } from 'react';
 import TimerPageContent from '@/components/TimerPageContent';
 import { Skeleton } from '@/components/ui/skeleton';
 import AuthWrapper from '@/components/AuthWrapper';
+import { TimerUIProvider } from '@/hooks/useTimerUI';
 
 function TimerPage() {
   return (
     // Suspense boundary is crucial for useSearchParams to work correctly
     <Suspense fallback={<TimerSkeleton />}>
-      <TimerPageContent />
+        <TimerUIProvider>
+            <TimerPageContent />
+        </TimerUIProvider>
     </Suspense>
   );
 }

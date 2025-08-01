@@ -42,13 +42,11 @@ export default function TimerPageContent() {
   }
 
   return (
-    <TimerUIProvider>
-        <TimerDisplay
-        taskName={taskName!}
-        initialDuration={duration!}
-        category={category}
-        color={color}
-        />
-    </TimerUIProvider>
+    <TimerDisplay
+      taskName={taskName!}
+      initialDuration={duration!}
+      category={category}
+      color={color}
+    />
   );
 }
