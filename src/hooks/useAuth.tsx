@@ -14,11 +14,15 @@ import { auth, analytics } from "@/lib/firebase";
 import { MockUser } from "@/types";
 import { mockLogin } from "@/lib/mockAuth";
 
+const SYNC_ENABLED_KEY = 'firebaseSyncEnabled';
+
 interface AuthContextType {
   user: User | MockUser | null;
   loading: boolean;
   isOffline: boolean;
   setIsOffline: (isOffline: boolean) => void;
+  isSyncEnabled: boolean;
+  setIsSyncEnabled: (enabled: boolean) => void;
   setMockUser: (user: MockUser | null) => void;
   signInWithGoogle: () => Promise<void>;
   mockLogin: (email: string, pass: string) => MockUser | null;
@@ -30,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isOffline: false,
   setIsOffline: () => {},
+  isSyncEnabled: true,
+  setIsSyncEnabled: () => {},
   setMockUser: () => {},
   signInWithGoogle: async () => {},
   mockLogin: () => null,
@@ -40,6 +46,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | MockUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+  const [isSyncEnabled, setSyncEnabled] = useState(true);
+
+  useEffect(() => {
+    try {
+        const storedSync = localStorage.getItem(SYNC_ENABLED_KEY);
+        if (storedSync !== null) {
+            setSyncEnabled(JSON.parse(storedSync));
+        }
+    } catch(e) {
+        console.warn("Could not access localStorage for sync setting")
+    }
+  }, []);
+
+  const setIsSyncEnabled = (enabled: boolean) => {
+    setSyncEnabled(enabled);
+     try {
+      localStorage.setItem(SYNC_ENABLED_KEY, JSON.stringify(enabled));
+    } catch (e) {
+      console.warn("Could not access localStorage for sync setting")
+    }
+  }
   
   const setMockUser = useCallback((mockUser: MockUser | null) => {
     if (mockUser) {
@@ -96,10 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, isOffline, setIsOffline, setMockUser, signInWithGoogle, mockLogin, updateUserDisplayName }}>
+    <AuthContext.Provider value={{ user, loading, isOffline, setIsOffline, isSyncEnabled, setIsSyncEnabled, setMockUser, signInWithGoogle, mockLogin, updateUserDisplayName }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+    

@@ -6,7 +6,7 @@ import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X } from "lucide-react";
+import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X, Cloud, CloudOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
-    const { user, updateUserDisplayName } = useAuth();
+    const { user, updateUserDisplayName, isSyncEnabled, setIsSyncEnabled } = useAuth();
     const { clearTasks } = useTasks();
     const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
@@ -144,9 +144,20 @@ function SettingsPageComponent() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline text-lg">Account</CardTitle>
-                            <CardDescription>Manage your account information.</CardDescription>
+                            <CardDescription>Manage your account information and data sync.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                             <div className="flex items-center justify-between">
+                                <label htmlFor="sync-switch" className="font-medium flex items-center gap-2">
+                                    {isSyncEnabled ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+                                    Firebase Sync
+                                </label>
+                                <Switch
+                                    id="sync-switch"
+                                    checked={isSyncEnabled}
+                                    onCheckedChange={setIsSyncEnabled}
+                                />
+                            </div>
                             {user && (
                                 <>
                                     <div className="flex items-center justify-between">
@@ -230,3 +241,5 @@ export default function SettingsPage() {
         </AuthWrapper>
     );
 }
+
+    

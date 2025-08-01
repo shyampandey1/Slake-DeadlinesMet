@@ -350,12 +350,12 @@ const routineStartTimes: { [key: string]: { hours: number, minutes: number } } =
 
 
 export function useTasks() {
-  const { user, isOffline } = useAuth();
+  const { user, isOffline, isSyncEnabled } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || isOffline) {
+    if (!user || isOffline || !isSyncEnabled) {
       setTasks(isOffline ? [
         { id: 'mock-1', userId: 'mock-user-01', name: 'Finish project proposal (mock)', duration: 60, initialDuration: 60, completed: true, createdAt: new Date().toISOString() },
         { id: 'mock-2', userId: 'mock-user-01', name: 'Review design mockups (mock)', duration: 20, initialDuration: 45, completed: false, createdAt: new Date(Date.now() - 86400000).toISOString() },
@@ -391,12 +391,12 @@ export function useTasks() {
     });
 
     return () => unsubscribe();
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
 
   const addTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
     if (!user) throw new Error("User not authenticated");
 
-    if (isOffline) {
+    if (isOffline || !isSyncEnabled) {
         const newTask: Task = {
             id: `mock-${Date.now()}`,
             userId: user.uid,
@@ -413,12 +413,12 @@ export function useTasks() {
       userId: user.uid,
       createdAt: serverTimestamp(),
     });
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
   
   const clearTasks = useCallback(async () => {
     if (!user) throw new Error("User not authenticated");
 
-    if (isOffline) {
+    if (isOffline || !isSyncEnabled) {
         setTasks([]);
         console.log("Mock tasks cleared");
         return;
@@ -432,14 +432,14 @@ export function useTasks() {
     });
     await batch.commit();
 
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
 
 
   return { tasks, loading, addTask, clearTasks };
 }
 
 export function usePresetTasks() {
-    const { user, isOffline } = useAuth();
+    const { user, isOffline, isSyncEnabled } = useAuth();
     const { profile, customProfessions } = useProfile();
     const [presetTasks, setPresetTasks] = useState<Preset>({});
     const [todaysEvents, setTodaysEvents] = useState<UserEvent[]>([]);
@@ -553,7 +553,7 @@ export function usePresetTasks() {
     }, [processedTasks, profile]);
 
     useEffect(() => {
-        if (!user || isOffline) {
+        if (!user || isOffline || !isSyncEnabled) {
             const initialTasks = profilePresets[profile] || profilePresets["General"];
             setPresetTasks(initialTasks);
             setTodaysEvents([]);
@@ -649,10 +649,10 @@ export function usePresetTasks() {
             unsubscribePresets();
             unsubscribeEvents();
         };
-    }, [user, profile, customProfessions, isOffline]);
+    }, [user, profile, customProfessions, isOffline, isSyncEnabled]);
 
     const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }, taskProfile: ProfileType) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
     
         const categoryTasks = presetTasks[task.category]?.tasks || [];
         const maxOrder = categoryTasks.reduce((max, t) => Math.max(max, t.order), -1);
@@ -663,23 +663,49 @@ export function usePresetTasks() {
             order: maxOrder + 1,
             userId: user.uid
         });
-    }, [user, presetTasks, isOffline]);
+    }, [user, presetTasks, isOffline, isSyncEnabled]);
     
     const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
         const taskRef = doc(db, 'userPresetTasks', taskId);
         await updateDoc(taskRef, task);
-    }, [user, isOffline]);
+    }, [user, isOffline, isSyncEnabled]);
 
     const deletePresetTask = useCallback(async (taskId: string) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
         
         await deleteDoc(doc(db, 'userPresetTasks', taskId));
 
-    }, [user, isOffline]);
+    }, [user, isOffline, isSyncEnabled]);
+
+    const reorderPresetTask = useCallback(async (taskId: string, category: string, direction: 'up' | 'down') => {
+        if (!user || isOffline || !isSyncEnabled) return;
+
+        const categoryTasks = presetTasks[category]?.tasks;
+        if (!categoryTasks) return;
+
+        const taskIndex = categoryTasks.findIndex(t => t.id === taskId);
+        if (taskIndex === -1) return;
+
+        const swapIndex = direction === 'up' ? taskIndex - 1 : taskIndex + 1;
+        if (swapIndex < 0 || swapIndex >= categoryTasks.length) return;
+
+        const taskToMove = categoryTasks[taskIndex];
+        const taskToSwap = categoryTasks[swapIndex];
+
+        const batch = writeBatch(db);
+        const taskToMoveRef = doc(db, 'userPresetTasks', taskToMove.id!);
+        const taskToSwapRef = doc(db, 'userPresetTasks', taskToSwap.id!);
+
+        batch.update(taskToMoveRef, { order: taskToSwap.order });
+        batch.update(taskToSwapRef, { order: taskToMove.order });
+        
+        await batch.commit();
+
+    }, [user, presetTasks, isOffline, isSyncEnabled]);
 
     const findAndSyncPresetTask = useCallback(async (taskName: string, newDuration: number) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
 
         const q = query(
             collection(db, 'userPresetTasks'),
@@ -701,10 +727,10 @@ export function usePresetTasks() {
             console.error(`Failed to sync preset task '${taskName}':`, error);
         }
 
-    }, [user, profile, isOffline]);
+    }, [user, profile, isOffline, isSyncEnabled]);
 
     const clearAndSetPresetTasks = useCallback(async (professionName: string, tasks: (PresetTask & { category: string })[]) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
     
         const batch = writeBatch(db);
     
@@ -740,18 +766,18 @@ export function usePresetTasks() {
     
         await batch.commit();
 
-    }, [user, isOffline]);
+    }, [user, isOffline, isSyncEnabled]);
 
-    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents, categoryTimeRanges, activeCategory };
+    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, isDefaultTask, findAndSyncPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents, categoryTimeRanges, activeCategory };
 }
 
 export function useCalendarEvents() {
-    const { user, isOffline } = useAuth();
+    const { user, isOffline, isSyncEnabled } = useAuth();
     const [events, setEvents] = useState<UserEvent[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!user || isOffline) {
+        if (!user || isOffline || !isSyncEnabled) {
             setEvents([]);
             setLoading(false);
             return;
@@ -780,20 +806,22 @@ export function useCalendarEvents() {
         });
 
         return () => unsubscribe();
-    }, [user, isOffline]);
+    }, [user, isOffline, isSyncEnabled]);
 
     const addEvent = useCallback(async (event: Omit<UserEvent, 'id' | 'userId'>) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
         await addDoc(collection(db, 'userEvents'), {
             ...event,
             userId: user.uid,
         });
-    }, [user, isOffline]);
+    }, [user, isOffline, isSyncEnabled]);
 
     const deleteEvent = useCallback(async (eventId: string) => {
-        if (!user || isOffline) return;
+        if (!user || isOffline || !isSyncEnabled) return;
         await deleteDoc(doc(db, 'userEvents', eventId));
-    }, [user, isOffline]);
+    }, [user, isOffline, isSyncEnabled]);
 
     return { events, loading, addEvent, deleteEvent };
 }
+
+    

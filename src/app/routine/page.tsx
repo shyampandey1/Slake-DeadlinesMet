@@ -122,7 +122,7 @@ function DeleteProfessionButton({ professionName, onDelete }: { professionName: 
 }
 
 function RoutineCustomizationPage() {
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
+  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading: presetTasksLoading, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
   const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, deleteCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -208,7 +208,7 @@ function RoutineCustomizationPage() {
         
         if (result.tasks && result.tasks.length > 0) {
             setGeneratingStatus("saving");
-            await addTasksToCurrentProfile(result.tasks);
+            await clearAndSetPresetTasks(profile, result.tasks);
             setRoutineDescription("");
             toast({
                 title: `Routine Enhanced!`,
@@ -374,6 +374,26 @@ function RoutineCustomizationPage() {
                                                     <span className="flex-1 text-left">{task.name}</span>
                                                     <span className="text-sm text-muted-foreground">{task.duration}m</span>
                                                 </Button>
+                                                <div className="flex flex-col">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5"
+                                                        disabled={index === 0}
+                                                        onClick={() => reorderPresetTask(task.id!, category, 'up')}
+                                                        >
+                                                        <ArrowUp className="h-3 w-3" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5"
+                                                        disabled={index === tasks.length - 1}
+                                                        onClick={() => reorderPresetTask(task.id!, category, 'down')}
+                                                        >
+                                                        <ArrowDown className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         );
                                         })}
@@ -411,3 +431,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    

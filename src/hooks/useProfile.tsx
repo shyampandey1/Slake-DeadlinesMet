@@ -35,13 +35,13 @@ const ProfileContext = createContext<ProfileContextType>({
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { user, isOffline } = useAuth();
+  const { user, isOffline, isSyncEnabled } = useAuth();
   const [profile, setProfileState] = useState<ProfileType>("General");
   const [customProfessions, setCustomProfessionsState] = useState<CustomProfession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || isOffline) {
+    if (!user || isOffline || !isSyncEnabled) {
         setProfileState("General");
         setCustomProfessionsState([]);
         setLoading(false);
@@ -70,11 +70,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     
     return () => unsubscribe();
 
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
 
   const setProfile = useCallback(async (newProfile: ProfileType) => {
     setProfileState(newProfile);
-    if (user && !isOffline) {
+    if (user && !isOffline && isSyncEnabled) {
         try {
             const profileRef = doc(db, 'userProfiles', user.uid);
             await setDoc(profileRef, { profile: newProfile }, { merge: true });
@@ -82,10 +82,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             console.error("Failed to set profile: ", error);
         }
     }
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
 
   const addCustomProfession = useCallback(async (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => {
-    if (!user || isOffline) return;
+    if (!user || isOffline || !isSyncEnabled) return;
 
     const profileRef = doc(db, 'userProfiles', user.uid);
     const tasksCollectionRef = collection(db, 'userPresetTasks');
@@ -144,10 +144,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         console.error("Failed to add custom profession and tasks: ", error);
         throw error;
     }
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
   
   const deleteCustomProfession = useCallback(async (professionName: string) => {
-    if (!user || isOffline) return;
+    if (!user || isOffline || !isSyncEnabled) return;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -180,10 +180,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         throw error;
     }
 
-  }, [user, isOffline, profile]);
+  }, [user, isOffline, profile, isSyncEnabled]);
 
   const addTasksToCurrentProfile = useCallback(async (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => {
-    if (!user || isOffline) return;
+    if (!user || isOffline || !isSyncEnabled) return;
 
     try {
         const batch = writeBatch(db);
@@ -208,7 +208,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         console.error("Failed to add tasks to current profile", error);
         throw error;
     }
-  }, [user, profile, isOffline]);
+  }, [user, profile, isOffline, isSyncEnabled]);
 
 
   return (
@@ -219,3 +219,5 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 }
 
 export const useProfile = () => useContext(ProfileContext);
+
+    
