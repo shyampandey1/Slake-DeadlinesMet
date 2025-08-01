@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info, Cloud, Users2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,15 @@ import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
 
 const changelog = [
+  {
+      version: "v1.2",
+      date: "Day 3",
+      features: [
+        { name: "Google Sign-In", description: "Users can now sign in using their Google accounts for a faster and more secure login experience.", icon: Users2 },
+        { name: "Cloud Sync Control", description: "Added a 'Cloud Sync' toggle in settings to give users control over their data synchronization.", icon: Cloud },
+        { name: "Mobile UX Overhaul", description: "Disabled text selection and fixed horizontal scrolling to provide a more native app-like feel on mobile devices.", icon: Palette },
+      ]
+  },
   {
       version: "v1.1",
       date: "Day 2",
