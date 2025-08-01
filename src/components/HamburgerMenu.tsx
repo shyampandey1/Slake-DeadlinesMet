@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -115,10 +115,13 @@ export default function HamburgerMenu() {
                     <Settings className="h-5 w-5" />
                     <span>Settings</span>
                 </Button>
-                
                 <Button variant="ghost" onClick={openChangelog} className="w-full justify-start gap-2">
                   <Sparkles className="h-5 w-5" />
                   <span>What's New</span>
+                </Button>
+                <Button variant="ghost" onClick={() => navigateTo('/about')} className="w-full justify-start gap-2">
+                    <Info className="h-5 w-5" />
+                    <span>About</span>
                 </Button>
 
             </div>
