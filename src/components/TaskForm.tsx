@@ -180,72 +180,74 @@ export default function TaskForm() {
             Select a preset task or add your own. Double-click to edit.
         </p>
       </div>
-      <Carousel
-        setApi={setCarouselApi}
-        opts={{
-            align: "start",
-        }}
-        className="w-full"
-        >
-        <CarouselContent>
-            {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
-                const timeRange = categoryTimeRanges[category];
-                const isCurrent = category === activeCategory;
-                return (
-                <CarouselItem key={category} className="basis-full">
-                    <div className="p-1">
-                    <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-border shadow-lg")}>
-                        <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
-                            <div>
-                                <CardTitle className="font-headline text-lg">{category}</CardTitle>
-                                {timeRange && (
-                                    <p className="text-xs font-mono opacity-80">
-                                        {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
-                                    </p>
-                                )}
-                            </div>
-                            <Badge variant="secondary" className="gap-1.5">
-                                <Clock className="w-3.5 h-3.5"/>
-                                {tasks.reduce((acc, task) => acc + task.duration, 0)} min
-                            </Badge>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
-                           <ScrollArea className="h-full pr-3">
-                            <div className="space-y-2">
-                            {tasks.map((task) => {
-                                const Icon = iconMap[task.icon] || BrainCircuit;
-                                const isEventTask = task.isEvent;
-                                return (
-                                    <Button
-                                        key={task.id || task.name}
-                                        variant={isEventTask ? "default" : "outline"}
-                                        className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 border-primary/50 hover:bg-primary/30": isEventTask })}
-                                        onClick={() => selectQuickStartTask(task, category)}
-                                        onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
-                                    >
-                                        <Icon className="w-5 h-5 text-muted-foreground" />
-                                        <span className="flex-1 text-left font-normal">{task.name}</span>
-                                        <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                    </Button>
-                                );
-                            })}
-                            </div>
-                           </ScrollArea>
-                        </CardContent>
-                        <CardFooter className="p-3 pt-0 mt-auto">
-                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                                <Plus className="w-4 h-4 mr-2" /> Add Task
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                    </div>
-                </CarouselItem>
-                )
-            })}
-        </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
-      </Carousel>
+      <div className="relative">
+        <Carousel
+            setApi={setCarouselApi}
+            opts={{
+                align: "start",
+            }}
+            className="w-full"
+            >
+            <CarouselContent>
+                {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
+                    const timeRange = categoryTimeRanges[category];
+                    const isCurrent = category === activeCategory;
+                    return (
+                    <CarouselItem key={category} className="basis-full">
+                        <div className="p-1">
+                        <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-border shadow-lg")}>
+                            <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
+                                <div>
+                                    <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                                    {timeRange && (
+                                        <p className="text-xs font-mono opacity-80">
+                                            {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                        </p>
+                                    )}
+                                </div>
+                                <Badge variant="secondary" className="gap-1.5">
+                                    <Clock className="w-3.5 h-3.5"/>
+                                    {tasks.reduce((acc, task) => acc + task.duration, 0)} min
+                                </Badge>
+                            </CardHeader>
+                            <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
+                            <ScrollArea className="h-full pr-3">
+                                <div className="space-y-2">
+                                {tasks.map((task) => {
+                                    const Icon = iconMap[task.icon] || BrainCircuit;
+                                    const isEventTask = task.isEvent;
+                                    return (
+                                        <Button
+                                            key={task.id || task.name}
+                                            variant={isEventTask ? "default" : "outline"}
+                                            className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 border-primary/50 hover:bg-primary/30": isEventTask })}
+                                            onClick={() => selectQuickStartTask(task, category)}
+                                            onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
+                                        >
+                                            <Icon className="w-5 h-5 text-muted-foreground" />
+                                            <span className="flex-1 text-left font-normal">{task.name}</span>
+                                            <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                        </Button>
+                                    );
+                                })}
+                                </div>
+                            </ScrollArea>
+                            </CardContent>
+                            <CardFooter className="p-3 pt-0 mt-auto">
+                                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                    <Plus className="w-4 h-4 mr-2" /> Add Task
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                        </div>
+                    </CarouselItem>
+                    )
+                })}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+        </Carousel>
+      </div>
 
       <div className="flex justify-center gap-2">
         {scrollSnaps.map((_, index) => (
