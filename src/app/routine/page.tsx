@@ -374,7 +374,7 @@ function RoutineCustomizationPage() {
                                                     <span className="flex-1 text-left">{task.name}</span>
                                                     <span className="text-sm text-muted-foreground">{task.duration}m</span>
                                                 </Button>
-                                                {!isDefaultTask(task) && !task.isEvent && (
+                                                {!isDefaultTask(task) && (
                                                     <div className="flex flex-col">
                                                         <Button
                                                             variant="ghost"
