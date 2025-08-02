@@ -30,321 +30,31 @@ const iconMap = {
 };
 const iconNames = Object.keys(iconMap);
 
-const creativeRoutine: Preset = {
-    'Morning': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Mindfulness', duration: 15, icon: 'Wind', order: 1 },
-            { name: 'Light Movement', duration: 20, icon: 'StretchHorizontal', order: 2 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
-        ]
-    },
-    'Deep Creative Session': {
-        color: "bg-purple-800 text-purple-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Deep Work on Project', duration: 180, icon: 'BrainCircuit', order: 1 },
-        ]
-    },
-    'Lunch & Recharge': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Mindful Meal', duration: 45, icon: 'Utensils', order: 1 },
-            { name: 'Short Walk', duration: 15, icon: 'Footprints', order: 2 },
-        ]
-    },
-    'Afternoon Tasks': {
-        color: "bg-amber-800 text-amber-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Admin & Emails', duration: 90, icon: 'Mail', order: 1 },
-            { name: 'Inspiration Time', duration: 90, icon: 'ShoppingBag', order: 2 },
-        ]
-    },
-    'Evening': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Exercise/Workout', duration: 45, icon: 'Dumbbell', order: 1 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2 },
-            { name: 'Leisure Time', duration: 90, icon: 'Users', order: 3},
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Plan Tomorrow', duration: 5, icon: 'ListChecks', order: 1 },
-            { name: 'Screen-free Wind-down', duration: 30, icon: 'BookOpen', order: 2 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 3 },
-        ]
-    }
+const defaultPreset: Preset = {
+    'Morning': { color: "bg-sky-800 text-sky-100", tasks: [] },
+    'Work': { color: "bg-blue-800 text-blue-100", tasks: [] },
+    'Break': { color: "bg-green-800 text-green-100", tasks: [] },
+    'Evening': { color: "bg-orange-800 text-orange-100", tasks: [] },
 };
 
-const businessRoutine: Preset = {
-    'Morning Power-Up': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Focus Breathing', duration: 5, icon: 'Wind', order: 1 },
-            { name: 'Workout', duration: 30, icon: 'Dumbbell', order: 2 },
-            { name: 'Plan Priorities', duration: 10, icon: 'ListChecks', order: 3 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 4 },
-        ]
-    },
-    'Strategic Work': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Tackle Top Task', duration: 180, icon: 'BrainCircuit', order: 1 },
-        ]
-    },
-    'Lunch': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Power Lunch', duration: 60, icon: 'Utensils', order: 1 },
-        ]
-    },
-    'Meetings & Comms': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Meetings & Calls', duration: 120, icon: 'Users', order: 1 },
-            { name: 'Email & Messages', duration: 120, icon: 'Mail', order: 2 },
-        ]
-    },
-    'Decompression': {
-        color: "bg-purple-800 text-purple-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Work Transition', duration: 30, icon: 'Wind', order: 1 },
-            { name: 'Leisure/Hobby', duration: 60, icon: 'ShoppingBag', order: 2 },
-        ]
-    },
-    'Evening': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Dinner', duration: 45, icon: 'Utensils', order: 1 },
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Light Reading', duration: 30, icon: 'BookOpen', order: 1 },
-            { name: 'Meditation', duration: 10, icon: 'Wind', order: 2 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 3 },
-        ]
-    }
-};
-
-const technicalRoutine: Preset = {
-    'Morning': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
-            { name: 'Light Exercise', duration: 20, icon: 'StretchHorizontal', order: 2 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
-        ]
-    },
-    'Deep Focus Block': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Coding/Problem-Solving', duration: 240, icon: 'BrainCircuit', order: 1 },
-        ]
-    },
-    'Lunch': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Screen-Free Lunch & Walk', duration: 60, icon: 'Utensils', order: 1 },
-        ]
-    },
-    'Afternoon Tasks': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Code Reviews, Meetings, Docs', duration: 180, icon: 'ListChecks', order: 1 },
-        ]
-    },
-    'Evening': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 1 },
-            { name: 'Leisure/Personal Project', duration: 90, icon: 'ShoppingBag', order: 2 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 3},
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Plan Tomorrow', duration: 5, icon: 'Target', order: 1 },
-            { name: 'Read a Book', duration: 30, icon: 'BookOpen', order: 2 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 3 },
-        ]
-    }
-};
-
-const onTheGoRoutine: Preset = {
-    'Morning Prep': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Quick Workout', duration: 20, icon: 'Dumbbell', order: 1 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
-            { name: 'Review Day', duration: 15, icon: 'ListChecks', order: 3 },
-        ]
-    },
-    'On The Road': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Travel Time', duration: 60, icon: 'Footprints', order: 1 },
-            { name: 'Reset Break', duration: 5, icon: 'Wind', order: 2 },
-        ]
-    },
-    'Afternoon Appointments': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Client Meetings', duration: 180, icon: 'Users', order: 1 },
-            { name: 'Lunch', duration: 20, icon: 'Utensils', order: 2 },
-        ]
-    },
-    'Wrap Up': {
-        color: "bg-amber-800 text-amber-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Log Reports', duration: 30, icon: 'Mail', order: 1 },
-        ]
-    },
-    'Evening Wind-down': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
-            { name: 'Relax', duration: 60, icon: 'ShoppingBag', order: 2 },
-            { name: 'Stretching', duration: 15, icon: 'StretchHorizontal', order: 3},
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Prepare for Next Day', duration: 15, icon: 'Wrench', order: 1 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
-        ]
-    }
-};
-
-const healthcareRoutine: Preset = {
-    'Pre-Shift': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Energy Snack', duration: 10, icon: 'Utensils', order: 1 },
-            { name: 'Deep Breathing', duration: 5, icon: 'Wind', order: 2 },
-        ]
-    },
-    'Shift AM': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Patient Care', duration: 240, icon: 'Users', order: 1 },
-        ]
-    },
-    'Mid-Shift Break': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'High-Energy Meal', duration: 30, icon: 'Utensils', order: 1 },
-        ]
-    },
-    'Shift PM': {
-        color: "bg-purple-800 text-purple-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Patient Care & Charting', duration: 240, icon: 'ListChecks', order: 1 },
-        ]
-    },
-    'Post-Shift': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Decompression Commute', duration: 30, icon: 'Footprints', order: 1 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2 },
-        ]
-    },
-    'Evening Recovery': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Gentle Stretching', duration: 15, icon: 'StretchHorizontal', order: 1 },
-            { name: 'Connect', duration: 45, icon: 'Users', order: 2 },
-            { name: 'Relaxing Hobby', duration: 30, icon: 'BookOpen', order: 3 },
-            { name: 'Bedtime', duration: 15, icon: 'Bed', order: 4 },
-        ]
-    }
-};
-
-
-const profilePresets: { [key: string]: Preset } = {
-    // Creative
-    "Artist": creativeRoutine,
-    "Content Creator": creativeRoutine,
-    "Designer": creativeRoutine,
-    "Writer": creativeRoutine,
-    // Business
-    "Consultant": businessRoutine,
-    "Manager": businessRoutine,
-    "Marketer": businessRoutine,
-    "Entrepreneur": businessRoutine,
-    "Sales": onTheGoRoutine, // Sales is often on-the-go
-    // Technical
-    "Software Engineer": technicalRoutine,
-    "IT Professional": technicalRoutine,
-    "Researcher": technicalRoutine,
-    "Student": technicalRoutine,
-    // On-The-Go
-    "Freelancer": onTheGoRoutine,
-    // Healthcare
-    "Healthcare Professional": healthcareRoutine,
-    // General
-    "General": businessRoutine,
-    "Educator": creativeRoutine,
-};
 
 const routineStartTimes: { [key: string]: { hours: number, minutes: number } } = {
-    // Creative
     "Artist": { hours: 8, minutes: 0 },
     "Content Creator": { hours: 8, minutes: 0 },
     "Designer": { hours: 8, minutes: 0 },
     "Writer": { hours: 8, minutes: 0 },
     "Educator": { hours: 8, minutes: 0 },
-    // Business
     "Consultant": { hours: 6, minutes: 0 },
     "Manager": { hours: 6, minutes: 0 },
     "Marketer": { hours: 6, minutes: 0 },
     "Entrepreneur": { hours: 6, minutes: 0 },
     "Sales": { hours: 6, minutes: 30 },
-    // Technical
     "Software Engineer": { hours: 7, minutes: 0 },
     "IT Professional": { hours: 7, minutes: 0 },
     "Researcher": { hours: 7, minutes: 0 },
     "Student": { hours: 7, minutes: 0 },
-    // On-The-Go
     "Freelancer": { hours: 6, minutes: 30 },
-    // Healthcare
     "Healthcare Professional": { hours: 5, minutes: 30 },
-    // General
     "General": { hours: 7, minutes: 0 },
 };
 
@@ -451,9 +161,8 @@ export function usePresetTasks() {
 
     const getAvailableIcons = () => iconNames;
     
-    const getAvailableCategories = useCallback((prof: string) => {
-        const preset = profilePresets[prof] || businessRoutine;
-        return Object.keys(preset);
+    const getAvailableCategories = useCallback(() => {
+        return Object.keys(defaultPreset);
     }, []);
 
     const processedTasks = useMemo(() => {
@@ -462,17 +171,16 @@ export function usePresetTasks() {
         if (todaysEvents.length > 0) {
             let injected = false;
             
-            // Calculate current total time for each category to find insertion point
             const categoryTimes: { [category: string]: { start: Date, end: Date } } = {};
             let cumulativeTime = set(startOfDay(new Date()), routineStartTimes[profile] || { hours: 7, minutes: 0 });
 
-            Object.keys(newPresetTasks).forEach(category => {
-                const totalDuration = newPresetTasks[category].tasks.reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
+            for (const category of Object.keys(newPresetTasks)) {
+                const totalDuration = (newPresetTasks[category].tasks || []).reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
                 const startTime = cumulativeTime;
                 const endTime = add(startTime, { minutes: totalDuration });
                 categoryTimes[category] = { start: startTime, end: endTime };
                 cumulativeTime = endTime;
-            });
+            }
 
             const now = new Date();
             for (const category of Object.keys(newPresetTasks)) {
@@ -492,10 +200,9 @@ export function usePresetTasks() {
                 }
             }
             
-            // Fallback: if no suitable future category, add to a default category if it exists
             if (!injected) {
                 const fallbackCategory = Object.keys(newPresetTasks).find(c => c.toLowerCase().includes('work')) || Object.keys(newPresetTasks)[1];
-                if (fallbackCategory) {
+                if (fallbackCategory && newPresetTasks[fallbackCategory]) {
                     todaysEvents.forEach((event, index) => {
                         newPresetTasks[fallbackCategory].tasks.push({
                            name: event.name,
@@ -560,8 +267,7 @@ export function usePresetTasks() {
 
     useEffect(() => {
         if (!user || isOffline || !isSyncEnabled) {
-            const initialTasks = profilePresets[profile] || profilePresets["General"];
-            setPresetTasks(initialTasks);
+            setPresetTasks(defaultPreset);
             setTodaysEvents([]);
             setLoading(false);
             return;
@@ -576,47 +282,18 @@ export function usePresetTasks() {
         const unsubscribePresets = onSnapshot(q, (snapshot) => {
             const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
             
-            let newPresets: Preset = {};
-            const isCustomProfile = !Object.keys(profilePresets).includes(profile);
+            const newPresets: Preset = JSON.parse(JSON.stringify(defaultPreset));
+            const userTasksForProfile = userTasks.filter(t => t.profession === profile);
 
-            if (isCustomProfile) {
-                const customPreset: Preset = {};
-                const profileTasks = userTasks.filter(t => t.profession === profile);
-                profileTasks.forEach(task => {
-                    if (!customPreset[task.category]) {
-                        // Creating a default category structure if it doesn't exist.
-                        customPreset[task.category] = {
-                            color: "bg-slate-800 text-slate-100",
-                            tasks: []
-                        };
-                    }
-                    customPreset[task.category].tasks.push(task);
-                });
-                newPresets = customPreset;
-            } else {
-                const basePreset = profilePresets[profile] || profilePresets["General"];
-                newPresets = JSON.parse(JSON.stringify(basePreset));
-                
-                const userTasksForProfile = userTasks.filter(t => t.profession === profile);
-
-                const categoriesWithUserTasks = new Set(userTasksForProfile.map(t => t.category));
-                categoriesWithUserTasks.forEach(category => {
-                    if (newPresets[category]) {
-                        newPresets[category].tasks = [];
-                    }
-                });
-
-                userTasksForProfile.forEach(task => {
-                    if (newPresets[task.category]) {
-                        newPresets[task.category].tasks.push(task);
-                    } else {
-                        newPresets[task.category] = {
-                            color: "bg-gray-800 text-gray-100",
-                            tasks: [task]
-                        };
-                    }
-                });
-            }
+            userTasksForProfile.forEach(task => {
+                if (!newPresets[task.category]) {
+                    newPresets[task.category] = {
+                        color: "bg-gray-800 text-gray-100", // A default color
+                        tasks: []
+                    };
+                }
+                newPresets[task.category].tasks.push(task);
+            });
             
             Object.keys(newPresets).forEach(category => {
                 newPresets[category].tasks.sort((a, b) => a.order - b.order);
@@ -626,8 +303,7 @@ export function usePresetTasks() {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching preset tasks:", error);
-            const initialTasks = profilePresets[profile] || profilePresets["General"];
-            setPresetTasks(initialTasks);
+            setPresetTasks(defaultPreset);
             setLoading(false);
         });
 
@@ -834,5 +510,3 @@ export function useCalendarEvents() {
 
     return { events, loading, addEvent, deleteEvent };
 }
-
-    
