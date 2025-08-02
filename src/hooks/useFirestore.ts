@@ -343,7 +343,18 @@ export function usePresetTasks() {
         }
     
         const now = new Date();
-        const routineStartTime = set(startOfDay(now), { hours: 7, minutes: 0 });
+        const creativeProfiles = ["Artist", "Designer", "Writer", "Content Creator", "Freelancer"];
+        const businessProfiles = ["Manager", "Consultant", "Marketer", "Entrepreneur", "Educator"];
+        const technicalProfiles = ["Software Engineer", "IT Professional", "Researcher", "Student"];
+        const onTheGoProfiles = ["Sales", "Medical Rep", "Delivery Agent"];
+        const healthcareProfiles = ["Healthcare Professional"];
+
+        let startHour = 7; // Default start time
+        if (creativeProfiles.includes(profile)) startHour = 9;
+        else if (businessProfiles.includes(profile) || onTheGoProfiles.includes(profile)) startHour = 6;
+        else if (healthcareProfiles.includes(profile)) startHour = 5;
+
+        const routineStartTime = set(startOfDay(now), { hours: startHour, minutes: 30 });
         let cumulativeTime = routineStartTime;
         
         let currentActiveCategory: string | null = null;
