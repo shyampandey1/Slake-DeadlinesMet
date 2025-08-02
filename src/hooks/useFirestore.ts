@@ -515,7 +515,7 @@ export function usePresetTasks() {
     
         const now = new Date();
         const startTimeConfig = routineStartTimes[profile] || { hours: 7, minutes: 0 };
-        let cumulativeTime = set(now, startTimeConfig);
+        let cumulativeTime = set(startOfDay(now), startTimeConfig);
         
         let currentActiveCategory: string | null = null;
         let nextUpcomingCategory: string | null = null;
@@ -692,6 +692,11 @@ export function usePresetTasks() {
 
         const taskToMove = categoryTasks[taskIndex];
         const taskToSwap = categoryTasks[swapIndex];
+
+        if (!taskToMove.id || !taskToSwap.id) {
+            console.error("Cannot reorder tasks without IDs.", taskToMove, taskToSwap);
+            return;
+        }
 
         const batch = writeBatch(db);
         const taskToMoveRef = doc(db, 'userPresetTasks', taskToMove.id!);
