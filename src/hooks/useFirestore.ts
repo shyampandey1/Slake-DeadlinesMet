@@ -37,31 +37,134 @@ const categoryColors: { [key: string]: string } = {
     'Post-Work Decompression': "bg-purple-800 text-purple-100",
     'Evening Routine': "bg-rose-800 text-rose-100",
     'Night Routine': "bg-indigo-800 text-indigo-100",
+    'On The Road (AM)': 'bg-blue-800 text-blue-100',
+    'On The Road (PM)': 'bg-orange-800 text-orange-100',
+    'Post-Work Admin': 'bg-purple-800 text-purple-100',
+    'Pre-Shift Routine': 'bg-sky-800 text-sky-100',
+    'During Shift (First Half)': 'bg-blue-800 text-blue-100',
+    'Mid-Shift Break': 'bg-green-800 text-green-100',
+    'During Shift (Second Half)': 'bg-orange-800 text-orange-100',
+    'Evening & Recovery Routine': 'bg-rose-800 text-rose-100'
 };
 
-const generalRoutine: PresetTask[] = [
-    // Tasks will be provided in the next step
+const creativeRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+    { name: "Morning Idea Dump / Journaling", duration: 15, icon: "BookOpen", category: "Morning Routine" },
+    { name: "Light Stretching or Mobility", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
+    { name: "Uninterrupted Deep Creative Work", duration: 120, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
+    { name: "Inspiration & Research Block", duration: 60, icon: "Wind", category: "Primary Work/Focus Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
+    { name: "Mindful Meal (away from desk)", duration: 30, icon: "Utensils", category: "Lunch Break" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
+    { name: "Skill Practice / Tutorial", duration: 30, icon: "Wrench", category: "Afternoon Work/Admin Session" },
+    { name: "Admin & Client Communication", duration: 45, icon: "Mail", category: "Afternoon Work/Admin Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
+    { name: "Main Exercise / Workout", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
+    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
+    { name: "Screen-Free Reading", duration: 20, icon: "BookOpen", category: "Night Routine" }
+];
+
+const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+    { name: "Review Day's Top 3 Priorities", duration: 10, icon: "ListChecks", category: "Morning Routine" },
+    { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
+    { name: "Strategic Thinking / 'No-Meeting' Block", duration: 60, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
+    { name: "Tackle Most Important Task", duration: 90, icon: "Target", category: "Primary Work/Focus Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
+    { name: "Power Lunch / Quick Walk", duration: 45, icon: "Footprints", category: "Lunch Break" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
+    { name: "Meetings & Collaborative Tasks", duration: 120, icon: "Users", category: "Afternoon Work/Admin Session" },
+    { name: "Scan & Reply to Emails", duration: 30, icon: "Mail", category: "Afternoon Work/Admin Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
+    { name: "End-of-Day Review & Shutdown Ritual", duration: 15, icon: "ListChecks", category: "Post-Work Decompression" },
+    { name: "Hobby / Leisure (Video Games, etc.)", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
+    { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening Routine" },
+    { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Night Routine" }
+];
+
+const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+    { name: "Meditation for Focus", duration: 10, icon: "BrainCircuit", category: "Morning Routine" },
+    { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
+    { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
+    { name: "Problem Decomposition / Planning", duration: 15, icon: "ListChecks", category: "Primary Work/Focus Session" },
+    { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Coffee", category: "Primary Work/Focus Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
+    { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Lunch Break" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
+    { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Afternoon Work/Admin Session" },
+    { name: "Writing Documentation", duration: 30, icon: "BookOpen", category: "Afternoon Work/Admin Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
+    { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
+    { name: "Personal Project / Learning", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
+    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
+    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Night Routine" }
+];
+
+const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+    { name: "Morning Route & Schedule Review", duration: 15, icon: "ListChecks", category: "Morning Routine" },
+    { name: "High-Energy Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "On The Road (AM)" },
+    { name: "Use travel time for calls or podcasts", duration: 60, icon: "Users", category: "On The Road (AM)" },
+    { name: "In-Car Mental Reset", duration: 5, icon: "BrainCircuit", category: "On The Road (AM)" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
+    { name: "Eat a packed, healthy lunch", duration: 20, icon: "Utensils", category: "Lunch Break" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "On The Road (PM)" },
+    { name: "High-Energy Snack Break", duration: 5, icon: "Coffee", category: "On The Road (PM)" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Admin" },
+    { name: "Logging Reports & Admin on Mobile", duration: 20, icon: "Mail", category: "Post-Work Admin" },
+    { name: "End-of-Day Bag / Vehicle Restock & Prep", duration: 10, icon: "ShoppingBag", category: "Post-Work Admin" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
+    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
+    { name: "Stretching to release physical tension", duration: 15, icon: "StretchHorizontal", category: "Night Routine" }
+];
+
+const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Pre-Shift Routine" },
+    { name: "Pre-Shift Mental Preparation", duration: 5, icon: "BrainCircuit", category: "Pre-Shift Routine" },
+    { name: "Eat a high-protein, slow-release energy meal", duration: 20, icon: "Utensils", category: "Pre-Shift Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "During Shift (First Half)" },
+    { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "During Shift (First Half)" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Mid-Shift Break" },
+    { name: "Eat small, healthy snack/meal", duration: 15, icon: "Utensils", category: "Mid-Shift Break" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "During Shift (Second Half)" },
+    { name: "Stay vigilant and support team", duration: 60, icon: "Users", category: "During Shift (Second Half)" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
+    { name: "Mindful Commute (calming music, no news)", duration: 20, icon: "Footprints", category: "Post-Work Decompression" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Recovery Routine" },
+    { name: "Recovery Meal (dinner)", duration: 30, icon: "Utensils", category: "Evening & Recovery Routine" },
+    { name: "Journaling to Unload Stress", duration: 10, icon: "BookOpen", category: "Evening & Recovery Routine" },
+    { name: "Prepare for next shift", duration: 15, icon: "ShoppingBag", category: "Night Routine" }
 ];
 
 
-const profilePresets: { [key: string]: PresetTask[] } = {
-    "Artist": generalRoutine,
-    "Content Creator": generalRoutine,
-    "Designer": generalRoutine,
-    "Writer": generalRoutine,
-    "Consultant": generalRoutine,
-    "Manager": generalRoutine,
-    "Marketer": generalRoutine,
-    "Entrepreneur": generalRoutine,
-    "Sales": generalRoutine,
-    "Software Engineer": generalRoutine,
-    "IT Professional": generalRoutine,
-    "Researcher": generalRoutine,
-    "Healthcare Professional": generalRoutine,
-    "Student": generalRoutine,
-    "Educator": generalRoutine,
-    "Freelancer": generalRoutine,
-    "General": generalRoutine,
+const profilePresets: { [key: string]: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] } = {
+    "Artist": creativeRoutine,
+    "Designer": creativeRoutine,
+    "Writer": creativeRoutine,
+    "Content Creator": creativeRoutine,
+    "Manager": businessRoutine,
+    "Consultant": businessRoutine,
+    "Marketer": businessRoutine,
+    "Entrepreneur": businessRoutine,
+    "Software Engineer": technicalRoutine,
+    "IT Professional": technicalRoutine,
+    "Researcher": technicalRoutine,
+    "Sales": onTheGoRoutine,
+    "Medical Rep": onTheGoRoutine,
+    "Delivery Agent": onTheGoRoutine,
+    "Healthcare Professional": healthcareRoutine,
+    "Student": technicalRoutine, // similar focus needs
+    "Educator": businessRoutine, // similar structure needs
+    "Freelancer": creativeRoutine,
+    "General": businessRoutine, // a good default
 };
 
 
@@ -264,25 +367,24 @@ export function usePresetTasks() {
     useEffect(() => {
         const setupDefaultPreset = () => {
             const newPresets: Preset = {};
-            // Initialize all categories from categoryColors to ensure they appear
-            Object.keys(categoryColors).forEach(categoryName => {
-                newPresets[categoryName] = {
-                    color: categoryColors[categoryName],
-                    tasks: [],
-                };
-            });
-
-            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
+            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || businessRoutine;
+            
+            // Initialize all categories from the default routine
             defaultTasks.forEach(task => {
-                // Ensure the category exists before trying to push tasks to it
-                if (newPresets[task.category]) {
-                    newPresets[task.category].tasks.push(task as UserPresetTask);
+                if (!newPresets[task.category]) {
+                    newPresets[task.category] = {
+                        color: categoryColors[task.category] || "bg-gray-800 text-gray-100",
+                        tasks: [],
+                    };
                 }
             });
 
-            Object.values(newPresets).forEach(category => {
-                category.tasks.sort((a,b) => a.order - b.order)
-            })
+            // Populate tasks
+            defaultTasks.forEach((task, index) => {
+                const taskWithOrder = { ...task, order: index };
+                newPresets[task.category].tasks.push(taskWithOrder as UserPresetTask);
+            });
+            
             setPresetTasks(newPresets);
             setLoading(false);
         }
@@ -543,8 +645,5 @@ export function useCalendarEvents() {
 
     return { events, loading, addEvent, deleteEvent };
 }
-
-    
-    
 
     
