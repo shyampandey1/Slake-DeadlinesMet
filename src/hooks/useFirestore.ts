@@ -458,25 +458,25 @@ export function usePresetTasks() {
 
     const processedTasks = useMemo(() => {
         const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
-
+        
         if (todaysEvents.length > 0) {
-            let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
             let injected = false;
             
+            // Calculate current total time for each category to find insertion point
+            const categoryTimes: { [category: string]: { start: Date, end: Date } } = {};
+            let cumulativeTime = set(startOfDay(new Date()), routineStartTimes[profile] || { hours: 7, minutes: 0 });
+
             Object.keys(newPresetTasks).forEach(category => {
-                const categoryTasks = newPresetTasks[category].tasks.map((task: UserPresetTask) => {
-                    const startTime = cumulativeTime;
-                    const endTime = add(startTime, { minutes: task.duration });
-                    cumulativeTime = endTime;
-                    return { ...task, startTime, endTime };
-                });
-                newPresetTasks[category].tasks = categoryTasks;
+                const totalDuration = newPresetTasks[category].tasks.reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
+                const startTime = cumulativeTime;
+                const endTime = add(startTime, { minutes: totalDuration });
+                categoryTimes[category] = { start: startTime, end: endTime };
+                cumulativeTime = endTime;
             });
 
             const now = new Date();
             for (const category of Object.keys(newPresetTasks)) {
-                const lastTask = newPresetTasks[category].tasks[newPresetTasks[category].tasks.length - 1];
-                if (lastTask && isBefore(now, lastTask.endTime) && !injected) {
+                if (categoryTimes[category] && isBefore(now, categoryTimes[category].end) && !injected) {
                     todaysEvents.forEach((event, index) => {
                          newPresetTasks[category].tasks.push({
                             name: event.name,
@@ -488,24 +488,30 @@ export function usePresetTasks() {
                         });
                     });
                     injected = true;
+                    break; 
                 }
             }
-            if (!injected && newPresetTasks['Work Session 1']) {
-                 todaysEvents.forEach((event, index) => {
-                    newPresetTasks['Work Session 1'].tasks.push({
-                        name: event.name,
-                        duration: event.duration,
-                        icon: event.icon || 'ListChecks',
-                        order: newPresetTasks['Work Session 1'].tasks.length,
-                        id: `event-${event.id}-${index}`,
-                        isEvent: true,
-                    });
-                });
+            
+            // Fallback: if no suitable future category, add to a default category if it exists
+            if (!injected) {
+                const fallbackCategory = Object.keys(newPresetTasks).find(c => c.toLowerCase().includes('work')) || Object.keys(newPresetTasks)[1];
+                if (fallbackCategory) {
+                    todaysEvents.forEach((event, index) => {
+                        newPresetTasks[fallbackCategory].tasks.push({
+                           name: event.name,
+                           duration: event.duration,
+                           icon: event.icon || 'ListChecks',
+                           order: newPresetTasks[fallbackCategory].tasks.length,
+                           id: `event-${event.id}-${index}`,
+                           isEvent: true,
+                       });
+                   });
+                }
             }
         }
         return newPresetTasks;
 
-    }, [presetTasks, todaysEvents]);
+    }, [presetTasks, todaysEvents, profile]);
     
     const { categoryTimeRanges, activeCategory } = useMemo(() => {
         const ranges: { [category: string]: { start: Date, end: Date } } = {};
