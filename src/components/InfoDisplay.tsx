@@ -42,11 +42,29 @@ const weatherCodeMapping: { [key: number]: { condition: string, icon: React.Reac
 export default function InfoDisplay() {
   const [time, setTime] = useState<Date | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
+  const requestGeolocation = () => {
+    setIsLoading(true);
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                fetchWeather(position.coords.latitude, position.coords.longitude);
+            },
+            (error) => {
+                console.error("Geolocation error:", error.message);
+                setPermissionDenied(true);
+                setIsLoading(false);
+            }
+        );
+    } else {
+        setPermissionDenied(true);
+        setIsLoading(false);
+    }
+  }
+
   async function fetchWeather(latitude: number, longitude: number) {
-      setLoading(true);
       setPermissionDenied(false);
       try {
           const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
@@ -64,44 +82,24 @@ export default function InfoDisplay() {
           }
       } catch (error) {
           console.error("Failed to fetch weather data:", error);
-          setWeather(null); // Clear weather on error
+          setWeather(null);
       } finally {
-          setLoading(false);
+          setIsLoading(false);
       }
   }
-
-  const requestGeolocation = () => {
-    setLoading(true);
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                fetchWeather(position.coords.latitude, position.coords.longitude);
-            },
-            (error) => {
-                console.error("Geolocation error:", error.message);
-                setPermissionDenied(true);
-                setLoading(false);
-            }
-        );
-    } else {
-        setPermissionDenied(true);
-        setLoading(false);
-    }
-  }
-
+  
   useEffect(() => {
-    // This all runs only on the client, after hydration
     setTime(new Date());
     requestGeolocation();
 
     const timer = setInterval(() => {
       setTime(new Date());
-    }, 1000 * 60); // Update time every minute
+    }, 1000 * 60);
 
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+  
   const renderSkeleton = () => (
     <div className="flex items-center gap-4 p-2 rounded-lg bg-card/50 backdrop-blur-sm border border-border">
         <Skeleton className="h-6 w-20" />
@@ -110,7 +108,7 @@ export default function InfoDisplay() {
     </div>
   )
 
-  if (!time) {
+  if (isLoading && !time) {
     return (
         <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
             <div className="overflow-x-auto scrollbar-hide">
@@ -128,15 +126,26 @@ export default function InfoDisplay() {
     )}>
         <div className="overflow-x-auto scrollbar-hide">
             <div className="flex items-center justify-start gap-x-4 p-3 whitespace-nowrap">
-                <div className="flex items-center gap-1.5 shrink-0">
-                    <Calendar className="h-4 w-4" />
-                    <span>{format(time, "PPP")}</span>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                    <Clock className="h-4 w-4" />
-                    <span>{format(time, "p")}</span>
-                </div>
-                {weather ? (
+                {time ? (
+                    <>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <Calendar className="h-4 w-4" />
+                            <span>{format(time, "PPP")}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <Clock className="h-4 w-4" />
+                            <span>{format(time, "p")}</span>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-5 w-16" />
+                    </>
+                )}
+                {isLoading ? (
+                    <Skeleton className="h-5 w-28" />
+                ) : weather ? (
                     <>
                     <div className="flex items-center gap-1.5 shrink-0">
                         <Thermometer className="h-4 w-4" />
