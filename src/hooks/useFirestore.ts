@@ -35,6 +35,7 @@ const categoryColors: { [key: string]: string } = {
     'Work': "bg-blue-800 text-blue-100",
     'Break': "bg-green-800 text-green-100",
     'Evening': "bg-orange-800 text-orange-100",
+    'Night': "bg-indigo-800 text-indigo-100",
 };
 
 const creativeRoutine: PresetTask[] = [
@@ -53,9 +54,9 @@ const creativeRoutine: PresetTask[] = [
     { name: "Exercise/Workout", duration: 45, icon: "Dumbbell", category: "Evening", order: 1 },
     { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 2 },
     { name: "Leisure & Social Time", duration: 60, icon: "Users", category: "Evening", order: 3 },
-    { name: "Plan Tomorrow's Task", duration: 5, icon: "ListChecks", category: "Evening", order: 4 },
-    { name: "Screen-free Wind-down", duration: 30, icon: "BookOpen", category: "Evening", order: 5 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening", order: 6 },
+    { name: "Plan Tomorrow's Task", duration: 5, icon: "ListChecks", category: "Night", order: 0 },
+    { name: "Screen-free Wind-down", duration: 30, icon: "BookOpen", category: "Night", order: 1 },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
 ];
 
 const businessRoutine: PresetTask[] = [
@@ -74,9 +75,9 @@ const businessRoutine: PresetTask[] = [
     { name: "Decompression & Hydrate", duration: 1, icon: "Droplets", category: "Evening", order: 0 },
     { name: "Leisure/Hobby", duration: 60, icon: "ShoppingBag", category: "Evening", order: 1 },
     { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening", order: 2 },
-    { name: "Light Reading", duration: 30, icon: "BookOpen", category: "Evening", order: 3 },
-    { name: "Meditation", duration: 10, icon: "BrainCircuit", category: "Evening", order: 4 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening", order: 5 },
+    { name: "Light Reading", duration: 30, icon: "BookOpen", category: "Night", order: 0 },
+    { name: "Meditation", duration: 10, icon: "BrainCircuit", category: "Night", order: 1 },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
 ];
 
 const technicalRoutine: PresetTask[] = [
@@ -94,9 +95,9 @@ const technicalRoutine: PresetTask[] = [
     { name: "Workout", duration: 45, icon: "Dumbbell", category: "Evening", order: 1 },
     { name: "Leisure/Personal Project", duration: 90, icon: "Wrench", category: "Evening", order: 2 },
     { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 3 },
-    { name: "Plan Tomorrow", duration: 5, icon: "ListChecks", category: "Evening", order: 4 },
-    { name: "Read Physical Book", duration: 30, icon: "BookOpen", category: "Evening", order: 5 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening", order: 6 },
+    { name: "Plan Tomorrow", duration: 5, icon: "ListChecks", category: "Night", order: 0 },
+    { name: "Read Physical Book", duration: 30, icon: "BookOpen", category: "Night", order: 1 },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
 ];
 
 const onTheGoRoutine: PresetTask[] = [
@@ -113,7 +114,8 @@ const onTheGoRoutine: PresetTask[] = [
     { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 2 },
     { name: "Relaxing Activity", duration: 60, icon: "ShoppingBag", category: "Evening", order: 3 },
     { name: "Stretching", duration: 15, icon: "StretchHorizontal", category: "Evening", order: 4 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening", order: 5 },
+    { name: "Prepare for Next Day", duration: 15, icon: "ListChecks", category: "Night", order: 0 },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 1 },
 ];
 
 const healthcareRoutine: PresetTask[] = [
@@ -129,9 +131,9 @@ const healthcareRoutine: PresetTask[] = [
     { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 3 },
     { name: "Connect with Family", duration: 30, icon: "Users", category: "Evening", order: 4 },
     { name: "Relaxing Hobby", duration: 45, icon: "ShoppingBag", category: "Evening", order: 5 },
-    { name: "Warm Shower", duration: 15, icon: "Droplets", category: "Evening", order: 6 },
-    { name: "Read Book", duration: 15, icon: "BookOpen", category: "Evening", order: 7 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening", order: 8 },
+    { name: "Warm Shower", duration: 15, icon: "Droplets", category: "Night", order: 0 },
+    { name: "Read Book", duration: 15, icon: "BookOpen", category: "Night", order: 1 },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
 ];
 
 const generalRoutine = businessRoutine; // Default to business routine for General/Freelance etc.
@@ -266,8 +268,8 @@ export function usePresetTasks() {
     const processedTasks = useMemo(() => {
         const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
         
-        const allTasks = Object.values(newPresetTasks).flatMap(cat => cat.tasks);
-        const hasEvents = allTasks.some(task => task.isEvent);
+        const allTasks = Object.values(newPresetTasks).flatMap((cat: any) => cat.tasks);
+        const hasEvents = allTasks.some((task: any) => task.isEvent);
 
         if (todaysEvents.length > 0 && !hasEvents) {
             let injected = false;
@@ -355,14 +357,17 @@ export function usePresetTasks() {
 
     useEffect(() => {
         if (!user || isOffline || !isSyncEnabled) {
-            const defaultTasks = profilePresets[profile] || generalRoutine;
+            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
             const newPresets: Preset = {};
             defaultTasks.forEach(task => {
                 if (!newPresets[task.category]) {
-                    newPresets[task.category] = { color: categoryColors[task.category], tasks: [] };
+                    newPresets[task.category] = { color: categoryColors[task.category] || "bg-gray-800 text-gray-100", tasks: [] };
                 }
                 newPresets[task.category].tasks.push(task as UserPresetTask);
             });
+            Object.values(newPresets).forEach(category => {
+                category.tasks.sort((a,b) => a.order - b.order)
+            })
             setPresetTasks(newPresets);
             setTodaysEvents([]);
             setLoading(false);
@@ -379,14 +384,17 @@ export function usePresetTasks() {
 
         const unsubscribePresets = onSnapshot(q, (snapshot) => {
             if (snapshot.empty) {
-                const defaultTasks = profilePresets[profile] || generalRoutine;
+                const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
                 const newPresets: Preset = {};
                 defaultTasks.forEach(task => {
                     if (!newPresets[task.category]) {
-                        newPresets[task.category] = { color: categoryColors[task.category], tasks: [] };
+                         newPresets[task.category] = { color: categoryColors[task.category] || "bg-gray-800 text-gray-100", tasks: [] };
                     }
                     newPresets[task.category].tasks.push(task as UserPresetTask);
                 });
+                Object.values(newPresets).forEach(category => {
+                    category.tasks.sort((a,b) => a.order - b.order)
+                })
                 setPresetTasks(newPresets);
             } else {
                 const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];

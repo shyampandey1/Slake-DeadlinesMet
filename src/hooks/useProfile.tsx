@@ -38,7 +38,7 @@ const ProfileContext = createContext<ProfileContextType>({
 });
 
 const availableIcons = ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Utensils", "Wind", "Droplets", "BookOpen", "Wrench", "Target", "ShoppingBag"];
-const availableCategories = ["Morning", "Work", "Break", "Evening"];
+const availableCategories = ["Morning", "Work", "Break", "Evening", "Night"];
 const availableCategoryGroups = ["Creative & Media", "Business & Management", "Technical & Health", "General & Freelance"];
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
