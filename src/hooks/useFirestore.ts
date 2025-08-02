@@ -39,105 +39,12 @@ const categoryColors: { [key: string]: string } = {
     'Recharge': "bg-rose-800 text-rose-100",
 };
 
-const creativeRoutine: PresetTask[] = [
-    { name: "Wake up & hydrate", duration: 1, icon: "Droplets", category: "Morning", order: 0 },
-    { name: "Mindfulness/Journaling", duration: 15, icon: "BrainCircuit", category: "Morning", order: 1 },
-    { name: "Light Movement/Yoga", duration: 20, icon: "StretchHorizontal", category: "Morning", order: 2 },
-    { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning", order: 3 },
-    { name: "Deep Creative Session", duration: 180, icon: "BrainCircuit", category: "Work", order: 0 },
-    { name: "Hourly Water Break", duration: 1, icon: "Droplets", category: "Work", order: 1 },
-    { name: "Hydrate before Lunch", duration: 1, icon: "Droplets", category: "Break", order: 0 },
-    { name: "Lunch & Mindful Walk", duration: 60, icon: "Utensils", category: "Break", order: 1 },
-    { name: "Hydrate before Work", duration: 1, icon: "Droplets", category: "Work", order: 2 },
-    { name: "Admin & Emails", duration: 90, icon: "Mail", category: "Work", order: 3 },
-    { name: "Inspiration Gathering", duration: 90, icon: "BookOpen", category: "Work", order: 4 },
-    { name: "Hydrate", duration: 1, icon: "Droplets", category: "Evening", order: 0 },
-    { name: "Exercise/Workout", duration: 45, icon: "Dumbbell", category: "Evening", order: 1 },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 2 },
-    { name: "Leisure & Social Time", duration: 60, icon: "Users", category: "Evening", order: 3 },
-    { name: "Plan Tomorrow's Task", duration: 5, icon: "ListChecks", category: "Night", order: 0 },
-    { name: "Screen-free Wind-down", duration: 30, icon: "BookOpen", category: "Night", order: 1 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
-];
-
-const businessRoutine: PresetTask[] = [
-    { name: "Wake up & hydrate", duration: 1, icon: "Droplets", category: "Morning", order: 0 },
-    { name: "Breathing Exercise", duration: 5, icon: "Wind", category: "Morning", order: 1 },
-    { name: "Workout", duration: 30, icon: "Dumbbell", category: "Morning", order: 2 },
-    { name: "Plan Top 3 Priorities", duration: 10, icon: "ListChecks", category: "Morning", order: 3 },
-    { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning", order: 4 },
-    { name: "Most Important Task", duration: 180, icon: "Target", category: "Work", order: 0 },
-    { name: "Stretch & Hydrate Break", duration: 5, icon: "Coffee", category: "Work", order: 1 },
-    { name: "Hydrate before Lunch", duration: 1, icon: "Droplets", category: "Break", order: 0 },
-    { name: "Lunch", duration: 60, icon: "Utensils", category: "Break", order: 1 },
-    { name: "Meetings & Collaboration", duration: 120, icon: "Users", category: "Work", order: 2 },
-    { name: "Email Pomodoro", duration: 120, icon: "Mail", category: "Work", order: 3 },
-    { name: "Hydrate", duration: 1, icon: "Droplets", category: "Work", order: 4 },
-    { name: "Decompression & Hydrate", duration: 1, icon: "Droplets", category: "Evening", order: 0 },
-    { name: "Leisure/Hobby", duration: 60, icon: "ShoppingBag", category: "Evening", order: 1 },
-    { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening", order: 2 },
-    { name: "Light Reading", duration: 30, icon: "BookOpen", category: "Night", order: 0 },
-    { name: "Meditation", duration: 10, icon: "BrainCircuit", category: "Night", order: 1 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
-];
-
-const technicalRoutine: PresetTask[] = [
-    { name: "Wake up & hydrate", duration: 1, icon: "Droplets", category: "Morning", order: 0 },
-    { name: "Meditation", duration: 10, icon: "BrainCircuit", category: "Morning", order: 1 },
-    { name: "Light Exercise", duration: 20, icon: "StretchHorizontal", category: "Morning", order: 2 },
-    { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning", order: 3 },
-    { name: "Deep Focus Block", duration: 240, icon: "BrainCircuit", category: "Work", order: 0 },
-    { name: "20-20-20 & Hydrate", duration: 1, icon: "Droplets", category: "Work", order: 1 },
-    { name: "Hydrate before Lunch", duration: 1, icon: "Droplets", category: "Break", order: 0 },
-    { name: "Lunch & Walk", duration: 60, icon: "Utensils", category: "Break", order: 1 },
-    { name: "Reviews, Meetings, Docs", duration: 180, icon: "ListChecks", category: "Work", order: 2 },
-    { name: "Hydrate", duration: 1, icon: "Droplets", category: "Work", order: 3 },
-    { name: "Rehydrate", duration: 1, icon: "Droplets", category: "Evening", order: 0 },
-    { name: "Workout", duration: 45, icon: "Dumbbell", category: "Evening", order: 1 },
-    { name: "Leisure/Personal Project", duration: 90, icon: "Wrench", category: "Evening", order: 2 },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 3 },
-    { name: "Plan Tomorrow", duration: 5, icon: "ListChecks", category: "Night", order: 0 },
-    { name: "Read Physical Book", duration: 30, icon: "BookOpen", category: "Night", order: 1 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
-];
-
-const onTheGoRoutine: PresetTask[] = [
-    { name: "Wake up & hydrate", duration: 1, icon: "Droplets", category: "Morning", order: 0 },
-    { name: "Quick HIIT/Run", duration: 20, icon: "Footprints", category: "Morning", order: 1 },
-    { name: "High-protein Breakfast", duration: 20, icon: "Utensils", category: "Morning", order: 2 },
-    { name: "Review Route/Appointments", duration: 15, icon: "ListChecks", category: "Morning", order: 3 },
-    { name: "Travel & Calls/Podcasts", duration: 60, icon: "Mail", category: "Work", order: 0 },
-    { name: "Hydrate (every 2h)", duration: 1, icon: "Droplets", category: "Work", order: 1 },
-    { name: "Breathing Exercises", duration: 5, icon: "Wind", category: "Work", order: 2 },
-    { name: "Packed Lunch & Hydrate", duration: 30, icon: "Utensils", category: "Break", order: 0 },
-    { name: "Log Reports & Plan", duration: 30, icon: "ListChecks", category: "Evening", order: 0 },
-    { name: "Hydrate", duration: 1, icon: "Droplets", category: "Evening", order: 1 },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 2 },
-    { name: "Relaxing Activity", duration: 60, icon: "ShoppingBag", category: "Evening", order: 3 },
-    { name: "Stretching", duration: 15, icon: "StretchHorizontal", category: "Evening", order: 4 },
-    { name: "Prepare for Next Day", duration: 15, icon: "ListChecks", category: "Night", order: 0 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 1 },
-];
-
-const healthcareRoutine: PresetTask[] = [
-    { name: "Pre-Shift Hydrate", duration: 1, icon: "Droplets", category: "Morning", order: 0 },
-    { name: "Quick Snack", duration: 10, icon: "Utensils", category: "Morning", order: 1 },
-    { name: "Deep Breathing", duration: 5, icon: "Wind", category: "Morning", order: 2 },
-    { name: "Shift Hydration", duration: 1, icon: "Droplets", category: "Work", order: 0 },
-    { name: "High-energy Snack", duration: 15, icon: "Utensils", category: "Work", order: 1 },
-    { name: "Micro-break & Water", duration: 1, icon: "Coffee", category: "Work", order: 2 },
-    { name: "Post-Shift Rehydrate", duration: 1, icon: "Droplets", category: "Evening", order: 0 },
-    { name: "Decompression", duration: 20, icon: "Wind", category: "Evening", order: 1 },
-    { name: "Hydrate before Dinner", duration: 1, icon: "Droplets", category: "Evening", order: 2 },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening", order: 3 },
-    { name: "Connect with Family", duration: 30, icon: "Users", category: "Evening", order: 4 },
-    { name: "Relaxing Hobby", duration: 45, icon: "ShoppingBag", category: "Evening", order: 5 },
-    { name: "Warm Shower", duration: 15, icon: "Droplets", category: "Night", order: 0 },
-    { name: "Read Book", duration: 15, icon: "BookOpen", category: "Night", order: 1 },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Night", order: 2 },
-];
-
-const generalRoutine = businessRoutine; // Default to business routine for General/Freelance etc.
+const creativeRoutine: PresetTask[] = [];
+const businessRoutine: PresetTask[] = [];
+const technicalRoutine: PresetTask[] = [];
+const onTheGoRoutine: PresetTask[] = [];
+const healthcareRoutine: PresetTask[] = [];
+const generalRoutine: PresetTask[] = [];
 
 const profilePresets: { [key: string]: PresetTask[] } = {
     "Artist": creativeRoutine,
@@ -628,4 +535,5 @@ export function useCalendarEvents() {
     return { events, loading, addEvent, deleteEvent };
 }
 
+    
     
