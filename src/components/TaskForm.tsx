@@ -9,6 +9,7 @@ import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed,
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
 import { format } from "date-fns";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -171,7 +172,7 @@ export default function TaskForm() {
     }
   }
 
-  const hasTasks = Object.keys(presetTasks).length > 0;
+  const hasTasks = Object.keys(presetTasks).length > 0 && Object.values(presetTasks).some(cat => cat.tasks.length > 0);
 
   return (
     <>
@@ -255,8 +256,8 @@ export default function TaskForm() {
                 <FolderSearch className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
                 <p className="mt-1 text-sm max-w-xs mx-auto">This routine is empty. Go to the 'Routine' page to add tasks.</p>
-                <Button variant="secondary" className="mt-4" onClick={() => router.push('/routine')}>
-                   Customize Routine
+                <Button variant="secondary" className="mt-4" asChild>
+                   <Link href="/routine">Customize Routine</Link>
                 </Button>
             </div>
         )}

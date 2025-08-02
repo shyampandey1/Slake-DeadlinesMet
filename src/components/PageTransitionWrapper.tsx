@@ -10,17 +10,17 @@ const variants = {
   initial: (direction: number) => ({
     x: direction > 0 ? '100vw' : '-100vw',
     opacity: 0,
-    transition: { type: 'tween', ease: 'circIn', duration: 0.5 }
+    transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 }
   }),
   animate: {
     x: 0,
     opacity: 1,
-    transition: { type: 'tween', ease: 'circOut', duration: 0.5 }
+    transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 }
   },
   exit: (direction: number) => ({
     x: direction < 0 ? '100vw' : '-100vw',
     opacity: 0,
-    transition: { type: 'tween', ease: 'circIn', duration: 0.5 }
+    transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 }
   }),
 };
 
@@ -34,7 +34,8 @@ export default function PageTransitionWrapper({ children }: { children: ReactNod
   
   let oldIndex = 0;
   if(typeof window !== 'undefined'){
-    oldIndex = Number(sessionStorage.getItem('routeIndex')) || 0;
+    const storedIndex = sessionStorage.getItem('routeIndex');
+    oldIndex = storedIndex ? Number(storedIndex) : routeOrder.findIndex(path => path === '/');
   }
   
   if (newIndex !== oldIndex) {
