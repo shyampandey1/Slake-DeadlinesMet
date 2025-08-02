@@ -40,7 +40,7 @@ const weatherCodeMapping: { [key: number]: { condition: string, icon: React.Reac
 
 
 export default function InfoDisplay() {
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState<Date | null>(null);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -90,13 +90,16 @@ export default function InfoDisplay() {
   }
 
   useEffect(() => {
+    // This all runs only on the client, after hydration
+    setTime(new Date());
+    requestGeolocation();
+
     const timer = setInterval(() => {
       setTime(new Date());
     }, 1000 * 60); // Update time every minute
-    
-    requestGeolocation();
 
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderSkeleton = () => (
@@ -107,7 +110,7 @@ export default function InfoDisplay() {
     </div>
   )
 
-  if (loading && !weather && !permissionDenied) {
+  if (!time) {
     return (
         <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
             <div className="overflow-x-auto scrollbar-hide">
