@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
 import { format } from "date-fns";
@@ -171,97 +171,112 @@ export default function TaskForm() {
     }
   }
 
+  const hasTasks = Object.keys(presetTasks).length > 0;
+
   return (
     <>
     <div className="space-y-4">
       <div>
         <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
         <p className="text-muted-foreground">
-            Select a preset task or add your own. Double-click to edit.
+            Select a preset task or add your own.
         </p>
       </div>
       <div className="relative">
-        <Carousel
-            setApi={setCarouselApi}
-            opts={{
-                align: "start",
-            }}
-            className="w-full"
-            >
-            <CarouselContent>
-                {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
-                    const timeRange = categoryTimeRanges[category];
-                    const isCurrent = category === activeCategory;
-                    return (
-                    <CarouselItem key={category} className="basis-full">
-                        <div className="p-1">
-                        <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "shadow-lg")}>
-                            <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
-                                <div>
-                                    <CardTitle className="font-headline text-lg">{category}</CardTitle>
-                                    {timeRange && (
-                                    <CardDescription className="text-xs text-inherit opacity-80">
-                                        {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
-                                    </CardDescription>
-                                    )}
-                                </div>
-                                <Badge variant="secondary" className="gap-1.5">
-                                    <Clock className="w-3.5 h-3.5"/>
-                                    {tasks.reduce((acc, task) => acc + task.duration, 0)} min
-                                </Badge>
-                            </CardHeader>
-                            <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
-                            <ScrollArea className="h-full pr-3">
-                                <div className="space-y-2">
-                                {tasks.map((task) => {
-                                    const Icon = iconMap[task.icon] || BrainCircuit;
-                                    const isEventTask = task.isEvent;
-                                    return (
-                                        <Button
-                                            key={task.id || task.name}
-                                            variant={isEventTask ? "default" : "outline"}
-                                            className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 border-primary/50 hover:bg-primary/30": isEventTask })}
-                                            onClick={() => selectQuickStartTask(task, category)}
-                                            onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
-                                        >
-                                            <Icon className="w-5 h-5 text-muted-foreground" />
-                                            <span className="flex-1 text-left font-normal">{task.name}</span>
-                                            <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                        </Button>
-                                    );
-                                })}
-                                </div>
-                            </ScrollArea>
-                            </CardContent>
-                            <CardFooter className="p-3 pt-0 mt-auto">
-                                <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                                    <Plus className="w-4 h-4 mr-2" /> Add Task
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                        </div>
-                    </CarouselItem>
-                    )
-                })}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-        </Carousel>
+        {hasTasks ? (
+            <Carousel
+                setApi={setCarouselApi}
+                opts={{
+                    align: "start",
+                }}
+                className="w-full"
+                >
+                <CarouselContent>
+                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
+                        const timeRange = categoryTimeRanges[category];
+                        const isCurrent = category === activeCategory;
+                        return (
+                        <CarouselItem key={category} className="basis-full">
+                            <div className="p-1">
+                            <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "shadow-lg")}>
+                                <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
+                                    <div>
+                                        <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                                        {timeRange && (
+                                        <CardDescription className="text-xs text-inherit opacity-80">
+                                            {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                        </CardDescription>
+                                        )}
+                                    </div>
+                                    <Badge variant="secondary" className="gap-1.5">
+                                        <Clock className="w-3.5 h-3.5"/>
+                                        {tasks.reduce((acc, task) => acc + task.duration, 0)} min
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
+                                <ScrollArea className="h-full pr-3">
+                                    <div className="space-y-2">
+                                    {tasks.map((task) => {
+                                        const Icon = iconMap[task.icon] || BrainCircuit;
+                                        const isEventTask = task.isEvent;
+                                        return (
+                                            <Button
+                                                key={task.id || task.name}
+                                                variant={isEventTask ? "default" : "outline"}
+                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30": isEventTask })}
+                                                onClick={() => selectQuickStartTask(task, category)}
+                                                onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
+                                            >
+                                                <Icon className="w-5 h-5 text-muted-foreground" />
+                                                <span className="flex-1 text-left font-normal">{task.name}</span>
+                                                <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                            </Button>
+                                        );
+                                    })}
+                                    </div>
+                                </ScrollArea>
+                                </CardContent>
+                                <CardFooter className="p-3 pt-0 mt-auto">
+                                    <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                        <Plus className="w-4 h-4 mr-2" /> Add Task
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                            </div>
+                        </CarouselItem>
+                        )
+                    })}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+            </Carousel>
+        ) : (
+            <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg flex flex-col items-center justify-center h-[280px]">
+                <FolderSearch className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
+                <p className="mt-1 text-sm max-w-xs mx-auto">This routine is empty. Go to the 'Routine' page to add tasks.</p>
+                <Button variant="secondary" className="mt-4" onClick={() => router.push('/routine')}>
+                   Customize Routine
+                </Button>
+            </div>
+        )}
       </div>
 
-      <div className="flex justify-center gap-2">
-        {scrollSnaps.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => scrollTo(index)}
-            className={cn(
-              "h-2 w-2 rounded-full transition-all duration-300",
-              index === selectedIndex ? "w-4 bg-primary" : "bg-muted"
-            )}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
+      {hasTasks && (
+        <div className="flex justify-center gap-2 mt-4">
+            {scrollSnaps.map((_, index) => (
+            <button
+                key={index}
+                onClick={() => scrollTo(index)}
+                className={cn(
+                "h-2 w-2 rounded-full transition-all duration-300",
+                index === selectedIndex ? "w-4 bg-primary" : "bg-muted"
+                )}
+                aria-label={`Go to slide ${index + 1}`}
+            />
+            ))}
+        </div>
+      )}
 
 
         <div className="my-2" />
@@ -341,5 +356,3 @@ export default function TaskForm() {
     </>
   );
 }
-
-    

@@ -48,6 +48,7 @@ const categoryColors: { [key: string]: string } = {
     'Evening & Recovery Routine': 'bg-rose-800 text-rose-100'
 };
 
+
 const creativeRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
 const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
 const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
@@ -280,23 +281,18 @@ export function usePresetTasks() {
             const newPresets: Preset = {};
             const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
             
-            // Initialize all categories from the default routine
-            defaultTasks.forEach(task => {
+            // Populate tasks and categories from default routine
+            defaultTasks.forEach((task, index) => {
                 if (!newPresets[task.category]) {
                     newPresets[task.category] = {
                         color: categoryColors[task.category] || "bg-gray-800 text-gray-100",
                         tasks: [],
                     };
                 }
-            });
-
-            // Populate tasks
-            defaultTasks.forEach((task, index) => {
                 const taskWithOrder = { ...task, order: index };
                 newPresets[task.category].tasks.push(taskWithOrder as UserPresetTask);
             });
             
-            // Ensure all categories are sorted by a predefined order if necessary, for now it's by appearance
             setPresetTasks(newPresets);
             setLoading(false);
         }
@@ -321,21 +317,10 @@ export function usePresetTasks() {
             } else {
                 const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
                 const newPresets: Preset = {};
-
-                // Initialize all possible categories to ensure they render
-                const allCategories = [...Object.keys(categoryColors), ...userTasks.map(t => t.category)];
-                const uniqueCategories = [...new Set(allCategories)];
-
-                uniqueCategories.forEach(categoryName => {
-                    newPresets[categoryName] = {
-                        color: categoryColors[categoryName] || "bg-gray-800 text-gray-100",
-                        tasks: [],
-                    };
-                });
                 
                 userTasks.forEach(task => {
+                    // Only create a category if it has tasks
                     if (!newPresets[task.category]) {
-                        // This case might happen if a task has a category not in categoryColors
                         newPresets[task.category] = {
                             color: categoryColors[task.category] || "bg-gray-800 text-gray-100",
                             tasks: []
@@ -344,9 +329,11 @@ export function usePresetTasks() {
                     newPresets[task.category].tasks.push(task);
                 });
                 
+                // Sort tasks within each category
                 Object.keys(newPresets).forEach(category => {
                     newPresets[category].tasks.sort((a, b) => a.order - b.order);
                 });
+
                 setPresetTasks(newPresets);
             }
             setLoading(false);
@@ -559,12 +546,3 @@ export function useCalendarEvents() {
 
     return { events, loading, addEvent, deleteEvent };
 }
-
-    
-    
-
-    
-
-    
-
-    
