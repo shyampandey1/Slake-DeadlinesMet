@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -36,6 +35,8 @@ const categoryColors: { [key: string]: string } = {
     'Break': "bg-green-800 text-green-100",
     'Evening': "bg-orange-800 text-orange-100",
     'Night': "bg-indigo-800 text-indigo-100",
+    'Mind & Body': "bg-purple-800 text-purple-100",
+    'Recharge': "bg-rose-800 text-rose-100",
 };
 
 const creativeRoutine: PresetTask[] = [
@@ -626,3 +627,5 @@ export function useCalendarEvents() {
 
     return { events, loading, addEvent, deleteEvent };
 }
+
+    
