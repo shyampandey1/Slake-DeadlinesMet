@@ -12,18 +12,14 @@ import {
 } from "react";
 import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch, runTransaction, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, writeBatch, runTransaction } from "firebase/firestore";
 import type { ProfileType, CustomProfession, PresetTask } from "@/types";
-import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
-import { usePresetTasks } from "./useFirestore";
 
 interface ProfileContextType {
   profile: ProfileType;
   setProfile: (profile: ProfileType) => void;
   customProfessions: CustomProfession[];
-  addCustomProfession: (profession: CustomProfession) => Promise<void>;
   deleteCustomProfession: (professionName: string) => Promise<void>;
-  addTasksToCurrentProfile: (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => Promise<void>;
   loading: boolean;
 }
 
@@ -31,15 +27,9 @@ const ProfileContext = createContext<ProfileContextType>({
   profile: "General",
   setProfile: () => {},
   customProfessions: [],
-  addCustomProfession: async () => {},
   deleteCustomProfession: async () => {},
-  addTasksToCurrentProfile: async () => {},
   loading: true,
 });
-
-const availableIcons = ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Utensils", "Wind", "Droplets", "BookOpen", "Wrench", "Target", "ShoppingBag"];
-const availableCategories = ["Morning", "Work", "Break", "Evening", "Night"];
-const availableCategoryGroups = ["Creative & Media", "Business & Management", "Technical & Health", "General & Freelance"];
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user, isOffline, isSyncEnabled } = useAuth();
@@ -92,77 +82,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
     }
   }, [user, isOffline, isSyncEnabled, profile]);
-
-  const addCustomProfession = useCallback(async (profession: CustomProfession) => {
-    if (!user || isOffline || !isSyncEnabled) return;
-
-    const profileRef = doc(db, 'userProfiles', user.uid);
-    const tasksCollectionRef = collection(db, 'userPresetTasks');
-
-    const aiResult = await generateRoutineByProfession({
-        profession: profession.name,
-        availableIcons,
-        availableCategories,
-        availableCategoryGroups,
-    });
-    
-    const tasks = aiResult.tasks;
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const profileDoc = await transaction.get(profileRef);
-            let currentCustomProfessions: CustomProfession[] = [];
-
-            if (profileDoc.exists()) {
-                currentCustomProfessions = profileDoc.data().customProfessions || [];
-            }
-            
-            if (!currentCustomProfessions.some(p => p.name === profession.name)) {
-                currentCustomProfessions.push(profession);
-            }
-
-            transaction.set(profileRef, {
-                profile: profession.name,
-                customProfessions: currentCustomProfessions
-            }, { merge: true });
-            
-            const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profession.name));
-            const oldTasksSnapshot = await getDocs(q); 
-            oldTasksSnapshot.forEach(doc => {
-                transaction.delete(doc.ref);
-            });
-
-            const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
-            tasks.forEach(task => {
-                if (!tasksByCategory[task.category]) {
-                    tasksByCategory[task.category] = [];
-                }
-                tasksByCategory[task.category].push(task);
-            });
-
-            Object.values(tasksByCategory).forEach(categoryTasks => {
-                categoryTasks.forEach((task, index) => {
-                    const newDocRef = doc(tasksCollectionRef);
-                    transaction.set(newDocRef, {
-                        name: task.name,
-                        duration: task.duration,
-                        icon: task.icon,
-                        category: task.category,
-                        order: index,
-                        userId: user.uid,
-                        profession: profession.name,
-                    });
-                });
-            });
-        });
-
-        setProfileState(profession.name);
-
-    } catch (error) {
-        console.error("Failed to add custom profession and tasks: ", error);
-        throw error;
-    }
-  }, [user, isOffline, isSyncEnabled]);
   
   const deleteCustomProfession = useCallback(async (professionName: string) => {
     if (!user || isOffline || !isSyncEnabled) return;
@@ -200,40 +119,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   }, [user, isOffline, profile, isSyncEnabled]);
 
-  const addTasksToCurrentProfile = useCallback(async (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => {
-    if (!user || isOffline || !isSyncEnabled) return;
-
-    try {
-        const batch = writeBatch(db);
-        const tasksCollectionRef = collection(db, 'userPresetTasks');
-
-        for (const task of tasks) {
-            const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profile), where('category', '==', task.category));
-            const snapshot = await getDocs(q);
-            const maxOrder = snapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order), -1);
-
-            const newDocRef = doc(tasksCollectionRef);
-            batch.set(newDocRef, {
-                ...task,
-                order: maxOrder + 1,
-                userId: user.uid,
-                profession: profile,
-            });
-        }
-        await batch.commit();
-
-    } catch(error) {
-        console.error("Failed to add tasks to current profile", error);
-        throw error;
-    }
-  }, [user, profile, isOffline, isSyncEnabled]);
-
-
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession, deleteCustomProfession, addTasksToCurrentProfile }}>
+    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, deleteCustomProfession }}>
       {children}
     </ProfileContext.Provider>
   );
 }
 
 export const useProfile = () => useContext(ProfileContext);
+
+    

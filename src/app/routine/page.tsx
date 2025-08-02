@@ -5,22 +5,18 @@ import { useState, useEffect, useMemo } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy, X, Trash2, Rocket } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, BookCopy, X } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import HamburgerMenu from "@/components/HamburgerMenu";
-import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
 import { organizeRoutine } from "@/ai/flows/organize-routine";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useProfile } from "@/hooks/useProfile";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -123,7 +119,7 @@ function DeleteProfessionButton({ professionName, onDelete }: { professionName: 
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading: presetTasksLoading, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, isDefaultTask } = usePresetTasks();
-  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, deleteCustomProfession } = useProfile();
+  const { profile, setProfile, loading: profileLoading, customProfessions, deleteCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
@@ -134,9 +130,6 @@ function RoutineCustomizationPage() {
   const [professionConfig, setProfessionConfig] = useState(initialProfessionConfig);
   const [profileCategories, setProfileCategories] = useState(initialProfileCategories);
   const [iconMap, setIconMap] = useState(initialIconMap);
-  const [newProfessionName, setNewProfessionName] = useState("");
-  const [newProfessionCategory, setNewProfessionCategory] = useState("General & Freelance");
-  const [isGeneratingProfession, setIsGeneratingProfession] = useState(false);
   
   const isGenerating = generatingStatus === 'generating' || generatingStatus === 'saving';
 
@@ -235,34 +228,6 @@ function RoutineCustomizationPage() {
         setGeneratingStatus("idle");
     }
   };
-
-  const handleGenerateProfession = async () => {
-    if (!newProfessionName.trim()) {
-        toast({ title: "Please enter a profession name.", variant: "destructive" });
-        return;
-    }
-    setIsGeneratingProfession(true);
-    try {
-        await addCustomProfession(
-            { name: newProfessionName, categoryGroup: newProfessionCategory },
-        );
-        toast({
-            title: "Routine Generated!",
-            description: `A new routine for "${newProfessionName}" has been created.`,
-        });
-        setNewProfessionName("");
-    } catch (e) {
-        console.error("Failed to generate new profession routine", e);
-        toast({
-            title: "Generation Failed",
-            description: "Could not generate the new routine.",
-            variant: "destructive"
-        });
-    } finally {
-        setIsGeneratingProfession(false);
-    }
-  };
-
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
