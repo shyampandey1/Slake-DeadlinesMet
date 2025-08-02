@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -79,6 +80,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled]);
 
   const setProfile = useCallback(async (newProfile: ProfileType) => {
+    if (profile === newProfile) return;
+    
     setProfileState(newProfile);
     if (user && !isOffline && isSyncEnabled) {
         try {
@@ -88,7 +91,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             console.error("Failed to set profile: ", error);
         }
     }
-  }, [user, isOffline, isSyncEnabled]);
+  }, [user, isOffline, isSyncEnabled, profile]);
 
   const addCustomProfession = useCallback(async (profession: CustomProfession) => {
     if (!user || isOffline || !isSyncEnabled) return;
