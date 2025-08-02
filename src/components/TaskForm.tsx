@@ -199,11 +199,6 @@ export default function TaskForm() {
                             <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
                                 <div>
                                     <CardTitle className="font-headline text-lg">{category}</CardTitle>
-                                    {timeRange && (
-                                        <p className="text-xs font-mono opacity-80">
-                                            {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
-                                        </p>
-                                    )}
                                 </div>
                                 <Badge variant="secondary" className="gap-1.5">
                                     <Clock className="w-3.5 h-3.5"/>
@@ -341,3 +336,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    

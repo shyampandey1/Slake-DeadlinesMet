@@ -30,38 +30,36 @@ const iconMap = {
 const iconNames = Object.keys(iconMap);
 
 const categoryColors: { [key: string]: string } = {
-    'Morning': "bg-sky-800 text-sky-100",
-    'Work': "bg-blue-800 text-blue-100",
-    'Break': "bg-green-800 text-green-100",
-    'Evening': "bg-orange-800 text-orange-100",
-    'Night': "bg-indigo-800 text-indigo-100",
-    'Mind & Body': "bg-purple-800 text-purple-100",
-    'Recharge': "bg-rose-800 text-rose-100",
+    'Morning Routine': "bg-sky-800 text-sky-100",
+    'Primary Work/Focus Session': "bg-blue-800 text-blue-100",
+    'Lunch Break': "bg-green-800 text-green-100",
+    'Afternoon Work/Admin Session': "bg-orange-800 text-orange-100",
+    'Post-Work Decompression': "bg-purple-800 text-purple-100",
+    'Evening Routine': "bg-rose-800 text-rose-100",
+    'Night Routine': "bg-indigo-800 text-indigo-100",
 };
 
-const creativeRoutine: PresetTask[] = [];
-const businessRoutine: PresetTask[] = [];
-const technicalRoutine: PresetTask[] = [];
-const onTheGoRoutine: PresetTask[] = [];
-const healthcareRoutine: PresetTask[] = [];
-const generalRoutine: PresetTask[] = [];
+const generalRoutine: PresetTask[] = [
+    // Tasks will be provided in the next step
+];
+
 
 const profilePresets: { [key: string]: PresetTask[] } = {
-    "Artist": creativeRoutine,
-    "Content Creator": creativeRoutine,
-    "Designer": creativeRoutine,
-    "Writer": creativeRoutine,
-    "Consultant": businessRoutine,
-    "Manager": businessRoutine,
-    "Marketer": businessRoutine,
-    "Entrepreneur": businessRoutine,
-    "Sales": onTheGoRoutine,
-    "Software Engineer": technicalRoutine,
-    "IT Professional": technicalRoutine,
-    "Researcher": technicalRoutine,
-    "Healthcare Professional": healthcareRoutine,
-    "Student": technicalRoutine,
-    "Educator": businessRoutine,
+    "Artist": generalRoutine,
+    "Content Creator": generalRoutine,
+    "Designer": generalRoutine,
+    "Writer": generalRoutine,
+    "Consultant": generalRoutine,
+    "Manager": generalRoutine,
+    "Marketer": generalRoutine,
+    "Entrepreneur": generalRoutine,
+    "Sales": generalRoutine,
+    "Software Engineer": generalRoutine,
+    "IT Professional": generalRoutine,
+    "Researcher": generalRoutine,
+    "Healthcare Professional": generalRoutine,
+    "Student": generalRoutine,
+    "Educator": generalRoutine,
     "Freelancer": generalRoutine,
     "General": generalRoutine,
 };
@@ -264,21 +262,34 @@ export function usePresetTasks() {
     }, [processedTasks, profile]);
 
     useEffect(() => {
-        if (!user || isOffline || !isSyncEnabled) {
-            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
+        const setupDefaultPreset = () => {
             const newPresets: Preset = {};
-            defaultTasks.forEach(task => {
-                if (!newPresets[task.category]) {
-                    newPresets[task.category] = { color: categoryColors[task.category] || "bg-gray-800 text-gray-100", tasks: [] };
-                }
-                newPresets[task.category].tasks.push(task as UserPresetTask);
+            // Initialize all categories from categoryColors to ensure they appear
+            Object.keys(categoryColors).forEach(categoryName => {
+                newPresets[categoryName] = {
+                    color: categoryColors[categoryName],
+                    tasks: [],
+                };
             });
+
+            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
+            defaultTasks.forEach(task => {
+                // Ensure the category exists before trying to push tasks to it
+                if (newPresets[task.category]) {
+                    newPresets[task.category].tasks.push(task as UserPresetTask);
+                }
+            });
+
             Object.values(newPresets).forEach(category => {
                 category.tasks.sort((a,b) => a.order - b.order)
             })
             setPresetTasks(newPresets);
-            setTodaysEvents([]);
             setLoading(false);
+        }
+
+        if (!user || isOffline || !isSyncEnabled) {
+            setupDefaultPreset();
+            setTodaysEvents([]);
             return;
         }
 
@@ -292,24 +303,22 @@ export function usePresetTasks() {
 
         const unsubscribePresets = onSnapshot(q, (snapshot) => {
             if (snapshot.empty) {
-                const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
-                const newPresets: Preset = {};
-                defaultTasks.forEach(task => {
-                    if (!newPresets[task.category]) {
-                         newPresets[task.category] = { color: categoryColors[task.category] || "bg-gray-800 text-gray-100", tasks: [] };
-                    }
-                    newPresets[task.category].tasks.push(task as UserPresetTask);
-                });
-                Object.values(newPresets).forEach(category => {
-                    category.tasks.sort((a,b) => a.order - b.order)
-                })
-                setPresetTasks(newPresets);
+                setupDefaultPreset();
             } else {
                 const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
                 const newPresets: Preset = {};
+
+                // Initialize all possible categories to ensure they render
+                Object.keys(categoryColors).forEach(categoryName => {
+                    newPresets[categoryName] = {
+                        color: categoryColors[categoryName],
+                        tasks: [],
+                    };
+                });
                 
                 userTasks.forEach(task => {
                     if (!newPresets[task.category]) {
+                        // This case might happen if a task has a category not in categoryColors
                         newPresets[task.category] = {
                             color: categoryColors[task.category] || "bg-gray-800 text-gray-100",
                             tasks: []
@@ -536,4 +545,6 @@ export function useCalendarEvents() {
 }
 
     
+    
+
     
