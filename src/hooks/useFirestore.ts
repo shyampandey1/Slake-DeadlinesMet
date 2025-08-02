@@ -35,7 +35,8 @@ const categoryColors: { [key: string]: string } = {
     'Lunch Break': "bg-green-800 text-green-100",
     'Afternoon Work/Admin Session': "bg-orange-800 text-orange-100",
     'Post-Work Decompression': "bg-purple-800 text-purple-100",
-    'Evening & Night Routine': "bg-rose-800 text-rose-100",
+    'Evening Routine': 'bg-rose-800 text-rose-100',
+    'Night Routine': "bg-indigo-800 text-indigo-100",
     'Bedtime': "bg-slate-800 text-slate-100",
     'On The Road (AM)': 'bg-blue-800 text-blue-100',
     'On The Road (PM)': 'bg-orange-800 text-orange-100',
@@ -560,6 +561,8 @@ export function useCalendarEvents() {
 }
 
     
+    
+
     
 
     
