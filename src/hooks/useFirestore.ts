@@ -47,129 +47,12 @@ const categoryColors: { [key: string]: string } = {
     'Evening & Recovery Routine': 'bg-rose-800 text-rose-100'
 };
 
-const creativeRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-    { name: "Morning Idea Dump / Journaling", duration: 15, icon: "BookOpen", category: "Morning Routine" },
-    { name: "Light Stretching or Mobility", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
-    { name: "Uninterrupted Deep Creative Work", duration: 120, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
-    { name: "Inspiration & Research Block", duration: 60, icon: "Wind", category: "Primary Work/Focus Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
-    { name: "Mindful Meal (away from desk)", duration: 30, icon: "Utensils", category: "Lunch Break" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
-    { name: "Skill Practice / Tutorial", duration: 30, icon: "Wrench", category: "Afternoon Work/Admin Session" },
-    { name: "Admin & Client Communication", duration: 45, icon: "Mail", category: "Afternoon Work/Admin Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
-    { name: "Main Exercise / Workout", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Screen-Free Reading", duration: 20, icon: "BookOpen", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
-];
-
-const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-    { name: "Review Day's Top 3 Priorities", duration: 10, icon: "ListChecks", category: "Morning Routine" },
-    { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
-    { name: "Strategic Thinking / 'No-Meeting' Block", duration: 60, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
-    { name: "Tackle Most Important Task", duration: 90, icon: "Target", category: "Primary Work/Focus Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
-    { name: "Power Lunch / Quick Walk", duration: 45, icon: "Footprints", category: "Lunch Break" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
-    { name: "Meetings & Collaborative Tasks", duration: 120, icon: "Users", category: "Afternoon Work/Admin Session" },
-    { name: "Scan & Reply to Emails", duration: 30, icon: "Mail", category: "Afternoon Work/Admin Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
-    { name: "End-of-Day Review & Shutdown Ritual", duration: 15, icon: "ListChecks", category: "Post-Work Decompression" },
-    { name: "Hobby / Leisure (Video Games, etc.)", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
-    { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
-];
-
-const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-    { name: "Meditation for Focus", duration: 10, icon: "BrainCircuit", category: "Morning Routine" },
-    { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
-    { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
-    { name: "Problem Decomposition / Planning", duration: 15, icon: "ListChecks", category: "Primary Work/Focus Session" },
-    { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Coffee", category: "Primary Work/Focus Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
-    { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Lunch Break" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
-    { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Afternoon Work/Admin Session" },
-    { name: "Writing Documentation", duration: 30, icon: "BookOpen", category: "Afternoon Work/Admin Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
-    { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
-    { name: "Personal Project / Learning", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
-];
-
-const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-    { name: "Morning Route & Schedule Review", duration: 15, icon: "ListChecks", category: "Morning Routine" },
-    { name: "High-Energy Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "On The Road (AM)" },
-    { name: "Use travel time for calls or podcasts", duration: 60, icon: "Users", category: "On The Road (AM)" },
-    { name: "In-Car Mental Reset", duration: 5, icon: "BrainCircuit", category: "On The Road (AM)" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
-    { name: "Eat a packed, healthy lunch", duration: 20, icon: "Utensils", category: "Lunch Break" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "On The Road (PM)" },
-    { name: "High-Energy Snack Break", duration: 5, icon: "Coffee", category: "On The Road (PM)" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Admin" },
-    { name: "Logging Reports & Admin on Mobile", duration: 20, icon: "Mail", category: "Post-Work Admin" },
-    { name: "End-of-Day Bag / Vehicle Restock & Prep", duration: 10, icon: "ShoppingBag", category: "Post-Work Admin" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Stretching to release physical tension", duration: 15, icon: "StretchHorizontal", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
-];
-
-const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Pre-Shift Routine" },
-    { name: "Pre-Shift Mental Preparation", duration: 5, icon: "BrainCircuit", category: "Pre-Shift Routine" },
-    { name: "Eat a high-protein, slow-release energy meal", duration: 20, icon: "Utensils", category: "Pre-Shift Routine" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "During Shift (First Half)" },
-    { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "During Shift (First Half)" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Mid-Shift Break" },
-    { name: "Eat small, healthy snack/meal", duration: 15, icon: "Utensils", category: "Mid-Shift Break" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "During Shift (Second Half)" },
-    { name: "Stay vigilant and support team", duration: 60, icon: "Users", category: "During Shift (Second Half)" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
-    { name: "Mindful Commute (calming music, no news)", duration: 20, icon: "Footprints", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Recovery Routine" },
-    { name: "Recovery Meal (dinner)", duration: 30, icon: "Utensils", category: "Evening & Recovery Routine" },
-    { name: "Journaling to Unload Stress", duration: 10, icon: "BookOpen", category: "Evening & Recovery Routine" },
-    { name: "Prepare for next shift", duration: 15, icon: "ShoppingBag", category: "Evening & Recovery Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
-];
-
-const generalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-    { name: "Plan Day's Top 3 Priorities", duration: 15, icon: "ListChecks", category: "Morning Routine" },
-    { name: "Light Exercise", duration: 20, icon: "Dumbbell", category: "Morning Routine" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
-    { name: "Focus Block 1", duration: 90, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
-    { name: "Quick Break", duration: 5, icon: "Coffee", category: "Primary Work/Focus Session" },
-    { name: "Focus Block 2", duration: 90, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
-    { name: "Eat Lunch", duration: 30, icon: "Utensils", category: "Lunch Break" },
-    { name: "Short Walk", duration: 15, icon: "Footprints", category: "Lunch Break" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
-    { name: "Handle Emails & Messages", duration: 30, icon: "Mail", category: "Afternoon Work/Admin Session" },
-    { name: "Plan Tomorrow", duration: 15, icon: "ListChecks", category: "Afternoon Work/Admin Session" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
-    { name: "Hobby or Leisure Time", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Read or Wind Down", duration: 30, icon: "BookOpen", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
-];
+const creativeRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
+const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
+const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
+const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
+const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
+const generalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [];
 
 
 const profilePresets: { [key: string]: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] } = {
@@ -677,6 +560,8 @@ export function useCalendarEvents() {
 }
 
     
+    
+
     
 
     
