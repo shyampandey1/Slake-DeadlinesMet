@@ -36,6 +36,7 @@ const categoryColors: { [key: string]: string } = {
     'Afternoon Work/Admin Session': "bg-orange-800 text-orange-100",
     'Post-Work Decompression': "bg-purple-800 text-purple-100",
     'Evening & Night Routine': "bg-rose-800 text-rose-100",
+    'Bedtime': "bg-slate-800 text-slate-100",
     'On The Road (AM)': 'bg-blue-800 text-blue-100',
     'On The Road (PM)': 'bg-orange-800 text-orange-100',
     'Post-Work Admin': 'bg-purple-800 text-purple-100',
@@ -62,7 +63,8 @@ const creativeRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: strin
     { name: "Main Exercise / Workout", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
     { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Screen-Free Reading", duration: 20, icon: "BookOpen", category: "Evening & Night Routine" }
+    { name: "Screen-Free Reading", duration: 20, icon: "BookOpen", category: "Evening & Night Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
 ];
 
 const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -82,7 +84,8 @@ const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: strin
     { name: "Hobby / Leisure (Video Games, etc.)", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
     { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Evening & Night Routine" }
+    { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Evening & Night Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
 ];
 
 const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -103,8 +106,8 @@ const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: stri
     { name: "Personal Project / Learning", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
     { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
-    { name: "Read a physical book", duration: 30, icon: "BookOpen", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening & Night Routine" }
+    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Evening & Night Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
 ];
 
 const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -124,7 +127,7 @@ const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
     { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
     { name: "Stretching to release physical tension", duration: 15, icon: "StretchHorizontal", category: "Evening & Night Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening & Night Routine" }
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
 ];
 
 const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -143,7 +146,29 @@ const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: str
     { name: "Recovery Meal (dinner)", duration: 30, icon: "Utensils", category: "Evening & Recovery Routine" },
     { name: "Journaling to Unload Stress", duration: 10, icon: "BookOpen", category: "Evening & Recovery Routine" },
     { name: "Prepare for next shift", duration: 15, icon: "ShoppingBag", category: "Evening & Recovery Routine" },
-    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening & Recovery Routine" }
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
+];
+
+const generalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+    { name: "Plan Day's Top 3 Priorities", duration: 15, icon: "ListChecks", category: "Morning Routine" },
+    { name: "Light Exercise", duration: 20, icon: "Dumbbell", category: "Morning Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work/Focus Session" },
+    { name: "Focus Block 1", duration: 90, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
+    { name: "Quick Break", duration: 5, icon: "Coffee", category: "Primary Work/Focus Session" },
+    { name: "Focus Block 2", duration: 90, icon: "BrainCircuit", category: "Primary Work/Focus Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
+    { name: "Eat Lunch", duration: 30, icon: "Utensils", category: "Lunch Break" },
+    { name: "Short Walk", duration: 15, icon: "Footprints", category: "Lunch Break" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Work/Admin Session" },
+    { name: "Handle Emails & Messages", duration: 30, icon: "Mail", category: "Afternoon Work/Admin Session" },
+    { name: "Plan Tomorrow", duration: 15, icon: "ListChecks", category: "Afternoon Work/Admin Session" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
+    { name: "Hobby or Leisure Time", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
+    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
+    { name: "Read or Wind Down", duration: 30, icon: "BookOpen", category: "Evening & Night Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime" }
 ];
 
 
@@ -163,10 +188,10 @@ const profilePresets: { [key: string]: (Omit<UserPresetTask, "id" | "order"> & {
     "Medical Rep": onTheGoRoutine,
     "Delivery Agent": onTheGoRoutine,
     "Healthcare Professional": healthcareRoutine,
-    "Student": technicalRoutine, // similar focus needs
-    "Educator": businessRoutine, // similar structure needs
+    "Student": technicalRoutine,
+    "Educator": businessRoutine,
     "Freelancer": creativeRoutine,
-    "General": businessRoutine, // a good default
+    "General": generalRoutine,
 };
 
 
@@ -369,7 +394,7 @@ export function usePresetTasks() {
     useEffect(() => {
         const setupDefaultPreset = () => {
             const newPresets: Preset = {};
-            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || businessRoutine;
+            const defaultTasks = profilePresets[profile as keyof typeof profilePresets] || generalRoutine;
             
             // Initialize all categories from the default routine
             defaultTasks.forEach(task => {
@@ -387,6 +412,7 @@ export function usePresetTasks() {
                 newPresets[task.category].tasks.push(taskWithOrder as UserPresetTask);
             });
             
+            // Ensure all categories are sorted by a predefined order if necessary, for now it's by appearance
             setPresetTasks(newPresets);
             setLoading(false);
         }
@@ -413,9 +439,12 @@ export function usePresetTasks() {
                 const newPresets: Preset = {};
 
                 // Initialize all possible categories to ensure they render
-                Object.keys(categoryColors).forEach(categoryName => {
+                const allCategories = [...Object.keys(categoryColors), ...userTasks.map(t => t.category)];
+                const uniqueCategories = [...new Set(allCategories)];
+
+                uniqueCategories.forEach(categoryName => {
                     newPresets[categoryName] = {
-                        color: categoryColors[categoryName],
+                        color: categoryColors[categoryName] || "bg-gray-800 text-gray-100",
                         tasks: [],
                     };
                 });
@@ -439,8 +468,7 @@ export function usePresetTasks() {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching preset tasks:", error);
-            setPresetTasks({});
-            setLoading(false);
+            setupDefaultPreset(); // Fallback to default
         });
 
         const todayStart = startOfDay(new Date());

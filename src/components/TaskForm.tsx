@@ -195,10 +195,15 @@ export default function TaskForm() {
                     return (
                     <CarouselItem key={category} className="basis-full">
                         <div className="p-1">
-                        <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-border shadow-lg")}>
+                        <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "border-primary shadow-lg")}>
                             <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
                                 <div>
                                     <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                                    {timeRange && (
+                                    <CardDescription className="text-xs text-inherit opacity-80">
+                                        {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                    </CardDescription>
+                                    )}
                                 </div>
                                 <Badge variant="secondary" className="gap-1.5">
                                     <Clock className="w-3.5 h-3.5"/>
