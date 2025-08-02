@@ -35,8 +35,7 @@ const categoryColors: { [key: string]: string } = {
     'Lunch Break': "bg-green-800 text-green-100",
     'Afternoon Work/Admin Session': "bg-orange-800 text-orange-100",
     'Post-Work Decompression': "bg-purple-800 text-purple-100",
-    'Evening Routine': "bg-rose-800 text-rose-100",
-    'Night Routine': "bg-indigo-800 text-indigo-100",
+    'Evening & Night Routine': "bg-rose-800 text-rose-100",
     'On The Road (AM)': 'bg-blue-800 text-blue-100',
     'On The Road (PM)': 'bg-orange-800 text-orange-100',
     'Post-Work Admin': 'bg-purple-800 text-purple-100',
@@ -61,9 +60,9 @@ const creativeRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: strin
     { name: "Admin & Client Communication", duration: 45, icon: "Mail", category: "Afternoon Work/Admin Session" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
     { name: "Main Exercise / Workout", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
-    { name: "Screen-Free Reading", duration: 20, icon: "BookOpen", category: "Night Routine" }
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
+    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
+    { name: "Screen-Free Reading", duration: 20, icon: "BookOpen", category: "Evening & Night Routine" }
 ];
 
 const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -81,9 +80,9 @@ const businessRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: strin
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
     { name: "End-of-Day Review & Shutdown Ritual", duration: 15, icon: "ListChecks", category: "Post-Work Decompression" },
     { name: "Hobby / Leisure (Video Games, etc.)", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
-    { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening Routine" },
-    { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Night Routine" }
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
+    { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening & Night Routine" },
+    { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Evening & Night Routine" }
 ];
 
 const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -102,9 +101,10 @@ const technicalRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: stri
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
     { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
     { name: "Personal Project / Learning", duration: 60, icon: "Wrench", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
-    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Night Routine" }
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
+    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
+    { name: "Read a physical book", duration: 30, icon: "BookOpen", category: "Evening & Night Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening & Night Routine" }
 ];
 
 const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -121,9 +121,10 @@ const onTheGoRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Admin" },
     { name: "Logging Reports & Admin on Mobile", duration: 20, icon: "Mail", category: "Post-Work Admin" },
     { name: "End-of-Day Bag / Vehicle Restock & Prep", duration: 10, icon: "ShoppingBag", category: "Post-Work Admin" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
-    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
-    { name: "Stretching to release physical tension", duration: 15, icon: "StretchHorizontal", category: "Night Routine" }
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Night Routine" },
+    { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening & Night Routine" },
+    { name: "Stretching to release physical tension", duration: 15, icon: "StretchHorizontal", category: "Evening & Night Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening & Night Routine" }
 ];
 
 const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: string })[] = [
@@ -141,7 +142,8 @@ const healthcareRoutine: (Omit<UserPresetTask, "id" | "order"> & { category: str
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Recovery Routine" },
     { name: "Recovery Meal (dinner)", duration: 30, icon: "Utensils", category: "Evening & Recovery Routine" },
     { name: "Journaling to Unload Stress", duration: 10, icon: "BookOpen", category: "Evening & Recovery Routine" },
-    { name: "Prepare for next shift", duration: 15, icon: "ShoppingBag", category: "Night Routine" }
+    { name: "Prepare for next shift", duration: 15, icon: "ShoppingBag", category: "Evening & Recovery Routine" },
+    { name: "Bedtime", duration: 0, icon: "Bed", category: "Evening & Recovery Routine" }
 ];
 
 
@@ -646,4 +648,5 @@ export function useCalendarEvents() {
     return { events, loading, addEvent, deleteEvent };
 }
 
+    
     
