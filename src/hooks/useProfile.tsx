@@ -39,8 +39,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user || isOffline || !isSyncEnabled) {
-        setProfileState("General");
-        setCustomProfessionsState([]);
+        // Try to load from localStorage first for offline/guest mode
+        try {
+            const storedProfile = localStorage.getItem('user-profile');
+            if (storedProfile) {
+                setProfileState(storedProfile);
+            }
+        } catch (e) {
+            console.warn("Could not access localStorage for profile")
+        }
+        setCustomProfessionsState([]); // No custom professions in offline mode
         setLoading(false);
         return;
     }
@@ -51,13 +59,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onSnapshot(profileRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            setProfileState(data.profile || "General");
+            const fetchedProfile = data.profile || "General";
+            setProfileState(fetchedProfile);
             setCustomProfessionsState(data.customProfessions || []);
+             try {
+                localStorage.setItem('user-profile', fetchedProfile);
+             } catch (e) {
+                console.warn("Could not access localStorage for profile")
+             }
         } else {
             // If no profile, set default "General"
             setDoc(profileRef, { profile: "General", customProfessions: [] });
             setProfileState("General");
             setCustomProfessionsState([]);
+             try {
+                localStorage.setItem('user-profile', "General");
+             } catch (e) {
+                console.warn("Could not access localStorage for profile")
+             }
         }
         setLoading(false);
     }, (error) => {
@@ -73,6 +92,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (profile === newProfile) return;
     
     setProfileState(newProfile);
+    try {
+        localStorage.setItem('user-profile', newProfile);
+    } catch(e) {
+        console.warn("Could not access localStorage for profile")
+    }
+
     if (user && !isOffline && isSyncEnabled) {
         try {
             const profileRef = doc(db, 'userProfiles', user.uid);
@@ -84,7 +109,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled, profile]);
   
   const deleteCustomProfession = useCallback(async (professionName: string) => {
-    if (!user || isOffline || !isSyncEnabled) return;
+    if (!user || isOffline || isSyncEnabled) return;
 
     try {
         await runTransaction(db, async (transaction) => {
