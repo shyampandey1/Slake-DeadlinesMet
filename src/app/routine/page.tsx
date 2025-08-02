@@ -333,39 +333,6 @@ function RoutineCustomizationPage() {
                                 </div>
                             ))}
                         </div>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline text-base flex items-center gap-2">
-                                    <Rocket className="text-primary"/>
-                                    Add a new profession
-                                </CardTitle>
-                                <CardDescription>
-                                    Can't find your profession? Generate a new routine with AI.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <Input 
-                                        placeholder="e.g., Video Game Streamer"
-                                        value={newProfessionName}
-                                        onChange={(e) => setNewProfessionName(e.target.value)}
-                                        disabled={isGeneratingProfession}
-                                    />
-                                    <RadioGroup value={newProfessionCategory} onValueChange={setNewProfessionCategory} className="flex flex-wrap gap-2">
-                                        {Object.keys(initialProfileCategories).map(cat => (
-                                            <Label key={cat} htmlFor={cat} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
-                                                <RadioGroupItem value={cat} id={cat} />
-                                                {cat}
-                                            </Label>
-                                        ))}
-                                    </RadioGroup>
-                                </div>
-                                <Button onClick={handleGenerateProfession} disabled={isGeneratingProfession || !newProfessionName.trim()} className="w-full sm:w-auto">
-                                    {isGeneratingProfession ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                    Generate New Routine
-                                </Button>
-                            </CardContent>
-                        </Card>
                     </CollapsibleContent>
                 </Collapsible>
 
@@ -497,3 +464,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
