@@ -60,7 +60,7 @@ export default function AuthPage() {
   if (loading) {
     return (
         <div className="flex min-h-screen items-center justify-center">
-            <div className="w-24 h-24 text-primary">
+            <div className="w-16 h-16 text-primary">
                 <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="256" cy="256" r="240" stroke="currentColor" strokeWidth="20" />
                     <path d="M256 40V120" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
