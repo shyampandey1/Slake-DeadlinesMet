@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy, X, Trash2 } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy, X, Trash2, Rocket } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
 import type { UserPresetTask } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
@@ -134,6 +134,9 @@ function RoutineCustomizationPage() {
   const [professionConfig, setProfessionConfig] = useState(initialProfessionConfig);
   const [profileCategories, setProfileCategories] = useState(initialProfileCategories);
   const [iconMap, setIconMap] = useState(initialIconMap);
+  const [newProfessionName, setNewProfessionName] = useState("");
+  const [newProfessionCategory, setNewProfessionCategory] = useState("General & Freelance");
+  const [isGeneratingProfession, setIsGeneratingProfession] = useState(false);
   
   const isGenerating = generatingStatus === 'generating' || generatingStatus === 'saving';
 
@@ -203,7 +206,7 @@ function RoutineCustomizationPage() {
         const result = await organizeRoutine({
             description,
             availableIcons: getAvailableIcons(),
-            availableCategories: getAvailableCategories(profile),
+            availableCategories: getAvailableCategories(),
         });
         
         if (result.tasks && result.tasks.length > 0) {
@@ -230,6 +233,33 @@ function RoutineCustomizationPage() {
         });
     } finally {
         setGeneratingStatus("idle");
+    }
+  };
+
+  const handleGenerateProfession = async () => {
+    if (!newProfessionName.trim()) {
+        toast({ title: "Please enter a profession name.", variant: "destructive" });
+        return;
+    }
+    setIsGeneratingProfession(true);
+    try {
+        await addCustomProfession(
+            { name: newProfessionName, categoryGroup: newProfessionCategory },
+        );
+        toast({
+            title: "Routine Generated!",
+            description: `A new routine for "${newProfessionName}" has been created.`,
+        });
+        setNewProfessionName("");
+    } catch (e) {
+        console.error("Failed to generate new profession routine", e);
+        toast({
+            title: "Generation Failed",
+            description: "Could not generate the new routine.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsGeneratingProfession(false);
     }
   };
 
@@ -303,6 +333,39 @@ function RoutineCustomizationPage() {
                                 </div>
                             ))}
                         </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline text-base flex items-center gap-2">
+                                    <Rocket className="text-primary"/>
+                                    Add a new profession
+                                </CardTitle>
+                                <CardDescription>
+                                    Can't find your profession? Generate a new routine with AI.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <Input 
+                                        placeholder="e.g., Video Game Streamer"
+                                        value={newProfessionName}
+                                        onChange={(e) => setNewProfessionName(e.target.value)}
+                                        disabled={isGeneratingProfession}
+                                    />
+                                    <RadioGroup value={newProfessionCategory} onValueChange={setNewProfessionCategory} className="flex flex-wrap gap-2">
+                                        {Object.keys(initialProfileCategories).map(cat => (
+                                            <Label key={cat} htmlFor={cat} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
+                                                <RadioGroupItem value={cat} id={cat} />
+                                                {cat}
+                                            </Label>
+                                        ))}
+                                    </RadioGroup>
+                                </div>
+                                <Button onClick={handleGenerateProfession} disabled={isGeneratingProfession || !newProfessionName.trim()} className="w-full sm:w-auto">
+                                    {isGeneratingProfession ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                    Generate New Routine
+                                </Button>
+                            </CardContent>
+                        </Card>
                     </CollapsibleContent>
                 </Collapsible>
 
@@ -363,6 +426,7 @@ function RoutineCustomizationPage() {
                                     <CardContent className="p-3 pt-3 space-y-2 flex-grow">
                                         {tasks.map((task, index) => {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
+                                        const isEventTask = !!task.isEvent;
                                         return (
                                             <div key={task.id || `${task.name}-${index}`} className="flex items-center gap-1">
                                                 <Button
@@ -374,7 +438,7 @@ function RoutineCustomizationPage() {
                                                     <span className="flex-1 text-left">{task.name}</span>
                                                     <span className="text-sm text-muted-foreground">{task.duration}m</span>
                                                 </Button>
-                                                {!isDefaultTask(task) && (
+                                                {!isEventTask && (
                                                     <div className="flex flex-col">
                                                         <Button
                                                             variant="ghost"
@@ -433,7 +497,3 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
-
-    
-
-    

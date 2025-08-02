@@ -13,12 +13,14 @@ import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch, runTransaction, addDoc, serverTimestamp } from "firebase/firestore";
 import type { ProfileType, CustomProfession, PresetTask } from "@/types";
+import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
+import { usePresetTasks } from "./useFirestore";
 
 interface ProfileContextType {
   profile: ProfileType;
   setProfile: (profile: ProfileType) => void;
   customProfessions: CustomProfession[];
-  addCustomProfession: (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => Promise<void>;
+  addCustomProfession: (profession: CustomProfession) => Promise<void>;
   deleteCustomProfession: (professionName: string) => Promise<void>;
   addTasksToCurrentProfile: (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => Promise<void>;
   loading: boolean;
@@ -33,6 +35,10 @@ const ProfileContext = createContext<ProfileContextType>({
   addTasksToCurrentProfile: async () => {},
   loading: true,
 });
+
+const availableIcons = ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Utensils", "Wind", "Droplets", "BookOpen", "Wrench", "Target", "ShoppingBag"];
+const availableCategories = ["Morning", "Work", "Break", "Evening"];
+const availableCategoryGroups = ["Creative & Media", "Business & Management", "Technical & Health", "General & Freelance"];
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user, isOffline, isSyncEnabled } = useAuth();
@@ -84,11 +90,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isOffline, isSyncEnabled]);
 
-  const addCustomProfession = useCallback(async (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => {
+  const addCustomProfession = useCallback(async (profession: CustomProfession) => {
     if (!user || isOffline || !isSyncEnabled) return;
 
     const profileRef = doc(db, 'userProfiles', user.uid);
     const tasksCollectionRef = collection(db, 'userPresetTasks');
+
+    const aiResult = await generateRoutineByProfession({
+        profession: profession.name,
+        availableIcons,
+        availableCategories,
+        availableCategoryGroups,
+    });
+    
+    const tasks = aiResult.tasks;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -219,5 +234,3 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 }
 
 export const useProfile = () => useContext(ProfileContext);
-
-    

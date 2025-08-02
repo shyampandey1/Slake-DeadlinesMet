@@ -30,34 +30,12 @@ const iconMap = {
 };
 const iconNames = Object.keys(iconMap);
 
-const defaultPreset: Preset = {
-    'Morning': { color: "bg-sky-800 text-sky-100", tasks: [] },
-    'Work': { color: "bg-blue-800 text-blue-100", tasks: [] },
-    'Break': { color: "bg-green-800 text-green-100", tasks: [] },
-    'Evening': { color: "bg-orange-800 text-orange-100", tasks: [] },
+const categoryColors: { [key: string]: string } = {
+    'Morning': "bg-sky-800 text-sky-100",
+    'Work': "bg-blue-800 text-blue-100",
+    'Break': "bg-green-800 text-green-100",
+    'Evening': "bg-orange-800 text-orange-100",
 };
-
-
-const routineStartTimes: { [key: string]: { hours: number, minutes: number } } = {
-    "Artist": { hours: 8, minutes: 0 },
-    "Content Creator": { hours: 8, minutes: 0 },
-    "Designer": { hours: 8, minutes: 0 },
-    "Writer": { hours: 8, minutes: 0 },
-    "Educator": { hours: 8, minutes: 0 },
-    "Consultant": { hours: 6, minutes: 0 },
-    "Manager": { hours: 6, minutes: 0 },
-    "Marketer": { hours: 6, minutes: 0 },
-    "Entrepreneur": { hours: 6, minutes: 0 },
-    "Sales": { hours: 6, minutes: 30 },
-    "Software Engineer": { hours: 7, minutes: 0 },
-    "IT Professional": { hours: 7, minutes: 0 },
-    "Researcher": { hours: 7, minutes: 0 },
-    "Student": { hours: 7, minutes: 0 },
-    "Freelancer": { hours: 6, minutes: 30 },
-    "Healthcare Professional": { hours: 5, minutes: 30 },
-    "General": { hours: 7, minutes: 0 },
-};
-
 
 export function useTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
@@ -162,29 +140,21 @@ export function usePresetTasks() {
     const getAvailableIcons = () => iconNames;
     
     const getAvailableCategories = useCallback(() => {
-        return Object.keys(defaultPreset);
+        return Object.keys(categoryColors);
     }, []);
 
     const processedTasks = useMemo(() => {
         const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
         
-        if (todaysEvents.length > 0) {
-            let injected = false;
-            
-            const categoryTimes: { [category: string]: { start: Date, end: Date } } = {};
-            let cumulativeTime = set(startOfDay(new Date()), routineStartTimes[profile] || { hours: 7, minutes: 0 });
+        const allTasks = Object.values(newPresetTasks).flatMap(cat => cat.tasks);
+        const hasEvents = allTasks.some(task => task.isEvent);
 
-            for (const category of Object.keys(newPresetTasks)) {
-                const totalDuration = (newPresetTasks[category].tasks || []).reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
-                const startTime = cumulativeTime;
-                const endTime = add(startTime, { minutes: totalDuration });
-                categoryTimes[category] = { start: startTime, end: endTime };
-                cumulativeTime = endTime;
-            }
+        if (todaysEvents.length > 0 && !hasEvents) {
+            let injected = false;
 
             const now = new Date();
             for (const category of Object.keys(newPresetTasks)) {
-                if (categoryTimes[category] && isBefore(now, categoryTimes[category].end) && !injected) {
+                if (newPresetTasks[category] && newPresetTasks[category].tasks.length > 0 && !injected) {
                     todaysEvents.forEach((event, index) => {
                          newPresetTasks[category].tasks.push({
                             name: event.name,
@@ -196,13 +166,14 @@ export function usePresetTasks() {
                         });
                     });
                     injected = true;
-                    break; 
+                    break;
                 }
             }
             
             if (!injected) {
-                const fallbackCategory = Object.keys(newPresetTasks).find(c => c.toLowerCase().includes('work')) || Object.keys(newPresetTasks)[1];
-                if (fallbackCategory && newPresetTasks[fallbackCategory]) {
+                const fallbackCategory = Object.keys(newPresetTasks).find(c => c.toLowerCase().includes('work')) || Object.keys(newPresetTasks)[0];
+                 if (fallbackCategory && newPresetTasks[fallbackCategory]) {
+                    if(!newPresetTasks[fallbackCategory].tasks) newPresetTasks[fallbackCategory].tasks = []
                     todaysEvents.forEach((event, index) => {
                         newPresetTasks[fallbackCategory].tasks.push({
                            name: event.name,
@@ -218,7 +189,7 @@ export function usePresetTasks() {
         }
         return newPresetTasks;
 
-    }, [presetTasks, todaysEvents, profile]);
+    }, [presetTasks, todaysEvents]);
     
     const { categoryTimeRanges, activeCategory } = useMemo(() => {
         const ranges: { [category: string]: { start: Date, end: Date } } = {};
@@ -227,7 +198,7 @@ export function usePresetTasks() {
         }
     
         const now = new Date();
-        const startTimeConfig = routineStartTimes[profile] || { hours: 7, minutes: 0 };
+        const startTimeConfig = { hours: 7, minutes: 0 };
         let cumulativeTime = set(startOfDay(now), startTimeConfig);
         
         let currentActiveCategory: string | null = null;
@@ -237,7 +208,7 @@ export function usePresetTasks() {
     
         for (const category of categories) {
             const { tasks } = processedTasks[category];
-            const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
+            const totalDuration = (tasks || []).reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
     
             if (totalDuration > 0) {
                 const startTime = cumulativeTime;
@@ -267,7 +238,7 @@ export function usePresetTasks() {
 
     useEffect(() => {
         if (!user || isOffline || !isSyncEnabled) {
-            setPresetTasks(defaultPreset);
+            setPresetTasks({});
             setTodaysEvents([]);
             setLoading(false);
             return;
@@ -282,13 +253,13 @@ export function usePresetTasks() {
         const unsubscribePresets = onSnapshot(q, (snapshot) => {
             const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
             
-            const newPresets: Preset = JSON.parse(JSON.stringify(defaultPreset));
+            const newPresets: Preset = {};
             const userTasksForProfile = userTasks.filter(t => t.profession === profile);
 
             userTasksForProfile.forEach(task => {
                 if (!newPresets[task.category]) {
                     newPresets[task.category] = {
-                        color: "bg-gray-800 text-gray-100", // A default color
+                        color: categoryColors[task.category] || "bg-gray-800 text-gray-100",
                         tasks: []
                     };
                 }
@@ -303,7 +274,7 @@ export function usePresetTasks() {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching preset tasks:", error);
-            setPresetTasks(defaultPreset);
+            setPresetTasks({});
             setLoading(false);
         });
 
@@ -333,7 +304,7 @@ export function usePresetTasks() {
         };
     }, [user, profile, customProfessions, isOffline, isSyncEnabled]);
 
-    const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }, taskProfile: ProfileType) => {
+    const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }) => {
         if (!user || isOffline || !isSyncEnabled) return;
     
         const categoryTasks = presetTasks[task.category]?.tasks || [];
@@ -341,11 +312,11 @@ export function usePresetTasks() {
     
         await addDoc(collection(db, 'userPresetTasks'), {
             ...task,
-            profession: taskProfile,
+            profession: profile,
             order: maxOrder + 1,
             userId: user.uid
         });
-    }, [user, presetTasks, isOffline, isSyncEnabled]);
+    }, [user, presetTasks, isOffline, isSyncEnabled, profile]);
     
     const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
         if (!user || isOffline || !isSyncEnabled) return;
@@ -363,7 +334,7 @@ export function usePresetTasks() {
     const reorderPresetTask = useCallback(async (taskId: string, category: string, direction: 'up' | 'down') => {
         if (!user || isOffline || !isSyncEnabled) return;
 
-        const categoryTasks = presetTasks[category]?.tasks;
+        const categoryTasks = presetTasks[category]?.tasks.filter(t => !t.isEvent);
         if (!categoryTasks) return;
 
         const taskIndex = categoryTasks.findIndex(t => t.id === taskId);
@@ -381,8 +352,8 @@ export function usePresetTasks() {
         }
 
         const batch = writeBatch(db);
-        const taskToMoveRef = doc(db, 'userPresetTasks', taskToMove.id!);
-        const taskToSwapRef = doc(db, 'userPresetTasks', taskToSwap.id!);
+        const taskToMoveRef = doc(db, 'userPresetTasks', taskToMove.id);
+        const taskToSwapRef = doc(db, 'userPresetTasks', taskToSwap.id);
 
         batch.update(taskToMoveRef, { order: taskToSwap.order });
         batch.update(taskToSwapRef, { order: taskToMove.order });
