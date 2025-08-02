@@ -28,7 +28,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import CircularProgress from "./CircularProgress";
-import InfoDisplay from "./InfoDisplay";
 import { useTimerUI } from "@/hooks/useTimerUI";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 
@@ -204,12 +203,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
-      <div className={cn(
-        "absolute top-4 w-full max-w-xs sm:max-w-sm md:max-w-md px-4 transition-opacity duration-300",
-        !isUIVisible && "opacity-20"
-      )}>
-        <InfoDisplay />
-      </div>
       <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
         <div className="flex w-full flex-col items-center justify-center text-center transition-opacity duration-300">
             <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
