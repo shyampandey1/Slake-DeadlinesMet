@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -351,18 +352,40 @@ export function usePresetTasks() {
 
         let startHour = 7; // Default start time
         if (creativeProfiles.includes(profile)) startHour = 9;
-        else if (businessProfiles.includes(profile) || onTheGoProfiles.includes(profile)) startHour = 6;
+        else if (businessProfiles.includes(profile)) startHour = 6;
+        else if (onTheGoProfiles.includes(profile)) startHour = 6;
         else if (healthcareProfiles.includes(profile)) startHour = 5;
-
-        const routineStartTime = set(startOfDay(now), { hours: startHour, minutes: 30 });
-        let cumulativeTime = routineStartTime;
         
+        let routineStartTime = set(startOfDay(now), { hours: startHour, minutes: 30 });
+        
+        const categories = Object.keys(processedTasks);
+        const bedtimeCategoryName = categories.find(c => c.toLowerCase().includes('bedtime'));
+        
+        if (bedtimeCategoryName) {
+            const bedtimeTasks = processedTasks[bedtimeCategoryName].tasks || [];
+            const bedtimeDuration = bedtimeTasks.reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
+            const bedtimeStartTime = set(now, { hours: 22, minutes: 0, seconds: 0, milliseconds: 0 }); // 10 PM
+            const bedtimeEndTime = add(bedtimeStartTime, { minutes: bedtimeDuration });
+            ranges[bedtimeCategoryName] = { start: bedtimeStartTime, end: bedtimeEndTime };
+
+            const totalDayDuration = categories
+                .filter(c => c !== bedtimeCategoryName)
+                .reduce((total, category) => {
+                    const { tasks } = processedTasks[category];
+                    return total + (tasks || []).reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
+                }, 0);
+
+            routineStartTime = add(bedtimeStartTime, { minutes: -totalDayDuration });
+        }
+
+
+        let cumulativeTime = routineStartTime;
         let currentActiveCategory: string | null = null;
         let nextUpcomingCategory: string | null = null;
     
-        const categories = Object.keys(processedTasks);
-    
         for (const category of categories) {
+             if (category === bedtimeCategoryName) continue; // Skip bedtime as it's already calculated
+
             const { tasks } = processedTasks[category];
             const totalDuration = (tasks || []).reduce((acc: number, task: UserPresetTask) => acc + task.duration, 0);
     
@@ -386,6 +409,10 @@ export function usePresetTasks() {
             }
         }
     
+        if (bedtimeCategoryName && isAfter(now, ranges[bedtimeCategoryName].start) && isBefore(now, ranges[bedtimeCategoryName].end)) {
+            currentActiveCategory = bedtimeCategoryName;
+        }
+
         return { 
             categoryTimeRanges: ranges, 
             activeCategory: currentActiveCategory || nextUpcomingCategory || categories[0] 
