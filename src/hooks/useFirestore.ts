@@ -223,7 +223,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Stretching or Foam Rolling", duration: 15, icon: "StretchHorizontal", category: "Bedtime Routine" },
         { name: "Warm shower to relax muscles", duration: 15, icon: "ShowerHead", category: "Bedtime Routine" },
     ],
-    "Healthcare - Shift Day": [
+    "Healthcare Professional": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Pre-Shift Routine" },
         { name: "High-Energy Meal", duration: 30, icon: "Utensils", category: "Pre-Shift Routine" },
         { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Pre-Shift Routine" },
@@ -236,7 +236,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Recovery Meal & Connect with Family/Partner", duration: 45, icon: "Users", category: "Post-Shift Decompression" },
         { name: "Warm shower to signal 'end of day'", duration: 15, icon: "ShowerHead", category: "Post-Shift Decompression" },
     ],
-    "Healthcare - Day Off": [
+    "Day Off": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
         { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Recovery" },
         { name: "Enjoy a proper, leisurely breakfast", duration: 30, icon: "Coffee", category: "Morning Recovery" },
@@ -274,8 +274,8 @@ const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines } = {
     "Sales": "On-The-Go",
     "Medical Rep": "On-The-Go",
     "Delivery Agent": "On-The-Go",
-    "Healthcare - Shift Day": "Healthcare - Shift Day",
-    "Healthcare - Day Off": "Healthcare - Day Off",
+    "Healthcare Professional": "Healthcare Professional",
+    "Day Off": "Day Off",
     "General": "General",
     "Student": "Technical",
     "Educator": "Business",
@@ -517,8 +517,8 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare - Shift Day": { hours: 5, minutes: 0 }, // Assuming pre-shift starts around 5 AM for a 7 AM shift
-      "Healthcare - Day Off": { hours: 9, minutes: 0 },
+      "Healthcare Professional": { hours: 5, minutes: 0 }, // Assuming pre-shift starts around 5 AM for a 7 AM shift
+      "Day Off": { hours: 9, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
   };

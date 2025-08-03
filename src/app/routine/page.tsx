@@ -64,8 +64,8 @@ const initialProfessionConfig: { [key: string]: { icon: LucideIcon, color: strin
     "Entrepreneur": { icon: Lightbulb, color: "border-amber-500/80 text-amber-400" },
     "Freelancer": { icon: Laptop, color: "border-lime-500/80 text-lime-400" },
     "General": { icon: User, color: "border-gray-500/80 text-gray-400" },
-    "Healthcare - Shift Day": { icon: Stethoscope, color: "border-emerald-500/80 text-emerald-400" },
-    "Healthcare - Day Off": { icon: Stethoscope, color: "border-emerald-500/80 text-emerald-400" },
+    "Healthcare Professional": { icon: Stethoscope, color: "border-emerald-500/80 text-emerald-400" },
+    "Day Off": { icon: Wind, color: "border-slate-500/80 text-slate-400" },
     "IT Professional": { icon: Server, color: "border-sky-500/80 text-sky-400" },
     "Manager": { icon: Users, color: "border-indigo-500/80 text-indigo-400" },
     "Marketer": { icon: Megaphone, color: "border-rose-500/80 text-rose-400" },
@@ -80,8 +80,8 @@ const initialProfileCategories: { [key: string]: string[] } = {
     "Creative & Media": ["Artist", "Content Creator", "Designer", "Writer"],
     "Business & Management": ["Consultant", "Entrepreneur", "Manager", "Marketer", "Sales"],
     "Technical": ["IT Professional", "Software Engineer", "Researcher"],
-    "Healthcare": ["Healthcare - Shift Day", "Healthcare - Day Off"],
-    "General & Freelance": ["Educator", "Freelancer", "Student", "General"],
+    "Healthcare": ["Healthcare Professional"],
+    "General & Freelance": ["Educator", "Freelancer", "Student", "General", "Day Off"],
 };
 
 type GeneratingStatus = "idle" | "generating" | "saving" | "done";
