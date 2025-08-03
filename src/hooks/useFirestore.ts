@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -264,12 +265,13 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         // During Shift (First Half)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "Work & Focus" },
+        { name: "Stay vigilant and support team", duration: 180, icon: "Stethoscope", category: "Work & Focus" },
         // Mid-Shift Break
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
         { name: "Eat small, healthy snack/meal", duration: 15, icon: "Apple", category: "Breaks & Meals" },
         // During Shift (Second Half)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
-        { name: "Stay vigilant and support team", duration: 240, icon: "Users", category: "Work & Focus" },
+        { name: "Stay vigilant and support team", duration: 180, icon: "Stethoscope", category: "Work & Focus" },
         // Post-Shift Decompression
         { name: "Drink a glass of water (immediately after shift)", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "Mindful Commute (calming music, no news)", duration: 20, icon: "Car", category: "Evening Wind-down" },
@@ -546,7 +548,7 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare": { hours: 6, minutes: 0 },
+      "Healthcare": { hours: 7, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
   };
@@ -574,9 +576,10 @@ export function usePresetTasks() {
         let categoryStartTime;
 
         if (category === "Bedtime Routine") {
-            categoryStartTime = bedtimeAnchor;
+            // Anchor bedtime routine to start such that it ends at 10 PM
+             const duration = tasks.reduce((acc, task) => acc + task.duration, 0);
+             categoryStartTime = add(bedtimeAnchor, { minutes: -duration });
         } else {
-            // Find the correct start time, respecting the bedtime anchor
             const lastCategoryEndTime = Object.values(ranges).reduce((latest, range) => {
                 return range.end > latest ? range.end : latest;
             }, new Date(0));
