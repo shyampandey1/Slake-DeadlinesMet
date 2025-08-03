@@ -3,7 +3,7 @@
 
 import { useMemo } from "react";
 import { BookText, ThumbsUp, ThumbsDown, Trash2, TrendingUp, Calendar, CheckCircle, Clock, RefreshCw, XCircle, Pause, Play } from "lucide-react";
-import { format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday, parse, compareDesc } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 
@@ -46,25 +46,42 @@ function TaskLogBookContent() {
   }, [tasks, loading]);
 
   const groupedTasks = useMemo(() => {
-    const groups: { [key: string]: Task[] } = {
-      Today: [],
-      Yesterday: [],
-      Older: []
-    };
+    const groups: { [key: string]: Task[] } = {};
     tasks.forEach(task => {
-      if (task.createdAt) {
-        const taskDate = new Date(task.createdAt);
-        if (isToday(taskDate)) {
-            groups.Today.push(task);
-        } else if (isYesterday(taskDate)) {
-            groups.Yesterday.push(task);
-        } else {
-            groups.Older.push(task);
+        if (task.createdAt) {
+            const taskDate = new Date(task.createdAt);
+            let dayKey: string;
+
+            if (isToday(taskDate)) {
+                dayKey = "Today";
+            } else if (isYesterday(taskDate)) {
+                dayKey = "Yesterday";
+            } else {
+                dayKey = format(taskDate, 'PPP');
+            }
+            
+            if (!groups[dayKey]) {
+                groups[dayKey] = [];
+            }
+            groups[dayKey].push(task);
         }
-      }
     });
     return groups;
   }, [tasks]);
+
+  const sortedGroupKeys = useMemo(() => {
+    return Object.keys(groupedTasks).sort((a, b) => {
+        if (a === "Today") return -1;
+        if (b === "Today") return 1;
+        if (a === "Yesterday") return -1;
+        if (b === "Yesterday") return 1;
+        
+        // For other dates, sort them chronologically descending
+        const dateA = parse(a, 'PPP', new Date());
+        const dateB = parse(b, 'PPP', new Date());
+        return compareDesc(dateA, dateB);
+    });
+  }, [groupedTasks]);
 
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -121,8 +138,9 @@ function TaskLogBookContent() {
                 
                 {tasks.length > 0 ? (
                     <Accordion type="multiple" defaultValue={["Today", "Yesterday"]} className="w-full space-y-4">
-                      {Object.entries(groupedTasks).map(([day, dayTasks]) => (
-                        dayTasks.length > 0 && (
+                      {sortedGroupKeys.map((day) => {
+                        const dayTasks = groupedTasks[day];
+                        return dayTasks.length > 0 && (
                           <AccordionItem value={day} key={day} className="border-none">
                               <Card>
                                   <AccordionTrigger className="p-4 border-b">
@@ -171,7 +189,7 @@ function TaskLogBookContent() {
                               </Card>
                           </AccordionItem>
                         )
-                      ))}
+                      })}
                     </Accordion>
                 ) : (
                     <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
