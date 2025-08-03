@@ -60,7 +60,10 @@ export function useTasks() {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const userTasks: Task[] = [];
       querySnapshot.forEach((doc) => {
-        userTasks.push({ id: doc.id, ...doc.data() } as Task);
+        const data = doc.data();
+        // Convert timestamp to serializable string
+        const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
+        userTasks.push({ id: doc.id, ...data, createdAt } as Task);
       });
       setTasks(userTasks);
        try {
@@ -82,7 +85,7 @@ export function useTasks() {
     const newTask = {
       ...task,
       userId: user.uid,
-      createdAt: Timestamp.now(),
+      createdAt: new Date().toISOString(),
     };
 
     if (isOffline || !isSyncEnabled) {
@@ -96,7 +99,7 @@ export function useTasks() {
       return;
     }
 
-    await addDoc(collection(db, 'tasks'), newTask);
+    await addDoc(collection(db, 'tasks'), { ...task, userId: user.uid, createdAt: Timestamp.now()});
   };
 
   const clearTasks = async () => {
@@ -538,7 +541,7 @@ export function usePresetTasks() {
     }
   };
 
-  const profileStartTimes: { [key in ProfileType]: { hours: number; minutes: number } } = {
+  const profileStartTimes: { [key in ProfileType | 'default']: { hours: number; minutes: number } } = {
       "Creative": { hours: 9, minutes: 0 },
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
@@ -552,7 +555,7 @@ export function usePresetTasks() {
     const ranges: { [category: string]: { start: Date, end: Date } } = {};
     if (Object.keys(presetTasks).length === 0) return ranges;
 
-    const routineKey = profileToRoutineMap[profile] || 'default';
+    const routineKey = profileToRoutineMap[profile] || 'General';
     const startTime = profileStartTimes[routineKey] || profileStartTimes['default'];
     let currentTime = set(new Date(), startTime);
 

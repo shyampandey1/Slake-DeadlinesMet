@@ -52,13 +52,15 @@ function TaskLogBookContent() {
       Older: []
     };
     tasks.forEach(task => {
-      const taskDate = new Date(task.createdAt);
-      if (isToday(taskDate)) {
-        groups.Today.push(task);
-      } else if (isYesterday(taskDate)) {
-        groups.Yesterday.push(task);
-      } else {
-        groups.Older.push(task);
+      if (task.createdAt) {
+        const taskDate = new Date(task.createdAt);
+        if (isToday(taskDate)) {
+            groups.Today.push(task);
+        } else if (isYesterday(taskDate)) {
+            groups.Yesterday.push(task);
+        } else {
+            groups.Older.push(task);
+        }
       }
     });
     return groups;
@@ -140,7 +142,7 @@ function TaskLogBookContent() {
                                                         ? `Time spent: ${task.duration} min`
                                                         : `Time spent: ${task.duration} of ${task.initialDuration} min`
                                                      }
-                                                     &nbsp;&bull;&nbsp;{format(new Date(task.createdAt), "p")}
+                                                     {task.createdAt && <>&nbsp;&bull;&nbsp;{format(new Date(task.createdAt), "p")}</>}
                                                   </span>
                                               </div>
                                               <div className="flex items-center gap-2">
