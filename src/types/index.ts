@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 import { LucideIcon } from 'lucide-react';
 
@@ -32,12 +33,14 @@ export type PresetTask = {
     icon: string;
     order: number;
     recurring?: boolean;
+    profession?: ProfileType;
 };
 
 // Represents a task stored in Firestore, which will have an ID.
 export type UserPresetTask = PresetTask & {
   id?: string; // Default tasks won't have an ID
   isEvent?: boolean; // Flag to identify calendar events
+  category: string;
 };
 
 

@@ -311,9 +311,8 @@ export function usePresetTasks() {
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
 
   const isDefaultTask = (task: UserPresetTask) => {
-    // Tasks without an ID are considered default template tasks.
-    // Tasks with an ID but belonging to a default profession are user-added to a default routine.
-    return !task.id || Object.keys(profileToRoutineMap).includes(profile);
+    // A task is default if it's from a built-in profession profile
+    return !!profileToRoutineMap[task.profession || profile];
   };
   
   const loadDefaultTasks = useCallback((prof: ProfileType) => {
@@ -332,7 +331,7 @@ export function usePresetTasks() {
         if (!newPreset[category]) {
             newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
         }
-        newPreset[category].tasks.push(task);
+        newPreset[category].tasks.push(task as UserPresetTask);
     });
 
     // Sort categories
