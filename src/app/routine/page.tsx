@@ -95,7 +95,7 @@ const examplePrompts = [
     "Work on presentation for 1 hour"
 ];
 
-function DeleteProfessionButton({ professionName, onDelete }: { professionName: string, onDelete: (name: string) => void }) {
+function DeleteProfessionButton({ professionName, onDelete }: { professionName: string; onDelete: (name: string) => void; }) {
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
