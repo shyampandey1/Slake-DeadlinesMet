@@ -1,11 +1,22 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import TaskForm from '@/components/TaskForm';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
 
 function HomeComponent() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const timerId = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">
@@ -15,8 +26,14 @@ function HomeComponent() {
               <h1 className="text-xl font-bold font-headline text-foreground/80">DeadlinesMet</h1>
               <p className="text-sm text-muted-foreground">Focus on one task at a time. Set your goal and go.</p>
             </div>
-            <div className="flex flex-col items-end gap-2">
-               <HamburgerMenu />
+            <div className="flex flex-col items-end gap-2 text-right">
+               <div className="flex items-center gap-4">
+                 <div className="text-right">
+                    <p className="font-bold font-headline text-lg text-foreground/80">{format(currentDate, 'p')}</p>
+                    <p className="text-xs text-muted-foreground">{format(currentDate, 'EEEE, LLLL d')}</p>
+                 </div>
+                 <HamburgerMenu />
+               </div>
             </div>
           </div>
         </header>
