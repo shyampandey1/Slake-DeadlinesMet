@@ -411,8 +411,8 @@ function RoutineCustomizationPage() {
                                                             size="icon"
                                                             className="h-5 w-5"
                                                             disabled={index === 0}
-                                                            onClick={()={() => reorderPresetTask(task.id!, category, 'up')}
-                                                            >
+                                                            onClick={() => reorderPresetTask(task.id!, category, 'up')}
+                                                        >
                                                             <ArrowUp className="h-3 w-3" />
                                                         </Button>
                                                         <Button
@@ -421,7 +421,7 @@ function RoutineCustomizationPage() {
                                                             className="h-5 w-5"
                                                             disabled={index === tasks.length - 1}
                                                             onClick={() => reorderPresetTask(task.id!, category, 'down')}
-                                                            >
+                                                        >
                                                             <ArrowDown className="h-3 w-3" />
                                                         </Button>
                                                     </div>
@@ -463,5 +463,3 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
-
-    
