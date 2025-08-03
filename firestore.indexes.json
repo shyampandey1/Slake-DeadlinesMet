@@ -26,6 +26,10 @@
         {
           "fieldPath": "profession",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
         }
       ]
     },
