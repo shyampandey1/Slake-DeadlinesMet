@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -412,7 +411,7 @@ function RoutineCustomizationPage() {
                                                             size="icon"
                                                             className="h-5 w-5"
                                                             disabled={index === 0}
-                                                            onClick={() => reorderPresetTask(task.id!, category, 'up')}
+                                                            onClick={()={() => reorderPresetTask(task.id!, category, 'up')}
                                                             >
                                                             <ArrowUp className="h-3 w-3" />
                                                         </Button>
@@ -464,3 +463,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
