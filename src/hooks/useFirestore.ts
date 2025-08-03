@@ -134,158 +134,120 @@ export function useTasks() {
 const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } = {
     // For the Creative Professional (Artist, Designer, Writer)
     "Creative": [
-        // Morning Routine (7:00 AM - 9:00 AM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
         { name: "Morning Idea Dump / Journaling", duration: 15, icon: "PenTool", category: "Morning Routine" },
         { name: "Light Stretching or Mobility", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
-        // Primary Work Session (9:00 AM - 1:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Uninterrupted Deep Creative Work", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Inspiration & Research Block", duration: 60, icon: "Eye", category: "Work & Focus" },
-        // Lunch Break (1:00 PM - 2:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
         { name: "Mindful Meal (away from desk)", duration: 30, icon: "Utensils", category: "Breaks & Meals" },
-        // Afternoon Session (2:00 PM - 5:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Skill Practice / Tutorial", duration: 30, icon: "BookOpen", category: "Work & Focus" },
         { name: "Admin & Client Communication", duration: 45, icon: "Mail", category: "Work & Focus" },
-        // Post-Work Decompression (5:00 PM - 7:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Health & Wellness" },
         { name: "Main Exercise / Workout", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
-        // Evening Routine (7:00 PM - 9:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
         { name: "Social Time or Relaxing Hobby", duration: 60, icon: "Users", category: "Evening Wind-down" },
-        // Bedtime Routine (9:00 PM onwards)
         { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
         { name: "Final Idea Capture", duration: 5, icon: "PenTool", category: "Bedtime Routine" },
         { name: "Digital Detox", duration: 30, icon: "Smartphone", category: "Bedtime Routine" },
         { name: "Read Fiction or Listen to Calming Music", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
     ],
-
-    // For the Business Professional (Manager, Consultant, Marketer)
     "Business": [
-        // Morning Routine (6:30 AM - 8:30 AM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
         { name: "Review Day's Top 3 Priorities", duration: 10, icon: "ListChecks", category: "Morning Routine" },
         { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
-        // Primary Work Session (8:30 AM - 12:30 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Strategic Thinking / 'No-Meeting' Block", duration: 60, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Tackle Most Important Task", duration: 90, icon: "Target", category: "Work & Focus" },
-        // Lunch Break (12:30 PM - 1:30 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
         { name: "Power Lunch / Quick Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
-        // Afternoon Session (1:30 PM - 5:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Meetings & Collaborative Tasks", duration: 120, icon: "Users", category: "Work & Focus" },
         { name: "Scan & Reply to Emails", duration: 30, icon: "Mail", category: "Work & Focus" },
-        // Post-Work Decompression (5:00 PM - 7:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "End-of-Day Review & Shutdown Ritual", duration: 15, icon: "Wrench", category: "Evening Wind-down" },
         { name: "Hobby / Leisure (Video Games, etc.)", duration: 60, icon: "Gamepad", category: "Evening Wind-down" },
-        // Evening Routine (7:00 PM - 9:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
-        // Bedtime Routine (9:00 PM onwards)
         { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
         { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Bedtime Routine" },
         { name: "Light Reading (non-work related)", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
         { name: "Meditation or Breathing for Stress Release", duration: 10, icon: "Wind", category: "Bedtime Routine" },
     ],
-
-    // For the Technical Professional (Software Engineer, IT Pro, Researcher)
     "Technical": [
-        // Morning Routine (7:00 AM - 9:00 AM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
         { name: "Meditation for Focus", duration: 10, icon: "BrainCircuit", category: "Morning Routine" },
         { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
-        // Primary Work Session (9:00 AM - 1:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
         { name: "Problem Decomposition / Planning", duration: 15, icon: "Wrench", category: "Work & Focus" },
         { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
-        // Lunch Break (1:00 PM - 2:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
         { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
-        // Afternoon Session (2:00 PM - 5:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
         { name: "Writing Documentation", duration: 30, icon: "PenTool", category: "Work & Focus" },
-        // Post-Work Decompression (5:00 PM - 7:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Health & Wellness" },
         { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Personal Project / Learning", duration: 60, icon: "BrainCircuit", category: "Health & Wellness" },
-        // Evening Routine (7:00 PM - 9:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
         { name: "Analog Hobby (puzzles, etc.)", duration: 45, icon: "Wrench", category: "Evening Wind-down" },
-        // Bedtime Routine (9:00 PM onwards)
         { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
         { name: "Strict Screen Cutoff", duration: 60, icon: "Smartphone", category: "Bedtime Routine" },
         { name: "Stretching to relieve desk posture", duration: 10, icon: "StretchHorizontal", category: "Bedtime Routine" },
         { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
     ],
-
     "On-The-Go": [
-        // Morning Routine (6:30 AM - 8:00 AM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
         { name: "Morning Route & Schedule Review", duration: 15, icon: "ListChecks", category: "Morning Routine" },
         { name: "High-Energy Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
-        // On the Road (AM)
         { name: "Drink a glass of water (before leaving)", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Use travel time for calls or podcasts", duration: 60, icon: "Car", category: "Work & Focus" },
         { name: "In-Car Mental Reset (Between appointments)", duration: 5, icon: "Wind", category: "Work & Focus" },
-        // Lunch Break (Mobile)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
         { name: "Eat a packed, healthy lunch", duration: 20, icon: "Utensils", category: "Breaks & Meals" },
-        // On the Road (PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "High-Energy Snack Break", duration: 5, icon: "Apple", category: "Work & Focus" },
-        // Post-Work Admin (5:00 PM onwards)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "Logging Reports & Admin on Mobile", duration: 20, icon: "Smartphone", category: "Evening Wind-down" },
-        // Evening Routine (7:00 PM - 9:00 PM)
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
         { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
         { name: "Relaxing entertainment (TV show, etc.)", duration: 60, icon: "Tv", category: "Evening Wind-down" },
-        // Bedtime Routine (9:00 PM onwards)
         { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
         { name: "End-of-Day Bag / Vehicle Restock & Prep", duration: 10, icon: "ShoppingBag", category: "Bedtime Routine" },
         { name: "Stretching or Foam Rolling", duration: 15, icon: "StretchHorizontal", category: "Bedtime Routine" },
         { name: "Warm shower to relax muscles", duration: 15, icon: "ShowerHead", category: "Bedtime Routine" },
     ],
-
-    "Healthcare": [
-        // Pre-Shift Routine
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-        { name: "Pre-Shift Mental Preparation", duration: 5, icon: "BrainCircuit", category: "Morning Routine" },
-        { name: "Eat a high-protein, slow-release energy meal", duration: 20, icon: "Utensils", category: "Morning Routine" },
-        // During Shift (First Half)
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
-        { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "Work & Focus" },
-        { name: "Stay vigilant and support team", duration: 180, icon: "Stethoscope", category: "Work & Focus" },
-        // Mid-Shift Break
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
-        { name: "Eat small, healthy snack/meal", duration: 15, icon: "Apple", category: "Breaks & Meals" },
-        // During Shift (Second Half)
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
-        { name: "Stay vigilant and support team", duration: 180, icon: "Stethoscope", category: "Work & Focus" },
-        // Post-Shift Decompression
-        { name: "Drink a glass of water (immediately after shift)", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
-        { name: "Mindful Commute (calming music, no news)", duration: 20, icon: "Car", category: "Evening Wind-down" },
-        // Evening Recovery Routine (Post-Shift onwards)
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
-        { name: "Recovery Meal (dinner)", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
-        { name: "Connect with family/partner", duration: 30, icon: "Users", category: "Evening Wind-down" },
-        // Bedtime Routine (Pre-Sleep)
-        { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
-        { name: "Journaling to unload stress", duration: 10, icon: "PenTool", category: "Bedtime Routine" },
-        { name: "Guided Meditation or Yoga Nidra", duration: 15, icon: "Wind", category: "Bedtime Routine" },
-        { name: "Ensure sleep environment is perfect", duration: 5, icon: "Bed", category: "Bedtime Routine" },
+    "Healthcare - Shift Day": [
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Pre-Shift Routine" },
+        { name: "High-Energy Meal", duration: 30, icon: "Utensils", category: "Pre-Shift Routine" },
+        { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Pre-Shift Routine" },
+        { name: "Final Prep & Commute", duration: 30, icon: "Car", category: "Pre-Shift Routine" },
+        { name: "Drink a glass of water frequently", duration: 1, icon: "Droplets", category: "During Shift" },
+        { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "During Shift" },
+        { name: "Eat small, healthy snacks for energy", duration: 10, icon: "Apple", category: "During Shift" },
+        { name: "Drink a glass of water (immediately post-shift)", duration: 1, icon: "Droplets", category: "Post-Shift Decompression" },
+        { name: "Mindful Commute (calm music)", duration: 20, icon: "Car", category: "Post-Shift Decompression" },
+        { name: "Recovery Meal & Connect with Family/Partner", duration: 45, icon: "Users", category: "Post-Shift Decompression" },
+        { name: "Warm shower to signal 'end of day'", duration: 15, icon: "ShowerHead", category: "Post-Shift Decompression" },
     ],
-    // Default/General profile
+    "Healthcare - Day Off": [
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
+        { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Recovery" },
+        { name: "Enjoy a proper, leisurely breakfast", duration: 30, icon: "Coffee", category: "Morning Recovery" },
+        { name: "Run errands & appointments", duration: 90, icon: "ShoppingBag", category: "Afternoon Recharge" },
+        { name: "Dedicate time to a hobby you love", duration: 60, icon: "Gamepad", category: "Afternoon Recharge" },
+        { name: "Connect with friends or family", duration: 60, icon: "Users", category: "Afternoon Recharge" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Reset" },
+        { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Reset" },
+        { name: "Relaxing entertainment", duration: 60, icon: "Tv", category: "Evening Reset" },
+        { name: "Consistent bedtime routine", duration: 30, icon: "Bed", category: "Evening Reset" },
+    ],
     "General": [
         { name: 'Plan Day', duration: 15, icon: 'ListChecks', category: 'Morning Routine' },
         { name: 'Deep Work', duration: 90, icon: 'BrainCircuit', category: 'Work & Focus' },
@@ -312,7 +274,8 @@ const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines } = {
     "Sales": "On-The-Go",
     "Medical Rep": "On-The-Go",
     "Delivery Agent": "On-The-Go",
-    "Healthcare Professional": "Healthcare",
+    "Healthcare - Shift Day": "Healthcare - Shift Day",
+    "Healthcare - Day Off": "Healthcare - Day Off",
     "General": "General",
     "Student": "Technical",
     "Educator": "Business",
@@ -326,6 +289,12 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
     'Health & Wellness': { color: 'bg-green-800 text-green-100', order: 4 },
     'Evening Wind-down': { color: 'bg-indigo-800 text-indigo-100', order: 5 },
     'Bedtime Routine': { color: 'bg-purple-800 text-purple-100', order: 6 },
+    'Pre-Shift Routine': { color: 'bg-sky-800 text-sky-100', order: 1 },
+    'During Shift': { color: 'bg-blue-800 text-blue-100', order: 2 },
+    'Post-Shift Decompression': { color: 'bg-purple-800 text-purple-100', order: 3 },
+    'Morning Recovery': { color: 'bg-sky-800 text-sky-100', order: 1 },
+    'Afternoon Recharge': { color: 'bg-green-800 text-green-100', order: 2 },
+    'Evening Reset': { color: 'bg-indigo-800 text-indigo-100', order: 3 },
     'Default': { color: 'bg-slate-800 text-slate-100', order: 7 },
 };
 
@@ -548,7 +517,8 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare": { hours: 7, minutes: 0 },
+      "Healthcare - Shift Day": { hours: 5, minutes: 0 }, // Assuming pre-shift starts around 5 AM for a 7 AM shift
+      "Healthcare - Day Off": { hours: 9, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
   };
@@ -565,10 +535,6 @@ export function usePresetTasks() {
 
     const categories = Object.keys(presetTasks).sort((a,b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
 
-    const bedtimeTasks = presetTasks["Bedtime Routine"]?.tasks || [];
-    const bedtimeDuration = bedtimeTasks.reduce((acc, task) => acc + task.duration, 0);
-    const bedtimeStartTime = add(bedtimeAnchor, { minutes: -bedtimeDuration });
-
     categories.forEach(category => {
         const tasks = presetTasks[category].tasks;
         if (tasks.length === 0) return;
@@ -576,7 +542,6 @@ export function usePresetTasks() {
         let categoryStartTime;
 
         if (category === "Bedtime Routine") {
-            // Anchor bedtime routine to start such that it ends at 10 PM
              const duration = tasks.reduce((acc, task) => acc + task.duration, 0);
              categoryStartTime = add(bedtimeAnchor, { minutes: -duration });
         } else {
