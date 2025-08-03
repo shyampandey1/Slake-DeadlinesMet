@@ -225,12 +225,12 @@ export default function TaskForm() {
                                 <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
                                 <ScrollArea className="h-full pr-3">
                                     <div className="space-y-2">
-                                    {tasks.map((task) => {
+                                    {tasks.map((task, index) => {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
                                         const isEventTask = task.isEvent;
                                         return (
                                             <Button
-                                                key={task.id || task.name}
+                                                key={task.id || `${task.name}-${index}`}
                                                 variant={isEventTask ? "default" : "outline"}
                                                 className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30": isEventTask })}
                                                 onClick={() => selectQuickStartTask(task, category)}
@@ -365,3 +365,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    
