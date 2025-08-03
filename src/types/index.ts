@@ -55,6 +55,12 @@ export type CustomProfession = {
     categoryGroup: string;
 }
 
+export type UserProfile = {
+    profile: ProfileType;
+    customProfessions?: CustomProfession[];
+    dayOff?: 'Saturday' | 'Sunday' | 'None';
+}
+
 export type UserEvent = {
     id: string;
     userId: string;

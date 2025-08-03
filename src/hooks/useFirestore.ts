@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
-import { add, set, startOfDay, endOfDay } from 'date-fns';
+import { add, set, startOfDay, endOfDay, getDay } from 'date-fns';
 
 // Hook for managing user's task history
 export function useTasks() {
@@ -305,7 +305,7 @@ const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumb
 // Hook for managing preset tasks and routines
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, dayOff, loading: profileLoading } = useProfile();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
@@ -348,11 +348,23 @@ export function usePresetTasks() {
 
   }, []);
 
+  const getEffectiveProfile = useCallback(() => {
+    const today = getDay(new Date()); // Sunday = 0, Saturday = 6
+    if (dayOff === 'Saturday' && today === 6) {
+        return 'Day Off';
+    }
+    if (dayOff === 'Sunday' && today === 0) {
+        return 'Day Off';
+    }
+    return profile;
+  }, [profile, dayOff]);
+
   useEffect(() => {
     setLoading(profileLoading);
     if (profileLoading) return;
     
-    const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${profile}`;
+    const effectiveProfile = getEffectiveProfile();
+    const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${effectiveProfile}`;
 
     if (!user || isOffline || !isSyncEnabled) {
       try {
@@ -360,11 +372,11 @@ export function usePresetTasks() {
         if (cachedData) {
           setPresetTasks(JSON.parse(cachedData));
         } else {
-          loadDefaultTasks(profile);
+          loadDefaultTasks(effectiveProfile);
         }
       } catch(e) {
         console.warn("Couldn't access localStorage for preset tasks, loading defaults");
-        loadDefaultTasks(profile);
+        loadDefaultTasks(effectiveProfile);
       }
       setLoading(false);
       return;
@@ -374,13 +386,13 @@ export function usePresetTasks() {
     const q = query(
       collection(db, 'userPresetTasks'),
       where('userId', '==', user.uid),
-      where('profession', '==', profile),
+      where('profession', '==', effectiveProfile),
       orderBy('order', 'asc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
-        loadDefaultTasks(profile);
+        loadDefaultTasks(effectiveProfile);
       } else {
         const newPreset: Preset = {};
         snapshot.docs.forEach(doc => {
@@ -407,12 +419,12 @@ export function usePresetTasks() {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching preset tasks: ", error);
-      loadDefaultTasks(profile); // Fallback to defaults
+      loadDefaultTasks(effectiveProfile); // Fallback to defaults
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user, profile, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled]);
+  }, [user, profile, dayOff, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled, getEffectiveProfile]);
 
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
@@ -526,8 +538,9 @@ export function usePresetTasks() {
   const categoryTimeRanges = useMemo(() => {
     const ranges: { [category: string]: { start: Date, end: Date } } = {};
     if (Object.keys(presetTasks).length === 0) return ranges;
-
-    const routineKey = profileToRoutineMap[profile] || 'General';
+    
+    const effectiveProfile = getEffectiveProfile();
+    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
     const startTime = profileStartTimes[routineKey] || profileStartTimes['default'];
     let currentTime = set(new Date(), startTime);
 
@@ -561,7 +574,7 @@ export function usePresetTasks() {
     });
 
     return ranges;
-  }, [presetTasks, profile]);
+  }, [presetTasks, profile, getEffectiveProfile]);
 
 
   const activeCategory = useMemo(() => {

@@ -6,9 +6,9 @@ import { useState, useEffect, useMemo } from "react";
 import { usePresetTasks } from "@/hooks/useFirestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, BookCopy, X } from "lucide-react";
+import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, BookCopy, X, CalendarDays } from "lucide-react";
 import AddTaskDialog from "@/components/AddTaskDialog";
-import type { UserPresetTask } from "@/types";
+import type { UserPresetTask, UserProfile } from "@/types";
 import AuthWrapper from "@/components/AuthWrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import HamburgerMenu from "@/components/HamburgerMenu";
@@ -31,6 +31,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const initialIconMap: { [key: string]: LucideIcon } = {
@@ -122,7 +124,7 @@ function DeleteProfessionButton({ professionName, onDelete }: { professionName: 
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading: presetTasksLoading, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, isDefaultTask } = usePresetTasks();
-  const { profile, setProfile, loading: profileLoading, customProfessions, deleteCustomProfession } = useProfile();
+  const { profile, setProfile, dayOff, setDayOff, loading: profileLoading, customProfessions, deleteCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
@@ -179,7 +181,7 @@ function RoutineCustomizationPage() {
     if (taskId) {
       await updatePresetTask(taskId, taskData);
     } else {
-      await addPresetTask(taskData);
+      await addPresetTask(taskData, profile);
     }
   };
 
@@ -303,6 +305,36 @@ function RoutineCustomizationPage() {
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
+                
+                <Separator />
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-base flex items-center gap-2">
+                            <CalendarDays className="text-primary"/>
+                            Day Off Schedule
+                        </CardTitle>
+                        <CardDescription>Automatically load your "Day Off" routine on your chosen day.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="max-w-xs">
+                             <Label htmlFor="day-off-select">Select your weekly day off</Label>
+                             <Select
+                                value={dayOff}
+                                onValueChange={(value) => setDayOff(value as UserProfile['dayOff'])}
+                            >
+                                <SelectTrigger id="day-off-select" className="mt-2">
+                                    <SelectValue placeholder="Select a day" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="None">None</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <Separator />
                 
@@ -336,7 +368,7 @@ function RoutineCustomizationPage() {
                                 ))}
                             </div>
                             <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end mt-2">
-                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" : null}
                                 {generateButtonText[generatingStatus]}
                             </Button>
                         </div>
@@ -432,5 +464,3 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
-
-    
