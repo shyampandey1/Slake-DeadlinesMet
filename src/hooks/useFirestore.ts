@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -224,17 +223,20 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Warm shower to relax muscles", duration: 15, icon: "ShowerHead", category: "Bedtime Routine" },
     ],
     "Healthcare Professional": [
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Pre-Shift Routine" },
-        { name: "High-Energy Meal", duration: 30, icon: "Utensils", category: "Pre-Shift Routine" },
-        { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Pre-Shift Routine" },
-        { name: "Final Prep & Commute", duration: 30, icon: "Car", category: "Pre-Shift Routine" },
-        { name: "Drink a glass of water frequently", duration: 1, icon: "Droplets", category: "During Shift" },
-        { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "During Shift" },
-        { name: "Eat small, healthy snacks for energy", duration: 10, icon: "Apple", category: "During Shift" },
-        { name: "Drink a glass of water (immediately post-shift)", duration: 1, icon: "Droplets", category: "Post-Shift Decompression" },
-        { name: "Mindful Commute (calm music)", duration: 20, icon: "Car", category: "Post-Shift Decompression" },
-        { name: "Recovery Meal & Connect with Family/Partner", duration: 45, icon: "Users", category: "Post-Shift Decompression" },
-        { name: "Warm shower to signal 'end of day'", duration: 15, icon: "ShowerHead", category: "Post-Shift Decompression" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "High-Energy Meal", duration: 20, icon: "Utensils", category: "Morning Routine" },
+        { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
+        { name: "Commute & Pre-Shift Huddle", duration: 30, icon: "Car", category: "Morning Routine" },
+        { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "Work & Focus" },
+        { name: "Stay Hydrated", duration: 1, icon: "Droplets", category: "Work & Focus" },
+        { name: "Charting & Patient Notes", duration: 60, icon: "PenTool", category: "Work & Focus" },
+        { name: "Eat small, healthy snacks for energy", duration: 10, icon: "Apple", category: "Breaks & Meals" },
+        { name: "Mindful Commute (calm music)", duration: 20, icon: "Car", category: "Evening Wind-down" },
+        { name: "Recovery Meal", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
+        { name: "Connect with Family/Partner", duration: 45, icon: "Users", category: "Evening Wind-down" },
+        { name: "Warm shower to signal 'end of day'", duration: 15, icon: "ShowerHead", category: "Bedtime Routine" },
+        { name: "Digital Detox & Light Reading", duration: 30, icon: "BookOpen", category: "Bedtime Routine" },
+        { name: "Prepare for Sleep", duration: 10, icon: "Bed", category: "Bedtime Routine" },
     ],
     "Day Off": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
@@ -528,7 +530,7 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare Professional": { hours: 19, minutes: 30 }, // Post-shift starts at 7:30 PM
+      "Healthcare Professional": { hours: 6, minutes: 0 },
       "Day Off": { hours: 9, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
@@ -692,3 +694,5 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
+
+    
