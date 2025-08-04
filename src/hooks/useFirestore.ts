@@ -528,7 +528,7 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare Professional": { hours: 5, minutes: 0 }, // Assuming pre-shift starts around 5 AM for a 7 AM shift
+      "Healthcare Professional": { hours: 19, minutes: 30 }, // Post-shift starts at 7:30 PM
       "Day Off": { hours: 9, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
