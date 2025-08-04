@@ -365,7 +365,7 @@ function RoutineCustomizationPage() {
                                 ))}
                             </div>
                             <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end mt-2">
-                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" : null}
+                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 {generateButtonText[generatingStatus]}
                             </Button>
                         </div>

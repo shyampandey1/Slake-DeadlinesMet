@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -45,15 +44,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || isOffline || !isSyncEnabled) {
         // Try to load from localStorage first for offline/guest mode
-        try {
-            const storedProfile = localStorage.getItem('user-profile');
-            if (storedProfile) {
-                const parsedProfile: UserProfile = JSON.parse(storedProfile);
-                setProfileState(parsedProfile.profile || 'General');
-                setDayOffState(parsedProfile.dayOff || 'None');
+        if (typeof window !== 'undefined') {
+            try {
+                const storedProfile = localStorage.getItem('user-profile');
+                if (storedProfile) {
+                    const parsedProfile: UserProfile = JSON.parse(storedProfile);
+                    setProfileState(parsedProfile.profile || 'General');
+                    setDayOffState(parsedProfile.dayOff || 'None');
+                }
+            } catch (e) {
+                console.warn("Could not access localStorage for profile")
             }
-        } catch (e) {
-            console.warn("Could not access localStorage for profile")
         }
         setCustomProfessionsState([]); // No custom professions in offline mode
         setLoading(false);
@@ -71,10 +72,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             setProfileState(fetchedProfile);
             setDayOffState(fetchedDayOff);
             setCustomProfessionsState(data.customProfessions || []);
-             try {
-                localStorage.setItem('user-profile', JSON.stringify({ profile: fetchedProfile, dayOff: fetchedDayOff }));
-             } catch (e) {
-                console.warn("Could not access localStorage for profile")
+             if (typeof window !== 'undefined') {
+                 try {
+                    localStorage.setItem('user-profile', JSON.stringify({ profile: fetchedProfile, dayOff: fetchedDayOff }));
+                 } catch (e) {
+                    console.warn("Could not access localStorage for profile")
+                 }
              }
         } else {
             // If no profile, set default "General"
@@ -83,10 +86,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             setProfileState("General");
             setDayOffState("None");
             setCustomProfessionsState([]);
-             try {
-                localStorage.setItem('user-profile', JSON.stringify(defaultProfile));
-             } catch (e) {
-                console.warn("Could not access localStorage for profile")
+             if (typeof window !== 'undefined') {
+                 try {
+                    localStorage.setItem('user-profile', JSON.stringify(defaultProfile));
+                 } catch (e) {
+                    console.warn("Could not access localStorage for profile")
+                 }
              }
         }
         setLoading(false);
@@ -103,10 +108,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (profile === newProfile) return;
     
     setProfileState(newProfile);
-    try {
-        localStorage.setItem('user-profile', JSON.stringify({ profile: newProfile, dayOff }));
-    } catch(e) {
-        console.warn("Could not access localStorage for profile")
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem('user-profile', JSON.stringify({ profile: newProfile, dayOff }));
+        } catch(e) {
+            console.warn("Could not access localStorage for profile")
+        }
     }
 
     if (user && !isOffline && isSyncEnabled) {
@@ -123,10 +130,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (dayOff === newDayOff) return;
 
     setDayOffState(newDayOff);
-     try {
-        localStorage.setItem('user-profile', JSON.stringify({ profile, dayOff: newDayOff }));
-    } catch(e) {
-        console.warn("Could not access localStorage for profile")
+    if (typeof window !== 'undefined') {
+         try {
+            localStorage.setItem('user-profile', JSON.stringify({ profile, dayOff: newDayOff }));
+        } catch(e) {
+            console.warn("Could not access localStorage for profile")
+        }
     }
 
     if (user && !isOffline && isSyncEnabled) {
