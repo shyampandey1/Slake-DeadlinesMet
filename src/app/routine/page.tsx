@@ -163,9 +163,7 @@ function RoutineCustomizationPage() {
     setProfessionConfig(newConfig);
     setProfileCategories(newCats);
     setIconMap(newIcons);
-
   }, [customProfessions]);
-
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
