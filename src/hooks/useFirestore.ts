@@ -182,13 +182,12 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Meditation for Focus", duration: 10, icon: "BrainCircuit", category: "Morning Routine" },
         { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
-        { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
-        { name: "Problem Decomposition / Planning", duration: 15, icon: "Wrench", category: "Work & Focus" },
+        { name: "Deep Work Coding / Analysis Session 1", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
         { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
+        { name: "Deep Work Coding / Analysis Session 2", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
         { name: "Writing Documentation", duration: 30, icon: "PenTool", category: "Work & Focus" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Health & Wellness" },
@@ -228,16 +227,15 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "High-Energy Meal", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
         { name: "Commute & Pre-Shift Huddle", duration: 30, icon: "Car", category: "Morning Routine" },
-        { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "Work & Focus" },
-        { name: "Stay Hydrated", duration: 1, icon: "Droplets", category: "Work & Focus" },
-        { name: "Charting & Patient Notes", duration: 60, icon: "PenTool", category: "Work & Focus" },
+        { name: "During-Shift Micro-Reset (Deep breaths)", duration: 1, icon: "Wind", category: "Afternoon" },
+        { name: "Stay Hydrated", duration: 1, icon: "Droplets", category: "Afternoon" },
+        { name: "Charting & Patient Notes", duration: 60, icon: "PenTool", category: "Afternoon" },
         { name: "Eat small, healthy snacks for energy", duration: 10, icon: "Apple", category: "Breaks & Meals" },
-        { name: "Mindful Commute (calm music)", duration: 20, icon: "Car", category: "Evening Wind-down" },
-        { name: "Recovery Meal", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
-        { name: "Connect with Family/Partner", duration: 45, icon: "Users", category: "Evening Wind-down" },
-        { name: "Warm shower to signal 'end of day'", duration: 15, icon: "ShowerHead", category: "Bedtime Routine" },
-        { name: "Digital Detox & Light Reading", duration: 30, icon: "BookOpen", category: "Bedtime Routine" },
-        { name: "Prepare for Sleep", duration: 10, icon: "Bed", category: "Bedtime Routine" },
+        { name: "Mindful Commute (calm music)", duration: 20, icon: "Car", category: "Evening" },
+        { name: "Recovery Meal & Connect with Family/Partner", duration: 60, icon: "Utensils", category: "Evening" },
+        { name: "Warm shower to signal 'end of day'", duration: 15, icon: "ShowerHead", category: "Bedtime" },
+        { name: "Digital Detox & Light Reading", duration: 30, icon: "BookOpen", category: "Bedtime" },
+        { name: "Prepare for Sleep", duration: 10, icon: "Bed", category: "Bedtime" },
     ],
     "Day Off": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
@@ -291,9 +289,12 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
     'Breaks & Meals': { color: 'bg-orange-800 text-orange-100', order: 3 },
     'Health & Wellness': { color: 'bg-green-800 text-green-100', order: 4 },
     'Evening Wind-down': { color: 'bg-indigo-800 text-indigo-100', order: 5 },
+    'Evening': { color: 'bg-indigo-800 text-indigo-100', order: 5 },
     'Bedtime Routine': { color: 'bg-purple-800 text-purple-100', order: 6 },
+    'Bedtime': { color: 'bg-purple-800 text-purple-100', order: 6 },
     'Pre-Shift Routine': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'During Shift': { color: 'bg-blue-800 text-blue-100', order: 2 },
+    'Afternoon': { color: 'bg-blue-800 text-blue-100', order: 2 },
     'Post-Shift Decompression': { color: 'bg-purple-800 text-purple-100', order: 3 },
     'Morning Recovery': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'Afternoon Recharge': { color: 'bg-green-800 text-green-100', order: 2 },
@@ -557,7 +558,7 @@ export function usePresetTasks() {
         
         let categoryStartTime;
 
-        if (category === "Bedtime Routine") {
+        if (category === "Bedtime Routine" || category === "Bedtime") {
              const duration = tasks.reduce((acc, task) => acc + task.duration, 0);
              categoryStartTime = add(bedtimeAnchor, { minutes: -duration });
         } else {
