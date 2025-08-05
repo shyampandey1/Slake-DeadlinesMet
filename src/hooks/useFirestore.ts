@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -531,7 +532,7 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare Professional": { hours: 7, minutes: 0 },
+      "Healthcare Professional": { hours: 19, minutes: 30 },
       "Day Off": { hours: 9, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
@@ -695,5 +696,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
