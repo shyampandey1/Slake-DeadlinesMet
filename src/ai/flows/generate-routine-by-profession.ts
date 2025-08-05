@@ -46,8 +46,10 @@ const prompt = ai.definePrompt({
   First, identify the professional archetype for the given profession from the knowledge base below. Then, generate a structured list of tasks based *only* on the corresponding template.
   Parse durations like "1.5h" as 90 minutes, "3-4 hours" as 180 minutes, and "Screen-free wind-down" as 30 minutes. The final bedtime task should have a duration of 0.
 
-  **Available Icons:** {{#each availableIcons}}{{{this}}}, {{/each}}
+  **IMPORTANT:** You must assign a `category` to each task using ONLY the following list of available categories. Do not create new categories.
   **Available Categories:** {{#each availableCategories}}{{{this}}}, {{/each}}
+  
+  **Available Icons:** {{#each availableIcons}}{{{this}}}, {{/each}}
   **Available Category Groups:** {{#each availableCategoryGroups}}{{{this}}}, {{/each}}
 
   **Knowledge Base:**
