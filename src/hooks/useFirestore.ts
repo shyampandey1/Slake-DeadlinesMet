@@ -20,7 +20,7 @@ import {
     runTransaction,
     setDoc
 } from 'firebase/firestore';
-import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
+import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day } from '@/types';
 import { useProfile } from './useProfile';
 import { add, set, startOfDay, endOfDay, getDay } from 'date-fns';
 
@@ -307,7 +307,7 @@ const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumb
 // Hook for managing preset tasks and routines
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
-  const { profile, dayOff, loading: profileLoading } = useProfile();
+  const { profile, daysOff, loading: profileLoading } = useProfile();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
@@ -350,15 +350,16 @@ export function usePresetTasks() {
   }, []);
 
   const getEffectiveProfile = useCallback(() => {
-    const today = getDay(new Date()); // Sunday = 0, Saturday = 6
-    if (dayOff === 'Saturday' && today === 6) {
-        return 'Day Off';
-    }
-    if (dayOff === 'Sunday' && today === 0) {
-        return 'Day Off';
+    const dayMap: { [key in Day]: number } = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+    const today = getDay(new Date()); // Sunday = 0, ...
+    
+    for (const dayOff of daysOff) {
+        if (dayMap[dayOff] === today) {
+            return 'Day Off';
+        }
     }
     return profile;
-  }, [profile, dayOff]);
+  }, [profile, daysOff]);
 
   useEffect(() => {
     setLoading(profileLoading);
@@ -425,7 +426,7 @@ export function usePresetTasks() {
     });
 
     return () => unsubscribe();
-  }, [user, profile, dayOff, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled, getEffectiveProfile]);
+  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled, getEffectiveProfile]);
 
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
@@ -530,7 +531,7 @@ export function usePresetTasks() {
       "Business": { hours: 8, minutes: 30 },
       "Technical": { hours: 9, minutes: 0 },
       "On-The-Go": { hours: 8, minutes: 0 },
-      "Healthcare Professional": { hours: 6, minutes: 0 },
+      "Healthcare Professional": { hours: 7, minutes: 0 },
       "Day Off": { hours: 9, minutes: 0 },
       "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },

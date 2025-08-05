@@ -58,10 +58,12 @@ export type CustomProfession = {
     categoryGroup: string;
 }
 
+export type Day = 'Saturday' | 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+
 export type UserProfile = {
     profile: ProfileType;
     customProfessions?: CustomProfession[];
-    dayOff?: 'Saturday' | 'Sunday' | 'None';
+    daysOff?: Day[];
 }
 
 export type UserEvent = {
@@ -72,3 +74,5 @@ export type UserEvent = {
     icon: string;
     date: string; // ISO string
 };
+
+    

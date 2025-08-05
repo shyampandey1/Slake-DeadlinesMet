@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const initialIconMap: { [key: string]: LucideIcon } = {
@@ -123,7 +124,7 @@ function DeleteProfessionButton({ professionName, onDelete }: { professionName: 
 
 function RoutineCustomizationPage() {
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, loading: presetTasksLoading, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, isDefaultTask } = usePresetTasks();
-  const { profile, setProfile, dayOff, setDayOff, loading: profileLoading, customProfessions, deleteCustomProfession } = useProfile();
+  const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading, customProfessions, deleteCustomProfession } = useProfile();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
@@ -311,24 +312,35 @@ function RoutineCustomizationPage() {
                             <CalendarDays className="text-primary"/>
                             Day Off Schedule
                         </CardTitle>
-                        <CardDescription>Automatically load your "Day Off" routine on your chosen day.</CardDescription>
+                        <CardDescription>Automatically load your "Day Off" routine on your chosen days.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="max-w-xs">
-                             <Label htmlFor="day-off-select">Select your weekly day off</Label>
-                             <Select
-                                value={dayOff}
-                                onValueChange={(value) => setDayOff(value as UserProfile['dayOff'])}
-                            >
-                                <SelectTrigger id="day-off-select" className="mt-2">
-                                    <SelectValue placeholder="Select a day" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="None">None</SelectItem>
-                                    <SelectItem value="Saturday">Saturday</SelectItem>
-                                    <SelectItem value="Sunday">Sunday</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-3">
+                            <Label>Select your weekly days off</Label>
+                            <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id="saturday-off" 
+                                        checked={daysOff.includes('Saturday')}
+                                        onCheckedChange={(checked) => {
+                                            const newDays = checked ? [...daysOff, 'Saturday'] : daysOff.filter(d => d !== 'Saturday');
+                                            setDaysOff(newDays);
+                                        }}
+                                    />
+                                    <Label htmlFor="saturday-off" className="font-normal">Saturday</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                     <Checkbox 
+                                        id="sunday-off" 
+                                        checked={daysOff.includes('Sunday')}
+                                        onCheckedChange={(checked) => {
+                                            const newDays = checked ? [...daysOff, 'Sunday'] : daysOff.filter(d => d !== 'Sunday');
+                                            setDaysOff(newDays);
+                                        }}
+                                    />
+                                    <Label htmlFor="sunday-off" className="font-normal">Sunday</Label>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -461,3 +473,5 @@ export default function WrappedRoutinePage() {
         </AuthWrapper>
     )
 }
+
+    
