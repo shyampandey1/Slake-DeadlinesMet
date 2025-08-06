@@ -21,7 +21,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     useEffect(() => {
         // Generate stars only once
         const generatedStars = Array.from({ length: 50 }, (_, i) => (
-            <Star key={i} style={{ animation: `twinkle ${Math.random() * 5 + 2}s linear infinite` }} />
+            <Star key={i} style={{ animation: `twinkle ${Math.random() * 5 + 3}s linear infinite` }} />
         ));
         setStars(generatedStars);
     }, []);
@@ -47,74 +47,80 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     if (timeInMinutes >= sunriseStart && timeInMinutes < sunriseEnd) {
         // Sunrise
         const progress = (timeInMinutes - sunriseStart) / (sunriseEnd - sunriseStart);
-        skyClass = 'from-indigo-300 via-orange-300 to-amber-200';
+        skyClass = 'from-indigo-300/70 via-orange-300/70 to-amber-200/70';
         sunMoonY = 60 - progress * 50;
         sunMoonX = progress * 100;
         sunMoonOpacity = 1;
     } else if (timeInMinutes >= dayStart && timeInMinutes < dayEnd) {
         // Daytime
         const progress = (timeInMinutes - dayStart) / (dayEnd - dayStart);
-        skyClass = 'from-sky-300 to-sky-500';
+        skyClass = 'from-sky-400/80 to-sky-600/80';
         sunMoonY = 10 + progress * 5; // Slight movement
         sunMoonX = 50; // Centered for simplicity in daytime view
         sunMoonOpacity = 1;
     } else if (timeInMinutes >= sunsetStart && timeInMinutes < sunsetEnd) {
         // Sunset
         const progress = (timeInMinutes - sunsetStart) / (sunsetEnd - sunsetStart);
-        skyClass = 'from-amber-300 via-orange-400 to-indigo-400';
+        skyClass = 'from-amber-300/70 via-orange-400/70 to-indigo-400/70';
         sunMoonY = 15 + progress * 45;
         sunMoonX = 100 - progress * 100;
         sunMoonOpacity = 1;
     } else {
         // Night
         isNight = true;
-        skyClass = 'from-indigo-800 to-slate-900';
-        const nightProgress = timeInMinutes > sunsetEnd 
-            ? (timeInMinutes - sunsetEnd) / ((24 * 60) - sunsetEnd)
-            : timeInMinutes / sunriseStart;
+        skyClass = 'from-indigo-900/80 to-slate-900/80';
+        const nightDurationAfterSunset = (24 * 60) - sunsetEnd;
+        const nightDurationBeforeSunrise = sunriseStart;
+        
+        let nightProgress;
+        if (timeInMinutes > sunsetEnd) {
+            nightProgress = (timeInMinutes - sunsetEnd) / nightDurationAfterSunset;
+        } else {
+            nightProgress = (timeInMinutes + (24 * 60 - sunsetEnd)) / (nightDurationAfterSunset + nightDurationBeforeSunrise);
+        }
 
-        sunMoonY = 60 - nightProgress * 50;
+        sunMoonY = 60 - Math.sin(nightProgress * Math.PI) * 50;
         sunMoonX = nightProgress * 100;
         sunMoonOpacity = 1;
     }
 
     return (
-        <header className="relative w-full h-48 overflow-hidden border-b border-border/20 shadow-lg">
-            <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-1000", skyClass)}>
+        <header className="relative w-full h-36 overflow-hidden border-b border-border/20 shadow-lg">
+            <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
                  <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
                     {/* Sun or Moon */}
                      <g style={{
                         transform: `translate(${sunMoonX}%, ${sunMoonY}%)`,
-                        transition: 'transform 1s linear',
+                        transition: 'transform 3s linear',
                         opacity: sunMoonOpacity,
                     }}>
                         {isNight ? (
-                            <Moon className="w-16 h-16 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
+                            <Moon className="w-14 h-14 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
                         ) : (
-                            <Sun className="w-20 h-20 text-yellow-300/90" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(255, 223, 100, 0.8))' }}/>
+                            <Sun className="w-16 h-16 text-yellow-300/90" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(255, 223, 100, 0.8))' }}/>
                         )}
                     </g>
                      {/* Stars */}
                     {isNight && (
-                       <g style={{ opacity: sunMoonOpacity, transition: 'opacity 1s linear' }}>
+                       <g style={{ opacity: sunMoonOpacity, transition: 'opacity 3s linear' }}>
                             {stars}
                         </g>
                     )}
                      {/* Clouds */}
-                    <Cloud className="absolute w-24 h-24 text-white/30" style={{ top: '15%', left: '10%', animation: 'drift 25s linear infinite' }} />
-                    <Cloud className="absolute w-32 h-32 text-white/20" style={{ top: '30%', left: '70%', animation: 'drift 35s linear infinite reverse' }} />
+                    <Cloud className="absolute w-24 h-24 text-white/20" style={{ top: '15%', left: '10%', animation: 'drift 35s linear infinite' }} />
+                    <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '25%', left: '70%', animation: 'drift 50s linear infinite reverse' }} />
                  </svg>
             </div>
 
             {/* Header Content */}
             <div className="absolute inset-0 bg-black/10">
-                <div className="container mx-auto flex h-full max-w-4xl items-start justify-between p-4 pt-6 sm:p-6 md:p-8">
-                    <div className="flex flex-col gap-2 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
-                        <h1 className="text-2xl font-bold font-headline">DeadlinesMet</h1>
-                        <p className="text-sm opacity-90">Focus on one task at a time. Set your goal and go.</p>
+                <div className="container mx-auto flex h-full max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
+                    <div className="flex flex-col gap-1 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                        <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
+                        <p className="text-sm opacity-90 max-w-xs">Focus on one task at a time. Set your goal and go.</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="text-right text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                        <div className="text-right text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                             <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
                             <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
                         </div>
@@ -124,12 +130,12 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
              <style jsx>{`
                 @keyframes twinkle {
-                    0%, 100% { opacity: 0.5; }
-                    50% { opacity: 1; }
+                    0%, 100% { opacity: 0.3; }
+                    50% { opacity: 0.9; }
                 }
                 @keyframes drift {
-                    from { transform: translateX(-20px); }
-                    to { transform: translateX(20px); }
+                    from { transform: translateX(-25px); }
+                    to { transform: translateX(25px); }
                 }
             `}</style>
         </header>
