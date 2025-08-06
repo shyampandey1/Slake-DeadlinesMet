@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -576,6 +577,27 @@ export function usePresetTasks() {
     // A task is default if it's from a built-in profession profile
     return !!profileToRoutineMap[task.profession || profile];
   };
+
+  const initializeUserTasks = useCallback(async (prof: ProfileType) => {
+    if (!user || isOffline || !isSyncEnabled) return;
+
+    const routineKey = profileToRoutineMap[prof] || 'General';
+    const defaultTasks = defaultRoutines[routineKey];
+
+    const batch = writeBatch(db);
+    let order = 0;
+    defaultTasks.forEach(task => {
+        const newTaskRef = doc(collection(db, "userPresetTasks"));
+        batch.set(newTaskRef, {
+            ...task,
+            userId: user.uid,
+            profession: prof,
+            order: order++,
+        });
+    });
+
+    await batch.commit();
+  }, [user, isOffline, isSyncEnabled]);
   
   const loadDefaultTasks = useCallback((prof: ProfileType) => {
     const routineKey = profileToRoutineMap[prof] || 'General';
@@ -655,6 +677,10 @@ export function usePresetTasks() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let finalPreset: Preset = {};
       if (snapshot.empty) {
+        // If empty, it could be a new user or a new profile selection.
+        // Initialize the tasks for this profile in Firestore.
+        initializeUserTasks(effectiveProfile);
+        // Also load them into the state for immediate display.
         loadDefaultTasks(effectiveProfile);
       } else {
         const newPreset: Preset = {};
@@ -715,7 +741,7 @@ export function usePresetTasks() {
     });
 
     return () => unsubscribe();
-  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled, getEffectiveProfile, events]);
+  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, initializeUserTasks, isSyncEnabled, getEffectiveProfile, events]);
 
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
