@@ -112,8 +112,8 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                  </svg>
             </div>
 
-            {/* Header Content */}
-            <div className="absolute inset-0 bg-black/10">
+            {/* Header Content with Glass Effect */}
+            <div className="absolute inset-0 bg-black/10 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col gap-1 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                         <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
