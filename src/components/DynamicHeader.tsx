@@ -89,6 +89,15 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
              {/* Background with Vectors - This part is NOT blurred */}
             <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
+                    <div className="absolute inset-0 opacity-80">
+                         {/* Clouds */}
+                        <Cloud className="absolute text-white/10" style={{ width: '15rem', top: '5%', left: '-5%', animation: 'drift 80s linear infinite alternate' }} />
+                        <Cloud className="absolute text-white/20" style={{ width: '12rem', top: '15%', left: '20%', animation: 'drift 55s linear infinite alternate' }} />
+                        <Cloud className="absolute text-white/15" style={{ width: '18rem', top: '10%', left: '80%', animation: 'drift 90s linear infinite alternate' }} />
+                        <Cloud className="absolute text-white/10" style={{ width: '14rem', top: '25%', left: '60%', animation: 'drift 70s linear infinite alternate' }} />
+                        <Cloud className="absolute text-white/15" style={{ width: '10rem', bottom: '10%', left: '5%', animation: 'drift 65s linear infinite alternate' }} />
+                        <Cloud className="absolute text-white/10" style={{ width: '16rem', bottom: '5%', left: '50%', animation: 'drift 85s linear infinite alternate' }} />
+                    </div>
                     <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
                         {/* Sun or Moon */}
                         <g style={{
@@ -108,11 +117,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                 {stars}
                             </g>
                         )}
-                        {/* Clouds */}
-                        <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '10%', left: '5%', animation: 'drift 60s linear infinite' }} />
-                        <Cloud className="absolute w-24 h-24 text-white/20" style={{ top: '15%', left: '20%', animation: 'drift 35s linear infinite' }} />
-                        <Cloud className="absolute w-40 h-40 text-white/15" style={{ top: '20%', left: '80%', animation: 'drift 70s linear infinite reverse' }} />
-                        <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '25%', left: '60%', animation: 'drift 50s linear infinite reverse' }} />
                     </svg>
                 </div>
             </div>
@@ -139,8 +143,8 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     50% { opacity: 0.9; }
                 }
                 @keyframes drift {
-                    from { transform: translateX(-25px); }
-                    to { transform: translateX(25px); }
+                    from { transform: translateX(-50px); }
+                    to { transform: translateX(50px); }
                 }
             `}</style>
         </header>
