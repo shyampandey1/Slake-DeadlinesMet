@@ -469,7 +469,7 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
     'Work & Focus': { color: 'bg-blue-800 text-blue-100', order: 2 },
     'Breaks & Meals': { color: 'bg-orange-800 text-orange-100', order: 3 },
     'Health & Wellness': { color: 'bg-green-800 text-green-100', order: 4 },
-    'Evening Wind-down': { color: 'bg-indigo-800 text-indigo-100', order: 5 },
+    'Evening Wind-down': { color: 'bg-amber-800 text-amber-100', order: 5 },
     'Bedtime Routine': { color: 'bg-purple-800 text-purple-100', order: 6 },
     'Afternoon Routine': { color: 'bg-blue-800 text-blue-100', order: 2 },
     'Pre-Shift Routine': { color: 'bg-sky-800 text-sky-100', order: 1 },
@@ -477,7 +477,7 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
     'Post-Shift Decompression': { color: 'bg-purple-800 text-purple-100', order: 3 },
     'Morning Recovery': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'Afternoon Recharge': { color: 'bg-green-800 text-green-100', order: 2 },
-    'Evening Reset': { color: 'bg-indigo-800 text-indigo-100', order: 3 },
+    'Evening Reset': { color: 'bg-amber-800 text-amber-100', order: 3 },
     'Default': { color: 'bg-slate-800 text-slate-100', order: 7 },
 };
 
@@ -921,3 +921,5 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
+
+    
