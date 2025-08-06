@@ -86,7 +86,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
     return (
         <header className="fixed top-0 left-0 right-0 w-full h-36 z-10">
-             {/* Background with Vectors */}
+             {/* Background with Vectors - This part is NOT blurred */}
             <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
                     <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
@@ -109,13 +109,15 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             </g>
                         )}
                         {/* Clouds */}
-                        <Cloud className="absolute w-24 h-24 text-white/20" style={{ top: '15%', left: '10%', animation: 'drift 35s linear infinite' }} />
-                        <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '25%', left: '70%', animation: 'drift 50s linear infinite reverse' }} />
+                        <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '10%', left: '5%', animation: 'drift 60s linear infinite' }} />
+                        <Cloud className="absolute w-24 h-24 text-white/20" style={{ top: '15%', left: '20%', animation: 'drift 35s linear infinite' }} />
+                        <Cloud className="absolute w-40 h-40 text-white/15" style={{ top: '20%', left: '80%', animation: 'drift 70s linear infinite reverse' }} />
+                        <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '25%', left: '60%', animation: 'drift 50s linear infinite reverse' }} />
                     </svg>
                 </div>
             </div>
 
-            {/* Header Content with Glass Effect */}
+            {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col gap-1 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
