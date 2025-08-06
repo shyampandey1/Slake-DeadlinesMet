@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import { Sun, Moon, Cloud } from 'lucide-react';
+import { Sun, Moon, Cloud, CloudSun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -29,6 +29,7 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
 
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
+    const [weather, setWeather] = useState({ temp: 72, icon: CloudSun });
 
     useEffect(() => {
         // Generate stars only once
@@ -95,6 +96,17 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         sunMoonX = nightProgress * 100;
         sunMoonOpacity = 1;
     }
+    
+    useEffect(() => {
+        if (isNight) {
+            setWeather({ temp: 65, icon: Moon });
+        } else {
+            setWeather({ temp: 72, icon: Sun });
+        }
+    }, [isNight]);
+    
+    const WeatherIcon = weather.icon;
+
 
     return (
         <header className="fixed top-0 left-0 right-0 w-full h-36 z-10">
@@ -161,7 +173,11 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     <div className="flex items-center gap-4">
                         <div className="text-right text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                             <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
-                            <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
+                            <div className="flex items-center justify-end gap-2">
+                                <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
+                                <WeatherIcon className="h-4 w-4 text-white/90" />
+                                <p className="text-xs opacity-90">{weather.temp}°</p>
+                            </div>
                         </div>
                         <HamburgerMenu />
                     </div>
