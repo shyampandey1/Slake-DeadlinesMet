@@ -22,7 +22,7 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day } from '@/types';
 import { useProfile } from './useProfile';
-import { add, set, startOfDay, endOfDay, getDay, isToday } from 'date-fns';
+import { add, set, startOfDay, endOfDay, getDay, isToday, format as formatDate } from 'date-fns';
 
 // Hook for managing user's task history
 export function useTasks() {
@@ -138,10 +138,10 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Morning Idea Dump / Journaling", duration: 15, icon: "PenTool", category: "Morning Routine" },
         { name: "Light Stretching or Mobility", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
         { name: "Uninterrupted Deep Creative Work", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Inspiration & Research Block", duration: 60, icon: "Eye", category: "Work & Focus" },
-        { name: "Lunch", duration: 30, icon: "Utensils", category: "Breaks & Meals" },
-        { name: "Skill Practice / Tutorial", duration: 30, icon: "BookOpen", category: "Work & Focus" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
+        { name: "Inspiration & Research Block", duration: 60, icon: "Eye", category: "Work & Focus" },
+        { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
+        { name: "Skill Practice / Tutorial", duration: 30, icon: "BookOpen", category: "Work & Focus" },
         { name: "Admin & Client Communication", duration: 45, icon: "Mail", category: "Work & Focus" },
         { name: "Main Exercise / Workout", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
@@ -160,9 +160,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
         { name: "Strategic Thinking / 'No-Meeting' Block", duration: 60, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Tackle Most Important Task", duration: 90, icon: "Target", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Quick Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
         { name: "Meetings & Collaborative Tasks", duration: 120, icon: "Users", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Scan & Reply to Emails", duration: 30, icon: "Mail", category: "Work & Focus" },
         { name: "End-of-Day Review & Shutdown Ritual", duration: 15, icon: "Wrench", category: "Evening Wind-down" },
         { name: "Hobby / Leisure (Video Games, etc.)", duration: 60, icon: "Gamepad", category: "Evening Wind-down" },
@@ -181,9 +181,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Scripting & Content Planning", duration: 60, icon: "PenTool", category: "Morning Routine" },
         { name: "Filming / Recording Session", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Editing & Post-Production", duration: 90, icon: "Eye", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Mental Break", duration: 30, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Community Engagement", duration: 45, icon: "Mail", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Thumbnail Design & Uploads", duration: 30, icon: "BookOpen", category: "Work & Focus" },
         { name: "Workout / Physical Activity", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
@@ -202,9 +202,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Sketching & Wireframing", duration: 45, icon: "PenTool", category: "Morning Routine" },
         { name: "Focused Design Session", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Feedback & Iteration", duration: 60, icon: "Users", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
         { name: "Prototyping & Testing", duration: 90, icon: "Smartphone", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Client/Team Communication", duration: 30, icon: "Mail", category: "Work & Focus" },
         { name: "Exercise or Outdoor Time", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
@@ -222,9 +222,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Prepare Materials", duration: 25, icon: "ShoppingBag", category: "Morning Routine" },
         { name: "Teaching Block 1", duration: 90, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Grading & Feedback", duration: 60, icon: "PenTool", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Teaching Block 2", duration: 90, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Parent Communication", duration: 30, icon: "Mail", category: "Work & Focus" },
         { name: "De-stress Activity (Walk, etc.)", duration: 30, icon: "Footprints", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -242,9 +242,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "High-Intensity Workout", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
         { name: "Deep Work on MIT", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Networking & Outreach", duration: 60, icon: "Users", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 30, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Product Development", duration: 90, icon: "Wrench", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Financial Review", duration: 30, icon: "ListChecks", category: "Work & Focus" },
         { name: "Walk to Decompress", duration: 30, icon: "Footprints", category: "Health & Wellness" },
         { name: "Dinner (Screen-free)", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -262,9 +262,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Morning Walk", duration: 20, icon: "Footprints", category: "Morning Routine" },
         { name: "Client Project A - Deep Work", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Client Communication", duration: 30, icon: "Mail", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Client Project B - Focused Work", duration: 90, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Business Admin & Invoicing", duration: 30, icon: "PenTool", category: "Work & Focus" },
         { name: "Workout or Hobby", duration: 60, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -279,12 +279,12 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
-        { name: "High-Energy Meal", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Commute & Pre-Shift Huddle", duration: 30, icon: "Car", category: "Work & Focus" },
         { name: "Patient Rounds & Care", duration: 120, icon: "Users", category: "Work & Focus" },
         { name: "Drink water & have a snack", duration: 10, icon: "Apple", category: "Breaks & Meals" },
         { name: "Charting & Patient Notes", duration: 60, icon: "PenTool", category: "Work & Focus" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
+        { name: "Lunch", duration: 30, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Mindful Commute (calm music)", duration: 20, icon: "Car", category: "Evening Wind-down" },
         { name: "Dinner & Connect with Family", duration: 60, icon: "Utensils", category: "Evening Wind-down" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
@@ -315,9 +315,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Daily Stand-up & Plan", duration: 15, icon: "Users", category: "Morning Routine" },
         { name: "Deep Work on Infrastructure/Code", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Code Reviews & Lighter Tasks", duration: 60, icon: "Mail", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
         { name: "Documentation & Runbook Updates", duration: 45, icon: "PenTool", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Project Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
         { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
@@ -335,9 +335,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Morning Walk", duration: 20, icon: "Footprints", category: "Morning Routine" },
         { name: "One-on-One Meetings", duration: 90, icon: "Users", category: "Work & Focus" },
         { name: "Strategic Planning", duration: 60, icon: "BrainCircuit", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Networking", duration: 60, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Team Sync & Collaboration", duration: 90, icon: "Users", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Email & Communication", duration: 45, icon: "Mail", category: "Work & Focus" },
         { name: "Gym Session", duration: 60, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Family Dinner", duration: 60, icon: "Utensils", category: "Evening Wind-down" },
@@ -355,9 +355,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Content Creation/Briefing", duration: 60, icon: "PenTool", category: "Morning Routine" },
         { name: "Analytics Deep Dive", duration: 90, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "A/B Test planning", duration: 45, icon: "WandSparkles", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Learn", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Collaborate with Sales/Product", duration: 60, icon: "Users", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Social Media Management", duration: 45, icon: "Mail", category: "Work & Focus" },
         { name: "Yoga or Stretching", duration: 30, icon: "StretchHorizontal", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -375,9 +375,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Formulate Hypothesis", duration: 30, icon: "Lightbulb", category: "Morning Routine" },
         { name: "Data Collection / Experiment", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Data Analysis", duration: 90, icon: "ListChecks", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Writing & Documentation", duration: 90, icon: "PenTool", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Collaborator Meetings", duration: 30, icon: "Users", category: "Work & Focus" },
         { name: "Walk to clear head", duration: 30, icon: "Footprints", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -395,9 +395,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Role-play & Script Practice", duration: 15, icon: "Users", category: "Morning Routine" },
         { name: "Prospecting & Outreach Block", duration: 90, icon: "Mail", category: "Work & Focus" },
         { name: "Client Demos & Meetings", duration: 120, icon: "Users", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Follow-ups & Nurturing", duration: 60, icon: "PenTool", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Pipeline Management", duration: 30, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "High-Energy Workout", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -415,9 +415,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Plan coding session", duration: 15, icon: "PenTool", category: "Morning Routine" },
         { name: "Coding Focus Session 1", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "System Design & Architecture", duration: 60, icon: "Wrench", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Walk away from screen", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
         { name: "Coding Focus Session 2", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Meetings & Collaboration", duration: 45, icon: "Users", category: "Work & Focus" },
         { name: "Workout/Exercise", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -434,9 +434,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Review class schedule & assignments", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Attend Class / Lecture", duration: 90, icon: "Users", category: "Work & Focus" },
         { name: "Library Study Session 1", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 60, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Library Study Session 2", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Work on Assignments/Projects", duration: 90, icon: "PenTool", category: "Work & Focus" },
         { name: "Sports or Gym", duration: 60, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -454,9 +454,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Read to inspire", duration: 20, icon: "BookOpen", category: "Morning Routine" },
         { name: "Writing Session 1 (New Draft)", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
         { name: "Research & Outlining", duration: 60, icon: "ListChecks", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
         { name: "Editing & Rewriting", duration: 90, icon: "PenTool", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Submissions & Admin", duration: 30, icon: "Mail", category: "Work & Focus" },
         { name: "Exercise", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -474,9 +474,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Prepare Materials & Samples", duration: 15, icon: "ShoppingBag", category: "Morning Routine" },
         { name: "First Block of Client Visits", duration: 180, icon: "Car", category: "Work & Focus" },
         { name: "Update CRM & Log Visits", duration: 30, icon: "PenTool", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Second Block of Client Visits", duration: 120, icon: "Car", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Follow-up Emails & Calls", duration: 45, icon: "Mail", category: "Work & Focus" },
         { name: "Unwind After a Day of Driving", duration: 30, icon: "Wind", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -492,9 +492,9 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Vehicle Check & Load-out", duration: 20, icon: "Wrench", category: "Morning Routine" },
         { name: "Review Delivery Route", duration: 15, icon: "ListChecks", category: "Morning Routine" },
         { name: "Morning Delivery Block", duration: 240, icon: "Truck", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "Lunch", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
         { name: "Afternoon Delivery Block", duration: 180, icon: "Truck", category: "Work & Focus" },
-        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
         { name: "End of Day Unload & Debrief", duration: 30, icon: "PenTool", category: "Work & Focus" },
         { name: "Light Stretch", duration: 15, icon: "StretchHorizontal", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
@@ -838,33 +838,16 @@ export function usePresetTasks() {
         let blockKey: keyof typeof timeBlocks | undefined = undefined;
 
         if (category === 'Work & Focus') {
-            const morningTasksTotalDuration = presetTasks[category].tasks
-                .filter(t => t.name.toLowerCase().includes('morning') || t.order < 10)
-                .reduce((acc, t) => acc + t.duration, 0);
-
-            const afternoonTasksTotalDuration = presetTasks[category].tasks
-                .filter(t => !t.name.toLowerCase().includes('morning') && t.order >= 10)
-                .reduce((acc, t) => acc + t.duration, 0);
-
-            if (morningTasksTotalDuration > 0 && afternoonTasksTotalDuration > 0) {
-                 ranges[category] = {
-                    start: set(today, { hours: timeBlocks['Work & Focus_AM'].start, minutes: 0, seconds: 0, milliseconds: 0 }),
-                    end: set(today, { hours: timeBlocks['Work & Focus_PM'].end, minutes: 0, seconds: 0, milliseconds: 0 }),
-                };
-                return;
-            } else if (morningTasksTotalDuration > 0) {
-                blockKey = 'Work & Focus_AM';
-            } else {
-                blockKey = 'Work & Focus_PM';
-            }
-
-        } else if (category in timeBlocks) {
-            blockKey = category as keyof typeof timeBlocks;
-        } else {
-            // Fallback for other categories
-            if(category.includes('Morning')) blockKey = 'Morning Routine';
-            else if (category.includes('Evening')) blockKey = 'Evening Wind-down';
-            else if (category.includes('Bedtime')) blockKey = 'Bedtime Routine';
+            ranges[category] = {
+                start: set(today, { hours: timeBlocks['Work & Focus_AM'].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: timeBlocks['Work & Focus_PM'].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+            };
+            return;
+        }
+        
+        const categoryLookup = category as keyof typeof timeBlocks;
+        if (timeBlocks[categoryLookup]) {
+            blockKey = categoryLookup;
         }
 
         if (blockKey && timeBlocks[blockKey]) {
@@ -886,8 +869,9 @@ export function usePresetTasks() {
       if (activeEntry) {
           return activeEntry[0]; 
       }
-
-      if (now >= (categoryTimeRanges['Work & Focus']?.start || 0) && now < (categoryTimeRanges['Work & Focus']?.end || 0) ) {
+      
+      const workFocusRange = categoryTimeRanges['Work & Focus'];
+      if (workFocusRange && now >= workFocusRange.start && now < workFocusRange.end) {
           return 'Work & Focus';
       }
 
