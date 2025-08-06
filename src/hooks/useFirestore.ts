@@ -800,36 +800,67 @@ export function usePresetTasks() {
     if (Object.keys(presetTasks).length === 0) return ranges;
 
     const today = new Date();
-    const categoryDefinitions: { [key: string]: { start: number, end: number } } = {
-        'Morning': { start: 7, end: 12 },
-        'Afternoon': { start: 12, end: 16 },
-        'Evening': { start: 16, end: 21 },
-        'Night': { start: 21, end: 24 }
+    
+    // Define more granular time blocks
+    const timeBlocks = {
+        'Morning Routine': { start: 7, end: 9 },
+        'Work & Focus_AM': { start: 9, end: 12 },
+        'Breaks & Meals': { start: 12, end: 13 },
+        'Work & Focus_PM': { start: 13, end: 17 },
+        'Evening': { start: 17, end: 21 },
+        'Bedtime Routine': { start: 21, end: 24 }
     };
     
-    const categoryMapping: { [key: string]: string } = {
-        'Morning Routine': 'Morning',
-        'Morning Recovery': 'Morning',
-        'Work & Focus': 'Afternoon',
-        'Breaks & Meals': 'Afternoon',
-        'Afternoon Recharge': 'Afternoon',
+    // Map categories to the new time blocks
+    const categoryToBlockMap: { [key: string]: keyof typeof timeBlocks } = {
+        'Morning Routine': 'Morning Routine',
+        'Morning Recovery': 'Morning Routine',
+        'Work & Focus': 'Work & Focus_AM', // This will now need logic to split tasks
+        'Breaks & Meals': 'Breaks & Meals',
         'Health & Wellness': 'Evening',
         'Evening Wind-down': 'Evening',
         'Evening Reset': 'Evening',
-        'Bedtime Routine': 'Night'
+        'Bedtime Routine': 'Bedtime Routine',
+        'Afternoon Recharge': 'Work & Focus_PM'
     };
 
-    const categories = Object.keys(presetTasks).sort((a,b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
+    const categories = Object.keys(presetTasks);
 
     categories.forEach(category => {
-        const timeBlockKey = categoryMapping[category];
-        if (timeBlockKey && categoryDefinitions[timeBlockKey]) {
+        let blockKey;
+        
+        // Handle Work & Focus specially
+        if (category === 'Work & Focus') {
+            const morningWorkTasks = presetTasks[category].tasks.some(task => (task.order || 0) < 10); // Arbitrary order cutoff
+            blockKey = morningWorkTasks ? 'Work & Focus_AM' : 'Work & Focus_PM';
+        } else {
+             blockKey = categoryToBlockMap[category];
+        }
+
+        if (blockKey && timeBlocks[blockKey]) {
             ranges[category] = {
-                start: set(today, { hours: categoryDefinitions[timeBlockKey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
-                end: set(today, { hours: categoryDefinitions[timeBlockKey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+                start: set(today, { hours: timeBlocks[blockKey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: timeBlocks[blockKey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
             };
         }
     });
+
+    // Special handling for Work & Focus to show two separate ranges if needed, but for now, we'll assign one.
+    // A more complex logic could create two 'Work & Focus' entries if tasks exist for both AM and PM.
+    // For simplicity here, we'll try to guess based on task order.
+    if(presetTasks['Work & Focus']){
+        const midDayOrder = 10; // Assuming tasks ordered before 10 are AM
+        const hasAMTasks = presetTasks['Work & Focus'].tasks.some(t => t.order < midDayOrder);
+        const hasPMTasks = presetTasks['Work & Focus'].tasks.some(t => t.order >= midDayOrder);
+        
+        // This is a simplification. The UI would need to support two 'Work & Focus' sections to show both.
+        // For now, we just assign it a primary block. Let's make it the larger afternoon block by default.
+        ranges['Work & Focus'] = {
+            start: set(today, { hours: timeBlocks['Work & Focus_AM'].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+            end: set(today, { hours: timeBlocks['Work & Focus_PM'].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+        }
+    }
+
 
     return ranges;
   }, [presetTasks]);
@@ -837,12 +868,18 @@ export function usePresetTasks() {
 
   const activeCategory = useMemo(() => {
       const now = new Date();
-      for (const category in categoryTimeRanges) {
-          const { start, end } = categoryTimeRanges[category];
-          if (now >= start && now < end) {
-              return category;
-          }
+      // Find the category whose time range we are currently in
+      const activeEntry = Object.entries(categoryTimeRanges).find(([, range]) => now >= range.start && now < range.end);
+      
+      if (activeEntry) {
+          return activeEntry[0]; // Return the category name
       }
+
+      // Fallback for 'Work & Focus' which spans multiple blocks
+      if (now >= categoryTimeRanges['Work & Focus']?.start && now < categoryTimeRanges['Work & Focus']?.end) {
+          return 'Work & Focus';
+      }
+
       return null;
   }, [categoryTimeRanges]);
 
