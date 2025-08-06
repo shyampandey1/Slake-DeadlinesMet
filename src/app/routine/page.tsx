@@ -122,8 +122,8 @@ function RoutinePageComponent() {
                       </AccordionTrigger>
                       <AccordionContent className="p-4">
                           <div className="space-y-4">
-                              {tasks.map((task) => (
-                                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-card border">
+                              {tasks.map((task, index) => (
+                                  <div key={task.id || `${task.name}-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-card border">
                                       <div className="flex items-center gap-3">
                                           <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
                                           <div>
