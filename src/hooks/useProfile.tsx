@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -23,16 +24,17 @@ export type Profession = {
 export const professions: { [group: string]: Profession[] } = {
     "Creative": [
         { name: "Artist", icon: "Palette", color: "border-rose-500/80 text-rose-400" },
-        { name: "Content Creator", icon: "Youtube", color: "border-red-500/80 text-red-400" },
+        { name: "Content Creator", icon: "Camera", color: "border-orange-500/80 text-orange-400" },
         { name: "Designer", icon: "PenTool", color: "border-purple-500/80 text-purple-400" },
-        { name: "Writer", icon: "BookOpen", color: "border-blue-500/80 text-blue-400" },
+        { name: "Writer", icon: "PenLine", color: "border-blue-500/80 text-blue-400" },
     ],
     "Business & Management": [
         { name: "Consultant", icon: "Briefcase", color: "border-cyan-500/80 text-cyan-400" },
         { name: "Entrepreneur", icon: "Lightbulb", color: "border-amber-500/80 text-amber-400" },
         { name: "Manager", icon: "Users", color: "border-lime-500/80 text-lime-400" },
-        { name: "Marketer", icon: "Megaphone", color: "border-orange-500/80 text-orange-400" },
+        { name: "Marketer", icon: "Megaphone", color: "border-red-500/80 text-red-400" },
         { name: "Sales", icon: "TrendingUp", color: "border-green-500/80 text-green-400" },
+        { name: "Medical Representative", icon: "Briefcase", color: "border-stone-500/80 text-stone-400" }
     ],
     "Technical & Health": [
         { name: "Healthcare Professional", icon: "Stethoscope", color: "border-teal-500/80 text-teal-400" },
@@ -45,6 +47,7 @@ export const professions: { [group: string]: Profession[] } = {
         { name: "Freelancer", icon: "Network", color: "border-rose-500/80 text-rose-400" },
         { name: "Student", icon: "GraduationCap", color: "border-stone-500/80 text-stone-400" },
         { name: "General", icon: "User", color: "border-gray-500/80 text-gray-400" },
+        { name: "Delivery Agent", icon: "Truck", color: "border-gray-500/80 text-gray-400" },
     ]
 };
 

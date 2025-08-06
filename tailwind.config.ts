@@ -1,4 +1,5 @@
 
+
 import type {Config} from 'tailwindcss';
 import plugin from 'tailwindcss/plugin';
 
@@ -37,6 +38,7 @@ export default {
     'border-fuchsia-500/80', 'text-fuchsia-400', 'hover:border-fuchsia-500/80',
     'border-yellow-500/80', 'text-yellow-400', 'hover:border-yellow-500/80',
     'border-stone-500/80', 'text-stone-400', 'hover:border-stone-500/80',
+    'border-pink-500/80', 'text-pink-400', 'hover:border-pink-500/80',
   ],
   theme: {
     extend: {

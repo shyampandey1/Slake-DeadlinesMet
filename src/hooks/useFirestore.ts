@@ -402,6 +402,34 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Read for pleasure", duration: 30, icon: "BookOpen", category: "Bedtime Routine" },
         { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
     ],
+    "Medical Representative": [
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Review Target List & Plan Route", duration: 30, icon: "ListChecks", category: "Morning Routine" },
+        { name: "Prepare Materials & Samples", duration: 15, icon: "ShoppingBag", category: "Morning Routine" },
+        { name: "First Block of Client Visits", duration: 180, icon: "Car", category: "Work & Focus" },
+        { name: "Update CRM & Log Visits", duration: 30, icon: "PenTool", category: "Work & Focus" },
+        { name: "Lunch in the Field", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
+        { name: "Second Block of Client Visits", duration: 120, icon: "Car", category: "Work & Focus" },
+        { name: "Follow-up Emails & Calls", duration: 45, icon: "Mail", category: "Work & Focus" },
+        { name: "Unwind After a Day of Driving", duration: 30, icon: "Wind", category: "Health & Wellness" },
+        { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
+        { name: "Plan Tomorrow's Route", duration: 20, icon: "ListChecks", category: "Evening Wind-down" },
+        { name: "Relax", duration: 60, icon: "Tv", category: "Bedtime Routine" },
+        { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
+    ],
+    "Delivery Agent": [
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Vehicle Check & Load-out", duration: 20, icon: "Wrench", category: "Morning Routine" },
+        { name: "Review Delivery Route", duration: 15, icon: "ListChecks", category: "Morning Routine" },
+        { name: "Morning Delivery Block", duration: 240, icon: "Truck", category: "Work & Focus" },
+        { name: "Lunch Break", duration: 45, icon: "Utensils", category: "Breaks & Meals" },
+        { name: "Afternoon Delivery Block", duration: 180, icon: "Truck", category: "Work & Focus" },
+        { name: "End of Day Unload & Debrief", duration: 30, icon: "PenTool", category: "Work & Focus" },
+        { name: "Light Stretch", duration: 15, icon: "StretchHorizontal", category: "Health & Wellness" },
+        { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
+        { name: "Relax & Unwind", duration: 90, icon: "Tv", category: "Evening Wind-down" },
+        { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
+    ],
     "General": [
         { name: 'Plan Day', duration: 15, icon: 'ListChecks', category: 'Morning Routine' },
         { name: 'Deep Work', duration: 90, icon: 'BrainCircuit', category: 'Work & Focus' },
@@ -432,6 +460,8 @@ const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines } = {
     "Software Engineer": "Software Engineer",
     "Student": "Student",
     "Writer": "Writer",
+    "Medical Representative": "Medical Representative",
+    "Delivery Agent": "Delivery Agent"
 };
 
 const categoryConfig: { [key: string]: { color: string, order: number } } = {
@@ -695,6 +725,8 @@ export function usePresetTasks() {
       "Software Engineer": { hours: 10, minutes: 0 },
       "Student": { hours: 8, minutes: 0 },
       "Writer": { hours: 8, minutes: 30 },
+      "Medical Representative": { hours: 8, minutes: 0 },
+      "Delivery Agent": { hours: 7, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
   };
 
