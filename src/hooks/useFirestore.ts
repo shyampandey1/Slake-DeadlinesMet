@@ -822,13 +822,13 @@ export function usePresetTasks() {
     const today = new Date();
     
     const timeBlocks = {
-        'Morning Routine': { start: 7, end: 9 },
+        'Morning Routine': { start: 7, end: 11 },
         'Work & Focus_AM': { start: 9, end: 12 },
         'Breaks & Meals': { start: 12, end: 13 },
-        'Work & Focus_PM': { start: 13, end: 17 },
-        'Health & Wellness': {start: 17, end: 21 },
-        'Evening Wind-down': { start: 17, end: 21 },
-        'Evening Reset': { start: 17, end: 21 },
+        'Work & Focus_PM': { start: 13, end: 16 },
+        'Health & Wellness': {start: 16, end: 20 },
+        'Evening Wind-down': { start: 16, end: 21 },
+        'Evening Reset': { start: 16, end: 21 },
         'Bedtime Routine': { start: 21, end: 24 }
     };
     
@@ -992,5 +992,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
