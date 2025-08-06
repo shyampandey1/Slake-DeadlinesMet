@@ -862,8 +862,8 @@ export function usePresetTasks() {
 
         if (blockKey && timeBlocks[blockKey]) {
             ranges[category] = {
-                start: set(today, { hours: timeBlocks[blockkey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
-                end: set(today, { hours: timeBlocks[blockkey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+                start: set(today, { hours: timeBlocks[blockKey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: timeBlocks[blockKey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
             };
         }
     });
