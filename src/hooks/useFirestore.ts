@@ -133,6 +133,7 @@ export function useTasks() {
 const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } = {
     "Artist": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Morning Idea Dump / Journaling", duration: 15, icon: "PenTool", category: "Morning Routine" },
         { name: "Light Stretching or Mobility", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
@@ -153,6 +154,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Consultant": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review Day's Top 3 Priorities", duration: 10, icon: "ListChecks", category: "Morning Routine" },
         { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
@@ -173,6 +175,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Content Creator": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review Analytics & Comments", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Scripting & Content Planning", duration: 60, icon: "PenTool", category: "Morning Routine" },
@@ -193,6 +196,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Designer": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Moodboarding & Inspiration", duration: 20, icon: "Eye", category: "Morning Routine" },
         { name: "Sketching & Wireframing", duration: 45, icon: "PenTool", category: "Morning Routine" },
@@ -212,6 +216,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Educator": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review Lesson Plan", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Prepare Materials", duration: 25, icon: "ShoppingBag", category: "Morning Routine" },
@@ -231,6 +236,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Entrepreneur": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Set Daily MIT (Most Important Task)", duration: 15, icon: "Target", category: "Morning Routine" },
         { name: "High-Intensity Workout", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
@@ -250,6 +256,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Freelancer": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Prioritize Client Work", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Morning Walk", duration: 20, icon: "Footprints", category: "Morning Routine" },
@@ -269,6 +276,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Healthcare Professional": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Gentle Movement & Mental Prep", duration: 15, icon: "StretchHorizontal", category: "Morning Routine" },
         { name: "High-Energy Meal", duration: 20, icon: "Utensils", category: "Morning Routine" },
@@ -286,6 +294,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Day Off": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Recovery" },
         { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Recovery" },
         { name: "Enjoy a leisurely breakfast", duration: 30, icon: "Coffee", category: "Morning Recovery" },
         { name: "Lunch", duration: 60, icon: "Utensils", category: "Afternoon Recharge" },
@@ -300,6 +309,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "IT Professional": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review System Alerts & Logs", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Daily Stand-up & Plan", duration: 15, icon: "Users", category: "Morning Routine" },
@@ -319,6 +329,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Manager": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review Team's Priorities", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Morning Walk", duration: 20, icon: "Footprints", category: "Morning Routine" },
@@ -338,6 +349,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Marketer": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Check Campaign Performance", duration: 30, icon: "ListChecks", category: "Morning Routine" },
         { name: "Content Creation/Briefing", duration: 60, icon: "PenTool", category: "Morning Routine" },
@@ -357,6 +369,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Researcher": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review Literature", duration: 45, icon: "BookOpen", category: "Morning Routine" },
         { name: "Formulate Hypothesis", duration: 30, icon: "Lightbulb", category: "Morning Routine" },
@@ -376,6 +389,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Sales": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review CRM & Plan Calls", duration: 30, icon: "ListChecks", category: "Morning Routine" },
         { name: "Role-play & Script Practice", duration: 15, icon: "Users", category: "Morning Routine" },
@@ -395,6 +409,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Software Engineer": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review PRs & Team Updates", duration: 30, icon: "ListChecks", category: "Morning Routine" },
         { name: "Plan coding session", duration: 15, icon: "PenTool", category: "Morning Routine" },
@@ -414,6 +429,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Student": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 15, icon: "Utensils", category: "Morning Routine" },
         { name: "Review class schedule & assignments", duration: 20, icon: "ListChecks", category: "Morning Routine" },
         { name: "Attend Class / Lecture", duration: 90, icon: "Users", category: "Work & Focus" },
@@ -432,6 +448,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Writer": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Free writing / Journaling", duration: 25, icon: "PenTool", category: "Morning Routine" },
         { name: "Read to inspire", duration: 20, icon: "BookOpen", category: "Morning Routine" },
@@ -451,6 +468,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Medical Representative": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Review Target List & Plan Route", duration: 30, icon: "ListChecks", category: "Morning Routine" },
         { name: "Prepare Materials & Samples", duration: 15, icon: "ShoppingBag", category: "Morning Routine" },
@@ -469,6 +487,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "Delivery Agent": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Vehicle Check & Load-out", duration: 20, icon: "Wrench", category: "Morning Routine" },
         { name: "Review Delivery Route", duration: 15, icon: "ListChecks", category: "Morning Routine" },
@@ -485,6 +504,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "General": [
         { name: 'Drink a glass of water', duration: 1, icon: 'Droplets', category: 'Morning Routine' },
+        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
         { name: 'Breakfast', duration: 20, icon: 'Utensils', category: 'Morning Routine' },
         { name: 'Plan Day', duration: 15, icon: 'ListChecks', category: 'Morning Routine' },
         { name: 'Deep Work', duration: 90, icon: 'BrainCircuit', category: 'Work & Focus' },
@@ -801,66 +821,52 @@ export function usePresetTasks() {
 
     const today = new Date();
     
-    // Define more granular time blocks
     const timeBlocks = {
         'Morning Routine': { start: 7, end: 9 },
         'Work & Focus_AM': { start: 9, end: 12 },
         'Breaks & Meals': { start: 12, end: 13 },
         'Work & Focus_PM': { start: 13, end: 17 },
-        'Evening': { start: 17, end: 21 },
+        'Health & Wellness': {start: 17, end: 21 },
+        'Evening Wind-down': { start: 17, end: 21 },
+        'Evening Reset': { start: 17, end: 21 },
         'Bedtime Routine': { start: 21, end: 24 }
     };
     
-    // Map categories to the new time blocks
-    const categoryToBlockMap: { [key: string]: keyof typeof timeBlocks } = {
-        'Morning Routine': 'Morning Routine',
-        'Morning Recovery': 'Morning Routine',
-        'Work & Focus': 'Work & Focus_AM', // This will now need logic to split tasks
-        'Breaks & Meals': 'Breaks & Meals',
-        'Health & Wellness': 'Evening',
-        'Evening Wind-down': 'Evening',
-        'Evening Reset': 'Evening',
-        'Bedtime Routine': 'Bedtime Routine',
-        'Afternoon Recharge': 'Work & Focus_PM'
-    };
+    Object.keys(presetTasks).forEach(category => {
+        let blockKey: keyof typeof timeBlocks | undefined = undefined;
 
-    const categories = Object.keys(presetTasks);
-
-    categories.forEach(category => {
-        let blockKey;
-        
-        // Handle Work & Focus specially
         if (category === 'Work & Focus') {
-            const morningWorkTasks = presetTasks[category].tasks.some(task => (task.order || 0) < 10); // Arbitrary order cutoff
-            blockKey = morningWorkTasks ? 'Work & Focus_AM' : 'Work & Focus_PM';
+            const hasAMTasks = presetTasks[category].tasks.some(t => t.order < 15); 
+            const hasPMTasks = presetTasks[category].tasks.some(t => t.order >= 15);
+            
+            if (hasAMTasks && hasPMTasks) {
+                 ranges[category] = {
+                    start: set(today, { hours: timeBlocks['Work & Focus_AM'].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                    end: set(today, { hours: timeBlocks['Work & Focus_PM'].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+                };
+                return;
+            } else if (hasAMTasks) {
+                blockKey = 'Work & Focus_AM';
+            } else {
+                blockKey = 'Work & Focus_PM';
+            }
+
+        } else if (category in timeBlocks) {
+            blockKey = category as keyof typeof timeBlocks;
         } else {
-             blockKey = categoryToBlockMap[category];
+            // Fallback for other categories
+            if(category.includes('Morning')) blockKey = 'Morning Routine';
+            else if (category.includes('Evening')) blockKey = 'Evening Wind-down';
+            else if (category.includes('Bedtime')) blockKey = 'Bedtime Routine';
         }
 
         if (blockKey && timeBlocks[blockKey]) {
             ranges[category] = {
-                start: set(today, { hours: timeBlocks[blockKey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
-                end: set(today, { hours: timeBlocks[blockKey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+                start: set(today, { hours: timeBlocks[blockkey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: timeBlocks[blockkey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
             };
         }
     });
-
-    // Special handling for Work & Focus to show two separate ranges if needed, but for now, we'll assign one.
-    // A more complex logic could create two 'Work & Focus' entries if tasks exist for both AM and PM.
-    // For simplicity here, we'll try to guess based on task order.
-    if(presetTasks['Work & Focus']){
-        const midDayOrder = 10; // Assuming tasks ordered before 10 are AM
-        const hasAMTasks = presetTasks['Work & Focus'].tasks.some(t => t.order < midDayOrder);
-        const hasPMTasks = presetTasks['Work & Focus'].tasks.some(t => t.order >= midDayOrder);
-        
-        // This is a simplification. The UI would need to support two 'Work & Focus' sections to show both.
-        // For now, we just assign it a primary block. Let's make it the larger afternoon block by default.
-        ranges['Work & Focus'] = {
-            start: set(today, { hours: timeBlocks['Work & Focus_AM'].start, minutes: 0, seconds: 0, milliseconds: 0 }),
-            end: set(today, { hours: timeBlocks['Work & Focus_PM'].end, minutes: 0, seconds: 0, milliseconds: 0 }),
-        }
-    }
-
 
     return ranges;
   }, [presetTasks]);
@@ -868,15 +874,13 @@ export function usePresetTasks() {
 
   const activeCategory = useMemo(() => {
       const now = new Date();
-      // Find the category whose time range we are currently in
       const activeEntry = Object.entries(categoryTimeRanges).find(([, range]) => now >= range.start && now < range.end);
       
       if (activeEntry) {
-          return activeEntry[0]; // Return the category name
+          return activeEntry[0]; 
       }
 
-      // Fallback for 'Work & Focus' which spans multiple blocks
-      if (now >= categoryTimeRanges['Work & Focus']?.start && now < categoryTimeRanges['Work & Focus']?.end) {
+      if (now >= (categoryTimeRanges['Work & Focus']?.start || 0) && now < (categoryTimeRanges['Work & Focus']?.end || 0) ) {
           return 'Work & Focus';
       }
 
