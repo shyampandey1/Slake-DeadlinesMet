@@ -2,7 +2,7 @@
 "use client";
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useProfile, professions, Profession } from "@/hooks/useProfile";
@@ -15,6 +15,9 @@ import { useRouter } from 'next/navigation';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { format } from 'date-fns';
+import AddTaskDialog from '@/components/AddTaskDialog';
+import type { UserPresetTask } from '@/types';
+import { Plus } from 'lucide-react';
 
 const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
   const LucideIcon = icons[name as keyof typeof icons];
@@ -24,7 +27,9 @@ const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
 function RoutinePageComponent() {
   const router = useRouter();
   const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading } = useProfile();
-  const { presetTasks, loading: tasksLoading, categoryTimeRanges } = usePresetTasks();
+  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
 
   const handleProfessionSelect = (profession: Profession) => {
     setProfile(profession.name);
@@ -36,6 +41,30 @@ function RoutinePageComponent() {
       : [...daysOff, day];
     setDaysOff(newDaysOff);
   };
+
+  const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
+    const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
+    setTaskToEdit(initialTask);
+    setIsDialogOpen(true);
+  };
+  
+  const handleSaveTask = async (
+    taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string },
+    taskId?: string
+  ) => {
+    if (taskId) {
+      await updatePresetTask(taskId, taskData);
+    } else {
+      await addPresetTask(taskData, profile);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    await deletePresetTask(taskId);
+    setIsDialogOpen(false);
+  };
+  
+  const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
   const renderSkeleton = () => (
     <div className="space-y-6">
@@ -55,6 +84,7 @@ function RoutinePageComponent() {
   );
 
   return (
+    <>
     <div className="flex flex-col h-screen">
       <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
         <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
@@ -134,19 +164,29 @@ function RoutinePageComponent() {
                             </div>
                       </AccordionTrigger>
                       <AccordionContent className="p-4">
-                          <div className="space-y-4">
+                          <div className="space-y-2">
                               {tasks.map((task, index) => (
-                                  <div key={task.id || `${task.name}-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-card border">
+                                  <Button
+                                      key={task.id || `${task.name}-${index}`}
+                                      variant="outline"
+                                      className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
+                                      onClick={() => handleOpenDialog(task, category)}
+                                    >
                                       <div className="flex items-center gap-3">
                                           <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
-                                          <div>
+                                          <div className="text-left">
                                               <p className="font-medium">{task.name}</p>
                                               <p className="text-xs text-muted-foreground">{task.duration} min</p>
                                           </div>
                                       </div>
-                                  </div>
+                                  </Button>
                               ))}
                           </div>
+                          <CardFooter className="p-0 pt-4">
+                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                <Plus className="w-4 h-4 mr-2" /> Add Task
+                            </Button>
+                          </CardFooter>
                       </AccordionContent>
                     </Card>
                   </AccordionItem>
@@ -161,6 +201,15 @@ function RoutinePageComponent() {
         </div>
       </main>
     </div>
+     <AddTaskDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSaveTask={handleSaveTask}
+        onDeleteTask={handleDeleteTask}
+        initialTask={taskToEdit}
+        categories={categoriesWithColors}
+      />
+    </>
   );
 }
 
