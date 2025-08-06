@@ -85,35 +85,38 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     }
 
     return (
-        <header className="relative w-full h-36 overflow-hidden border-b border-border/20 shadow-lg">
-            <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
-                 <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
-                    {/* Sun or Moon */}
-                     <g style={{
-                        transform: `translate(${sunMoonX}%, ${sunMoonY}%)`,
-                        transition: 'transform 3s linear',
-                        opacity: sunMoonOpacity,
-                    }}>
-                        {isNight ? (
-                            <Moon className="w-14 h-14 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
-                        ) : (
-                            <Sun className="w-16 h-16 text-yellow-300/90" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(255, 223, 100, 0.8))' }}/>
-                        )}
-                    </g>
-                     {/* Stars */}
-                    {isNight && (
-                       <g style={{ opacity: sunMoonOpacity, transition: 'opacity 3s linear' }}>
-                            {stars}
+        <header className="fixed top-0 left-0 right-0 w-full h-36 z-10">
+             {/* Background with Vectors */}
+            <div className="absolute inset-0 overflow-hidden border-b border-border/20">
+                 <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
+                    <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
+                        {/* Sun or Moon */}
+                        <g style={{
+                            transform: `translate(${sunMoonX}%, ${sunMoonY}%)`,
+                            transition: 'transform 3s linear',
+                            opacity: sunMoonOpacity,
+                        }}>
+                            {isNight ? (
+                                <Moon className="w-14 h-14 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
+                            ) : (
+                                <Sun className="w-16 h-16 text-yellow-300/90" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(255, 223, 100, 0.8))' }}/>
+                            )}
                         </g>
-                    )}
-                     {/* Clouds */}
-                    <Cloud className="absolute w-24 h-24 text-white/20" style={{ top: '15%', left: '10%', animation: 'drift 35s linear infinite' }} />
-                    <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '25%', left: '70%', animation: 'drift 50s linear infinite reverse' }} />
-                 </svg>
+                        {/* Stars */}
+                        {isNight && (
+                        <g style={{ opacity: sunMoonOpacity, transition: 'opacity 3s linear' }}>
+                                {stars}
+                            </g>
+                        )}
+                        {/* Clouds */}
+                        <Cloud className="absolute w-24 h-24 text-white/20" style={{ top: '15%', left: '10%', animation: 'drift 35s linear infinite' }} />
+                        <Cloud className="absolute w-32 h-32 text-white/10" style={{ top: '25%', left: '70%', animation: 'drift 50s linear infinite reverse' }} />
+                    </svg>
+                </div>
             </div>
 
             {/* Header Content with Glass Effect */}
-            <div className="absolute inset-0 bg-black/10 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col gap-1 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                         <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
