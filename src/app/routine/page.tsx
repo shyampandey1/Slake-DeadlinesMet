@@ -59,7 +59,7 @@ function RoutinePageComponent() {
       <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
         <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-xl font-bold font-headline text-foreground/80">Choose your profession</h1>
+                <h1 className="text-xl font-bold font-headline text-foreground/80">Sync your routine to your lifestyle</h1>
                 <p className="text-sm text-muted-foreground">Select a profession to see the recommended routine.</p>
             </div>
             <HamburgerMenu />
