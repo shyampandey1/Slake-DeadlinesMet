@@ -110,7 +110,7 @@ function RoutinePageComponent() {
             <Separator />
             
             <div>
-              <h2 className="text-2xl font-bold font-headline">Your Routine for a {profile}</h2>
+              <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
             </div>
             
             {tasksLoading ? renderSkeleton() : (
