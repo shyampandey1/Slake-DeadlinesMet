@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { Sun, Moon, Cloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -13,6 +14,17 @@ interface DynamicHeaderProps {
 
 const Star = ({ style }: { style: React.CSSProperties }) => (
     <circle cx={Math.random() * 100} cy={Math.random() * 50 + 5} r={Math.random() * 0.5 + 0.2} fill="white" style={style} />
+);
+
+const MotionCloud = ({ initial, animate, transition, className }: any) => (
+    <motion.div
+        initial={initial}
+        animate={animate}
+        transition={transition}
+        className={cn("absolute text-white/10", className)}
+    >
+        <Cloud className="w-full h-full" />
+    </motion.div>
 );
 
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
@@ -90,13 +102,31 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
                     <div className="absolute inset-0 opacity-80">
-                         {/* Clouds */}
-                        <Cloud className="absolute text-white/10" style={{ width: '15rem', top: '5%', left: '-5%', animation: 'drift 80s linear infinite alternate' }} />
-                        <Cloud className="absolute text-white/20" style={{ width: '12rem', top: '15%', left: '20%', animation: 'drift 55s linear infinite alternate' }} />
-                        <Cloud className="absolute text-white/15" style={{ width: '18rem', top: '10%', left: '80%', animation: 'drift 90s linear infinite alternate' }} />
-                        <Cloud className="absolute text-white/10" style={{ width: '14rem', top: '25%', left: '60%', animation: 'drift 70s linear infinite alternate' }} />
-                        <Cloud className="absolute text-white/15" style={{ width: '10rem', bottom: '10%', left: '5%', animation: 'drift 65s linear infinite alternate' }} />
-                        <Cloud className="absolute text-white/10" style={{ width: '16rem', bottom: '5%', left: '50%', animation: 'drift 85s linear infinite alternate' }} />
+                         {/* Smokey Clouds using Framer Motion */}
+                        <MotionCloud
+                            className="w-96 h-96 opacity-30"
+                            initial={{ x: '-100%', y: '10%' }}
+                            animate={{ x: '100%' }}
+                            transition={{ ease: 'linear', duration: 80, repeat: Infinity, repeatType: 'reverse' }}
+                        />
+                         <MotionCloud
+                            className="w-80 h-80 opacity-20"
+                            initial={{ x: '100%', y: '-10%' }}
+                            animate={{ x: '-100%' }}
+                            transition={{ ease: 'linear', duration: 120, repeat: Infinity, repeatType: 'reverse' }}
+                        />
+                         <MotionCloud
+                            className="w-[30rem] h-[30rem] opacity-25"
+                            initial={{ x: '0%', y: '20%' }}
+                            animate={{ x: '80%' }}
+                            transition={{ ease: 'linear', duration: 100, repeat: Infinity, repeatType: 'reverse' }}
+                        />
+                         <MotionCloud
+                            className="w-72 h-72 opacity-15"
+                            initial={{ x: '50%', y: '-20%' }}
+                            animate={{ x: '-50%' }}
+                            transition={{ ease: 'linear', duration: 90, repeat: Infinity, repeatType: 'reverse' }}
+                        />
                     </div>
                     <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
                         {/* Sun or Moon */}
@@ -141,10 +171,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                 @keyframes twinkle {
                     0%, 100% { opacity: 0.3; }
                     50% { opacity: 0.9; }
-                }
-                @keyframes drift {
-                    from { transform: translateX(-50px); }
-                    to { transform: translateX(50px); }
                 }
             `}</style>
         </header>
