@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import AuthWrapper from '@/components/AuthWrapper';
 import HamburgerMenu from '@/components/HamburgerMenu';
+import { format } from 'date-fns';
 
 const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
   const LucideIcon = icons[name as keyof typeof icons];
@@ -23,7 +24,7 @@ const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
 function RoutinePageComponent() {
   const router = useRouter();
   const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading } = useProfile();
-  const { presetTasks, loading: tasksLoading, reorderPresetTask } = usePresetTasks();
+  const { presetTasks, loading: tasksLoading, categoryTimeRanges } = usePresetTasks();
 
   const handleProfessionSelect = (profession: Profession) => {
     setProfile(profession.name);
@@ -114,11 +115,20 @@ function RoutinePageComponent() {
             
             {tasksLoading ? renderSkeleton() : (
               <Accordion type="multiple" defaultValue={Object.keys(presetTasks)} className="w-full space-y-4">
-                {Object.entries(presetTasks).map(([category, { color, tasks }]) => (
+                {Object.entries(presetTasks).map(([category, { color, tasks }]) => {
+                   const timeRange = categoryTimeRanges[category];
+                   return (
                   <AccordionItem value={category} key={category} className="border-none">
                     <Card className="overflow-hidden">
                       <AccordionTrigger className={cn("p-4 border-b", color)}>
-                          <h3 className="font-headline text-lg">{category}</h3>
+                           <div className="flex flex-col items-start text-left">
+                                <h3 className="font-headline text-lg">{category}</h3>
+                                {timeRange && (
+                                    <p className="text-xs text-inherit opacity-80">
+                                        {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                    </p>
+                                )}
+                            </div>
                       </AccordionTrigger>
                       <AccordionContent className="p-4">
                           <div className="space-y-4">
@@ -137,7 +147,8 @@ function RoutinePageComponent() {
                       </AccordionContent>
                     </Card>
                   </AccordionItem>
-                ))}
+                   )
+                })}
               </Accordion>
             )}
 

@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day } from '@/types';
 import { useProfile } from './useProfile';
-import { add, set, startOfDay, endOfDay, getDay } from 'date-fns';
+import { add, set, startOfDay, endOfDay, getDay, isToday } from 'date-fns';
 
 // Hook for managing user's task history
 export function useTasks() {
@@ -489,6 +489,7 @@ const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumb
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
   const { profile, daysOff, loading: profileLoading } = useProfile();
+  const { events } = useCalendarEvents();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
@@ -574,6 +575,7 @@ export function usePresetTasks() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      let finalPreset: Preset = {};
       if (snapshot.empty) {
         loadDefaultTasks(effectiveProfile);
       } else {
@@ -592,13 +594,41 @@ export function usePresetTasks() {
           .forEach(key => {
             sortedPreset[key] = newPreset[key];
           });
-        setPresetTasks(sortedPreset);
-        try {
-            localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
-        } catch(e) {
-            console.warn("Couldn't access localStorage to cache preset tasks");
-        }
+        finalPreset = sortedPreset;
       }
+
+      // Merge calendar events
+      const todaysEvents = events.filter(e => isToday(new Date(e.date)));
+      todaysEvents.forEach(event => {
+        const eventDate = new Date(event.date);
+        const eventCategory = 'Work & Focus'; // Or determine from event
+        if (!finalPreset[eventCategory]) {
+            finalPreset[eventCategory] = { color: categoryConfig[eventCategory]?.color, tasks: [] };
+        }
+        
+        // Avoid adding duplicate events
+        if (!finalPreset[eventCategory].tasks.some(t => t.id === event.id)) {
+            finalPreset[eventCategory].tasks.push({
+                id: event.id,
+                name: event.name,
+                duration: event.duration,
+                icon: event.icon,
+                isEvent: true,
+                category: eventCategory,
+                order: eventDate.getHours() * 60 + eventDate.getMinutes(), // order by time
+            });
+            finalPreset[eventCategory].tasks.sort((a,b) => a.order - b.order);
+        }
+      });
+      
+      setPresetTasks(finalPreset);
+      try {
+          localStorage.setItem(cacheKey, JSON.stringify(finalPreset));
+      } catch(e) {
+          console.warn("Couldn't access localStorage to cache preset tasks");
+      }
+
+
       setLoading(false);
     }, (error) => {
       console.error("Error fetching preset tasks: ", error);
@@ -607,7 +637,7 @@ export function usePresetTasks() {
     });
 
     return () => unsubscribe();
-  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled, getEffectiveProfile]);
+  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, isSyncEnabled, getEffectiveProfile, events]);
 
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
@@ -727,6 +757,7 @@ export function usePresetTasks() {
       "Writer": { hours: 8, minutes: 30 },
       "Medical Representative": { hours: 8, minutes: 0 },
       "Delivery Agent": { hours: 7, minutes: 0 },
+      "General": { hours: 9, minutes: 0 },
       "default": { hours: 9, minutes: 0 },
   };
 
@@ -762,7 +793,9 @@ export function usePresetTasks() {
         
         let categoryEndTime = categoryStartTime;
         tasks.forEach(task => {
-            categoryEndTime = add(categoryEndTime, { minutes: task.duration });
+            if (!task.isEvent) { // Don't let calendar events push routine times
+              categoryEndTime = add(categoryEndTime, { minutes: task.duration });
+            }
         });
 
         ranges[category] = { start: categoryStartTime, end: categoryEndTime };
