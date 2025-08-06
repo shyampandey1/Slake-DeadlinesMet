@@ -78,7 +78,7 @@ function RoutinePageComponent() {
                                     key={p.name}
                                     variant={profile === p.name ? "default" : "outline"}
                                     onClick={() => handleProfessionSelect(p)}
-                                    className={cn("flex items-center gap-2", profile === p.name && `${p.color}`)}
+                                    className={cn("flex items-center gap-2", profile === p.name ? p.color : `hover:${p.color}`)}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
                                     {p.name}
