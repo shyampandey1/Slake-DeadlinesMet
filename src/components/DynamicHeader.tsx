@@ -29,7 +29,7 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
 
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
-    const [weather, setWeather] = useState({ temp: 72, icon: CloudSun });
+    const [weather, setWeather] = useState({ temp: 22, icon: CloudSun });
 
     useEffect(() => {
         // Generate stars only once
@@ -99,9 +99,9 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     
     useEffect(() => {
         if (isNight) {
-            setWeather({ temp: 65, icon: Moon });
+            setWeather({ temp: 18, icon: Moon });
         } else {
-            setWeather({ temp: 72, icon: Sun });
+            setWeather({ temp: 22, icon: Sun });
         }
     }, [isNight]);
     
@@ -176,7 +176,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             <div className="flex items-center justify-end gap-2">
                                 <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
                                 <WeatherIcon className="h-4 w-4 text-white/90" />
-                                <p className="text-xs opacity-90">{weather.temp}°</p>
+                                <p className="text-xs opacity-90">{weather.temp}°C</p>
                             </div>
                         </div>
                         <HamburgerMenu />
