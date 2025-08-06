@@ -737,60 +737,44 @@ export function usePresetTasks() {
     }
   };
 
-  const profileStartTimes: { [key in ProfileType | 'default']: { hours: number; minutes: number } } = {
-      "Artist": { hours: 9, minutes: 0 },
-      "Consultant": { hours: 8, minutes: 30 },
-      "Content Creator": { hours: 9, minutes: 0 },
-      "Designer": { hours: 9, minutes: 0 },
-      "Educator": { hours: 7, minutes: 30 },
-      "Entrepreneur": { hours: 6, minutes: 0 },
-      "Freelancer": { hours: 9, minutes: 30 },
-      "Healthcare Professional": { hours: 19, minutes: 30 },
-      "Day Off": { hours: 9, minutes: 0 },
-      "IT Professional": { hours: 9, minutes: 0 },
-      "Manager": { hours: 8, minutes: 0 },
-      "Marketer": { hours: 9, minutes: 0 },
-      "Researcher": { hours: 9, minutes: 0 },
-      "Sales": { hours: 8, minutes: 0 },
-      "Software Engineer": { hours: 10, minutes: 0 },
-      "Student": { hours: 8, minutes: 0 },
-      "Writer": { hours: 8, minutes: 30 },
-      "Medical Representative": { hours: 8, minutes: 0 },
-      "Delivery Agent": { hours: 7, minutes: 0 },
-      "General": { hours: 9, minutes: 0 },
-      "default": { hours: 9, minutes: 0 },
-  };
-
   const categoryTimeRanges = useMemo(() => {
     const ranges: { [category: string]: { start: Date, end: Date } } = {};
     if (Object.keys(presetTasks).length === 0) return ranges;
+
+    const today = new Date();
+    const categoryDefinitions: { [key: string]: { start: number, end: number } } = {
+        'Morning': { start: 7, end: 12 },
+        'Afternoon': { start: 12, end: 16 },
+        'Evening': { start: 16, end: 21 },
+        'Night': { start: 21, end: 24 }
+    };
     
-    const effectiveProfile = getEffectiveProfile();
-    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
-    const startTime = profileStartTimes[routineKey] || profileStartTimes['default'];
-    let currentTime = set(new Date(), startTime);
+    const categoryMapping: { [key: string]: string } = {
+        'Morning Routine': 'Morning',
+        'Morning Recovery': 'Morning',
+        'Work & Focus': 'Afternoon',
+        'Breaks & Meals': 'Afternoon',
+        'Afternoon Recharge': 'Afternoon',
+        'Health & Wellness': 'Evening',
+        'Evening Wind-down': 'Evening',
+        'Evening Reset': 'Evening',
+        'Bedtime Routine': 'Night'
+    };
 
     const categories = Object.keys(presetTasks).sort((a,b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
 
     categories.forEach(category => {
-        const tasks = presetTasks[category].tasks;
-        if (tasks.length === 0) return;
-
-        const categoryStartTime = currentTime;
-        let categoryEndTime = categoryStartTime;
-
-        tasks.forEach(task => {
-            if (!task.isEvent) { // Don't let calendar events push routine times
-              categoryEndTime = add(categoryEndTime, { minutes: task.duration });
-            }
-        });
-
-        ranges[category] = { start: categoryStartTime, end: categoryEndTime };
-        currentTime = categoryEndTime; // The next category starts where the last one ended
+        const timeBlockKey = categoryMapping[category];
+        if (timeBlockKey && categoryDefinitions[timeBlockKey]) {
+            ranges[category] = {
+                start: set(today, { hours: categoryDefinitions[timeBlockKey].start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: categoryDefinitions[timeBlockKey].end, minutes: 0, seconds: 0, milliseconds: 0 }),
+            };
+        }
     });
 
     return ranges;
-  }, [presetTasks, profile, getEffectiveProfile]);
+  }, [presetTasks]);
 
 
   const activeCategory = useMemo(() => {
