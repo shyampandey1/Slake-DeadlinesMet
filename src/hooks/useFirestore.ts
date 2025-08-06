@@ -727,7 +727,7 @@ export function usePresetTasks() {
     
     const newTask = {
         ...rest,
-        category,
+        category, // Make sure category is included here
         userId: user.uid,
         profession: currentProfile,
         order: newOrder
@@ -822,30 +822,37 @@ export function usePresetTasks() {
     const today = new Date();
     
     const timeBlocks = {
-        'Morning Routine': { start: 7, end: 11 },
+        'Morning Routine': { start: 7, end: 9 },
         'Work & Focus_AM': { start: 9, end: 12 },
         'Breaks & Meals': { start: 12, end: 13 },
-        'Work & Focus_PM': { start: 13, end: 16 },
-        'Health & Wellness': {start: 16, end: 20 },
-        'Evening Wind-down': { start: 16, end: 21 },
-        'Evening Reset': { start: 16, end: 21 },
-        'Bedtime Routine': { start: 21, end: 24 }
+        'Work & Focus_PM': { start: 13, end: 17 },
+        'Health & Wellness': {start: 17, end: 21 },
+        'Evening Wind-down': { start: 17, end: 21 },
+        'Evening Reset': { start: 17, end: 21 },
+        'Bedtime Routine': { start: 21, end: 24 },
+        'Morning Recovery': { start: 8, end: 12 },
+        'Afternoon Recharge': { start: 12, end: 17 },
     };
     
     Object.keys(presetTasks).forEach(category => {
         let blockKey: keyof typeof timeBlocks | undefined = undefined;
 
         if (category === 'Work & Focus') {
-            const hasAMTasks = presetTasks[category].tasks.some(t => t.order < 15); 
-            const hasPMTasks = presetTasks[category].tasks.some(t => t.order >= 15);
-            
-            if (hasAMTasks && hasPMTasks) {
+            const morningTasksTotalDuration = presetTasks[category].tasks
+                .filter(t => t.name.toLowerCase().includes('morning') || t.order < 10)
+                .reduce((acc, t) => acc + t.duration, 0);
+
+            const afternoonTasksTotalDuration = presetTasks[category].tasks
+                .filter(t => !t.name.toLowerCase().includes('morning') && t.order >= 10)
+                .reduce((acc, t) => acc + t.duration, 0);
+
+            if (morningTasksTotalDuration > 0 && afternoonTasksTotalDuration > 0) {
                  ranges[category] = {
                     start: set(today, { hours: timeBlocks['Work & Focus_AM'].start, minutes: 0, seconds: 0, milliseconds: 0 }),
                     end: set(today, { hours: timeBlocks['Work & Focus_PM'].end, minutes: 0, seconds: 0, milliseconds: 0 }),
                 };
                 return;
-            } else if (hasAMTasks) {
+            } else if (morningTasksTotalDuration > 0) {
                 blockKey = 'Work & Focus_AM';
             } else {
                 blockKey = 'Work & Focus_PM';
