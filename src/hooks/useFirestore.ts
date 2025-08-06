@@ -770,28 +770,15 @@ export function usePresetTasks() {
     const startTime = profileStartTimes[routineKey] || profileStartTimes['default'];
     let currentTime = set(new Date(), startTime);
 
-    const bedtimeAnchor = set(new Date(), { hours: 22, minutes: 0 }); // 10 PM
-
     const categories = Object.keys(presetTasks).sort((a,b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
 
     categories.forEach(category => {
         const tasks = presetTasks[category].tasks;
         if (tasks.length === 0) return;
-        
-        let categoryStartTime;
 
-        if (category === "Bedtime Routine" || category === "Bedtime") {
-             const duration = tasks.reduce((acc, task) => acc + task.duration, 0);
-             categoryStartTime = add(bedtimeAnchor, { minutes: -duration });
-        } else {
-            const lastCategoryEndTime = Object.values(ranges).reduce((latest, range) => {
-                return range.end > latest ? range.end : latest;
-            }, new Date(0));
-            
-            categoryStartTime = lastCategoryEndTime.getTime() === new Date(0).getTime() ? currentTime : lastCategoryEndTime;
-        }
-        
+        const categoryStartTime = currentTime;
         let categoryEndTime = categoryStartTime;
+
         tasks.forEach(task => {
             if (!task.isEvent) { // Don't let calendar events push routine times
               categoryEndTime = add(categoryEndTime, { minutes: task.duration });
@@ -799,6 +786,7 @@ export function usePresetTasks() {
         });
 
         ranges[category] = { start: categoryStartTime, end: categoryEndTime };
+        currentTime = categoryEndTime; // The next category starts where the last one ended
     });
 
     return ranges;
@@ -921,5 +909,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
