@@ -570,6 +570,7 @@ export function usePresetTasks() {
   const { profile, daysOff, loading: profileLoading } = useProfile();
   const { events } = useCalendarEvents();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
+  const [basePresetTasks, setBasePresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
 
@@ -627,7 +628,7 @@ export function usePresetTasks() {
         sortedPreset[key].tasks.sort((a, b) => a.order - b.order);
       });
       
-    setPresetTasks(sortedPreset);
+    setBasePresetTasks(sortedPreset);
 
   }, []);
 
@@ -654,7 +655,7 @@ export function usePresetTasks() {
       try {
         const cachedData = localStorage.getItem(cacheKey);
         if (cachedData) {
-          setPresetTasks(JSON.parse(cachedData));
+          setBasePresetTasks(JSON.parse(cachedData));
         } else {
           loadDefaultTasks(effectiveProfile);
         }
@@ -700,32 +701,8 @@ export function usePresetTasks() {
           });
         finalPreset = sortedPreset;
       }
-
-      // Merge calendar events
-      const todaysEvents = events.filter(e => isToday(new Date(e.date)));
-      todaysEvents.forEach(event => {
-        const eventDate = new Date(event.date);
-        const eventCategory = 'Work & Focus'; // Or determine from event
-        if (!finalPreset[eventCategory]) {
-            finalPreset[eventCategory] = { color: categoryConfig[eventCategory]?.color, tasks: [] };
-        }
-        
-        // Avoid adding duplicate events
-        if (!finalPreset[eventCategory].tasks.some(t => t.id === event.id)) {
-            finalPreset[eventCategory].tasks.push({
-                id: event.id,
-                name: event.name,
-                duration: event.duration,
-                icon: event.icon,
-                isEvent: true,
-                category: eventCategory,
-                order: eventDate.getHours() * 60 + eventDate.getMinutes(), // order by time
-            });
-            finalPreset[eventCategory].tasks.sort((a,b) => a.order - b.order);
-        }
-      });
       
-      setPresetTasks(finalPreset);
+      setBasePresetTasks(finalPreset);
       try {
           localStorage.setItem(cacheKey, JSON.stringify(finalPreset));
       } catch(e) {
@@ -741,8 +718,35 @@ export function usePresetTasks() {
     });
 
     return () => unsubscribe();
-  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, initializeUserTasks, isSyncEnabled, getEffectiveProfile, events]);
+  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, initializeUserTasks, isSyncEnabled, getEffectiveProfile]);
 
+  useEffect(() => {
+      // Deep copy base preset tasks
+      const newPresetTasks = JSON.parse(JSON.stringify(basePresetTasks));
+  
+      const todaysEvents = events.filter(e => isToday(new Date(e.date)));
+      todaysEvents.forEach(event => {
+          const eventDate = new Date(event.date);
+          const eventCategory = 'Work & Focus'; // Or determine from event
+          if (!newPresetTasks[eventCategory]) {
+              newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color, tasks: [] };
+          }
+          
+          if (!newPresetTasks[eventCategory].tasks.some((t: UserPresetTask) => t.id === event.id)) {
+              newPresetTasks[eventCategory].tasks.push({
+                  id: event.id,
+                  name: event.name,
+                  duration: event.duration,
+                  icon: event.icon,
+                  isEvent: true,
+                  category: eventCategory,
+                  order: eventDate.getHours() * 60 + eventDate.getMinutes(), // order by time
+              });
+              newPresetTasks[eventCategory].tasks.sort((a: UserPresetTask, b: UserPresetTask) => a.order - b.order);
+          }
+      });
+      setPresetTasks(newPresetTasks);
+  }, [basePresetTasks, events]);
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
     if (!user || isOffline || !isSyncEnabled) return;
