@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 2;
+const ROUTINE_TEMPLATE_VERSION = 3;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -318,11 +318,11 @@ const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit
             { name: "Meditation for Focus", duration: 10, icon: "Wind", category: "Morning Routine" },
             { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
             { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
-            { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Deep Work Block 1", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
-            { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Deep Work Block 2", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
-            { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Deep Work Block 3", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
             { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
             { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
@@ -334,6 +334,7 @@ const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit
             { name: "Strict Screen Cutoff", duration: 60, icon: "Smartphone", category: "Bedtime Routine" },
             { name: "Stretching to relieve desk posture", duration: 10, icon: "StretchHorizontal", category: "Bedtime Routine" },
             { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
+            { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
         ],
         "Manager": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
