@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 5;
+const ROUTINE_TEMPLATE_VERSION = 7;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -599,14 +599,14 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
 
   useEffect(() => {
-    setLoading(profileLoading);
     if (profileLoading || !user) {
+        setLoading(profileLoading);
         if (!user) setLoading(false);
         return;
     }
     
     const effectiveProfile = getEffectiveProfile();
-    const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
+    const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
 
     const loadDefaultTasks = () => {
         const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
@@ -637,6 +637,7 @@ export function usePresetTasks() {
         });
         
         setBasePresetTasks(sortedPreset);
+        setLoading(false);
     };
 
     if (isOffline || !isSyncEnabled) {
@@ -657,20 +658,14 @@ export function usePresetTasks() {
     
     const initializeUserTasks = async () => {
         await runTransaction(db, async (transaction) => {
-            // Check if tasks already exist to prevent accidental overwrite if this runs unexpectedly
-            const checkQuery = query(
+            const currentTasksQuery = query(
                 collection(db, 'userPresetTasks'), 
                 where('userId', '==', user.uid), 
                 where('profession', '==', effectiveProfile)
             );
-            const checkSnapshot = await getDocs(checkQuery); // Use getDocs without transaction context for initial check
-            
-            if (!checkSnapshot.empty) {
-                // Tasks exist, maybe we just need to update? Let's delete and re-add for simplicity of versioning.
-                checkSnapshot.forEach(doc => transaction.delete(doc.ref));
-            }
+            const currentTasksSnapshot = await getDocs(currentTasksQuery);
+            currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
 
-            // Add new tasks from the template
             const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
             const defaultTasks = defaultRoutines.routines[routineKey];
             let order = 0;
@@ -684,7 +679,6 @@ export function usePresetTasks() {
                 });
             });
 
-            // Update user profile with new version
             const profileRef = doc(db, 'userProfiles', user.uid);
             transaction.set(profileRef, {
                 routineVersions: {
@@ -707,8 +701,7 @@ export function usePresetTasks() {
       const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
       
       if (snapshot.empty || userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        initializeUserTasks();
-        // The listener will be re-triggered after the transaction.
+        initializeUserTasks().catch(console.error);
       } else {
         const newPreset: Preset = {};
         snapshot.docs.forEach(doc => {
@@ -736,46 +729,47 @@ export function usePresetTasks() {
       }
     }, (error) => {
       console.error("Error fetching preset tasks: ", error);
-      loadDefaultTasks(); // Fallback to defaults
-      setLoading(false);
+      loadDefaultTasks();
     });
 
     return () => unsubscribe();
   }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile, profileData]);
 
   const presetTasks = useMemo(() => {
+    if (Object.keys(basePresetTasks).length === 0) {
+      return {};
+    }
     const newPresetTasks: Preset = JSON.parse(JSON.stringify(basePresetTasks));
     const todaysEvents = events.filter(e => isToday(new Date(e.date)));
     
-    if (todaysEvents.length === 0) {
-      return newPresetTasks;
-    }
-    
     todaysEvents.forEach(event => {
-      const eventDate = new Date(event.date);
-      const eventCategory = 'Work & Focus';
-      
-      if (!newPresetTasks[eventCategory]) {
-        newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color || categoryConfig.Default.color, tasks: [] };
-      }
-      
-      const eventExists = newPresetTasks[eventCategory].tasks.some((t: UserPresetTask) => t.id === event.id);
-      
-      if (!eventExists) {
-        newPresetTasks[eventCategory].tasks.push({
-          id: event.id,
-          name: event.name,
-          duration: event.duration,
-          icon: event.icon,
-          isEvent: true,
-          category: eventCategory,
-          order: eventDate.getHours() * 100 + eventDate.getMinutes(),
-        });
-      }
+        const eventDate = new Date(event.date);
+        // Default to a sensible category if none exists
+        const eventCategory = 'Work & Focus';
+        if (!newPresetTasks[eventCategory]) {
+            newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color || categoryConfig.Default.color, tasks: [] };
+        }
+        
+        const eventAsTask: UserPresetTask = {
+            id: event.id,
+            name: event.name,
+            duration: event.duration,
+            icon: event.icon,
+            isEvent: true,
+            category: eventCategory,
+            order: eventDate.getHours() * 100 + eventDate.getMinutes(), // Sort by time
+        };
+
+        const existingIndex = newPresetTasks[eventCategory].tasks.findIndex(t => t.id === event.id);
+        if (existingIndex > -1) {
+            newPresetTasks[eventCategory].tasks[existingIndex] = eventAsTask;
+        } else {
+            newPresetTasks[eventCategory].tasks.push(eventAsTask);
+        }
     });
 
     Object.keys(newPresetTasks).forEach(category => {
-      newPresetTasks[category].tasks.sort((a: UserPresetTask, b: UserPresetTask) => a.order - b.order);
+        newPresetTasks[category].tasks.sort((a, b) => a.order - b.order);
     });
 
     return newPresetTasks;
