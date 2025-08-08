@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
-import { format } from "date-fns";
+import { format, isToday, parseISO } from "date-fns";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "./ui/separator";
-import { usePresetTasks } from "@/hooks/useFirestore";
+import { usePresetTasks, useCalendarEvents } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
-import type { UserPresetTask } from "@/types";
+import type { UserPresetTask, Preset } from "@/types";
 import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { Slider } from "./ui/slider";
@@ -79,6 +79,7 @@ const iconMap: { [key: string]: LucideIcon } = {
 export default function TaskForm() {
   const router = useRouter();
   const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory } = usePresetTasks();
+  const { events } = useCalendarEvents();
   const { profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
@@ -94,6 +95,46 @@ export default function TaskForm() {
       duration: 25,
     },
   });
+
+  const mergedTasks = useMemo(() => {
+    if (Object.keys(presetTasks).length === 0) {
+      return {};
+    }
+    const newPresetTasks: Preset = JSON.parse(JSON.stringify(presetTasks));
+    const todaysEvents = events.filter(e => isToday(parseISO(e.date)));
+    
+    todaysEvents.forEach(event => {
+        const eventDate = parseISO(event.date);
+        // Default to a sensible category if none exists
+        const eventCategory = 'Work & Focus';
+        if (!newPresetTasks[eventCategory]) {
+            newPresetTasks[eventCategory] = { color: 'bg-slate-800 text-slate-100', tasks: [] };
+        }
+        
+        const eventAsTask: UserPresetTask = {
+            id: event.id,
+            name: event.name,
+            duration: event.duration,
+            icon: event.icon,
+            isEvent: true,
+            category: eventCategory,
+            order: eventDate.getHours() * 100 + eventDate.getMinutes(), // Sort by time
+        };
+
+        const existingIndex = newPresetTasks[eventCategory].tasks.findIndex(t => t.id === event.id);
+        if (existingIndex > -1) {
+            newPresetTasks[eventCategory].tasks[existingIndex] = eventAsTask;
+        } else {
+            newPresetTasks[eventCategory].tasks.push(eventAsTask);
+        }
+    });
+
+    Object.keys(newPresetTasks).forEach(category => {
+        newPresetTasks[category].tasks.sort((a, b) => a.order - b.order);
+    });
+
+    return newPresetTasks;
+  }, [presetTasks, events]);
   
   const scrollTo = useCallback(
     (index: number) => carouselApi && carouselApi.scrollTo(index),
@@ -127,15 +168,15 @@ export default function TaskForm() {
     if (carouselApi) {
       carouselApi.reInit();
     }
-  }, [presetTasks, carouselApi]);
+  }, [mergedTasks, carouselApi]);
 
   useEffect(() => {
-    if (!carouselApi || Object.keys(presetTasks).length === 0 || !activeCategory) return;
-    const activeIndex = Object.keys(presetTasks).findIndex(category => category === activeCategory);
+    if (!carouselApi || Object.keys(mergedTasks).length === 0 || !activeCategory) return;
+    const activeIndex = Object.keys(mergedTasks).findIndex(category => category === activeCategory);
     if (activeIndex !== -1) {
         scrollTo(activeIndex);
     }
-  }, [carouselApi, presetTasks, activeCategory, scrollTo]);
+  }, [carouselApi, mergedTasks, activeCategory, scrollTo]);
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -171,7 +212,7 @@ export default function TaskForm() {
     router.push(`/timer?${params.toString()}`);
   }
   
-  const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
+  const categoriesWithColors = Object.entries(mergedTasks).map(([name, { color }]) => ({ name, color }));
 
   const selectQuickStartTask = (task: UserPresetTask, category: string) => {
     form.setValue("taskName", task.name);
@@ -182,7 +223,7 @@ export default function TaskForm() {
     }
   }
 
-  const hasTasks = Object.keys(presetTasks).length > 0 && Object.values(presetTasks).some(cat => cat.tasks.length > 0);
+  const hasTasks = Object.keys(mergedTasks).length > 0 && Object.values(mergedTasks).some(cat => cat.tasks.length > 0);
 
   return (
     <>
@@ -203,7 +244,7 @@ export default function TaskForm() {
                 className="w-full"
                 >
                 <CarouselContent>
-                    {Object.entries(presetTasks).map(([category, { tasks, color }]) => {
+                    {Object.entries(mergedTasks).map(([category, { tasks, color }]) => {
                         const timeRange = categoryTimeRanges[category];
                         const isCurrent = category === activeCategory;
                         return (
@@ -367,3 +408,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    

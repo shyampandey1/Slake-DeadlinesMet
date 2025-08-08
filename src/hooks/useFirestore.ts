@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day } from '@/types';
 import { useProfile } from './useProfile';
-import { add, set, startOfDay, endOfDay, getDay, isToday, format as formatDate } from 'date-fns';
+import { add, set, startOfDay, endOfDay, getDay, isToday, format as formatDate, parseISO } from 'date-fns';
 
 // Hook for managing user's task history
 export function useTasks() {
@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 7;
+const ROUTINE_TEMPLATE_VERSION = 8;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -576,8 +576,7 @@ const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumb
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
   const { profile, daysOff, loading: profileLoading, profileData } = useProfile();
-  const [basePresetTasks, setBasePresetTasks] = useState<Preset>({});
-  const { events } = useCalendarEvents();
+  const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
 
@@ -636,7 +635,7 @@ export function usePresetTasks() {
             sortedPreset[key].tasks.sort((a, b) => a.order - b.order);
         });
         
-        setBasePresetTasks(sortedPreset);
+        setPresetTasks(sortedPreset);
         setLoading(false);
     };
 
@@ -644,7 +643,7 @@ export function usePresetTasks() {
       try {
         const cachedData = localStorage.getItem(cacheKey);
         if (cachedData) {
-          setBasePresetTasks(JSON.parse(cachedData));
+          setPresetTasks(JSON.parse(cachedData));
         } else {
           loadDefaultTasks();
         }
@@ -725,7 +724,7 @@ export function usePresetTasks() {
           sortedPreset[key] = newPreset[key];
         });
       
-      setBasePresetTasks(sortedPreset);
+      setPresetTasks(sortedPreset);
       try {
           localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
       } catch(e) {
@@ -740,48 +739,7 @@ export function usePresetTasks() {
 
     return () => unsubscribe();
   }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile, profileData]);
-
-  const presetTasks = useMemo(() => {
-    if (Object.keys(basePresetTasks).length === 0) {
-      return {};
-    }
-    const newPresetTasks: Preset = JSON.parse(JSON.stringify(basePresetTasks));
-    const todaysEvents = events.filter(e => isToday(new Date(e.date)));
-    
-    todaysEvents.forEach(event => {
-        const eventDate = new Date(event.date);
-        // Default to a sensible category if none exists
-        const eventCategory = 'Work & Focus';
-        if (!newPresetTasks[eventCategory]) {
-            newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color || categoryConfig.Default.color, tasks: [] };
-        }
-        
-        const eventAsTask: UserPresetTask = {
-            id: event.id,
-            name: event.name,
-            duration: event.duration,
-            icon: event.icon,
-            isEvent: true,
-            category: eventCategory,
-            order: eventDate.getHours() * 100 + eventDate.getMinutes(), // Sort by time
-        };
-
-        const existingIndex = newPresetTasks[eventCategory].tasks.findIndex(t => t.id === event.id);
-        if (existingIndex > -1) {
-            newPresetTasks[eventCategory].tasks[existingIndex] = eventAsTask;
-        } else {
-            newPresetTasks[eventCategory].tasks.push(eventAsTask);
-        }
-    });
-
-    Object.keys(newPresetTasks).forEach(category => {
-        newPresetTasks[category].tasks.sort((a, b) => a.order - b.order);
-    });
-
-    return newPresetTasks;
-  }, [basePresetTasks, events]);
   
-
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
     if (!user || isOffline || !isSyncEnabled) return;
     
@@ -1041,3 +999,5 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
+
+    
