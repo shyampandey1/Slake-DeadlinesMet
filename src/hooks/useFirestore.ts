@@ -570,7 +570,6 @@ export function usePresetTasks() {
   const { profile, daysOff, loading: profileLoading } = useProfile();
   const { events } = useCalendarEvents();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
-  const [basePresetTasks, setBasePresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
 
@@ -578,60 +577,7 @@ export function usePresetTasks() {
     // A task is default if it's from a built-in profession profile
     return !!profileToRoutineMap[task.profession || profile];
   };
-
-  const initializeUserTasks = useCallback(async (prof: ProfileType) => {
-    if (!user || isOffline || !isSyncEnabled) return;
-
-    const routineKey = profileToRoutineMap[prof] || 'General';
-    const defaultTasks = defaultRoutines[routineKey];
-
-    const batch = writeBatch(db);
-    let order = 0;
-    defaultTasks.forEach(task => {
-        const newTaskRef = doc(collection(db, "userPresetTasks"));
-        batch.set(newTaskRef, {
-            ...task,
-            userId: user.uid,
-            profession: prof,
-            order: order++,
-        });
-    });
-
-    await batch.commit();
-  }, [user, isOffline, isSyncEnabled]);
   
-  const loadDefaultTasks = useCallback((prof: ProfileType) => {
-    const routineKey = profileToRoutineMap[prof] || 'General';
-    const defaultTasks = defaultRoutines[routineKey];
-    
-    let order = 0;
-    const tasksWithOrder = defaultTasks.map(task => ({
-        ...task,
-        order: order++,
-    }));
-
-    const newPreset: Preset = {};
-    tasksWithOrder.forEach(task => {
-        const category = task.category || 'Default';
-        if (!newPreset[category]) {
-            newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-        }
-        newPreset[category].tasks.push(task as UserPresetTask);
-    });
-
-    // Sort categories
-    const sortedPreset: Preset = {};
-    Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-      .forEach(key => {
-        sortedPreset[key] = newPreset[key];
-        // Sort tasks within category
-        sortedPreset[key].tasks.sort((a, b) => a.order - b.order);
-      });
-      
-    setBasePresetTasks(sortedPreset);
-
-  }, []);
-
   const getEffectiveProfile = useCallback(() => {
     const dayMap: { [key in Day]: number } = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
     const today = getDay(new Date()); // Sunday = 0, ...
@@ -646,27 +592,79 @@ export function usePresetTasks() {
 
   useEffect(() => {
     setLoading(profileLoading);
-    if (profileLoading) return;
+    if (profileLoading || !user) {
+        if (!user) setLoading(false);
+        return;
+    }
     
     const effectiveProfile = getEffectiveProfile();
     const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${effectiveProfile}`;
 
-    if (!user || isOffline || !isSyncEnabled) {
+    const loadDefaultTasks = () => {
+        const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+        const defaultTasks = defaultRoutines[routineKey];
+        
+        let order = 0;
+        const tasksWithOrder = defaultTasks.map(task => ({
+            ...task,
+            order: order++,
+        }));
+
+        const newPreset: Preset = {};
+        tasksWithOrder.forEach(task => {
+            const category = task.category || 'Default';
+            if (!newPreset[category]) {
+                newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+            }
+            newPreset[category].tasks.push(task as UserPresetTask);
+        });
+
+        // Sort categories
+        const sortedPreset: Preset = {};
+        Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+        .forEach(key => {
+            sortedPreset[key] = newPreset[key];
+            // Sort tasks within category
+            sortedPreset[key].tasks.sort((a, b) => a.order - b.order);
+        });
+        
+        setPresetTasks(sortedPreset);
+    };
+
+    if (isOffline || !isSyncEnabled) {
       try {
         const cachedData = localStorage.getItem(cacheKey);
         if (cachedData) {
-          setBasePresetTasks(JSON.parse(cachedData));
+          setPresetTasks(JSON.parse(cachedData));
         } else {
-          loadDefaultTasks(effectiveProfile);
+          loadDefaultTasks();
         }
       } catch(e) {
         console.warn("Couldn't access localStorage for preset tasks, loading defaults");
-        loadDefaultTasks(effectiveProfile);
+        loadDefaultTasks();
       }
       setLoading(false);
       return;
     }
     
+    const initializeUserTasks = async () => {
+        const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+        const defaultTasks = defaultRoutines[routineKey];
+
+        const batch = writeBatch(db);
+        let order = 0;
+        defaultTasks.forEach(task => {
+            const newTaskRef = doc(collection(db, "userPresetTasks"));
+            batch.set(newTaskRef, {
+                ...task,
+                userId: user.uid,
+                profession: effectiveProfile,
+                order: order++,
+            });
+        });
+        await batch.commit();
+    };
+
     setLoading(true);
     const q = query(
       collection(db, 'userPresetTasks'),
@@ -678,11 +676,8 @@ export function usePresetTasks() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let finalPreset: Preset = {};
       if (snapshot.empty) {
-        // If empty, it could be a new user or a new profile selection.
-        // Initialize the tasks for this profile in Firestore.
-        initializeUserTasks(effectiveProfile);
-        // Also load them into the state for immediate display.
-        loadDefaultTasks(effectiveProfile);
+        initializeUserTasks();
+        loadDefaultTasks();
       } else {
         const newPreset: Preset = {};
         snapshot.docs.forEach(doc => {
@@ -702,27 +697,24 @@ export function usePresetTasks() {
         finalPreset = sortedPreset;
       }
       
-      setBasePresetTasks(finalPreset);
+      setPresetTasks(finalPreset);
       try {
           localStorage.setItem(cacheKey, JSON.stringify(finalPreset));
       } catch(e) {
           console.warn("Couldn't access localStorage to cache preset tasks");
       }
-
-
       setLoading(false);
     }, (error) => {
       console.error("Error fetching preset tasks: ", error);
-      loadDefaultTasks(effectiveProfile); // Fallback to defaults
+      loadDefaultTasks(); // Fallback to defaults
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user, profile, daysOff, isOffline, profileLoading, loadDefaultTasks, initializeUserTasks, isSyncEnabled, getEffectiveProfile]);
+  }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile]);
 
-  useEffect(() => {
-      // Deep copy base preset tasks
-      const newPresetTasks = JSON.parse(JSON.stringify(basePresetTasks));
+  const presetTasksWithEvents = useMemo(() => {
+      const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
   
       const todaysEvents = events.filter(e => isToday(new Date(e.date)));
       todaysEvents.forEach(event => {
@@ -745,8 +737,9 @@ export function usePresetTasks() {
               newPresetTasks[eventCategory].tasks.sort((a: UserPresetTask, b: UserPresetTask) => a.order - b.order);
           }
       });
-      setPresetTasks(newPresetTasks);
-  }, [basePresetTasks, events]);
+      return newPresetTasks;
+  }, [presetTasks, events]);
+  
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
     if (!user || isOffline || !isSyncEnabled) return;
@@ -932,7 +925,7 @@ export function usePresetTasks() {
   }, [categoryTimeRanges, presetTasks]);
 
   return { 
-    presetTasks, 
+    presetTasks: presetTasksWithEvents, 
     loading, 
     addPresetTask, 
     updatePresetTask,
