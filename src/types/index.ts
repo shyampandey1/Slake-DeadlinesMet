@@ -64,6 +64,7 @@ export type UserProfile = {
     profile: ProfileType;
     customProfessions?: CustomProfession[];
     daysOff?: Day[];
+    routineVersions?: { [key: string]: number };
 }
 
 export type UserEvent = {

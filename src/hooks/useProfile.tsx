@@ -60,6 +60,7 @@ interface ProfileContextType {
   customProfessions: CustomProfession[];
   deleteCustomProfession: (professionName: string) => Promise<void>;
   loading: boolean;
+  profileData: UserProfile | null;
 }
 
 const ProfileContext = createContext<ProfileContextType>({
@@ -70,31 +71,34 @@ const ProfileContext = createContext<ProfileContextType>({
   customProfessions: [],
   deleteCustomProfession: async () => {},
   loading: true,
+  profileData: null,
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user, isOffline, isSyncEnabled } = useAuth();
-  const [profile, setProfileState] = useState<ProfileType>("General");
-  const [daysOff, setDaysOffState] = useState<Day[]>([]);
-  const [customProfessions, setCustomProfessionsState] = useState<CustomProfession[]>([]);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const profile = profileData?.profile || "General";
+  const daysOff = profileData?.daysOff || [];
+  const customProfessions = profileData?.customProfessions || [];
 
   useEffect(() => {
     if (!user || isOffline || !isSyncEnabled) {
-        // Try to load from localStorage first for offline/guest mode
         if (typeof window !== 'undefined') {
             try {
                 const storedProfile = localStorage.getItem('user-profile');
                 if (storedProfile) {
                     const parsedProfile: UserProfile = JSON.parse(storedProfile);
-                    setProfileState(parsedProfile.profile || 'General');
-                    setDaysOffState(parsedProfile.daysOff || []);
+                    setProfileData(parsedProfile);
+                } else {
+                    setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {} });
                 }
             } catch (e) {
-                console.warn("Could not access localStorage for profile")
+                console.warn("Could not access localStorage for profile");
+                setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {} });
             }
         }
-        setCustomProfessionsState([]); // No custom professions in offline mode
         setLoading(false);
         return;
     }
@@ -103,34 +107,22 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     const profileRef = doc(db, 'userProfiles', user.uid);
 
     const unsubscribe = onSnapshot(profileRef, (docSnap) => {
+        let dataToSet: UserProfile;
         if (docSnap.exists()) {
-            const data = docSnap.data() as UserProfile;
-            const fetchedProfile = data.profile || "General";
-            const fetchedDaysOff = data.daysOff || [];
-            setProfileState(fetchedProfile);
-            setDaysOffState(fetchedDaysOff);
-            setCustomProfessionsState(data.customProfessions || []);
-             if (typeof window !== 'undefined') {
-                 try {
-                    localStorage.setItem('user-profile', JSON.stringify({ profile: fetchedProfile, daysOff: fetchedDaysOff }));
-                 } catch (e) {
-                    console.warn("Could not access localStorage for profile")
-                 }
-             }
+            dataToSet = docSnap.data() as UserProfile;
         } else {
             // If no profile, set default "General"
-            const defaultProfile = { profile: "General", daysOff: [] as Day[], customProfessions: [] };
-            setDoc(profileRef, defaultProfile);
-            setProfileState("General");
-            setDaysOffState([]);
-            setCustomProfessionsState([]);
-             if (typeof window !== 'undefined') {
-                 try {
-                    localStorage.setItem('user-profile', JSON.stringify(defaultProfile));
-                 } catch (e) {
-                    console.warn("Could not access localStorage for profile")
-                 }
-             }
+            dataToSet = { profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
+            setDoc(profileRef, dataToSet);
+        }
+
+        setProfileData(dataToSet);
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('user-profile', JSON.stringify(dataToSet));
+            } catch (e) {
+                console.warn("Could not write profile to localStorage");
+            }
         }
         setLoading(false);
     }, (error) => {
@@ -145,14 +137,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const setProfile = useCallback(async (newProfile: ProfileType) => {
     if (profile === newProfile) return;
     
-    setProfileState(newProfile);
+    const updatedData = { ...profileData, profile: newProfile } as UserProfile;
+    setProfileData(updatedData);
     if (typeof window !== 'undefined') {
         try {
-            const storedData = localStorage.getItem('user-profile');
-            const currentData = storedData ? JSON.parse(storedData) : {};
-            localStorage.setItem('user-profile', JSON.stringify({ ...currentData, profile: newProfile }));
+            localStorage.setItem('user-profile', JSON.stringify(updatedData));
         } catch(e) {
-            console.warn("Could not access localStorage for profile")
+            console.warn("Could not access localStorage for profile");
         }
     }
 
@@ -164,17 +155,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             console.error("Failed to set profile: ", error);
         }
     }
-  }, [user, isOffline, isSyncEnabled, profile]);
+  }, [user, isOffline, isSyncEnabled, profile, profileData]);
   
   const setDaysOff = useCallback(async (newDaysOff: Day[]) => {
-    setDaysOffState(newDaysOff);
+    const updatedData = { ...profileData, daysOff: newDaysOff } as UserProfile;
+    setProfileData(updatedData);
+
     if (typeof window !== 'undefined') {
          try {
-            const storedData = localStorage.getItem('user-profile');
-            const currentData = storedData ? JSON.parse(storedData) : {};
-            localStorage.setItem('user-profile', JSON.stringify({ ...currentData, daysOff: newDaysOff }));
+            localStorage.setItem('user-profile', JSON.stringify(updatedData));
         } catch(e) {
-            console.warn("Could not access localStorage for profile")
+            console.warn("Could not access localStorage for profile");
         }
     }
 
@@ -186,10 +177,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             console.error("Failed to set day off: ", error);
         }
     }
-  }, [user, isOffline, isSyncEnabled]);
+  }, [user, isOffline, isSyncEnabled, profileData]);
 
   const deleteCustomProfession = useCallback(async (professionName: string) => {
-    if (!user || isOffline || isSyncEnabled) return;
+    if (!user || isOffline || !isSyncEnabled) return;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -197,7 +188,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             const profileDoc = await transaction.get(profileRef);
 
             if (profileDoc.exists()) {
-                const currentCustomProfessions = (profileDoc.data().customProfessions || []).filter(
+                const currentData = profileDoc.data() as UserProfile;
+                const currentCustomProfessions = (currentData.customProfessions || []).filter(
                     (p: CustomProfession) => p.name !== professionName
                 );
                 
@@ -205,7 +197,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
                 if (profile === professionName) {
                     transaction.update(profileRef, { profile: "General" });
-                    setProfileState("General");
+                    setProfileData(prev => ({...prev!, profile: 'General'}));
                 }
             }
             
@@ -225,7 +217,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, profile, isSyncEnabled]);
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData }}>
       {children}
     </ProfileContext.Provider>
   );
