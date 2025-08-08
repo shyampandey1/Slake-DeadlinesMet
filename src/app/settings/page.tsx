@@ -41,6 +41,7 @@ function SettingsPageComponent() {
     const [displayName, setDisplayName] = useState(user?.displayName || "");
     const [isSavingName, setIsSavingName] = useState(false);
     const { toast } = useToast();
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
     const handleClearHistory = () => {
         clearTasks();
@@ -91,6 +92,29 @@ function SettingsPageComponent() {
                                     <span className="sr-only">Toggle theme</span>
                                 </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg">Notifications</CardTitle>
+                            <CardDescription>Manage how you receive alerts for tasks.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="audio-switch" className="font-medium flex items-center gap-2">
+                                    <Bell className="h-4 w-4" />
+                                    Push Notifications
+                                </label>
+                                <Switch
+                                    id="notifications-switch"
+                                    checked={notificationsEnabled}
+                                    onCheckedChange={setNotificationsEnabled}
+                                />
+                            </div>
+                             <p className="text-sm text-muted-foreground -mt-2">
+                                Stay updated with task reminders and motivational messages.
+                            </p>
                         </CardContent>
                     </Card>
 
