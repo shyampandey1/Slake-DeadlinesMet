@@ -690,6 +690,12 @@ export function usePresetTasks() {
     };
 
     setLoading(true);
+    const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
+    
+    if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
+        initializeUserTasks().catch(console.error);
+    }
+    
     const q = query(
       collection(db, 'userPresetTasks'),
       where('userId', '==', user.uid),
@@ -698,35 +704,35 @@ export function usePresetTasks() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
-      
-      if (snapshot.empty || userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        initializeUserTasks().catch(console.error);
-      } else {
-        const newPreset: Preset = {};
-        snapshot.docs.forEach(doc => {
-          const task = { id: doc.id, ...doc.data() } as UserPresetTask;
-          const category = task.category || 'Default';
-          if (!newPreset[category]) {
-            newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-          }
-          newPreset[category].tasks.push(task);
-        });
-        
-        const sortedPreset: Preset = {};
-        Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-          .forEach(key => {
-            sortedPreset[key] = newPreset[key];
-          });
-        
-        setBasePresetTasks(sortedPreset);
-        try {
-            localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
-        } catch(e) {
-            console.warn("Couldn't access localStorage to cache preset tasks");
-        }
-        setLoading(false);
+      if (snapshot.empty && userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
+        // This case indicates that initialization is in progress, so we wait.
+        return;
       }
+      
+      const newPreset: Preset = {};
+      snapshot.docs.forEach(doc => {
+        const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+        const category = task.category || 'Default';
+        if (!newPreset[category]) {
+          newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+        }
+        newPreset[category].tasks.push(task);
+      });
+      
+      const sortedPreset: Preset = {};
+      Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+        .forEach(key => {
+          sortedPreset[key] = newPreset[key];
+        });
+      
+      setBasePresetTasks(sortedPreset);
+      try {
+          localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
+      } catch(e) {
+          console.warn("Couldn't access localStorage to cache preset tasks");
+      }
+      setLoading(false);
+
     }, (error) => {
       console.error("Error fetching preset tasks: ", error);
       loadDefaultTasks();
