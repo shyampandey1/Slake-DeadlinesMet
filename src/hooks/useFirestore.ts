@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 3;
+const ROUTINE_TEMPLATE_VERSION = 5;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -318,10 +318,9 @@ const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit
             { name: "Meditation for Focus", duration: 10, icon: "Wind", category: "Morning Routine" },
             { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
             { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
+            { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
             { name: "Deep Work Block 1", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
-            { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
             { name: "Deep Work Block 2", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
-            { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
             { name: "Deep Work Block 3", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
             { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
@@ -656,16 +655,20 @@ export function usePresetTasks() {
       return;
     }
     
-    const initializeOrUpdateUserTasks = async () => {
+    const initializeUserTasks = async () => {
         await runTransaction(db, async (transaction) => {
-            // Delete old tasks for this profile
-            const currentTasksQuery = query(
+            // Check if tasks already exist to prevent accidental overwrite if this runs unexpectedly
+            const checkQuery = query(
                 collection(db, 'userPresetTasks'), 
                 where('userId', '==', user.uid), 
                 where('profession', '==', effectiveProfile)
             );
-            const currentTasksSnapshot = await getDocs(currentTasksQuery);
-            currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
+            const checkSnapshot = await getDocs(checkQuery); // Use getDocs without transaction context for initial check
+            
+            if (!checkSnapshot.empty) {
+                // Tasks exist, maybe we just need to update? Let's delete and re-add for simplicity of versioning.
+                checkSnapshot.forEach(doc => transaction.delete(doc.ref));
+            }
 
             // Add new tasks from the template
             const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
@@ -704,7 +707,7 @@ export function usePresetTasks() {
       const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
       
       if (snapshot.empty || userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        initializeOrUpdateUserTasks();
+        initializeUserTasks();
         // The listener will be re-triggered after the transaction.
       } else {
         const newPreset: Preset = {};
@@ -741,34 +744,41 @@ export function usePresetTasks() {
   }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile, profileData]);
 
   const presetTasks = useMemo(() => {
-      // Create a deep copy to avoid mutating the base state
-      const newPresetTasks: Preset = JSON.parse(JSON.stringify(basePresetTasks));
-  
-      const todaysEvents = events.filter(e => isToday(new Date(e.date)));
-      
-      todaysEvents.forEach(event => {
-          const eventDate = new Date(event.date);
-          const eventCategory = 'Work & Focus'; // Assume all calendar events are for 'Work & Focus' for simplicity
-          
-          if (!newPresetTasks[eventCategory]) {
-              newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color || categoryConfig.Default.color, tasks: [] };
-          }
-          
-          if (!newPresetTasks[eventCategory].tasks.some((t: UserPresetTask) => t.id === event.id)) {
-              newPresetTasks[eventCategory].tasks.push({
-                  id: event.id,
-                  name: event.name,
-                  duration: event.duration,
-                  icon: event.icon,
-                  isEvent: true,
-                  category: eventCategory,
-                  // Use time as order key to sort events chronologically within their category
-                  order: eventDate.getHours() * 100 + eventDate.getMinutes(), 
-              });
-              newPresetTasks[eventCategory].tasks.sort((a: UserPresetTask, b: UserPresetTask) => a.order - b.order);
-          }
-      });
+    const newPresetTasks: Preset = JSON.parse(JSON.stringify(basePresetTasks));
+    const todaysEvents = events.filter(e => isToday(new Date(e.date)));
+    
+    if (todaysEvents.length === 0) {
       return newPresetTasks;
+    }
+    
+    todaysEvents.forEach(event => {
+      const eventDate = new Date(event.date);
+      const eventCategory = 'Work & Focus';
+      
+      if (!newPresetTasks[eventCategory]) {
+        newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color || categoryConfig.Default.color, tasks: [] };
+      }
+      
+      const eventExists = newPresetTasks[eventCategory].tasks.some((t: UserPresetTask) => t.id === event.id);
+      
+      if (!eventExists) {
+        newPresetTasks[eventCategory].tasks.push({
+          id: event.id,
+          name: event.name,
+          duration: event.duration,
+          icon: event.icon,
+          isEvent: true,
+          category: eventCategory,
+          order: eventDate.getHours() * 100 + eventDate.getMinutes(),
+        });
+      }
+    });
+
+    Object.keys(newPresetTasks).forEach(category => {
+      newPresetTasks[category].tasks.sort((a: UserPresetTask, b: UserPresetTask) => a.order - b.order);
+    });
+
+    return newPresetTasks;
   }, [basePresetTasks, events]);
   
 
@@ -878,7 +888,7 @@ export function usePresetTasks() {
     const timeBlocks = {
         'Morning Routine': { start: 7, end: 9 },
         'Work & Focus': { start: 9, end: 17 },
-        'Breaks & Meals': { start: 12, end: 13 },
+        'Breaks & Meals': { start: 9, end: 14 }, // Widened to include pre-work coffee and lunch
         'Health & Wellness': {start: 17, end: 21 },
         'Evening Wind-down': { start: 17, end: 21 },
         'Evening Reset': { start: 17, end: 21 },
