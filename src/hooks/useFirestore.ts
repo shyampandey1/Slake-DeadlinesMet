@@ -310,23 +310,32 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
     ],
     "IT Professional": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-        { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
-        { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
-        { name: "Review System Alerts & Logs", duration: 20, icon: "ListChecks", category: "Morning Routine" },
-        { name: "Daily Stand-up & Plan", duration: 15, icon: "Users", category: "Morning Routine" },
-        { name: "Deep Work on Infrastructure/Code", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
-        { name: "Code Reviews & Lighter Tasks", duration: 60, icon: "Mail", category: "Work & Focus" },
+        { name: "Meditation for Focus", duration: 10, icon: "Wind", category: "Morning Routine" },
+        { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
+        { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
-        { name: "Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
-        { name: "Documentation & Runbook Updates", duration: 45, icon: "PenTool", category: "Work & Focus" },
-        { name: "Project Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
+        { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+        { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
+        { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+        { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
+        { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+        { name: "Short Break", duration: 10, icon: "Coffee", category: "Work & Focus" },
+        { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Breaks & Meals" },
+        { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
+        { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
+        { name: "Writing Documentation", duration: 30, icon: "PenTool", category: "Work & Focus" },
+        { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Health & Wellness" },
         { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
-        { name: "Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
+        { name: "Analog Hobby (puzzles, music, etc.)", duration: 60, icon: "Gamepad", category: "Evening Wind-down" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
-        { name: "Personal Project / Learning", duration: 60, icon: "BrainCircuit", category: "Evening Wind-down" },
+        { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
+        { name: "Personal Project / Learning", duration: 45, icon: "Wrench", category: "Evening Wind-down" },
+        { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
         { name: "Strict Screen Cutoff", duration: 60, icon: "Smartphone", category: "Bedtime Routine" },
-        { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
-        { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" }
+        { name: "Stretching to relieve desk posture", duration: 10, icon: "StretchHorizontal", category: "Bedtime Routine" },
+        { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Bedtime Routine" }
     ],
     "Manager": [
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -423,7 +432,7 @@ const defaultRoutines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "orde
         { name: "Workout/Exercise", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
         { name: "Dinner", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
         { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
-        { name: "Side Project or Learning", duration: 60, icon: "Lightbulb", category: "Evening Wind-down" },
+        { name: "Side Project or Learning", duration: 60, icon: "Wrench", category: "Evening Wind-down" },
         { name: "Push code & clean up", duration: 15, icon: "Wrench", category: "Bedtime Routine" },
         { name: "No screens before bed", duration: 30, icon: "Smartphone", category: "Bedtime Routine" },
         { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
@@ -568,8 +577,8 @@ const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumb
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
   const { profile, daysOff, loading: profileLoading } = useProfile();
+  const [basePresetTasks, setBasePresetTasks] = useState<Preset>({});
   const { events } = useCalendarEvents();
-  const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
   const PRESET_TASKS_CACHE_KEY_PREFIX = 'user_preset_tasks_';
 
@@ -628,14 +637,14 @@ export function usePresetTasks() {
             sortedPreset[key].tasks.sort((a, b) => a.order - b.order);
         });
         
-        setPresetTasks(sortedPreset);
+        setBasePresetTasks(sortedPreset);
     };
 
     if (isOffline || !isSyncEnabled) {
       try {
         const cachedData = localStorage.getItem(cacheKey);
         if (cachedData) {
-          setPresetTasks(JSON.parse(cachedData));
+          setBasePresetTasks(JSON.parse(cachedData));
         } else {
           loadDefaultTasks();
         }
@@ -676,8 +685,10 @@ export function usePresetTasks() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let finalPreset: Preset = {};
       if (snapshot.empty) {
-        initializeUserTasks();
-        loadDefaultTasks();
+        initializeUserTasks().then(() => {
+          // The onSnapshot listener will be re-triggered after initialization,
+          // so no need to load default tasks here manually.
+        });
       } else {
         const newPreset: Preset = {};
         snapshot.docs.forEach(doc => {
@@ -697,7 +708,7 @@ export function usePresetTasks() {
         finalPreset = sortedPreset;
       }
       
-      setPresetTasks(finalPreset);
+      setBasePresetTasks(finalPreset);
       try {
           localStorage.setItem(cacheKey, JSON.stringify(finalPreset));
       } catch(e) {
@@ -713,13 +724,17 @@ export function usePresetTasks() {
     return () => unsubscribe();
   }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile]);
 
-  const presetTasksWithEvents = useMemo(() => {
-      const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
+  const presetTasks = useMemo(() => {
+      if (events.length === 0) return basePresetTasks;
+      
+      const newPresetTasks = JSON.parse(JSON.stringify(basePresetTasks));
   
       const todaysEvents = events.filter(e => isToday(new Date(e.date)));
+      
       todaysEvents.forEach(event => {
           const eventDate = new Date(event.date);
           const eventCategory = 'Work & Focus'; // Or determine from event
+          
           if (!newPresetTasks[eventCategory]) {
               newPresetTasks[eventCategory] = { color: categoryConfig[eventCategory]?.color, tasks: [] };
           }
@@ -738,7 +753,7 @@ export function usePresetTasks() {
           }
       });
       return newPresetTasks;
-  }, [presetTasks, events]);
+  }, [basePresetTasks, events]);
   
 
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
@@ -750,7 +765,7 @@ export function usePresetTasks() {
     
     const newTask = {
         ...rest,
-        category, // Make sure category is included here
+        category,
         userId: user.uid,
         profession: currentProfile,
         order: newOrder
@@ -925,7 +940,7 @@ export function usePresetTasks() {
   }, [categoryTimeRanges, presetTasks]);
 
   return { 
-    presetTasks: presetTasksWithEvents, 
+    presetTasks, 
     loading, 
     addPresetTask, 
     updatePresetTask,
