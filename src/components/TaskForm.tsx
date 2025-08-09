@@ -105,10 +105,12 @@ export default function TaskForm() {
     
     todaysEvents.forEach(event => {
         const eventDate = parseISO(event.date);
-        // Default to a sensible category if none exists
-        const eventCategory = 'Work & Focus';
+        
+        // Use a generic category for events or derive if possible
+        const eventCategory = 'Today\'s Events';
+        
         if (!newPresetTasks[eventCategory]) {
-            newPresetTasks[eventCategory] = { color: 'bg-slate-800 text-slate-100', tasks: [] };
+            newPresetTasks[eventCategory] = { color: 'bg-amber-800 text-amber-100', tasks: [] };
         }
         
         const eventAsTask: UserPresetTask = {
