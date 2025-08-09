@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -131,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 8;
+const ROUTINE_TEMPLATE_VERSION = 9;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -946,7 +945,11 @@ export function useCalendarEvents() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const userEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserEvent));
+      const userEvents = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const eventDate = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
+        return { id: doc.id, ...data, date: eventDate } as UserEvent
+      });
       setEvents(userEvents);
       try {
         localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(userEvents));
@@ -999,5 +1002,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
