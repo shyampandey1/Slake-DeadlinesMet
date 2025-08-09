@@ -294,8 +294,8 @@ export default function TaskForm() {
                                         return (
                                             <Button
                                                 key={task.id || `${task.name}-${index}`}
-                                                variant={isEventTask ? "default" : "outline"}
-                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30": isEventTask })}
+                                                variant="outline"
+                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
                                                 onClick={() => selectQuickStartTask(task, category)}
                                                 onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
                                             >
