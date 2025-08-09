@@ -130,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 10;
+const ROUTINE_TEMPLATE_VERSION = 11;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -598,13 +598,19 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    
+    // Cleanup function to run when the effect is re-triggered
+    if (unsubscribe) {
+        unsubscribe();
+    }
+    setPresetTasks({});
+
     if (profileLoading || !user) {
       setLoading(false);
       return;
     }
-  
-    let unsubscribe: (() => void) | null = null;
-  
+    
     const effectiveProfile = getEffectiveProfile();
     const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
   
@@ -645,9 +651,7 @@ export function usePresetTasks() {
   
     const loadData = async () => {
       setLoading(true);
-      // ** Critical: Clear previous state before loading new data **
-      setPresetTasks({}); 
-  
+      
       if (isOffline || !isSyncEnabled) {
         try {
           const cachedData = localStorage.getItem(cacheKey);
