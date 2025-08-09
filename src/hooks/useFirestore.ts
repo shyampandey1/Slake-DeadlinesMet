@@ -130,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 9;
+const ROUTINE_TEMPLATE_VERSION = 10;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -599,127 +599,129 @@ export function usePresetTasks() {
 
   useEffect(() => {
     if (profileLoading || !user) {
-        setLoading(profileLoading);
-        if (!user) setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
-    
+  
+    let unsubscribe: (() => void) | null = null;
+  
     const effectiveProfile = getEffectiveProfile();
     const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
-
+  
     const initializeUserTasks = async () => {
-        if (!user) return;
-        await runTransaction(db, async (transaction) => {
-            const currentTasksQuery = query(
-                collection(db, 'userPresetTasks'), 
-                where('userId', '==', user.uid), 
-                where('profession', '==', effectiveProfile)
-            );
-            const currentTasksSnapshot = await getDocs(currentTasksQuery);
-            currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
-
+      if (!user) return;
+  
+      await runTransaction(db, async (transaction) => {
+        const currentTasksQuery = query(
+          collection(db, 'userPresetTasks'),
+          where('userId', '==', user.uid),
+          where('profession', '==', effectiveProfile)
+        );
+        const currentTasksSnapshot = await getDocs(currentTasksQuery);
+        currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
+  
+        const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+        const defaultTasks = defaultRoutines.routines[routineKey];
+        let order = 0;
+        defaultTasks.forEach(task => {
+          const newTaskRef = doc(collection(db, "userPresetTasks"));
+          transaction.set(newTaskRef, {
+            ...task,
+            userId: user.uid,
+            profession: effectiveProfile,
+            order: order++,
+          });
+        });
+  
+        const profileRef = doc(db, 'userProfiles', user.uid);
+        transaction.set(profileRef, {
+          routineVersions: {
+            ...profileData?.routineVersions,
+            [effectiveProfile]: ROUTINE_TEMPLATE_VERSION,
+          }
+        }, { merge: true });
+      });
+    };
+  
+    const loadData = async () => {
+      setLoading(true);
+      // ** Critical: Clear previous state before loading new data **
+      setPresetTasks({}); 
+  
+      if (isOffline || !isSyncEnabled) {
+        try {
+          const cachedData = localStorage.getItem(cacheKey);
+          if (cachedData) {
+            setPresetTasks(JSON.parse(cachedData));
+          } else {
             const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
             const defaultTasks = defaultRoutines.routines[routineKey];
             let order = 0;
-            defaultTasks.forEach(task => {
-                const newTaskRef = doc(collection(db, "userPresetTasks"));
-                transaction.set(newTaskRef, {
-                    ...task,
-                    userId: user.uid,
-                    profession: effectiveProfile,
-                    order: order++,
-                });
-            });
-
-            const profileRef = doc(db, 'userProfiles', user.uid);
-            transaction.set(profileRef, {
-                routineVersions: {
-                    ...profileData?.routineVersions,
-                    [effectiveProfile]: ROUTINE_TEMPLATE_VERSION,
-                }
-            }, { merge: true });
-        });
-    };
-
-    const loadData = async () => {
-        setLoading(true);
-        if (isOffline || !isSyncEnabled) {
-            try {
-                const cachedData = localStorage.getItem(cacheKey);
-                if (cachedData) {
-                    setPresetTasks(JSON.parse(cachedData));
-                } else {
-                    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
-                    const defaultTasks = defaultRoutines.routines[routineKey];
-                    let order = 0;
-                    const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
-                    const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
-                        const category = task.category || 'Default';
-                        if (!acc[category]) {
-                            acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-                        }
-                        acc[category].tasks.push(task as UserPresetTask);
-                        return acc;
-                    }, {});
-                    setPresetTasks(newPreset);
-                }
-            } catch(e) { console.warn("Error with cache", e); }
-            setLoading(false);
-            return null; // No need for a listener
-        }
-        
-        const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
-    
-        if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-            await initializeUserTasks().catch(console.error);
-        }
-        
-        const q = query(
-          collection(db, 'userPresetTasks'),
-          where('userId', '==', user.uid),
-          where('profession', '==', effectiveProfile),
-          orderBy('order', 'asc')
-        );
-
-        return onSnapshot(q, (snapshot) => {
-          const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
-              const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+            const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
+            const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
               const category = task.category || 'Default';
               if (!acc[category]) {
-                  acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
               }
-              acc[category].tasks.push(task);
+              acc[category].tasks.push(task as UserPresetTask);
               return acc;
-          }, {});
-
-          const sortedPreset: Preset = {};
-          Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-            .forEach(key => {
-              sortedPreset[key] = newPreset[key];
-            });
-          
-          setPresetTasks(sortedPreset);
-          try {
-              localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
-          } catch(e) {
-              console.warn("Couldn't cache preset tasks");
+            }, {});
+            setPresetTasks(newPreset);
           }
-          setLoading(false);
-        }, (error) => {
-          console.error("Error fetching preset tasks: ", error);
-          setLoading(false);
-        });
+        } catch(e) { console.warn("Error with cache", e); }
+        setLoading(false);
+        return;
+      }
+  
+      const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
+  
+      if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
+        await initializeUserTasks().catch(console.error);
+      }
+  
+      const q = query(
+        collection(db, 'userPresetTasks'),
+        where('userId', '==', user.uid),
+        where('profession', '==', effectiveProfile),
+        orderBy('order', 'asc')
+      );
+  
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
+          const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+          const category = task.category || 'Default';
+          if (!acc[category]) {
+            acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+          }
+          acc[category].tasks.push(task);
+          return acc;
+        }, {});
+  
+        const sortedPreset: Preset = {};
+        Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+          .forEach(key => {
+            sortedPreset[key] = newPreset[key];
+          });
+  
+        setPresetTasks(sortedPreset);
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
+        } catch(e) {
+          console.warn("Couldn't cache preset tasks");
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Error fetching preset tasks: ", error);
+        setLoading(false);
+      });
     };
-
-    const unsubscribePromise = loadData();
-
+  
+    loadData();
+  
     return () => {
-        setPresetTasks({}); // Clean up state on re-run
-        unsubscribePromise.then(unsubscribe => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-        });
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile, profileData]);
   
