@@ -130,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 11;
+const ROUTINE_TEMPLATE_VERSION = 12;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -600,33 +600,28 @@ export function usePresetTasks() {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     
-    // Cleanup function to run when the effect is re-triggered
-    if (unsubscribe) {
-        unsubscribe();
-    }
-    setPresetTasks({});
-
-    if (profileLoading || !user) {
-      setLoading(false);
-      return;
-    }
-    
-    const effectiveProfile = getEffectiveProfile();
-    const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
-  
-    const initializeUserTasks = async () => {
+    const initializeUserTasks = async (currentProfile: ProfileType) => {
       if (!user) return;
   
       await runTransaction(db, async (transaction) => {
-        const currentTasksQuery = query(
+        const profileRef = doc(db, 'userProfiles', user.uid);
+        
+        // Check if tasks for this profile already exist to prevent duplication
+        const tasksQuery = query(
           collection(db, 'userPresetTasks'),
           where('userId', '==', user.uid),
-          where('profession', '==', effectiveProfile)
+          where('profession', '==', currentProfile)
         );
-        const currentTasksSnapshot = await getDocs(currentTasksQuery);
-        currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
-  
-        const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+        const existingTasksSnapshot = await transaction.get(tasksQuery);
+        if (!existingTasksSnapshot.empty) {
+            // If tasks already exist, just update the version and do nothing else.
+             transaction.set(profileRef, {
+                routineVersions: { ...profileData?.routineVersions, [currentProfile]: ROUTINE_TEMPLATE_VERSION }
+            }, { merge: true });
+            return;
+        }
+
+        const routineKey = profileToRoutineMap[currentProfile] || 'General';
         const defaultTasks = defaultRoutines.routines[routineKey];
         let order = 0;
         defaultTasks.forEach(task => {
@@ -634,25 +629,32 @@ export function usePresetTasks() {
           transaction.set(newTaskRef, {
             ...task,
             userId: user.uid,
-            profession: effectiveProfile,
+            profession: currentProfile,
             order: order++,
           });
         });
   
-        const profileRef = doc(db, 'userProfiles', user.uid);
         transaction.set(profileRef, {
-          routineVersions: {
-            ...profileData?.routineVersions,
-            [effectiveProfile]: ROUTINE_TEMPLATE_VERSION,
-          }
+          routineVersions: { ...profileData?.routineVersions, [currentProfile]: ROUTINE_TEMPLATE_VERSION }
         }, { merge: true });
       });
     };
-  
+
     const loadData = async () => {
-      setLoading(true);
+      if (unsubscribe) unsubscribe();
+      setPresetTasks({});
+
+      if (profileLoading || !user) {
+        setLoading(false);
+        return;
+      }
       
+      const effectiveProfile = getEffectiveProfile();
+      setLoading(true);
+
       if (isOffline || !isSyncEnabled) {
+        // Offline logic remains the same
+        const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
         try {
           const cachedData = localStorage.getItem(cacheKey);
           if (cachedData) {
@@ -676,11 +678,10 @@ export function usePresetTasks() {
         setLoading(false);
         return;
       }
-  
+      
       const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
-  
       if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        await initializeUserTasks().catch(console.error);
+        await initializeUserTasks(effectiveProfile).catch(console.error);
       }
   
       const q = query(
@@ -708,6 +709,7 @@ export function usePresetTasks() {
           });
   
         setPresetTasks(sortedPreset);
+        const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
         try {
           localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
         } catch(e) {
