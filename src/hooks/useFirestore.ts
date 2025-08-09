@@ -314,28 +314,26 @@ const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit
         ],
         "IT Professional": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-            { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
-            { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
             { name: "Meditation for Focus", duration: 10, icon: "Wind", category: "Morning Routine" },
-            { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
+            { name: "Review Tech News / Documentation", duration: 20, icon: "FileCode", category: "Morning Routine" },
+            { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
             { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
-            { name: "Deep Work Block 1", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Deep Work Coding / Analysis Session 1", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
-            { name: "Deep Work Block 2", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Deep Work Coding / Analysis Session 2", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
-            { name: "Deep Work Block 3", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Deep Work Coding / Analysis Session 3", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
             { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
             { name: "Code Reviews / Meetings", duration: 60, icon: "Users", category: "Work & Focus" },
-            { name: "Writing Documentation", duration: 30, icon: "PenTool", category: "Work & Focus" },
+            { name: "Writing Documentation", duration: 30, icon: "PenSquare", category: "Work & Focus" },
             { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Health & Wellness" },
-            { name: "Analog Hobby (puzzles, music, etc.)", duration: 60, icon: "Gamepad2", category: "Evening Wind-down" },
+            { name: "Analog Hobby (puzzles, music, etc.)", duration: 60, icon: "Puzzle", category: "Evening Wind-down" },
             { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Wind-down" },
-            { name: "Personal Project / Learning", duration: 45, icon: "Wrench", category: "Evening Wind-down" },
+            { name: "Personal Project / Learning", duration: 45, icon: "Lightbulb", category: "Evening Wind-down" },
             { name: "Strict Screen Cutoff", duration: 60, icon: "Smartphone", category: "Bedtime Routine" },
             { name: "Stretching to relieve desk posture", duration: 10, icon: "StretchHorizontal", category: "Bedtime Routine" },
             { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
-            { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
         ],
         "Manager": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -571,7 +569,7 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
 };
 
 const getAvailableCategories = () => Object.keys(categoryConfig);
-const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck"];
+const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck", "FileCode", "PenSquare", "Puzzle", "Lightbulb"];
 
 
 // Hook for managing preset tasks and routines
@@ -609,54 +607,6 @@ export function usePresetTasks() {
     const effectiveProfile = getEffectiveProfile();
     const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
 
-    const loadDefaultTasks = () => {
-        const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
-        const defaultTasks = defaultRoutines.routines[routineKey];
-        
-        let order = 0;
-        const tasksWithOrder = defaultTasks.map(task => ({
-            ...task,
-            order: order++,
-        }));
-
-        const newPreset: Preset = {};
-        tasksWithOrder.forEach(task => {
-            const category = task.category || 'Default';
-            if (!newPreset[category]) {
-                newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-            }
-            newPreset[category].tasks.push(task as UserPresetTask);
-        });
-
-        // Sort categories
-        const sortedPreset: Preset = {};
-        Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-        .forEach(key => {
-            sortedPreset[key] = newPreset[key];
-            // Sort tasks within category
-            sortedPreset[key].tasks.sort((a, b) => a.order - b.order);
-        });
-        
-        setPresetTasks(sortedPreset);
-        setLoading(false);
-    };
-
-    if (isOffline || !isSyncEnabled) {
-      try {
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-          setPresetTasks(JSON.parse(cachedData));
-        } else {
-          loadDefaultTasks();
-        }
-      } catch(e) {
-        console.warn("Couldn't access localStorage for preset tasks, loading defaults");
-        loadDefaultTasks();
-      }
-      setLoading(false);
-      return;
-    }
-    
     const initializeUserTasks = async () => {
         if (!user) return;
         await runTransaction(db, async (transaction) => {
@@ -691,58 +641,86 @@ export function usePresetTasks() {
         });
     };
 
-    setLoading(true);
-    
-    const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
-    
-    if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        initializeUserTasks().catch(console.error);
-    }
-    
-    const q = query(
-      collection(db, 'userPresetTasks'),
-      where('userId', '==', user.uid),
-      where('profession', '==', effectiveProfile),
-      orderBy('order', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Prevent race condition: if we are initializing, the snapshot might be empty temporarily.
-      // We rely on the `initializeUserTasks` call and subsequent snapshot to populate data.
-      if (snapshot.empty && userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        return;
-      }
-      
-      const newPreset: Preset = {};
-      snapshot.docs.forEach(doc => {
-        const task = { id: doc.id, ...doc.data() } as UserPresetTask;
-        const category = task.category || 'Default';
-        if (!newPreset[category]) {
-          newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+    const loadData = async () => {
+        setLoading(true);
+        if (isOffline || !isSyncEnabled) {
+            try {
+                const cachedData = localStorage.getItem(cacheKey);
+                if (cachedData) {
+                    setPresetTasks(JSON.parse(cachedData));
+                } else {
+                    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+                    const defaultTasks = defaultRoutines.routines[routineKey];
+                    let order = 0;
+                    const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
+                    const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
+                        const category = task.category || 'Default';
+                        if (!acc[category]) {
+                            acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                        }
+                        acc[category].tasks.push(task as UserPresetTask);
+                        return acc;
+                    }, {});
+                    setPresetTasks(newPreset);
+                }
+            } catch(e) { console.warn("Error with cache", e); }
+            setLoading(false);
+            return null; // No need for a listener
         }
-        newPreset[category].tasks.push(task);
-      });
-      
-      const sortedPreset: Preset = {};
-      Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-        .forEach(key => {
-          sortedPreset[key] = newPreset[key];
+        
+        const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
+    
+        if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
+            await initializeUserTasks().catch(console.error);
+        }
+        
+        const q = query(
+          collection(db, 'userPresetTasks'),
+          where('userId', '==', user.uid),
+          where('profession', '==', effectiveProfile),
+          orderBy('order', 'asc')
+        );
+
+        return onSnapshot(q, (snapshot) => {
+          const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
+              const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+              const category = task.category || 'Default';
+              if (!acc[category]) {
+                  acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+              }
+              acc[category].tasks.push(task);
+              return acc;
+          }, {});
+
+          const sortedPreset: Preset = {};
+          Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+            .forEach(key => {
+              sortedPreset[key] = newPreset[key];
+            });
+          
+          setPresetTasks(sortedPreset);
+          try {
+              localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
+          } catch(e) {
+              console.warn("Couldn't cache preset tasks");
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error fetching preset tasks: ", error);
+          setLoading(false);
         });
-      
-      setPresetTasks(sortedPreset);
-      try {
-          localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
-      } catch(e) {
-          console.warn("Couldn't access localStorage to cache preset tasks");
-      }
-      setLoading(false);
+    };
 
-    }, (error) => {
-      console.error("Error fetching preset tasks: ", error);
-      loadDefaultTasks();
-    });
+    const unsubscribePromise = loadData();
 
-    return () => unsubscribe();
+    return () => {
+        setPresetTasks({}); // Clean up state on re-run
+        unsubscribePromise.then(unsubscribe => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        });
+    };
   }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile, profileData]);
   
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {

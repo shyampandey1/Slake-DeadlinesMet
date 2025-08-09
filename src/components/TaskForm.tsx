@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
 import { format, isToday, parseISO } from "date-fns";
@@ -46,33 +46,37 @@ const formSchema = z.object({
 });
 
 const iconMap: { [key: string]: LucideIcon } = {
-    ListChecks: ListChecks,
-    Bed: Bed,
-    StretchHorizontal: StretchHorizontal,
-    Dumbbell: Dumbbell,
-    BrainCircuit: BrainCircuit,
-    Mail: Mail,
-    Users: Users,
-    Coffee: Coffee,
-    Footprints: Footprints,
-    Utensils: Utensils,
-    Wind: Wind,
-    Droplets: Droplets,
-    BookOpen: BookOpen,
-    Plus: Plus,
-    Wrench: Wrench,
-    Target: Target,
-    ShoppingBag: ShoppingBag,
-    Calendar: Calendar,
+    ListChecks,
+    Bed,
+    StretchHorizontal,
+    Dumbbell,
+    BrainCircuit,
+    Mail,
+    Users,
+    Coffee,
+    Footprints,
+    Utensils,
+    Wind,
+    Droplets,
+    BookOpen,
+    Plus,
+    Wrench,
+    Target,
+    ShoppingBag,
+    Calendar,
     Gamepad: Gamepad2,
-    Eye: Eye,
-    PenTool: PenTool,
-    Smartphone: Smartphone,
-    Car: Car,
-    Tv: Tv,
-    Apple: Apple,
-    ShowerHead: ShowerHead,
-    Truck: Truck,
+    Eye,
+    PenTool,
+    Smartphone,
+    Car,
+    Tv,
+    Apple,
+    ShowerHead,
+    Truck,
+    FileCode,
+    PenSquare,
+    Puzzle,
+    Lightbulb
 };
 
 
@@ -97,16 +101,14 @@ export default function TaskForm() {
   });
 
   const mergedTasks = useMemo(() => {
-    if (Object.keys(presetTasks).length === 0) {
-      return {};
+    if (Object.keys(presetTasks).length === 0 && events.length === 0) {
+        return {};
     }
     const newPresetTasks: Preset = JSON.parse(JSON.stringify(presetTasks));
     const todaysEvents = events.filter(e => isToday(parseISO(e.date)));
     
     todaysEvents.forEach(event => {
         const eventDate = parseISO(event.date);
-        
-        // Use a generic category for events or derive if possible
         const eventCategory = 'Today\'s Events';
         
         if (!newPresetTasks[eventCategory]) {
@@ -132,7 +134,7 @@ export default function TaskForm() {
     });
 
     Object.keys(newPresetTasks).forEach(category => {
-        newPresetTasks[category].tasks.sort((a, b) => a.order - b.order);
+        newPresetTasks[category].tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
     });
 
     return newPresetTasks;
@@ -410,5 +412,3 @@ export default function TaskForm() {
     </>
   );
 }
-
-    
