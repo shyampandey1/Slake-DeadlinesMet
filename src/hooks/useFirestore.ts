@@ -314,12 +314,15 @@ const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit
         ],
         "IT Professional": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+            { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Routine" },
+            { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
             { name: "Meditation for Focus", duration: 10, icon: "Wind", category: "Morning Routine" },
             { name: "Review Tech News / Documentation", duration: 20, icon: "BookOpen", category: "Morning Routine" },
-            { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
             { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
             { name: "Deep Work Block 1", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
             { name: "Deep Work Block 2", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Short Break", duration: 10, icon: "Coffee", category: "Breaks & Meals" },
             { name: "Deep Work Block 3", duration: 50, icon: "BrainCircuit", category: "Work & Focus" },
             { name: "Hourly 20-20-20 Eye Strain Break", duration: 1, icon: "Eye", category: "Work & Focus" },
             { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Breaks & Meals" },
@@ -655,6 +658,7 @@ export function usePresetTasks() {
     }
     
     const initializeUserTasks = async () => {
+        if (!user) return;
         await runTransaction(db, async (transaction) => {
             const currentTasksQuery = query(
                 collection(db, 'userPresetTasks'), 
@@ -688,6 +692,7 @@ export function usePresetTasks() {
     };
 
     setLoading(true);
+    
     const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
     
     if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
@@ -702,8 +707,9 @@ export function usePresetTasks() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Prevent race condition: if we are initializing, the snapshot might be empty temporarily.
+      // We rely on the `initializeUserTasks` call and subsequent snapshot to populate data.
       if (snapshot.empty && userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-        // This case indicates that initialization is in progress, so we wait.
         return;
       }
       
