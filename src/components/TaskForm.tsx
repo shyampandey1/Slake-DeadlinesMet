@@ -101,44 +101,50 @@ export default function TaskForm() {
   });
 
   const mergedTasks = useMemo(() => {
-    if (Object.keys(presetTasks).length === 0 && events.length === 0) {
-        return {};
-    }
     const newPresetTasks: Preset = JSON.parse(JSON.stringify(presetTasks));
-    const todaysEvents = events.filter(e => isToday(parseISO(e.date)));
-    
-    todaysEvents.forEach(event => {
-        const eventDate = parseISO(event.date);
-        const eventCategory = 'Today\'s Events';
-        
+    const todaysEvents = events.filter(e => e.date && isToday(parseISO(e.date)));
+
+    if (todaysEvents.length > 0) {
+        const eventCategory = "Today's Events";
         if (!newPresetTasks[eventCategory]) {
             newPresetTasks[eventCategory] = { color: 'bg-amber-800 text-amber-100', tasks: [] };
         }
-        
-        const eventAsTask: UserPresetTask = {
-            id: event.id,
-            name: event.name,
-            duration: event.duration,
-            icon: event.icon,
-            isEvent: true,
-            category: eventCategory,
-            order: eventDate.getHours() * 100 + eventDate.getMinutes(), // Sort by time
-        };
 
-        const existingIndex = newPresetTasks[eventCategory].tasks.findIndex(t => t.id === event.id);
-        if (existingIndex > -1) {
-            newPresetTasks[eventCategory].tasks[existingIndex] = eventAsTask;
-        } else {
-            newPresetTasks[eventCategory].tasks.push(eventAsTask);
-        }
+        todaysEvents.forEach(event => {
+            const eventDate = parseISO(event.date);
+            const eventAsTask: UserPresetTask = {
+                id: event.id,
+                name: event.name,
+                duration: event.duration,
+                icon: event.icon,
+                isEvent: true,
+                category: eventCategory,
+                order: eventDate.getHours() * 100 + eventDate.getMinutes(), // Sort by time
+            };
+            const existingIndex = newPresetTasks[eventCategory].tasks.findIndex(t => t.id === event.id);
+            if (existingIndex > -1) {
+                newPresetTasks[eventCategory].tasks[existingIndex] = eventAsTask;
+            } else {
+                newPresetTasks[eventCategory].tasks.push(eventAsTask);
+            }
+        });
+    }
+    
+    // Create a sorted array of categories, ensuring "Today's Events" is first if it exists
+    const sortedCategoryNames = Object.keys(newPresetTasks).sort((a, b) => {
+        if (a === "Today's Events") return -1;
+        if (b === "Today's Events") return 1;
+        return (categoryTimeRanges[a]?.start.getTime() || 0) - (categoryTimeRanges[b]?.start.getTime() || 0);
     });
 
-    Object.keys(newPresetTasks).forEach(category => {
-        newPresetTasks[category].tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sortedPreset: Preset = {};
+    sortedCategoryNames.forEach(categoryName => {
+        sortedPreset[categoryName] = newPresetTasks[categoryName];
+        sortedPreset[categoryName].tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
     });
 
-    return newPresetTasks;
-  }, [presetTasks, events]);
+    return sortedPreset;
+  }, [presetTasks, events, categoryTimeRanges]);
   
   const scrollTo = useCallback(
     (index: number) => carouselApi && carouselApi.scrollTo(index),
@@ -175,10 +181,20 @@ export default function TaskForm() {
   }, [mergedTasks, carouselApi]);
 
   useEffect(() => {
-    if (!carouselApi || Object.keys(mergedTasks).length === 0 || !activeCategory) return;
-    const activeIndex = Object.keys(mergedTasks).findIndex(category => category === activeCategory);
-    if (activeIndex !== -1) {
-        scrollTo(activeIndex);
+    if (!carouselApi || Object.keys(mergedTasks).length === 0) return;
+    
+    const categoryKeys = Object.keys(mergedTasks);
+    // If "Today's Events" exists and it's today, make it active. Otherwise use the time-based active category.
+    const activeKey = categoryKeys.includes("Today's Events") ? "Today's Events" : activeCategory;
+
+    if (activeKey) {
+        const activeIndex = categoryKeys.findIndex(category => category === activeKey);
+        if (activeIndex !== -1) {
+            scrollTo(activeIndex);
+        }
+    } else {
+        // Default to the first category if no active one is determined
+        scrollTo(0);
     }
   }, [carouselApi, mergedTasks, activeCategory, scrollTo]);
 
@@ -292,11 +308,13 @@ export default function TaskForm() {
                                     </div>
                                 </ScrollArea>
                                 </CardContent>
-                                <CardFooter className="p-3 pt-0 mt-auto">
-                                    <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                                        <Plus className="w-4 h-4 mr-2" /> Add Task
-                                    </Button>
-                                </CardFooter>
+                                {category !== "Today's Events" && (
+                                  <CardFooter className="p-3 pt-0 mt-auto">
+                                      <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                          <Plus className="w-4 h-4 mr-2" /> Add Task
+                                      </Button>
+                                  </CardFooter>
+                                )}
                             </Card>
                             </div>
                         </CarouselItem>
