@@ -20,7 +20,7 @@ import {
     runTransaction,
     setDoc
 } from 'firebase/firestore';
-import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day } from '@/types';
+import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day, UserProfile } from '@/types';
 import { useProfile } from './useProfile';
 import { add, set, startOfDay, endOfDay, getDay, isToday, format as formatDate, parseISO } from 'date-fns';
 
@@ -130,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 12;
+const ROUTINE_TEMPLATE_VERSION = 13;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -601,43 +601,46 @@ export function usePresetTasks() {
     let unsubscribe: (() => void) | null = null;
     
     const initializeUserTasks = async (currentProfile: ProfileType) => {
-      if (!user) return;
-  
-      await runTransaction(db, async (transaction) => {
-        const profileRef = doc(db, 'userProfiles', user.uid);
-        
-        // Check if tasks for this profile already exist to prevent duplication
-        const tasksQuery = query(
-          collection(db, 'userPresetTasks'),
-          where('userId', '==', user.uid),
-          where('profession', '==', currentProfile)
-        );
-        const existingTasksSnapshot = await transaction.get(tasksQuery);
-        if (!existingTasksSnapshot.empty) {
-            // If tasks already exist, just update the version and do nothing else.
-             transaction.set(profileRef, {
-                routineVersions: { ...profileData?.routineVersions, [currentProfile]: ROUTINE_TEMPLATE_VERSION }
-            }, { merge: true });
-            return;
-        }
-
-        const routineKey = profileToRoutineMap[currentProfile] || 'General';
-        const defaultTasks = defaultRoutines.routines[routineKey];
-        let order = 0;
-        defaultTasks.forEach(task => {
-          const newTaskRef = doc(collection(db, "userPresetTasks"));
-          transaction.set(newTaskRef, {
-            ...task,
-            userId: user.uid,
-            profession: currentProfile,
-            order: order++,
-          });
+        if (!user) return;
+    
+        await runTransaction(db, async (transaction) => {
+            const profileRef = doc(db, 'userProfiles', user.uid);
+            
+            const tasksQuery = query(
+                collection(db, 'userPresetTasks'),
+                where('userId', '==', user.uid),
+                where('profession', '==', currentProfile)
+            );
+            const existingTasksSnapshot = await getDocs(tasksQuery);
+            
+            // Only initialize if there are no tasks for this profile
+            if (!existingTasksSnapshot.empty) {
+                return;
+            }
+    
+            const routineKey = profileToRoutineMap[currentProfile] || 'General';
+            const defaultTasks = defaultRoutines.routines[routineKey];
+            let order = 0;
+            defaultTasks.forEach(task => {
+                const newTaskRef = doc(collection(db, "userPresetTasks"));
+                transaction.set(newTaskRef, {
+                    ...task,
+                    userId: user.uid,
+                    profession: currentProfile,
+                    order: order++,
+                });
+            });
+    
+            const currentProfileDoc = await transaction.get(profileRef);
+            const currentProfileData = (currentProfileDoc.data() as UserProfile) || {};
+            const newRoutineVersions = { ...currentProfileData.routineVersions, [currentProfile]: ROUTINE_TEMPLATE_VERSION };
+            
+            if (currentProfileDoc.exists()) {
+                transaction.update(profileRef, { routineVersions: newRoutineVersions });
+            } else {
+                transaction.set(profileRef, { ...currentProfileData, routineVersions: newRoutineVersions }, { merge: true });
+            }
         });
-  
-        transaction.set(profileRef, {
-          routineVersions: { ...profileData?.routineVersions, [currentProfile]: ROUTINE_TEMPLATE_VERSION }
-        }, { merge: true });
-      });
     };
 
     const loadData = async () => {
