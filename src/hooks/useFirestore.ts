@@ -130,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 13;
+const ROUTINE_TEMPLATE_VERSION = 14;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -599,7 +599,6 @@ export function usePresetTasks() {
 
   useEffect(() => {
     if (profileLoading || !user) {
-        setLoading(false);
         return;
     }
 
@@ -608,11 +607,51 @@ export function usePresetTasks() {
     
     const loadData = async () => {
         if (!mounted) return;
-
         setLoading(true);
-        setPresetTasks({}); // Clear previous state
-
         const effectiveProfile = getEffectiveProfile();
+
+        const initializeIfNeeded = async () => {
+            const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
+            if (userRoutineVersion >= ROUTINE_TEMPLATE_VERSION) {
+                return;
+            }
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const profileRef = doc(db, 'userProfiles', user.uid);
+                    const currentProfileDoc = await transaction.get(profileRef);
+                    const currentProfileData = (currentProfileDoc.data() as UserProfile) || {};
+
+                    const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', user.uid), where('profession', '==', effectiveProfile));
+                    const existingTasksSnapshot = await getDocs(tasksQuery);
+
+                    existingTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
+
+                    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+                    const defaultTasks = defaultRoutines.routines[routineKey];
+                    let order = 0;
+                    defaultTasks.forEach(task => {
+                        const newTaskRef = doc(collection(db, "userPresetTasks"));
+                        transaction.set(newTaskRef, { ...task, userId: user.uid, profession: effectiveProfile, order: order++ });
+                    });
+
+                    const newRoutineVersions = { ...currentProfileData.routineVersions, [effectiveProfile]: ROUTINE_TEMPLATE_VERSION };
+                    if (currentProfileDoc.exists()) {
+                        transaction.update(profileRef, { routineVersions: newRoutineVersions });
+                    } else {
+                        transaction.set(profileRef, { ...currentProfileData, routineVersions: newRoutineVersions }, { merge: true });
+                    }
+                });
+            } catch (error) {
+                console.error("Routine initialization transaction failed: ", error);
+            }
+        };
+
+        if (!isOffline && isSyncEnabled) {
+            await initializeIfNeeded();
+        }
+
+        if (!mounted) return;
 
         if (isOffline || !isSyncEnabled) {
             const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
@@ -621,7 +660,6 @@ export function usePresetTasks() {
                 if (cachedData) {
                     setPresetTasks(JSON.parse(cachedData));
                 } else {
-                    // Fallback to default routine if no cache
                     const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
                     const defaultTasks = defaultRoutines.routines[routineKey];
                     let order = 0;
@@ -640,41 +678,6 @@ export function usePresetTasks() {
             if (mounted) setLoading(false);
             return;
         }
-
-        const initializeIfNeeded = async () => {
-            const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
-            if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-                await runTransaction(db, async (transaction) => {
-                    const profileRef = doc(db, 'userProfiles', user.uid);
-                    
-                    // Clear old tasks for the profile
-                    const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', user.uid), where('profession', '==', effectiveProfile));
-                    const existingTasksSnapshot = await getDocs(tasksQuery);
-                    existingTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
-
-                    // Add new tasks
-                    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
-                    const defaultTasks = defaultRoutines.routines[routineKey];
-                    let order = 0;
-                    defaultTasks.forEach(task => {
-                        const newTaskRef = doc(collection(db, "userPresetTasks"));
-                        transaction.set(newTaskRef, { ...task, userId: user.uid, profession: effectiveProfile, order: order++ });
-                    });
-
-                    // Update version
-                    const currentProfileDoc = await transaction.get(profileRef);
-                    const currentProfileData = (currentProfileDoc.data() as UserProfile) || {};
-                    const newRoutineVersions = { ...currentProfileData.routineVersions, [effectiveProfile]: ROUTINE_TEMPLATE_VERSION };
-                    if (currentProfileDoc.exists()) {
-                        transaction.update(profileRef, { routineVersions: newRoutineVersions });
-                    } else {
-                        transaction.set(profileRef, { ...currentProfileData, routineVersions: newRoutineVersions }, { merge: true });
-                    }
-                }).catch(console.error);
-            }
-        };
-
-        await initializeIfNeeded();
         
         const q = query(
             collection(db, 'userPresetTasks'),
@@ -713,6 +716,7 @@ export function usePresetTasks() {
         });
     };
 
+    setPresetTasks({}); // Clear tasks before loading new ones
     loadData();
 
     return () => {
