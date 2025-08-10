@@ -598,13 +598,13 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
   
 const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    const tasksQuery = query(
+    const tasksForProfessionQuery = query(
         collection(db, 'userPresetTasks'),
         where('userId', '==', uid),
         where('profession', '==', prof)
     );
-    const existingTasksSnapshot = await getDocs(tasksQuery);
-    
+    const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
+
     if (existingTasksSnapshot.empty) {
         await runTransaction(db, async (transaction) => {
             const profileRef = doc(db, 'userProfiles', uid);
@@ -620,11 +620,11 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
 
             const currentData = (profileDoc.data() as UserProfile) || {};
             const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-
+            
             if (profileDoc.exists()) {
                 transaction.update(profileRef, { routineVersions: newRoutineVersions });
             } else {
-                transaction.set(profileRef, { routineVersions: newRoutineVersions }, { merge: true });
+                transaction.set(profileRef, { profile: prof, routineVersions: newRoutineVersions }, { merge: true });
             }
         });
     }
@@ -638,16 +638,16 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
 
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
+    
+    const effectiveProfile = getEffectiveProfile();
 
     const loadData = async () => {
-        if (!mounted) return;
-        setLoading(true);
-        setPresetTasks({}); // Explicitly clear state on every run
+        if (!mounted || !effectiveProfile) return;
 
-        const effectiveProfile = getEffectiveProfile();
+        setLoading(true);
+        setPresetTasks({});
 
         if (isOffline || !isSyncEnabled) {
-            setPresetTasks({}); // Clear previous state
             const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
             const defaultTasks = defaultRoutines.routines[routineKey] || [];
             let order = 0;
@@ -669,7 +669,6 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             return;
         }
 
-        // Online user logic
         const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
         if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
             await initializeUserTasks(user.uid, effectiveProfile);
@@ -699,9 +698,11 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             const sortedPreset: Preset = {};
             Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
                 .forEach(key => { sortedPreset[key] = newPreset[key]; });
-
-            setPresetTasks(sortedPreset);
-            setLoading(false);
+            
+            if (mounted) {
+                setPresetTasks(sortedPreset);
+                setLoading(false);
+            }
         }, (error) => {
             if (mounted) {
                 console.error("Error fetching preset tasks: ", error);
@@ -718,7 +719,7 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             unsubscribe();
         }
     };
-  }, [user, profile, daysOff, isOffline, profileLoading, isSyncEnabled, getEffectiveProfile, profileData, initializeUserTasks]);
+  }, [user, effectiveProfile, isOffline, profileLoading, isSyncEnabled, profileData, initializeUserTasks]);
   
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
     if (!user || isOffline || !isSyncEnabled) return;
@@ -983,5 +984,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
