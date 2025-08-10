@@ -119,25 +119,25 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             className="w-96 h-96 opacity-60"
                             initial={{ x: '-100%', y: '10%' }}
                             animate={{ x: '100%' }}
-                            transition={{ ease: 'linear', duration: 60, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 30, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-80 h-80 opacity-50"
                             initial={{ x: '100%', y: '-10%' }}
                             animate={{ x: '-100%' }}
-                            transition={{ ease: 'linear', duration: 90, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 45, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-[30rem] h-[30rem] opacity-55"
                             initial={{ x: '0%', y: '20%' }}
                             animate={{ x: '80%' }}
-                            transition={{ ease: 'linear', duration: 75, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 37, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-72 h-72 opacity-45"
                             initial={{ x: '50%', y: '-20%' }}
                             animate={{ x: '-50%' }}
-                            transition={{ ease: 'linear', duration: 70, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 35, repeat: Infinity, repeatType: 'reverse' }}
                         />
                     </div>
                     <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
@@ -164,7 +164,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             {/* Header Content with Glass Effect - This part has the blur */}
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
                     {/* Centered content for mobile, spaced-out for larger screens */}
                     <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -196,3 +196,4 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     );
 
     
+
