@@ -109,7 +109,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
 
     return (
-        <header className="fixed top-0 left-0 right-0 w-full h-36 z-10">
+        <div className="relative w-full h-48">
              {/* Background with Vectors - This part is NOT blurred */}
             <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
@@ -119,25 +119,25 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             className="w-96 h-96 opacity-60"
                             initial={{ x: '-100%', y: '10%' }}
                             animate={{ x: '100%' }}
-                            transition={{ ease: 'linear', duration: 30, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 20, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-80 h-80 opacity-50"
                             initial={{ x: '100%', y: '-10%' }}
                             animate={{ x: '-100%' }}
-                            transition={{ ease: 'linear', duration: 45, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 35, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-[30rem] h-[30rem] opacity-55"
                             initial={{ x: '0%', y: '20%' }}
                             animate={{ x: '80%' }}
-                            transition={{ ease: 'linear', duration: 37, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 27, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-72 h-72 opacity-45"
                             initial={{ x: '50%', y: '-20%' }}
                             animate={{ x: '-50%' }}
-                            transition={{ ease: 'linear', duration: 35, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 25, repeat: Infinity, repeatType: 'reverse' }}
                         />
                     </div>
                     <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
@@ -192,8 +192,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     50% { opacity: 0.9; }
                 }
             `}</style>
-        </header>
+        </div>
     );
-
-    
-
+}
