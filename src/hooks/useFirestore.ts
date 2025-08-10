@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -602,7 +603,6 @@ export function usePresetTasks() {
         await runTransaction(db, async (transaction) => {
             const profileRef = doc(db, 'userProfiles', uid);
             const profileDoc = await transaction.get(profileRef);
-            const currentData = (profileDoc.data() as UserProfile) || {};
 
             const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', uid), where('profession', '==', prof));
             const existingTasksSnapshot = await transaction.get(tasksQuery);
@@ -619,13 +619,15 @@ export function usePresetTasks() {
                 transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
             });
 
+            const currentData = (profileDoc.data() as UserProfile) || {};
             const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
             transaction.set(profileRef, { routineVersions: newRoutineVersions }, { merge: true });
         });
     } catch (error) {
         console.error("Routine initialization transaction failed: ", error);
     }
-  }, []);
+}, []);
+
 
   useEffect(() => {
     if (profileLoading || !user) {
