@@ -598,18 +598,23 @@ export function usePresetTasks() {
     return profile;
   }, [profile, daysOff]);
   
-  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
     try {
+        // Perform a read outside the transaction to check if tasks exist.
+        const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', uid), where('profession', '==', prof));
+        const existingTasksSnapshot = await getDocs(tasksQuery);
+
+        // If tasks already exist, do nothing.
+        if (!existingTasksSnapshot.empty) {
+            return;
+        }
+
+        // If no tasks exist, run a transaction to create them.
         await runTransaction(db, async (transaction) => {
             const profileRef = doc(db, 'userProfiles', uid);
+            
+            // It's safe to read the profileDoc inside, but we already confirmed tasks are missing.
             const profileDoc = await transaction.get(profileRef);
-
-            const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', uid), where('profession', '==', prof));
-            const existingTasksSnapshot = await transaction.get(tasksQuery);
-
-            if (!existingTasksSnapshot.empty) {
-                return; // Already initialized
-            }
 
             const routineKey = profileToRoutineMap[prof] || 'General';
             const defaultTasks = defaultRoutines.routines[routineKey] || [];
@@ -621,10 +626,16 @@ export function usePresetTasks() {
 
             const currentData = (profileDoc.data() as UserProfile) || {};
             const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-            transaction.set(profileRef, { routineVersions: newRoutineVersions }, { merge: true });
+            
+            // Since we must read before write, we check if profileDoc exists before deciding to set or update
+            if (profileDoc.exists()) {
+                transaction.update(profileRef, { routineVersions: newRoutineVersions });
+            } else {
+                transaction.set(profileRef, { routineVersions: newRoutineVersions }, { merge: true });
+            }
         });
     } catch (error) {
-        console.error("Routine initialization transaction failed: ", error);
+        console.error("Routine initialization or transaction failed: ", error);
     }
 }, []);
 
