@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -131,7 +130,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-const ROUTINE_TEMPLATE_VERSION = 15;
+const ROUTINE_TEMPLATE_VERSION = 17;
 
 // All default routines for professions
 const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
@@ -598,12 +597,14 @@ export function usePresetTasks() {
     return profile;
   }, [profile, daysOff]);
   
-  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    // This function now only runs for online users.
-    // It checks if tasks for a profession exist and creates them if they don't.
-    const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', uid), where('profession', '==', prof));
+const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+    const tasksQuery = query(
+        collection(db, 'userPresetTasks'),
+        where('userId', '==', uid),
+        where('profession', '==', prof)
+    );
     const existingTasksSnapshot = await getDocs(tasksQuery);
-
+    
     if (existingTasksSnapshot.empty) {
         await runTransaction(db, async (transaction) => {
             const profileRef = doc(db, 'userProfiles', uid);
@@ -646,8 +647,7 @@ export function usePresetTasks() {
         const effectiveProfile = getEffectiveProfile();
 
         if (isOffline || !isSyncEnabled) {
-            // For offline/guest users, always load the default routine directly from the code.
-            // This prevents caching issues that caused duplication.
+            setPresetTasks({}); // Clear previous state
             const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
             const defaultTasks = defaultRoutines.routines[routineKey] || [];
             let order = 0;
@@ -701,11 +701,6 @@ export function usePresetTasks() {
                 .forEach(key => { sortedPreset[key] = newPreset[key]; });
 
             setPresetTasks(sortedPreset);
-            // Cache data for online users for potential offline use later
-            const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
-            } catch(e) { console.warn("Couldn't cache preset tasks"); }
             setLoading(false);
         }, (error) => {
             if (mounted) {
@@ -988,3 +983,5 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
+
+    

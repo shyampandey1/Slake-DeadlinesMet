@@ -35,7 +35,7 @@ const changelog = [
       features: [
         { name: "Modern Header Redesign", description: "The home page header now seamlessly blends with the content for a more modern, stacked appearance.", icon: Layers },
         { name: "Enhanced Visuals", description: "Increased the visibility and animation speed of the clouds in the header for a more dynamic feel.", icon: Zap },
-        { name: "Core Stability Fix", description: "Resolved a persistent and critical bug that caused task duplication, ensuring a stable and reliable routine.", icon: StickyNote },
+        { name: "Core Stability Fix", description: "Resolved a persistent and critical bug that could cause task duplication, ensuring a stable and reliable routine.", icon: StickyNote },
       ]
   },
   {
@@ -195,3 +195,5 @@ export default function HamburgerMenu() {
     </>
   );
 }
+
+    
