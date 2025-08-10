@@ -598,22 +598,15 @@ export function usePresetTasks() {
     return profile;
   }, [profile, daysOff]);
   
- const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    try {
-        // Perform a read outside the transaction to check if tasks exist.
-        const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', uid), where('profession', '==', prof));
-        const existingTasksSnapshot = await getDocs(tasksQuery);
+  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+    // This function now only runs for online users.
+    // It checks if tasks for a profession exist and creates them if they don't.
+    const tasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', uid), where('profession', '==', prof));
+    const existingTasksSnapshot = await getDocs(tasksQuery);
 
-        // If tasks already exist, do nothing.
-        if (!existingTasksSnapshot.empty) {
-            return;
-        }
-
-        // If no tasks exist, run a transaction to create them.
+    if (existingTasksSnapshot.empty) {
         await runTransaction(db, async (transaction) => {
             const profileRef = doc(db, 'userProfiles', uid);
-            
-            // It's safe to read the profileDoc inside, but we already confirmed tasks are missing.
             const profileDoc = await transaction.get(profileRef);
 
             const routineKey = profileToRoutineMap[prof] || 'General';
@@ -626,16 +619,13 @@ export function usePresetTasks() {
 
             const currentData = (profileDoc.data() as UserProfile) || {};
             const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-            
-            // Since we must read before write, we check if profileDoc exists before deciding to set or update
+
             if (profileDoc.exists()) {
                 transaction.update(profileRef, { routineVersions: newRoutineVersions });
             } else {
                 transaction.set(profileRef, { routineVersions: newRoutineVersions }, { merge: true });
             }
         });
-    } catch (error) {
-        console.error("Routine initialization or transaction failed: ", error);
     }
 }, []);
 
@@ -651,36 +641,35 @@ export function usePresetTasks() {
     const loadData = async () => {
         if (!mounted) return;
         setLoading(true);
-        setPresetTasks({});
+        setPresetTasks({}); // Explicitly clear state on every run
 
         const effectiveProfile = getEffectiveProfile();
 
         if (isOffline || !isSyncEnabled) {
-            const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
-            try {
-                const cachedData = localStorage.getItem(cacheKey);
-                if (cachedData) {
-                    setPresetTasks(JSON.parse(cachedData));
-                } else {
-                    const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
-                    const defaultTasks = defaultRoutines.routines[routineKey];
-                    let order = 0;
-                    const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
-                    const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
-                      const category = task.category || 'Default';
-                      if (!acc[category]) {
-                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-                      }
-                      acc[category].tasks.push(task as UserPresetTask);
-                      return acc;
-                    }, {});
-                    if (mounted) setPresetTasks(newPreset);
+            // For offline/guest users, always load the default routine directly from the code.
+            // This prevents caching issues that caused duplication.
+            const routineKey = profileToRoutineMap[effectiveProfile] || 'General';
+            const defaultTasks = defaultRoutines.routines[routineKey] || [];
+            let order = 0;
+            const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
+            
+            const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
+                const category = task.category || 'Default';
+                if (!acc[category]) {
+                    acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
                 }
-            } catch(e) { console.warn("Error with cache", e); }
-            if (mounted) setLoading(false);
+                acc[category].tasks.push(task as UserPresetTask);
+                return acc;
+            }, {});
+
+            if (mounted) {
+                setPresetTasks(newPreset);
+                setLoading(false);
+            }
             return;
         }
 
+        // Online user logic
         const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
         if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
             await initializeUserTasks(user.uid, effectiveProfile);
@@ -712,6 +701,7 @@ export function usePresetTasks() {
                 .forEach(key => { sortedPreset[key] = newPreset[key]; });
 
             setPresetTasks(sortedPreset);
+            // Cache data for online users for potential offline use later
             const cacheKey = `${PRESET_TASKS_CACHE_KEY_PREFIX}${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
             try {
                 localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
