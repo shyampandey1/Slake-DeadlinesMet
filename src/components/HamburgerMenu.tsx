@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info, Cloud, Users2 } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info, Cloud, Users2, Layers, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,15 @@ import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
 
 const changelog = [
+    {
+      version: "v1.3",
+      date: "Day 4",
+      features: [
+        { name: "Modern Header Redesign", description: "The home page header now seamlessly blends with the content for a more modern, stacked appearance.", icon: Layers },
+        { name: "Enhanced Visuals", description: "Increased the visibility and animation speed of the clouds in the header for a more dynamic feel.", icon: Zap },
+        { name: "Core Stability Fix", description: "Resolved a persistent and critical bug that caused task duplication, ensuring a stable and reliable routine.", icon: StickyNote },
+      ]
+  },
   {
       version: "v1.2",
       date: "Day 3",
