@@ -624,12 +624,16 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             if (profileDoc.exists()) {
                 transaction.update(profileRef, { routineVersions: newRoutineVersions });
             } else {
-                transaction.set(profileRef, { profile: prof, routineVersions: newRoutineVersions }, { merge: true });
+                transaction.set(profileRef, { profile: prof, daysOff: [], customProfessions: [], routineVersions: newRoutineVersions }, { merge: true });
             }
         });
     }
 }, []);
 
+
+  const effectiveProfile = useMemo(() => {
+    return getEffectiveProfile();
+  }, [getEffectiveProfile]);
 
   useEffect(() => {
     if (profileLoading || !user) {
@@ -639,8 +643,6 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
     
-    const effectiveProfile = getEffectiveProfile();
-
     const loadData = async () => {
         if (!mounted || !effectiveProfile) return;
 
