@@ -79,6 +79,14 @@ const iconMap: { [key: string]: LucideIcon } = {
     Lightbulb
 };
 
+function formatDuration(minutes: number): string {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}h ${remainingMinutes}m`;
+    }
+    return `${minutes}m`;
+}
 
 export default function TaskForm() {
   const router = useRouter();
@@ -280,7 +288,7 @@ export default function TaskForm() {
                                     </div>
                                     <Badge variant="secondary" className="gap-1.5">
                                         <Clock className="w-3.5 h-3.5"/>
-                                        {tasks.reduce((acc, task) => acc + task.duration, 0)} min
+                                        {formatDuration(tasks.reduce((acc, task) => acc + task.duration, 0))}
                                     </Badge>
                                 </CardHeader>
                                 <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
@@ -299,7 +307,7 @@ export default function TaskForm() {
                                             >
                                                 <Icon className="w-5 h-5 text-muted-foreground" />
                                                 <span className="flex-1 text-left font-normal">{task.name}</span>
-                                                <span className="text-sm text-muted-foreground">{task.duration}m</span>
+                                                <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
                                             </Button>
                                         );
                                     })}

@@ -15,6 +15,15 @@ import type { Task } from "@/types";
 import AuthWrapper from "./AuthWrapper";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
+function formatDuration(minutes: number): string {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}h ${remainingMinutes}m`;
+    }
+    return `${minutes} min`;
+}
+
 function TaskLogBookContent() {
   const { tasks, loading, clearTasks } = useTasks();
   const router = useRouter();
@@ -120,7 +129,7 @@ function TaskLogBookContent() {
                             <Clock className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.totalTime} min</div>
+                            <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
                             <p className="text-xs text-muted-foreground">across all sessions</p>
                         </CardContent>
                     </Card>
@@ -157,8 +166,8 @@ function TaskLogBookContent() {
                                                   <span className="font-semibold">{task.name}</span>
                                                   <span className="text-sm text-muted-foreground">
                                                      {task.completed
-                                                        ? `Time spent: ${task.duration} min`
-                                                        : `Time spent: ${task.duration} of ${task.initialDuration} min`
+                                                        ? `Time spent: ${formatDuration(task.duration)}`
+                                                        : `Time spent: ${formatDuration(task.duration)} of ${formatDuration(task.initialDuration)}`
                                                      }
                                                      {task.createdAt && <>&nbsp;&bull;&nbsp;{format(new Date(task.createdAt), "p")}</>}
                                                   </span>
