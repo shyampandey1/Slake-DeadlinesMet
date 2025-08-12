@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import { Sun, Moon, Cloud, CloudSun } from 'lucide-react';
@@ -12,8 +12,8 @@ interface DynamicHeaderProps {
     currentDate: Date;
 }
 
-const Star = ({ style }: { style: React.CSSProperties }) => (
-    <circle cx={Math.random() * 100} cy={Math.random() * 45 + 5} r={Math.random() * 0.8 + 0.2} fill="white" style={style} />
+const Star = ({ cx, cy, r, style }: { cx: number; cy: number; r: number; style: React.CSSProperties }) => (
+    <circle cx={cx} cy={cy} r={r} fill="white" style={style} />
 );
 
 const MotionCloud = ({ initial, animate, transition, className }: any) => (
@@ -30,13 +30,26 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
     const [weather, setWeather] = useState({ temp: 22, icon: CloudSun });
+    const svgContainerRef = useRef<SVGSVGElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
-        // Generate stars only once
-        const generatedStars = Array.from({ length: 50 }, (_, i) => (
-            <Star key={i} style={{ animation: `twinkle ${Math.random() * 5 + 3}s linear infinite` }} />
-        ));
-        setStars(generatedStars);
+        const resizeObserver = new ResizeObserver(entries => {
+            if (entries[0]) {
+                const { width, height } = entries[0].contentRect;
+                setDimensions({ width, height });
+            }
+        });
+
+        if (svgContainerRef.current) {
+            resizeObserver.observe(svgContainerRef.current);
+        }
+
+        return () => {
+            if (svgContainerRef.current) {
+                resizeObserver.unobserve(svgContainerRef.current);
+            }
+        };
     }, []);
 
     const hour = currentDate.getHours();
@@ -105,8 +118,29 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         }
     }, [isNight]);
     
+    useEffect(() => {
+        if (dimensions.width > 0 && dimensions.height > 0 && isNight) {
+            const generatedStars = Array.from({ length: 50 }, (_, i) => {
+                const cx = Math.random() * dimensions.width;
+                const cy = Math.random() * dimensions.height * 0.5; // Only top half
+                const r = Math.random() * 0.8 + 0.3;
+                return (
+                    <Star
+                        key={i}
+                        cx={cx}
+                        cy={cy}
+                        r={r}
+                        style={{ animation: `twinkle ${Math.random() * 5 + 3}s linear infinite` }}
+                    />
+                );
+            });
+            setStars(generatedStars);
+        } else {
+            setStars([]);
+        }
+    }, [dimensions, isNight]);
+    
     const WeatherIcon = weather.icon;
-
 
     return (
         <div className="relative w-full h-64">
@@ -140,7 +174,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             transition={{ ease: 'linear', duration: 160, repeat: Infinity, repeatType: 'reverse' }}
                         />
                     </div>
-                    <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
+                    <svg ref={svgContainerRef} width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
                         {/* Sun or Moon */}
                         <g style={{
                             transform: `translate(${sunMoonX}%, ${sunMoonY}%)`,
@@ -155,7 +189,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                         </g>
                         {/* Stars */}
                         {isNight && (
-                        <g style={{ opacity: 1, transition: 'opacity 3s linear' }}>
+                            <g style={{ opacity: 1, transition: 'opacity 3s linear' }}>
                                 {stars}
                             </g>
                         )}
