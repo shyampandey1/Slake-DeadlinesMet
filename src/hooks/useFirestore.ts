@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent, Day, UserProfile } from '@/types';
 import { useProfile } from './useProfile';
-import { add, set, startOfDay, endOfDay, getDay, isToday, format as formatDate, parseISO } from 'date-fns';
+import { add, set, startOfDay, endOfDay, getDay, isToday, format as formatDate, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 
 // Hook for managing user's task history
 export function useTasks() {
@@ -569,18 +569,21 @@ export function usePresetTasks() {
   
 const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
     try {
+        if (!prof) return;
+        
+        const tasksForProfessionQuery = query(
+            collection(db, 'userPresetTasks'),
+            where('userId', '==', uid),
+            where('profession', '==', prof)
+        );
+
+        const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
+        if (!existingTasksSnapshot.empty) {
+            return; // Tasks already exist, no need to initialize.
+        }
+
+        // If no tasks, run a transaction to add them.
         await runTransaction(db, async (transaction) => {
-            const tasksForProfessionQuery = query(
-                collection(db, 'userPresetTasks'),
-                where('userId', '==', uid),
-                where('profession', '==', prof)
-            );
-            const existingTasksSnapshot = await transaction.get(tasksForProfessionQuery);
-    
-            if (!existingTasksSnapshot.empty) {
-                return;
-            }
-    
             const routineKey = profileToRoutineMap[prof] || 'General';
             const defaultTasks = defaultRoutines.routines[routineKey] || [];
             let order = 0;
@@ -959,5 +962,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
