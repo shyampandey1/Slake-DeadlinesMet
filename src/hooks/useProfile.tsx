@@ -23,31 +23,31 @@ export type Profession = {
 
 export const professions: { [group: string]: Profession[] } = {
     "Creative": [
-        { name: "Artist", icon: "Palette", color: "bg-rose-800 border-rose-500/80 text-rose-100" },
-        { name: "Content Creator", icon: "Camera", color: "bg-orange-800 border-orange-500/80 text-orange-100" },
-        { name: "Designer", icon: "PenTool", color: "bg-purple-800 border-purple-500/80 text-purple-100" },
-        { name: "Writer", icon: "PenLine", color: "bg-blue-800 border-blue-500/80 text-blue-100" },
+        { name: "Artist", icon: "Palette", color: "bg-rose-100 dark:bg-rose-800 border-rose-500/80 text-rose-800 dark:text-rose-100" },
+        { name: "Content Creator", icon: "Camera", color: "bg-orange-100 dark:bg-orange-800 border-orange-500/80 text-orange-800 dark:text-orange-100" },
+        { name: "Designer", icon: "PenTool", color: "bg-purple-100 dark:bg-purple-800 border-purple-500/80 text-purple-800 dark:text-purple-100" },
+        { name: "Writer", icon: "PenLine", color: "bg-blue-100 dark:bg-blue-800 border-blue-500/80 text-blue-800 dark:text-blue-100" },
     ],
     "Business & Management": [
-        { name: "Consultant", icon: "Briefcase", color: "bg-cyan-800 border-cyan-500/80 text-cyan-100" },
-        { name: "Entrepreneur", icon: "Lightbulb", color: "bg-amber-800 border-amber-500/80 text-amber-100" },
-        { name: "Manager", icon: "Users", color: "bg-lime-800 border-lime-500/80 text-lime-100" },
-        { name: "Marketer", icon: "Megaphone", color: "bg-red-800 border-red-500/80 text-red-100" },
-        { name: "Sales", icon: "TrendingUp", color: "bg-green-800 border-green-500/80 text-green-100" },
-        { name: "Medical Representative", icon: "Briefcase", color: "bg-stone-800 border-stone-500/80 text-stone-100" }
+        { name: "Consultant", icon: "Briefcase", color: "bg-cyan-100 dark:bg-cyan-800 border-cyan-500/80 text-cyan-800 dark:text-cyan-100" },
+        { name: "Entrepreneur", icon: "Lightbulb", color: "bg-amber-100 dark:bg-amber-800 border-amber-500/80 text-amber-800 dark:text-amber-100" },
+        { name: "Manager", icon: "Users", color: "bg-lime-100 dark:bg-lime-800 border-lime-500/80 text-lime-800 dark:text-lime-100" },
+        { name: "Marketer", icon: "Megaphone", color: "bg-red-100 dark:bg-red-800 border-red-500/80 text-red-800 dark:text-red-100" },
+        { name: "Sales", icon: "TrendingUp", color: "bg-green-100 dark:bg-green-800 border-green-500/80 text-green-800 dark:text-green-100" },
+        { name: "Medical Representative", icon: "Briefcase", color: "bg-stone-100 dark:bg-stone-800 border-stone-500/80 text-stone-800 dark:text-stone-100" }
     ],
     "Technical & Health": [
-        { name: "Healthcare Professional", icon: "Stethoscope", color: "bg-teal-800 border-teal-500/80 text-teal-100" },
-        { name: "IT Professional", icon: "Laptop", color: "bg-indigo-800 border-indigo-500/80 text-indigo-100" },
-        { name: "Software Engineer", icon: "Code", color: "bg-fuchsia-800 border-fuchsia-500/80 text-fuchsia-100" },
-        { name: "Researcher", icon: "FlaskConical", color: "bg-sky-800 border-sky-500/80 text-sky-100" },
+        { name: "Healthcare Professional", icon: "Stethoscope", color: "bg-teal-100 dark:bg-teal-800 border-teal-500/80 text-teal-800 dark:text-teal-100" },
+        { name: "IT Professional", icon: "Laptop", color: "bg-indigo-100 dark:bg-indigo-800 border-indigo-500/80 text-indigo-800 dark:text-indigo-100" },
+        { name: "Software Engineer", icon: "Code", color: "bg-fuchsia-100 dark:bg-fuchsia-800 border-fuchsia-500/80 text-fuchsia-800 dark:text-fuchsia-100" },
+        { name: "Researcher", icon: "FlaskConical", color: "bg-sky-100 dark:bg-sky-800 border-sky-500/80 text-sky-800 dark:text-sky-100" },
     ],
     "General & Freelance": [
-        { name: "Educator", icon: "School", color: "bg-yellow-800 border-yellow-500/80 text-yellow-100" },
-        { name: "Freelancer", icon: "Network", color: "bg-rose-800 border-rose-500/80 text-rose-100" },
-        { name: "Student", icon: "GraduationCap", color: "bg-stone-800 border-stone-500/80 text-stone-100" },
-        { name: "General", icon: "User", color: "bg-gray-800 border-gray-500/80 text-gray-100" },
-        { name: "Delivery Agent", icon: "Truck", color: "bg-slate-800 border-slate-500/80 text-slate-100" },
+        { name: "Educator", icon: "School", color: "bg-yellow-100 dark:bg-yellow-800 border-yellow-500/80 text-yellow-800 dark:text-yellow-100" },
+        { name: "Freelancer", icon: "Network", color: "bg-rose-100 dark:bg-rose-800 border-rose-500/80 text-rose-800 dark:text-rose-100" },
+        { name: "Student", icon: "GraduationCap", color: "bg-stone-100 dark:bg-stone-800 border-stone-500/80 text-stone-800 dark:text-stone-100" },
+        { name: "General", icon: "User", color: "bg-gray-100 dark:bg-gray-800 border-gray-500/80 text-gray-800 dark:text-gray-100" },
+        { name: "Delivery Agent", icon: "Truck", color: "bg-slate-100 dark:bg-slate-800 border-slate-500/80 text-slate-800 dark:text-slate-100" },
     ]
 };
 
