@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { BookText, ThumbsUp, Pause, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp } from "lucide-react";
-import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
@@ -275,7 +275,7 @@ function TaskLogBookContent() {
                             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
                                 {sortedGroupKeys.map((day) => (
                                     <div key={day}>
-                                        <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-background/95 py-1 backdrop-blur-sm">{day}</h3>
+                                        <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
                                         <div className="space-y-3">
                                             {groupedTasks[day].map((task) => (
                                                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-card border">
@@ -328,5 +328,3 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
-
-    
