@@ -166,24 +166,23 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl items-end justify-between p-4 pb-6 sm:p-6 sm:pb-8 md:p-8 md:pb-10">
-                    {/* Centered content for mobile, spaced-out for larger screens */}
-                    <div className="w-full flex flex-col sm:flex-row sm:items-end sm:justify-between">
-                        <div className="flex flex-col text-center sm:text-left text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                    <div className="w-full flex items-end justify-between">
+                        <div className="flex flex-col text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                             <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
                             <p className="text-sm opacity-90 hidden sm:block max-w-xs">Focus on one task at a time. Set your goal and go.</p>
                         </div>
-                        <div className="flex flex-col items-center sm:items-end mt-2 sm:mt-0 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                        <div className="flex flex-col items-end text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                             <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
-                            <div className="flex items-center justify-center sm:justify-end gap-2">
+                            <div className="flex items-center justify-end gap-2">
                                 <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
                                 <WeatherIcon className="h-4 w-4 text-white/90" />
                                 <p className="text-xs opacity-90">{weather.temp}°C</p>
                             </div>
                         </div>
                     </div>
-                     <div className="absolute top-4 right-4 sm:relative sm:top-auto sm:right-auto sm:ml-4 sm:-mb-2">
-                       <HamburgerMenu />
-                    </div>
+                </div>
+                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8">
+                    <HamburgerMenu />
                 </div>
             </div>
              <style jsx>{`
