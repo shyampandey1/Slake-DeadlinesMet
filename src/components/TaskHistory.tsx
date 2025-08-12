@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { BookText, ThumbsUp, Pause, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp } from "lucide-react";
-import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, isWithinInterval } from "date-fns";
+import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
@@ -32,7 +32,7 @@ function TaskLogBookContent() {
   const { tasks, loading } = useTasks();
   const router = useRouter();
   const [filter, setFilter] = useState("today");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [dateRange, setDateRange = useState<DateRange | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleTaskClick = (task: Task) => {
@@ -336,3 +336,5 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
+
+    
