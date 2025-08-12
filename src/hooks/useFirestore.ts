@@ -598,35 +598,32 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
   
 const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    await runTransaction(db, async (transaction) => {
-        const profileRef = doc(db, 'userProfiles', uid);
-        const profileDoc = await transaction.get(profileRef);
-
-        const currentData = (profileDoc.data() as UserProfile) || {};
-        const userRoutineVersion = currentData?.routineVersions?.[prof] || 0;
-        
-        // This check inside the transaction is the key to preventing race conditions.
-        if (userRoutineVersion >= ROUTINE_TEMPLATE_VERSION) {
-            return; // Routine is up to date, do nothing.
-        }
-
-        const routineKey = profileToRoutineMap[prof] || 'General';
-        const defaultTasks = defaultRoutines.routines[routineKey] || [];
-        let order = 0;
-        defaultTasks.forEach(task => {
-            const newTaskRef = doc(collection(db, "userPresetTasks"));
-            transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
+    try {
+        await runTransaction(db, async (transaction) => {
+            const tasksForProfessionQuery = query(
+                collection(db, 'userPresetTasks'),
+                where('userId', '==', uid),
+                where('profession', '==', prof)
+            );
+            const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
+    
+            if (!existingTasksSnapshot.empty) {
+                return;
+            }
+    
+            const routineKey = profileToRoutineMap[prof] || 'General';
+            const defaultTasks = defaultRoutines.routines[routineKey] || [];
+            let order = 0;
+            defaultTasks.forEach(task => {
+                const newTaskRef = doc(collection(db, "userPresetTasks"));
+                transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
+            });
         });
-
-        const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-        
-        if (profileDoc.exists()) {
-            transaction.update(profileRef, { routineVersions: newRoutineVersions });
-        } else {
-            transaction.set(profileRef, { profile: prof, daysOff: [], customProfessions: [], routineVersions: newRoutineVersions }, { merge: true });
-        }
-    });
+    } catch (error) {
+        console.error("Transaction failed: ", error);
+    }
 }, []);
+
 
   const effectiveProfile = useMemo(() => {
     return getEffectiveProfile();
@@ -668,10 +665,7 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             return;
         }
 
-        const userRoutineVersion = profileData?.routineVersions?.[effectiveProfile] || 0;
-        if (userRoutineVersion < ROUTINE_TEMPLATE_VERSION) {
-            await initializeUserTasks(user.uid, effectiveProfile);
-        }
+        await initializeUserTasks(user.uid, effectiveProfile);
 
         if (!mounted) return;
         
@@ -718,7 +712,7 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             unsubscribe();
         }
     };
-  }, [user, effectiveProfile, isOffline, profileLoading, isSyncEnabled, profileData, initializeUserTasks]);
+  }, [user, effectiveProfile, isOffline, profileLoading, isSyncEnabled, initializeUserTasks]);
   
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
     if (!user || isOffline || !isSyncEnabled) return;
@@ -983,3 +977,5 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
+
+    
