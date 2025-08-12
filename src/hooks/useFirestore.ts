@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -605,7 +606,7 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
                 where('userId', '==', uid),
                 where('profession', '==', prof)
             );
-            const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
+            const existingTasksSnapshot = await transaction.get(tasksForProfessionQuery);
     
             if (!existingTasksSnapshot.empty) {
                 return;
@@ -692,13 +693,12 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             Object.keys(newPreset).forEach(category => {
                 const uniqueTasks = new Map<string, UserPresetTask>();
                 newPreset[category].tasks.forEach(task => {
-                    // A more robust unique key using multiple properties
-                    const taskKey = `${task.name}-${task.duration}-${task.icon}-${task.order}`;
+                    const taskKey = task.name;
                     if (!uniqueTasks.has(taskKey)) {
                         uniqueTasks.set(taskKey, task);
                     }
                 });
-                newPreset[category].tasks = Array.from(uniqueTasks.values());
+                newPreset[category].tasks = Array.from(uniqueTasks.values()).sort((a,b) => (a.order || 0) - (b.order || 0));
             });
 
             const sortedPreset: Preset = {};
