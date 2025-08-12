@@ -598,23 +598,17 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
   
 const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    // 1. Check if tasks for this profession already exist.
-    const tasksForProfessionQuery = query(
-        collection(db, 'userPresetTasks'),
-        where('userId', '==', uid),
-        where('profession', '==', prof)
-    );
-    const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
-
-    // 2. If they exist, do nothing.
-    if (!existingTasksSnapshot.empty) {
-        return;
-    }
-    
-    // 3. If they don't exist, create them in a transaction.
     await runTransaction(db, async (transaction) => {
         const profileRef = doc(db, 'userProfiles', uid);
         const profileDoc = await transaction.get(profileRef);
+
+        const currentData = (profileDoc.data() as UserProfile) || {};
+        const userRoutineVersion = currentData?.routineVersions?.[prof] || 0;
+        
+        // This check inside the transaction is the key to preventing race conditions.
+        if (userRoutineVersion >= ROUTINE_TEMPLATE_VERSION) {
+            return; // Routine is up to date, do nothing.
+        }
 
         const routineKey = profileToRoutineMap[prof] || 'General';
         const defaultTasks = defaultRoutines.routines[routineKey] || [];
@@ -624,7 +618,6 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
             transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
         });
 
-        const currentData = (profileDoc.data() as UserProfile) || {};
         const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
         
         if (profileDoc.exists()) {
