@@ -22,7 +22,7 @@ function HomeComponent() {
       <main className="flex-1 overflow-y-auto pb-20">
         <div className="relative">
           <DynamicHeader currentDate={currentDate} />
-          <div className="container mx-auto p-4 sm:p-6 md:p-8 relative z-10 -mt-24">
+          <div className="container mx-auto p-4 sm:p-6 md:p-8 relative z-10 -mt-32">
             <div className="w-full max-w-4xl mx-auto">
               <TaskForm />
             </div>

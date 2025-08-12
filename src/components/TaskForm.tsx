@@ -248,13 +248,11 @@ export default function TaskForm() {
   return (
     <>
     <div className="space-y-4">
-      <div>
-        <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
-        <p className="text-muted-foreground">
-            Select a preset task or add your own.
-        </p>
-      </div>
-      <div className="relative">
+       <div>
+            <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
+            <p className="text-muted-foreground">Select a preset task or add your own.</p>
+        </div>
+        
         {hasTasks ? (
             <Carousel
                 setApi={setCarouselApi}
@@ -334,7 +332,6 @@ export default function TaskForm() {
                 </Button>
             </div>
         )}
-      </div>
 
       {hasTasks && (
         <div className="flex justify-center gap-2 mt-4">
@@ -352,12 +349,11 @@ export default function TaskForm() {
         </div>
       )}
 
-
         <div className="my-2" />
         <Separator />
         <div className="my-2" />
 
-        <div ref={customTaskFormRef}>
+        <div ref={customTaskFormRef} className="mt-4">
             <h3 className="font-headline text-2xl mb-2">Or Create a Custom Task</h3>
             <p className="text-muted-foreground mb-4">Set a name and duration for a one-off task.</p>
             <Form {...form}>
