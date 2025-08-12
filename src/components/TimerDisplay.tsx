@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, CloudSun } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
@@ -57,6 +57,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
+  const [weather, setWeather] = useState({ temp: 22, icon: CloudSun });
 
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,6 +102,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(dateInterval);
   }, []);
+
+  useEffect(() => {
+    const hour = currentDate.getHours();
+    const isNight = hour < 6 || hour > 19;
+     if (isNight) {
+        setWeather({ temp: 18, icon: Moon });
+    } else {
+        setWeather({ temp: 22, icon: Sun });
+    }
+  }, [currentDate]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -189,6 +200,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Dynamically set CSS variables for the timer theme
   const timerColor = 'hsl(var(--primary))';
+  const WeatherIcon = weather.icon;
 
 
   return (
@@ -196,7 +208,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-between p-4 sm:p-6 md:p-8 transition-colors duration-500 text-white",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8 transition-colors duration-500 text-white",
         {
           'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
@@ -211,10 +223,22 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       } as React.CSSProperties}
     >
         {/* Top Info Bar */}
-        <div className="w-full max-w-4xl text-left">
-            <p className="font-bold font-headline text-xl">{format(currentDate, 'p')}</p>
-            <p className="text-sm opacity-80">{format(currentDate, 'EEEE, LLLL d')}</p>
+        <div className={cn(
+            "absolute top-4 sm:top-6 md:top-8 w-full max-w-sm mx-auto transition-opacity duration-300",
+             isUIVisible ? "opacity-100" : "opacity-0"
+        )}>
+            <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 flex items-center justify-between text-sm">
+                <div className="font-bold font-headline">{format(currentDate, 'p')}</div>
+                <div className="flex items-center gap-3 opacity-80">
+                    <span>{format(currentDate, 'E, LLL d')}</span>
+                    <div className="flex items-center gap-1.5">
+                        <WeatherIcon className="h-4 w-4" />
+                        <span>{weather.temp}°C</span>
+                    </div>
+                </div>
+            </div>
         </div>
+
 
         {/* Center Content */}
         <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
@@ -236,7 +260,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         </div>
 
         {/* Bottom Buttons */}
-        <div className="flex items-center gap-4 transition-opacity duration-300 w-full max-w-4xl justify-center">
+         <div className={cn(
+            "absolute bottom-4 sm:bottom-6 md:bottom-8 flex items-center gap-4 transition-opacity duration-300",
+            isUIVisible ? "opacity-100" : "opacity-0"
+        )}>
             <Button
                 onClick={() => setIsPaused(!isPaused)}
                 size="lg"

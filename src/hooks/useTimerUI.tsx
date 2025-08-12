@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 interface TimerUIContextType {
@@ -19,7 +19,7 @@ export const useTimerUI = () => useContext(TimerUIContext);
 export const TimerUIProvider = ({ children }: { children: ReactNode }) => {
   const [isUIVisible, setIsUIVisible] = useState(true);
   const pathname = usePathname();
-  const hideTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isTimerPage = pathname === '/timer';
 
@@ -41,10 +41,8 @@ export const TimerUIProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (isTimerPage) {
-        // Initially show UI and start timer to hide it
         showUI();
     } else {
-        // Ensure UI is visible on other pages
         setIsUIVisible(true);
         if (hideTimeoutRef.current) {
             clearTimeout(hideTimeoutRef.current);
