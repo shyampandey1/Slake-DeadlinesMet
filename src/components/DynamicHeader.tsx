@@ -109,7 +109,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
 
     return (
-        <div className="relative w-full h-64">
+        <div className="relative w-full h-56">
              {/* Background with Vectors - This part is NOT blurred */}
             <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
@@ -166,9 +166,9 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8">
-                    <div className="flex flex-col text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                        <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
-                        <p className="text-sm opacity-90 hidden sm:block max-w-xs">Focus on one task at a time. Set your goal and go.</p>
+                     <div>
+                        <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
+                        <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
                     </div>
                     <div className="flex w-full items-end justify-end">
                         <div className="flex flex-col items-end text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
@@ -194,4 +194,3 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         </div>
     );
 }
-
