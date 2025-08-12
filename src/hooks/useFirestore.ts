@@ -598,38 +598,40 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
   
 const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    const tasksForProfessionQuery = query(
-        collection(db, 'userPresetTasks'),
-        where('userId', '==', uid),
-        where('profession', '==', prof)
-    );
-    const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
+    await runTransaction(db, async (transaction) => {
+        const tasksForProfessionQuery = query(
+            collection(db, 'userPresetTasks'),
+            where('userId', '==', uid),
+            where('profession', '==', prof)
+        );
+        const existingTasksSnapshot = await transaction.get(tasksForProfessionQuery);
 
-    if (existingTasksSnapshot.empty) {
-        await runTransaction(db, async (transaction) => {
-            const profileRef = doc(db, 'userProfiles', uid);
-            const profileDoc = await transaction.get(profileRef);
+        if (!existingTasksSnapshot.empty) {
+            // If tasks already exist, do nothing to prevent duplicates.
+            return; 
+        }
 
-            const routineKey = profileToRoutineMap[prof] || 'General';
-            const defaultTasks = defaultRoutines.routines[routineKey] || [];
-            let order = 0;
-            defaultTasks.forEach(task => {
-                const newTaskRef = doc(collection(db, "userPresetTasks"));
-                transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
-            });
+        const profileRef = doc(db, 'userProfiles', uid);
+        const profileDoc = await transaction.get(profileRef);
 
-            const currentData = (profileDoc.data() as UserProfile) || {};
-            const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-            
-            if (profileDoc.exists()) {
-                transaction.update(profileRef, { routineVersions: newRoutineVersions });
-            } else {
-                transaction.set(profileRef, { profile: prof, daysOff: [], customProfessions: [], routineVersions: newRoutineVersions }, { merge: true });
-            }
+        const routineKey = profileToRoutineMap[prof] || 'General';
+        const defaultTasks = defaultRoutines.routines[routineKey] || [];
+        let order = 0;
+        defaultTasks.forEach(task => {
+            const newTaskRef = doc(collection(db, "userPresetTasks"));
+            transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
         });
-    }
-}, []);
 
+        const currentData = (profileDoc.data() as UserProfile) || {};
+        const newRoutineVersions = { ...(currentData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
+        
+        if (profileDoc.exists()) {
+            transaction.update(profileRef, { routineVersions: newRoutineVersions });
+        } else {
+            transaction.set(profileRef, { profile: prof, daysOff: [], customProfessions: [], routineVersions: newRoutineVersions }, { merge: true });
+        }
+    });
+}, []);
 
   const effectiveProfile = useMemo(() => {
     return getEffectiveProfile();
