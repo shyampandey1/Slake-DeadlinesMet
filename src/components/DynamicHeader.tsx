@@ -166,12 +166,14 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8 pb-16">
-                     <div>
-                        <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
-                        <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
+                     <div className="flex justify-between items-center">
+                        <div>
+                           <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
+                           <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
+                        </div>
+                        <HamburgerMenu />
                     </div>
-                    <div className="flex w-full items-end justify-between">
-                        <div/>
+                    <div className="flex w-full items-end justify-end">
                         <div className="flex flex-col items-end text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                             <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
                             <div className="flex items-center justify-end gap-2">
@@ -181,9 +183,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             </div>
                         </div>
                     </div>
-                </div>
-                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8">
-                    <HamburgerMenu />
                 </div>
             </div>
              <style jsx>{`
@@ -195,3 +194,4 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         </div>
     );
 }
+
