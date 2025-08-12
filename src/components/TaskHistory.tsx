@@ -32,7 +32,7 @@ function TaskLogBookContent() {
   const { tasks, loading } = useTasks();
   const router = useRouter();
   const [filter, setFilter] = useState("today");
-  const [dateRange, setDateRange = useState<DateRange | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleTaskClick = (task: Task) => {
