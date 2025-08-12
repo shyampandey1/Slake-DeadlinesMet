@@ -8,6 +8,7 @@ import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-me
 import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
@@ -94,6 +96,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       });
     }, 1000);
   }, [stopTimer, playSound]);
+
+  useEffect(() => {
+    const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(dateInterval);
+  }, []);
 
   useEffect(() => {
     if (!isPaused) {
@@ -189,7 +196,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 text-white",
+        "relative flex min-h-screen w-full flex-col items-center justify-between p-4 sm:p-6 md:p-8 transition-colors duration-500 text-white",
         {
           'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
@@ -203,38 +210,48 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
-      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <div className="flex w-full flex-col items-center justify-center text-center transition-opacity duration-300">
-            <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
-            <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
-              {taskName}
-            </h1>
+        {/* Top Info Bar */}
+        <div className="w-full max-w-4xl text-left">
+            <p className="font-bold font-headline text-xl">{format(currentDate, 'p')}</p>
+            <p className="text-sm opacity-80">{format(currentDate, 'EEEE, LLLL d')}</p>
         </div>
-        <div className="mb-12">
-          <CircularProgress progress={progress}>
-            <div
-              className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white"
-            >
-              {formatTime(timeRemaining)}
+
+        {/* Center Content */}
+        <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
+            <div className="flex w-full flex-col items-center justify-center text-center transition-opacity duration-300">
+                <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
+                <h1 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl font-headline">
+                {taskName}
+                </h1>
             </div>
-          </CircularProgress>
+            <div className="mb-8">
+            <CircularProgress progress={progress}>
+                <div
+                className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white"
+                >
+                {formatTime(timeRemaining)}
+                </div>
+            </CircularProgress>
+            </div>
         </div>
-        <div className="flex items-center gap-4 transition-opacity duration-300">
-          <Button
-            onClick={() => setIsPaused(!isPaused)}
-            size="lg"
-            variant={isPaused ? "default" : "secondary"}
-            className={cn("w-32 text-lg")}
-          >
-            {isPaused ? <Play className="mr-2 h-6 w-6" /> : <Pause className="mr-2 h-6 w-6" />}
-            {isPaused ? "Resume" : "Pause"}
-          </Button>
-          <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
-            <Square className="mr-2 h-5 w-5" />
-            End
-          </Button>
+
+        {/* Bottom Buttons */}
+        <div className="flex items-center gap-4 transition-opacity duration-300 w-full max-w-4xl justify-center">
+            <Button
+                onClick={() => setIsPaused(!isPaused)}
+                size="lg"
+                variant={isPaused ? "default" : "secondary"}
+                className={cn("w-32 text-lg")}
+            >
+                {isPaused ? <Play className="mr-2 h-6 w-6" /> : <Pause className="mr-2 h-6 w-6" />}
+                {isPaused ? "Resume" : "Pause"}
+            </Button>
+            <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
+                <Square className="mr-2 h-5 w-5" />
+                End
+            </Button>
         </div>
-      </div>
+
 
       <AlertDialog open={isFinished} onOpenChange={setIsFinished}>
         <AlertDialogContent>
