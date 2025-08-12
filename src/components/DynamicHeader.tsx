@@ -13,7 +13,7 @@ interface DynamicHeaderProps {
 }
 
 const Star = ({ style }: { style: React.CSSProperties }) => (
-    <circle cx={Math.random() * 100} cy={Math.random() * 50 + 5} r={Math.random() * 0.5 + 0.2} fill="white" style={style} />
+    <circle cx={Math.random() * 100} cy={Math.random() * 45 + 5} r={Math.random() * 0.8 + 0.2} fill="white" style={style} />
 );
 
 const MotionCloud = ({ initial, animate, transition, className }: any) => (
@@ -119,25 +119,25 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             className="w-96 h-96 opacity-80"
                             initial={{ x: '-100%', y: '10%' }}
                             animate={{ x: '100%' }}
-                            transition={{ ease: 'linear', duration: 90, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 180, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-80 h-80 opacity-70"
                             initial={{ x: '100%', y: '-10%' }}
                             animate={{ x: '-100%' }}
-                            transition={{ ease: 'linear', duration: 120, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 200, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-[30rem] h-[30rem] opacity-75"
                             initial={{ x: '0%', y: '20%' }}
                             animate={{ x: '80%' }}
-                            transition={{ ease: 'linear', duration: 100, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 190, repeat: Infinity, repeatType: 'reverse' }}
                         />
                          <MotionCloud
                             className="w-72 h-72 opacity-65"
                             initial={{ x: '50%', y: '-20%' }}
                             animate={{ x: '-50%' }}
-                            transition={{ ease: 'linear', duration: 80, repeat: Infinity, repeatType: 'reverse' }}
+                            transition={{ ease: 'linear', duration: 160, repeat: Infinity, repeatType: 'reverse' }}
                         />
                     </div>
                     <svg width="100%" height="100%" preserveAspectRatio="xMidYMid slice" className="absolute inset-0">
@@ -165,7 +165,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
             {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm">
-                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8">
+                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8 pb-16">
                      <div>
                         <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
                         <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
