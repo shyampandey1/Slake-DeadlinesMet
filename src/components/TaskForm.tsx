@@ -33,6 +33,7 @@ import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { useProfile } from "@/hooks/useProfile";
+import { Skeleton } from "./ui/skeleton";
 
 
 const formSchema = z.object({
@@ -90,7 +91,7 @@ function formatDuration(minutes: number): string {
 
 export default function TaskForm() {
   const router = useRouter();
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory } = usePresetTasks();
+  const { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory } = usePresetTasks();
   const { events } = useCalendarEvents();
   const { profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -253,6 +254,28 @@ export default function TaskForm() {
 
   const hasTasks = Object.keys(mergedTasks).length > 0 && Object.values(mergedTasks).some(cat => cat.tasks.length > 0);
 
+  const renderSkeleton = () => (
+    <div className="p-1">
+      <Card className="flex flex-col rounded-xl h-[280px]">
+          <CardHeader className="p-4 flex flex-row items-center justify-between">
+              <div className="w-1/2 space-y-2">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+              <Skeleton className="h-6 w-20" />
+          </CardHeader>
+          <CardContent className="p-3 pt-3 flex-grow overflow-hidden space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+          </CardContent>
+           <CardFooter className="p-3 pt-0 mt-auto">
+              <Skeleton className="h-10 w-full" />
+          </CardFooter>
+      </Card>
+    </div>
+  );
+
   return (
     <>
     <div className="space-y-4">
@@ -261,7 +284,7 @@ export default function TaskForm() {
             <p className="text-muted-foreground">Select a preset task or add your own.</p>
         </div>
         
-        {hasTasks ? (
+        {loading ? renderSkeleton() : hasTasks ? (
             <Carousel
                 setApi={setCarouselApi}
                 opts={{
