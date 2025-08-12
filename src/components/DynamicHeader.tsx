@@ -155,7 +155,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                         </g>
                         {/* Stars */}
                         {isNight && (
-                        <g style={{ opacity: sunMoonOpacity, transition: 'opacity 3s linear' }}>
+                        <g style={{ opacity: 1, transition: 'opacity 3s linear' }}>
                                 {stars}
                             </g>
                         )}
