@@ -598,6 +598,7 @@ export function usePresetTasks() {
   }, [profile, daysOff]);
   
 const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+    // 1. Check if tasks for this profession already exist.
     const tasksForProfessionQuery = query(
         collection(db, 'userPresetTasks'),
         where('userId', '==', uid),
@@ -605,10 +606,12 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
     );
     const existingTasksSnapshot = await getDocs(tasksForProfessionQuery);
 
+    // 2. If they exist, do nothing.
     if (!existingTasksSnapshot.empty) {
-        return; // Tasks already exist, do nothing.
+        return;
     }
     
+    // 3. If they don't exist, create them in a transaction.
     await runTransaction(db, async (transaction) => {
         const profileRef = doc(db, 'userProfiles', uid);
         const profileDoc = await transaction.get(profileRef);
