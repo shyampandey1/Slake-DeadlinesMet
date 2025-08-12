@@ -165,9 +165,9 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
             {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm">
-                <div className="container mx-auto flex h-full max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
+                <div className="container mx-auto flex h-full max-w-4xl items-end justify-between p-4 pb-6 sm:p-6 sm:pb-8 md:p-8 md:pb-10">
                     {/* Centered content for mobile, spaced-out for larger screens */}
-                    <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="w-full flex flex-col sm:flex-row sm:items-end sm:justify-between">
                         <div className="flex flex-col text-center sm:text-left text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                             <h1 className="text-xl font-bold font-headline">DeadlinesMet</h1>
                             <p className="text-sm opacity-90 hidden sm:block max-w-xs">Focus on one task at a time. Set your goal and go.</p>
@@ -181,7 +181,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             </div>
                         </div>
                     </div>
-                     <div className="absolute top-4 right-4 sm:relative sm:top-auto sm:right-auto sm:ml-4">
+                     <div className="absolute top-4 right-4 sm:relative sm:top-auto sm:right-auto sm:ml-4 sm:-mb-2">
                        <HamburgerMenu />
                     </div>
                 </div>
