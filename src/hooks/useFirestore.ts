@@ -688,6 +688,19 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
                 return acc;
             }, {});
 
+            // De-duplication logic
+            Object.keys(newPreset).forEach(category => {
+                const uniqueTasks = new Map<string, UserPresetTask>();
+                newPreset[category].tasks.forEach(task => {
+                    // A more robust unique key using multiple properties
+                    const taskKey = `${task.name}-${task.duration}-${task.icon}-${task.order}`;
+                    if (!uniqueTasks.has(taskKey)) {
+                        uniqueTasks.set(taskKey, task);
+                    }
+                });
+                newPreset[category].tasks = Array.from(uniqueTasks.values());
+            });
+
             const sortedPreset: Preset = {};
             Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
                 .forEach(key => { sortedPreset[key] = newPreset[key]; });
