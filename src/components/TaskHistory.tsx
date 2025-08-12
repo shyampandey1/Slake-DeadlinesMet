@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { BookText, ThumbsUp, Pause, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp } from "lucide-react";
-import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, subYears, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
@@ -218,12 +218,12 @@ function TaskLogBookContent() {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex justify-between items-center">
-                            <span>Task Log</span>
+                         <div className="flex flex-wrap items-center justify-between gap-4">
+                            <CardTitle>Task Log</CardTitle>
                              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                 <div className="flex items-center gap-2">
                                     <Select value={filter} onValueChange={handleFilterChange}>
-                                        <SelectTrigger className="w-[180px]">
+                                        <SelectTrigger className="w-auto sm:w-[180px]">
                                             <SelectValue placeholder="Select a range" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -252,7 +252,7 @@ function TaskLogBookContent() {
                                                 format(dateRange.from, "LLL dd, y")
                                             )
                                             ) : (
-                                            <span>Pick a date</span>
+                                            <span className="hidden sm:inline">Pick a date</span>
                                             )}
                                         </Button>
                                     </PopoverTrigger>
@@ -268,7 +268,7 @@ function TaskLogBookContent() {
                                     />
                                 </PopoverContent>
                             </Popover>
-                        </CardTitle>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {filteredTasks.length > 0 ? (
@@ -281,31 +281,23 @@ function TaskLogBookContent() {
                                                  <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-card border">
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold">{task.name}</span>
-                                                        <span className="text-sm text-muted-foreground">
-                                                            {task.completed
-                                                                ? `Time spent: ${formatDuration(task.duration)}`
-                                                                : `Time spent: ${formatDuration(task.duration)} of ${formatDuration(task.initialDuration)}`
-                                                            }
-                                                            {task.createdAt && <>&nbsp;&bull;&nbsp;{format(new Date(task.createdAt), "p")}</>}
+                                                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                                            Time spent: {formatDuration(task.duration)}
+                                                            {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
+                                                            {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         {task.completed ? (
-                                                            <div className="flex items-center gap-1 text-green-500">
+                                                            <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-md">
                                                                 <ThumbsUp className="h-4 w-4" />
                                                                 <span className="text-sm font-medium">Done</span>
                                                             </div>
                                                         ) : (
-                                                            <div className="inline-flex items-center">
-                                                                <div className="flex items-center gap-1 text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-l-md px-3 py-1.5">
-                                                                    <Pause className="h-4 w-4" />
-                                                                    <span className="text-sm font-medium">Paused</span>
-                                                                </div>
-                                                                <Button size="sm" variant="outline" onClick={() => handleTaskClick(task)} className="rounded-l-none border-l-0 px-3 py-1.5 h-auto">
-                                                                    <Play className="mr-2 h-3 w-3" />
-                                                                    Continue
-                                                                </Button>
-                                                            </div>
+                                                             <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
+                                                                <Play className="mr-2 h-3 w-3" />
+                                                                Continue
+                                                            </Button>
                                                         )}
                                                     </div>
                                                 </div>
