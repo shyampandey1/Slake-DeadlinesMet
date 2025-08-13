@@ -198,7 +198,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             {/* Header Content with Glass Effect - This part has the blur */}
-            <div className="absolute inset-0 bg-background/80 dark:bg-background/60 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8 pb-16">
                      <div className="flex justify-between items-start">
                         <div>
@@ -226,4 +226,3 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         </div>
     );
 }
-
