@@ -45,7 +45,7 @@ type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
 export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
-  const { findAndSyncPresetTask } = usePresetTasks();
+  const { presetTasks, findAndSyncPresetTask } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
@@ -171,11 +171,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       setShowMotivationalDialog(true);
       try {
         const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
+        const userRoutine = Object.values(presetTasks).flatMap(category => category.tasks.map(task => ({...task})));
+        
         const result = await generateMotivationalMessage({
           taskName: newTask.name,
           duration: newTask.duration,
           completionStatus: true,
           pastTasks,
+          userRoutine,
         });
         setMotivationalMessage(result.message);
         setSuggestedTask(result.suggestedNextTask);
