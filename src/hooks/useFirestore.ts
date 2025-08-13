@@ -164,6 +164,28 @@ const creativeProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profes
 export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
     version: ROUTINE_TEMPLATE_VERSION,
     routines: {
+        "Analyst": [
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
+            { name: "Review Top KPIs & Dashboards", duration: 20, icon: "ListChecks", category: "Morning Routine" },
+            { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
+            { name: "Set Daily Analysis Priorities", duration: 15, icon: "Target", category: "Morning Routine" },
+            { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
+            { name: "Focused Data Analysis & Querying", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
+            { name: "Lunch", duration: 25, icon: "Utensils", category: "Breaks & Meals" },
+            { name: "Short Walk", duration: 5, icon: "Footprints", category: "Breaks & Meals" },
+            { name: "Stakeholder Meetings & Requirement Gathering", duration: 90, icon: "Users", category: "Work & Focus" },
+            { name: "Build Reports & Visualizations", duration: 90, icon: "BarChart", category: "Work & Focus" },
+            { name: "Documentation & Peer Review", duration: 30, icon: "PenSquare", category: "Work & Focus" },
+            { name: "End-of-Day Review & Data Refresh", duration: 15, icon: "Wrench", category: "Evening Wind-down" },
+            { name: "Hobby / Leisure", duration: 60, icon: "Gamepad2", category: "Evening Wind-down" },
+            { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
+            { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Bedtime Routine" },
+            { name: "Read (non-technical)", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
+            { name: "Meditation for Mental Clarity", duration: 10, icon: "Wind", category: "Bedtime Routine" },
+            { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
+        ],
         "Artist": creativeProfessionalRoutine,
         "Consultant": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -516,6 +538,7 @@ export const defaultRoutines: { version: number, routines: { [key in ProfileType
 };
 
 export const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines.routines } = {
+    "Analyst": "Analyst",
     "Artist": "Artist",
     "Consultant": "Consultant",
     "Content Creator": "Content Creator",

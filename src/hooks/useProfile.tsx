@@ -39,6 +39,7 @@ export const professions: { [group: string]: Profession[] } = {
         { name: "Medical Representative", icon: "Briefcase", color: "text-stone-800" }
     ],
     "Technical & Health": [
+        { name: "Analyst", icon: "BarChart", color: "text-emerald-800" },
         { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-800" },
         { name: "IT Professional", icon: "Laptop", color: "text-indigo-800" },
         { name: "Software Engineer", icon: "Code", color: "text-fuchsia-800" },

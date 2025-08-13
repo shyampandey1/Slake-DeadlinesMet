@@ -29,7 +29,7 @@ export default {
     'border-amber-500/80', 'text-amber-400', 'hover:border-amber-500/80',
     'border-lime-500/80', 'text-lime-400', 'hover:border-lime-500/80', 'bg-lime-800', 'text-lime-100',
     'border-gray-500/80', 'text-gray-400', 'hover:border-gray-500/80', 'bg-gray-800', 'text-gray-100',
-    'border-emerald-500/80', 'text-emerald-400', 'hover:border-emerald-500/80',
+    'border-emerald-500/80', 'text-emerald-400', 'hover:border-emerald-500/80', 'bg-emerald-800', 'text-emerald-100',
     'border-sky-500/80', 'text-sky-400', 'hover:border-sky-500/80',
     'border-indigo-500/80', 'text-indigo-400',
     'border-rose-500/80', 'text-rose-400',
@@ -57,6 +57,7 @@ export default {
     'hover:bg-yellow-800', 'hover:border-yellow-500/80', 'hover:text-yellow-100', 'text-yellow-400',
     'hover:bg-gray-800', 'hover:border-gray-500/80', 'hover:text-gray-100', 'text-gray-400',
     'hover:bg-slate-800', 'hover:border-slate-500/80', 'hover:text-slate-100', 'text-slate-400',
+    'text-emerald-800', 'hover:bg-emerald-800', 'hover:border-emerald-500/80', 'hover:text-emerald-100',
   ],
   theme: {
     extend: {
@@ -133,6 +134,7 @@ export default {
         yellow: { 800: 'hsl(50 80% 40%)' },
         stone: { 800: 'hsl(30 20% 40%)' },
         gray: { 800: 'hsl(210 10% 40%)' },
+        emerald: { 800: 'hsl(150 70% 30%)' },
       },
       borderRadius: {
         lg: 'var(--radius)',
