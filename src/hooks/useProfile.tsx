@@ -25,31 +25,31 @@ export type Profession = {
 
 export const professions: { [group: string]: Profession[] } = {
     "Creative": [
-        { name: "Artist", icon: "Palette", color: "text-rose-800 dark:text-rose-100" },
-        { name: "Content Creator", icon: "Camera", color: "text-orange-800 dark:text-orange-100" },
-        { name: "Designer", icon: "PenTool", color: "text-purple-800 dark:text-purple-100" },
-        { name: "Writer", icon: "PenLine", color: "text-blue-800 dark:text-blue-100" },
+        { name: "Artist", icon: "Palette", color: "text-rose-800" },
+        { name: "Content Creator", icon: "Camera", color: "text-orange-800" },
+        { name: "Designer", icon: "PenTool", color: "text-purple-800" },
+        { name: "Writer", icon: "PenLine", color: "text-blue-800" },
     ],
     "Business & Management": [
-        { name: "Consultant", icon: "Briefcase", color: "text-cyan-800 dark:text-cyan-100" },
-        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-800 dark:text-amber-100" },
-        { name: "Manager", icon: "Users", color: "text-lime-800 dark:text-lime-100" },
-        { name: "Marketer", icon: "Megaphone", color: "text-red-800 dark:text-red-100" },
-        { name: "Sales", icon: "TrendingUp", color: "text-green-800 dark:text-green-100" },
-        { name: "Medical Representative", icon: "Briefcase", color: "text-stone-800 dark:text-stone-100" }
+        { name: "Consultant", icon: "Briefcase", color: "text-cyan-800" },
+        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-800" },
+        { name: "Manager", icon: "Users", color: "text-lime-800" },
+        { name: "Marketer", icon: "Megaphone", color: "text-red-800" },
+        { name: "Sales", icon: "TrendingUp", color: "text-green-800" },
+        { name: "Medical Representative", icon: "Briefcase", color: "text-stone-800" }
     ],
     "Technical & Health": [
-        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-800 dark:text-teal-100" },
-        { name: "IT Professional", icon: "Laptop", color: "text-indigo-800 dark:text-indigo-100" },
-        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-800 dark:text-fuchsia-100" },
-        { name: "Researcher", icon: "FlaskConical", color: "text-sky-800 dark:text-sky-100" },
+        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-800" },
+        { name: "IT Professional", icon: "Laptop", color: "text-indigo-800" },
+        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-800" },
+        { name: "Researcher", icon: "FlaskConical", color: "text-sky-800" },
     ],
     "General & Freelance": [
-        { name: "Educator", icon: "School", color: "text-yellow-800 dark:text-yellow-100" },
-        { name: "Freelancer", icon: "Network", color: "text-rose-800 dark:text-rose-100" },
-        { name: "Student", icon: "GraduationCap", color: "text-stone-800 dark:text-stone-100" },
-        { name: "General", icon: "User", color: "text-gray-800 dark:text-gray-100" },
-        { name: "Delivery Agent", icon: "Truck", color: "text-slate-800 dark:text-slate-100" },
+        { name: "Educator", icon: "School", color: "text-yellow-800" },
+        { name: "Freelancer", icon: "Network", color: "text-rose-800" },
+        { name: "Student", icon: "GraduationCap", color: "text-stone-800" },
+        { name: "General", icon: "User", color: "text-gray-800" },
+        { name: "Delivery Agent", icon: "Truck", color: "text-slate-800" },
     ]
 };
 

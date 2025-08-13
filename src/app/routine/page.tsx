@@ -104,22 +104,28 @@ function RoutinePageComponent() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-4">
-                            {professionList.map((p) => (
+                            {professionList.map((p) => {
+                                const colorClass = p.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-');
+                                const hoverColorClass = p.color.replace('text-', 'hover:bg-').replace('dark:text-', 'dark:hover:bg-');
+                                const textColorClass = p.color.replace('-800', '-100').replace('dark:text-','text-');
+                                const hoverTextColorClass = 'hover:text-white dark:hover:text-white';
+
+                                return (
                                 <Button
                                     key={p.name}
                                     variant="outline"
                                     onClick={() => handleProfessionSelect(p)}
                                     className={cn(
-                                        "flex items-center gap-2", 
+                                        "flex items-center gap-2 transition-colors duration-200",
                                         profile === p.name 
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'text-muted-foreground hover:bg-accent'
+                                            ? `${colorClass} ${textColorClass} border-transparent`
+                                            : `text-muted-foreground ${hoverColorClass} ${hoverTextColorClass}`
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
                                     {p.name}
                                 </Button>
-                            ))}
+                            )})}
                         </div>
                     </CardContent>
                 </Card>
