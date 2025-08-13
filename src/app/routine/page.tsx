@@ -89,7 +89,7 @@ function RoutinePageComponent() {
       <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
         <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-xl font-bold font-headline text-foreground/80">Sync your routine to your lifestyle</h1>
+                <h1 className="text-xl font-bold font-headline text-foreground/80">Sync Routine</h1>
                 <p className="text-sm text-muted-foreground">Select a profession to see the recommended routine.</p>
             </div>
             <HamburgerMenu />
@@ -108,24 +108,16 @@ function RoutinePageComponent() {
                                 const colorName = p.color.split('-')[1];
                                 const isSelected = profile === p.name;
                                 
-                                const baseColorClass = `text-${colorName}-400`;
-                                const borderClass = `border-${colorName}-500/80`;
-                                const hoverBgClass = `hover:bg-${colorName}-800`;
-                                const hoverBorderClass = `hover:border-${colorName}-500/80`;
-                                const hoverTextClass = 'hover:text-white';
-                                const selectedBgClass = `bg-${colorName}-800`;
-                                const selectedTextClass = `text-${colorName}-100`;
-
                                 return (
                                 <Button
                                     key={p.name}
                                     variant="outline"
                                     onClick={() => handleProfessionSelect(p)}
                                     className={cn(
-                                        "flex items-center gap-2 transition-colors duration-200 border-2",
+                                        "flex items-center gap-2 transition-colors duration-200 border-2 bg-transparent",
                                         isSelected 
-                                            ? `${selectedBgClass} ${selectedTextClass} ${borderClass}`
-                                            : `${baseColorClass} ${borderClass} bg-transparent ${hoverBgClass} ${hoverBorderClass} ${hoverTextClass}`
+                                            ? `bg-${colorName}-800 text-${colorName}-100 border-${colorName}-500/80`
+                                            : `text-${colorName}-400 border-${colorName}-500/80 hover:bg-${colorName}-800 hover:border-${colorName}-500/80 hover:text-white`
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
