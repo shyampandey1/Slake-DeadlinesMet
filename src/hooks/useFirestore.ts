@@ -588,26 +588,32 @@ export function usePresetTasks() {
   }, [getEffectiveProfile]);
 
   useEffect(() => {
-    if (profileLoading || !user || !effectiveProfile) {
-        // If there's no user or profile info, load a default guest routine
-        if (!user) {
-            const routineKey = 'General';
-            const defaultTasks = defaultRoutines.routines[routineKey] || [];
-            let order = 0;
-            const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
-            
-            const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
-                const category = task.category || 'Default';
-                if (!acc[category]) {
-                    acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-                }
-                acc[category].tasks.push(task as UserPresetTask);
-                return acc;
-            }, {});
-            setPresetTasks(newPreset);
-            setLoading(false);
-        }
+    if (profileLoading) {
+      return;
+    }
+
+    if (isOffline) {
+        const routineKey = 'General';
+        const defaultTasks = defaultRoutines.routines[routineKey] || [];
+        let order = 0;
+        const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
+        
+        const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
+            const category = task.category || 'Default';
+            if (!acc[category]) {
+                acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+            }
+            acc[category].tasks.push(task as UserPresetTask);
+            return acc;
+        }, {});
+        setPresetTasks(newPreset);
+        setLoading(false);
         return;
+    }
+    
+    if (!user || !effectiveProfile) {
+      setLoading(false);
+      return;
     }
     
     setLoading(true);
@@ -625,7 +631,7 @@ export function usePresetTasks() {
         console.warn("Couldn't access localStorage for preset tasks");
     }
 
-    if (!isOffline && isSyncEnabled) {
+    if (isSyncEnabled) {
         const q = query(
             collection(db, 'userPresetTasks'),
             where('userId', '==', user.uid),

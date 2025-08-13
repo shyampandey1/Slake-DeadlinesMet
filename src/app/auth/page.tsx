@@ -19,7 +19,7 @@ type AuthView = "initial" | "login" | "signup";
 export default function AuthPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading, setMockUser, signInWithGoogle, mockLogin } = useAuth();
+  const { user, loading, setMockUser, signInWithGoogle, mockLogin, setIsOffline } = useAuth();
   const [view, setView] = useState<AuthView>("initial");
 
   useEffect(() => {
@@ -32,6 +32,7 @@ export default function AuthPage() {
     const mockUser = mockLogin("user@test.com", "password123");
     if (mockUser) {
         setMockUser(mockUser);
+        setIsOffline(true);
         router.push("/");
         toast({
             title: "Logged in as Guest",
