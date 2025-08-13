@@ -18,7 +18,7 @@ function HomeComponent() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
       <main className="flex-1 overflow-y-auto pb-20">
         <div className="relative">
           <DynamicHeader currentDate={currentDate} />

@@ -200,11 +200,11 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             {/* Header Content with Glass Effect - This part has the blur */}
             <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm">
                 <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8 pb-16">
-                     <div className="flex justify-between items-start">
+                     <div className="flex justify-between items-start text-white">
                         <div>
-                           <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
+                           <h1 className="text-xl font-bold font-headline" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
                            <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
-                           <div className="flex flex-col items-start text-white mt-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                           <div className="flex flex-col items-start mt-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                 <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
                                 <div className="flex items-center justify-start gap-2">
                                     <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
