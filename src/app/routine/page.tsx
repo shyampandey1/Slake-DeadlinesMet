@@ -111,7 +111,9 @@ function RoutinePageComponent() {
                                     onClick={() => handleProfessionSelect(p)}
                                     className={cn(
                                         "flex items-center gap-2", 
-                                        profile === p.name ? `${p.color} dark:text-white font-semibold` : `text-muted-foreground hover:${p.color} hover:dark:text-white`
+                                        profile === p.name 
+                                            ? `${p.color.replace('text-', 'bg-').replace('dark:text-','dark:bg-')} text-white dark:text-white font-semibold` 
+                                            : `text-muted-foreground hover:${p.color.replace('text-', 'bg-').replace('dark:text-','dark:bg-')} hover:text-white hover:dark:text-white`
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
