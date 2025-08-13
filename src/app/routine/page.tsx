@@ -106,9 +106,15 @@ function RoutinePageComponent() {
                         <div className="flex flex-wrap gap-4">
                             {professionList.map((p) => {
                                 const colorName = p.color.split('-')[1];
-                                const bgColor = `bg-${colorName}-800`;
-                                const hoverBgColor = `hover:bg-${colorName}-800`;
-                                const textColor = `text-${colorName}-100`;
+                                const isSelected = profile === p.name;
+                                
+                                const baseColorClass = `text-${colorName}-400`;
+                                const borderClass = `border-${colorName}-500/80`;
+                                const hoverBgClass = `hover:bg-${colorName}-800`;
+                                const hoverBorderClass = `hover:border-${colorName}-500/80`;
+                                const hoverTextClass = 'hover:text-white';
+                                const selectedBgClass = `bg-${colorName}-800`;
+                                const selectedTextClass = `text-${colorName}-100`;
 
                                 return (
                                 <Button
@@ -116,10 +122,10 @@ function RoutinePageComponent() {
                                     variant="outline"
                                     onClick={() => handleProfessionSelect(p)}
                                     className={cn(
-                                        "flex items-center gap-2 transition-colors duration-200",
-                                        profile === p.name 
-                                            ? `${bgColor} ${textColor} border-transparent`
-                                            : `text-muted-foreground ${hoverBgColor} hover:text-white border-border`
+                                        "flex items-center gap-2 transition-colors duration-200 border-2",
+                                        isSelected 
+                                            ? `${selectedBgClass} ${selectedTextClass} ${borderClass}`
+                                            : `${baseColorClass} ${borderClass} bg-transparent ${hoverBgClass} ${hoverBorderClass} ${hoverTextClass}`
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
