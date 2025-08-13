@@ -192,6 +192,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       router.push("/");
     }
   };
+  
+  const handleMotivationalDialogChange = (open: boolean) => {
+    setShowMotivationalDialog(open);
+    if (!open) {
+      router.push('/');
+    }
+  };
 
   const formatTime = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -315,7 +322,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={showMotivationalDialog} onOpenChange={setShowMotivationalDialog}>
+      <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
@@ -344,7 +351,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => router.push('/')} className="w-full mt-2">
+            <Button onClick={() => handleMotivationalDialogChange(false)} className="w-full mt-2">
               Back to Home
             </Button>
           </DialogFooter>
