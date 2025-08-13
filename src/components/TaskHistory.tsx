@@ -278,10 +278,10 @@ function TaskLogBookContent() {
                                         <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
                                         <div className="space-y-3">
                                             {groupedTasks[day].map((task) => (
-                                                 <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-card border">
+                                                 <div key={task.id} className="flex flex-wrap items-center justify-between gap-y-2 p-3 rounded-lg bg-card border">
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold">{task.name}</span>
-                                                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                                        <span className="text-sm text-muted-foreground">
                                                             Time spent: {formatDuration(task.duration)}
                                                             {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
                                                             {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
