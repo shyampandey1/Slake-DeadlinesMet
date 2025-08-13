@@ -99,7 +99,7 @@ export default function AuthPage() {
         <CardContent className="flex flex-col space-y-4">
             <Button onClick={handleGoogleLogin} size="lg" variant="outline">
                 <GoogleIcon className="mr-2 h-5 w-5" />
-                Google
+                Login with Google
             </Button>
             
             <div className="flex items-center gap-2">
