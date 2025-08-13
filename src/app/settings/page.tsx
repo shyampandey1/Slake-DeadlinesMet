@@ -36,7 +36,7 @@ function SettingsPageComponent() {
     const { user, updateUserDisplayName, isSyncEnabled, setIsSyncEnabled } = useAuth();
     const { clearTasks } = useTasks();
     const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
-    const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForLocation } = useWeather();
+    const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForCurrentUserLocation } = useWeather();
     
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
@@ -70,12 +70,11 @@ function SettingsPageComponent() {
 
     const handleLocationSave = () => {
         setLocation(tempLocation);
-        fetchWeatherForLocation(tempLocation);
         toast({ title: "Location updated", description: `Weather will now be shown for ${tempLocation}.` });
     }
 
     const handleDetectLocation = () => {
-        toast({ title: "Coming Soon!", description: "Auto-detecting location is not yet implemented." });
+        fetchWeatherForCurrentUserLocation();
     }
 
     return (
@@ -323,5 +322,3 @@ export default function SettingsPage() {
         </AuthWrapper>
     );
 }
-
-    

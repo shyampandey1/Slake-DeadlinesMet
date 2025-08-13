@@ -47,6 +47,29 @@ export function useWeather() {
     }, 500); // Simulate network delay
   }, [unit]);
 
+  const fetchWeatherForCurrentUserLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // In a real app, you would use a reverse geocoding API here
+        // to get the city name from lat/lon.
+        // For this demo, we'll just set a placeholder name.
+        const autoLocation = "Current Location";
+        setLocationState(autoLocation);
+        fetchWeatherForLocation(autoLocation);
+      },
+      () => {
+        alert("Unable to retrieve your location.");
+        setLoading(false);
+      }
+    );
+  }, [fetchWeatherForLocation]);
+
   useEffect(() => {
     let initialLocation = 'London';
     let initialUnit: 'C' | 'F' = 'C';
@@ -70,7 +93,7 @@ export function useWeather() {
       const cachedWeather = localStorage.getItem(WEATHER_CACHE_KEY);
       if (cachedWeather) {
         const data: WeatherData = JSON.parse(cachedWeather);
-        if (Date.now() - data.timestamp < WEATHER_CACHE_TTL) {
+        if (Date.now() - data.timestamp < WEATHER_CACHE_TTL && data.location === initialLocation && data.unit === initialUnit) {
           setWeather(data);
           setLoading(false);
         } else {
@@ -83,7 +106,7 @@ export function useWeather() {
         console.warn("Could not access localStorage for weather cache.");
         fetchWeatherForLocation(initialLocation, initialUnit);
     }
-  }, [fetchWeatherForLocation]);
+  }, []);
 
   const setLocation = useCallback((newLocation: string) => {
     setLocationState(newLocation);
@@ -92,7 +115,8 @@ export function useWeather() {
     } catch (error) {
       console.warn("Could not save location to localStorage.");
     }
-  }, []);
+    fetchWeatherForLocation(newLocation);
+  }, [fetchWeatherForLocation]);
 
   const setUnit = useCallback((newUnit: 'C' | 'F') => {
     setUnitState(newUnit);
@@ -107,7 +131,5 @@ export function useWeather() {
   }, [weather, fetchWeatherForLocation]);
 
 
-  return { location, setLocation, unit, setUnit, weather, loading, fetchWeatherForLocation };
+  return { location, setLocation, unit, setUnit, weather, loading, fetchWeatherForLocation, fetchWeatherForCurrentUserLocation };
 }
-
-    
