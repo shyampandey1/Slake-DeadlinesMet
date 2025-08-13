@@ -105,10 +105,10 @@ function RoutinePageComponent() {
                     <CardContent>
                         <div className="flex flex-wrap gap-4">
                             {professionList.map((p) => {
-                                const colorClass = p.color.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-');
-                                const hoverColorClass = p.color.replace('text-', 'hover:bg-').replace('dark:text-', 'dark:hover:bg-');
-                                const textColorClass = p.color.replace('-800', '-100').replace('dark:text-','text-');
-                                const hoverTextColorClass = 'hover:text-white dark:hover:text-white';
+                                const colorName = p.color.split('-')[1];
+                                const bgColor = `bg-${colorName}-800`;
+                                const hoverBgColor = `hover:bg-${colorName}-800`;
+                                const textColor = `text-${colorName}-100`;
 
                                 return (
                                 <Button
@@ -118,8 +118,8 @@ function RoutinePageComponent() {
                                     className={cn(
                                         "flex items-center gap-2 transition-colors duration-200",
                                         profile === p.name 
-                                            ? `${colorClass} ${textColorClass} border-transparent`
-                                            : `text-muted-foreground ${hoverColorClass} ${hoverTextColorClass}`
+                                            ? `${bgColor} ${textColor} border-transparent`
+                                            : `text-muted-foreground ${hoverBgColor} hover:text-white border-border`
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
