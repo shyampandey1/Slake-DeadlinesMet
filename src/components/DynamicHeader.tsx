@@ -22,7 +22,7 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
         initial={initial}
         animate={animate}
         transition={transition}
-        className={cn("absolute text-white/20", className)}
+        className={cn("absolute text-white/40", className)}
     >
         <Cloud className="w-full h-full" />
     </motion.div>

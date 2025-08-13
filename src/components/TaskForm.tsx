@@ -280,8 +280,8 @@ export default function TaskForm() {
     <>
     <div className="space-y-4">
        <div>
-            <h2 className="font-headline text-2xl">Quick Start Tasks</h2>
-            <p className="text-muted-foreground">Select a preset task or add your own.</p>
+            <h2 className="font-headline text-2xl text-white">Quick Start Tasks</h2>
+            <p className="text-white/80">Select a preset task or add your own.</p>
         </div>
         
         {loading ? renderSkeleton() : hasTasks ? (

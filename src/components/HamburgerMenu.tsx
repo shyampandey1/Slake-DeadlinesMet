@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 const changelog = [
     {
@@ -91,7 +92,7 @@ export default function HamburgerMenu() {
     <>
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
             </Button>
@@ -195,5 +196,3 @@ export default function HamburgerMenu() {
     </>
   );
 }
-
-    
