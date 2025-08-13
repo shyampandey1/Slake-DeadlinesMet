@@ -6,11 +6,12 @@ import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X, Cloud, CloudOff } from "lucide-react";
+import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X, Cloud, CloudOff, Thermometer, MapPin, LocateFixed } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
+import { useWeather } from "@/hooks/useWeather";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +36,15 @@ function SettingsPageComponent() {
     const { user, updateUserDisplayName, isSyncEnabled, setIsSyncEnabled } = useAuth();
     const { clearTasks } = useTasks();
     const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
-    const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+    const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForLocation } = useWeather();
     
+    const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [displayName, setDisplayName] = useState(user?.displayName || "");
     const [isSavingName, setIsSavingName] = useState(false);
     const { toast } = useToast();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [tempLocation, setTempLocation] = useState(location);
 
     const handleClearHistory = () => {
         clearTasks();
@@ -64,6 +67,16 @@ function SettingsPageComponent() {
             setIsSavingName(false);
         }
     };
+
+    const handleLocationSave = () => {
+        setLocation(tempLocation);
+        fetchWeatherForLocation(tempLocation);
+        toast({ title: "Location updated", description: `Weather will now be shown for ${tempLocation}.` });
+    }
+
+    const handleDetectLocation = () => {
+        toast({ title: "Coming Soon!", description: "Auto-detecting location is not yet implemented." });
+    }
 
     return (
         <div className="flex flex-col h-screen">
@@ -91,6 +104,46 @@ function SettingsPageComponent() {
                                     <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                     <span className="sr-only">Toggle theme</span>
                                 </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg">Weather</CardTitle>
+                            <CardDescription>Manage location and units for the home screen.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="location-input">Location</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input 
+                                        id="location-input"
+                                        value={tempLocation}
+                                        onChange={(e) => setTempLocation(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleLocationSave()}
+                                        placeholder="e.g., London, UK"
+                                    />
+                                    <Button size="icon" variant="outline" onClick={handleDetectLocation}>
+                                        <LocateFixed className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="icon" onClick={handleLocationSave} disabled={weatherLoading}>
+                                        {weatherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Unit</Label>
+                                <RadioGroup value={unit} onValueChange={(value) => setUnit(value as 'C' | 'F')} className="flex items-center gap-4">
+                                    <Label htmlFor="celsius" className="flex items-center gap-2 rounded-md border p-2 px-3 cursor-pointer hover:bg-accent data-[state=checked]:border-primary">
+                                        <RadioGroupItem value="C" id="celsius"/>
+                                        Celsius (°C)
+                                    </Label>
+                                    <Label htmlFor="fahrenheit" className="flex items-center gap-2 rounded-md border p-2 px-3 cursor-pointer hover:bg-accent data-[state=checked]:border-primary">
+                                        <RadioGroupItem value="F" id="fahrenheit"/>
+                                        Fahrenheit (°F)
+                                    </Label>
+                                </RadioGroup>
                             </div>
                         </CardContent>
                     </Card>
@@ -270,3 +323,5 @@ export default function SettingsPage() {
         </AuthWrapper>
     );
 }
+
+    

@@ -4,9 +4,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import { Sun, Moon, Cloud, CloudSun } from 'lucide-react';
+import { Sun, Moon, Cloud, CloudSun, Snowflake, Zap, CloudRain, SunSnow } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useWeather } from '@/hooks/useWeather';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -29,9 +30,26 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
 
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
-    const [weather, setWeather] = useState({ temp: 22, icon: CloudSun });
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const { weather, loading: weatherLoading } = useWeather();
+
+    const weatherIcons = {
+        Clear: Sun,
+        Clouds: Cloud,
+        Rain: CloudRain,
+        Snow: Snowflake,
+        Thunderstorm: Zap,
+        Haze: CloudSun,
+        Mist: CloudSun,
+        Default: CloudSun,
+    };
+    
+    let WeatherIcon = weatherIcons.Default;
+    if(weather?.main) {
+        WeatherIcon = weatherIcons[weather.main as keyof typeof weatherIcons] || weatherIcons.Default;
+    }
+
 
     useEffect(() => {
         const resizeObserver = new ResizeObserver(entries => {
@@ -112,9 +130,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     
     useEffect(() => {
         if (isNight) {
-            setWeather({ temp: 18, icon: Moon });
-        } else {
-            setWeather({ temp: 22, icon: Sun });
+            WeatherIcon = weatherIcons.Default;
         }
     }, [isNight]);
     
@@ -140,7 +156,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         }
     }, [dimensions, isNight]);
     
-    const WeatherIcon = weather.icon;
 
     return (
         <div className="relative w-full h-64">
@@ -202,14 +217,18 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                 <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8 pb-16">
                      <div className="flex justify-between items-start text-white">
                         <div>
-                           <h1 className="text-xl font-bold font-headline" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
+                           <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
                            <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
-                           <div className="flex flex-col items-start mt-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                           <div className="flex flex-col items-start mt-2 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                 <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
                                 <div className="flex items-center justify-start gap-2">
                                     <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
-                                    <WeatherIcon className="h-4 w-4 text-white/90" />
-                                    <p className="text-xs opacity-90">{weather.temp}°C</p>
+                                    {!weatherLoading && weather && (
+                                        <>
+                                            <WeatherIcon className="h-4 w-4 text-white/90" />
+                                            <p className="text-xs opacity-90">{weather.temp}°{weather.unit}</p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -226,3 +245,5 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         </div>
     );
 }
+
+    
