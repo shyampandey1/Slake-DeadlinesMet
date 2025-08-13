@@ -794,24 +794,7 @@ const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) =
   };
 
   const findAndSyncPresetTask = async (taskName: string, actualDuration: number) => {
-     if (!user || isOffline || !isSyncEnabled) return;
-     if (taskName.toLowerCase() === 'lunch') return; // Do not adjust lunch time
-     
-     const q = query(
-        collection(db, 'userPresetTasks'), 
-        where('userId', '==', user.uid),
-        where('profession', '==', profile),
-        where('name', '==', taskName)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-        const taskDoc = querySnapshot.docs[0];
-        const taskData = taskDoc.data() as UserPresetTask;
-        const newDuration = Math.round((taskData.duration + actualDuration) / 2);
-
-        await updateDoc(taskDoc.ref, { duration: newDuration });
-    }
+     return;
   };
 
   const categoryTimeRanges = useMemo(() => {
