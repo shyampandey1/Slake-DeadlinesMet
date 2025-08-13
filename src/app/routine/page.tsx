@@ -112,8 +112,8 @@ function RoutinePageComponent() {
                                     className={cn(
                                         "flex items-center gap-2", 
                                         profile === p.name 
-                                            ? `${p.color.replace('text-', 'bg-').replace('dark:text-','dark:bg-')} text-white dark:text-white font-semibold` 
-                                            : `text-muted-foreground hover:${p.color.replace('text-', 'bg-').replace('dark:text-','dark:bg-')} hover:text-white hover:dark:text-white`
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'text-muted-foreground hover:bg-accent'
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
