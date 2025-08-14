@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets } from "lucide-react";
-import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears } from "date-fns";
+import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
@@ -56,7 +56,7 @@ function TaskLogBookContent() {
     }
   };
 
-  const filteredTasks = useMemo(() => {
+  const { filteredTasks, dateFilterRange } = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = now;
@@ -90,7 +90,7 @@ function TaskLogBookContent() {
           startDate = startOfDay(dateRange.from);
           endDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
         } else {
-          return [];
+          return { filteredTasks: [], dateFilterRange: { start: now, end: now }};
         }
         break;
       default:
@@ -98,10 +98,12 @@ function TaskLogBookContent() {
         break;
     }
 
-    return tasks.filter(task => {
+    const tasksInRange = tasks.filter(task => {
       const taskDate = new Date(task.createdAt);
       return isWithinInterval(taskDate, { start: startDate, end: endDate });
     });
+
+    return { filteredTasks: tasksInRange, dateFilterRange: { start: startDate, end: endDate } };
   }, [tasks, filter, dateRange]);
   
   const categoryData = useMemo(() => {
@@ -126,24 +128,28 @@ function TaskLogBookContent() {
 
   const stats = useMemo(() => {
     if (loading || filteredTasks.length === 0) {
-      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0, hydrationProgress: 0 };
+      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0, hydrationProgress: 0, hydrationGoal: 8, glassesDrunk: 0 };
     }
     const completedTasks = filteredTasks.filter(t => t.completed).length;
     const totalTime = filteredTasks.reduce((acc, t) => acc + t.duration, 0);
     const completionRate = filteredTasks.length > 0 ? Math.round((completedTasks / filteredTasks.length) * 100) : 0;
     
-    const waterTasks = filteredTasks.filter(t => getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory === 'Hydration' && t.completed).length;
-    const hydrationGoal = 8; // 8 glasses per day
-    const hydrationProgress = Math.min(100, Math.round((waterTasks / hydrationGoal) * 100));
+    const glassesDrunk = filteredTasks.filter(t => getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory === 'Hydration' && t.completed).length;
+
+    const daysInFilter = differenceInDays(dateFilterRange.end, dateFilterRange.start) + 1;
+    const hydrationGoal = daysInFilter * 8;
+    const hydrationProgress = hydrationGoal > 0 ? Math.min(100, Math.round((glassesDrunk / hydrationGoal) * 100)) : 0;
 
     return {
       totalTasks: filteredTasks.length,
       completedTasks,
       totalTime,
       completionRate,
-      hydrationProgress
+      hydrationProgress,
+      hydrationGoal,
+      glassesDrunk
     };
-  }, [filteredTasks, loading, profile]);
+  }, [filteredTasks, loading, profile, dateFilterRange]);
 
   const groupedTasks = useMemo(() => {
     const groups: { [key: string]: Task[] } = {};
@@ -302,12 +308,14 @@ function TaskLogBookContent() {
                     </Card>
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Daily Hydration</CardTitle>
+                            <CardTitle className="text-sm font-medium">Hydration</CardTitle>
                             <Droplets className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
-                            <p className="text-xs text-muted-foreground">Goal: 8 glasses</p>
+                            <p className="text-xs text-muted-foreground">
+                                {stats.glassesDrunk} of {stats.hydrationGoal} glasses
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
