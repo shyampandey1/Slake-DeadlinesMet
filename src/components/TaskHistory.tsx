@@ -234,7 +234,7 @@ function TaskLogBookContent() {
         html2canvas(reportRef.current, {
             useCORS: true,
             backgroundColor: getComputedStyle(document.body).backgroundColor,
-            scale: 2,
+            scale: 3, // Increase scale for better resolution
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = `deadlinesmet_report_${format(new Date(), 'yyyyMMdd')}.png`;
@@ -259,7 +259,7 @@ function TaskLogBookContent() {
   );
 
   return (
-    <div ref={reportRef} className="space-y-8 bg-background p-1">
+    <div className="space-y-8 bg-background p-1">
         <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
@@ -334,166 +334,168 @@ function TaskLogBookContent() {
             </div>
         </div>
       
-        {loading ? renderSkeleton() : (
-            <>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
-                            <BookText className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats.totalTasks}</div>
-                            <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Time Focused</CardTitle>
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
-                            <p className="text-xs text-muted-foreground">across all sessions</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats.completionRate}%</div>
-                            <p className="text-xs text-muted-foreground">Keep up the great work!</p>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Hydration</CardTitle>
-                            <Droplets className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
-                            <p className="text-xs text-muted-foreground">
-                                {stats.glassesDrunk} of {stats.hydrationGoal} glasses
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
+        <div ref={reportRef}>
+            {loading ? renderSkeleton() : (
+                <>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
+                                <BookText className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.totalTasks}</div>
+                                <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Time Focused</CardTitle>
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
+                                <p className="text-xs text-muted-foreground">across all sessions</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                                <p className="text-xs text-muted-foreground">Keep up the great work!</p>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Hydration</CardTitle>
+                                <Droplets className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {stats.glassesDrunk} of {stats.hydrationGoal} glasses
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Category Breakdown</CardTitle>
-                            <CardDescription>Time spent per category in the selected period.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {categoryData.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                    <div className="h-48 w-full">
-                                        <ResponsiveContainer>
-                                            <RechartsPieChart>
-                                                <Pie
-                                                    data={categoryData}
-                                                    dataKey="value"
-                                                    nameKey="name"
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    outerRadius={80}
-                                                    labelLine={false}
-                                                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                                                        if (percent < 0.05) return null;
-                                                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                                        const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                                                        const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                                                        return (
-                                                            <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold">
-                                                                {`${(percent * 100).toFixed(0)}%`}
-                                                            </text>
-                                                        );
-                                                    }}
-                                                >
-                                                {categoryData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                                ))}
-                                                </Pie>
-                                            </RechartsPieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    <div className="w-full flex flex-col gap-2">
-                                        {categoryData.map(item => (
-                                             <div key={item.name} className="flex items-center justify-between text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}/>
-                                                    <span className="text-muted-foreground">{item.name}</span>
+                    <div className="grid gap-4 md:grid-cols-2 mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Category Breakdown</CardTitle>
+                                <CardDescription>Time spent per category in the selected period.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {categoryData.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                        <div className="h-48 w-full">
+                                            <ResponsiveContainer>
+                                                <RechartsPieChart>
+                                                    <Pie
+                                                        data={categoryData}
+                                                        dataKey="value"
+                                                        nameKey="name"
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        outerRadius={80}
+                                                        labelLine={false}
+                                                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                                            if (percent < 0.05) return null;
+                                                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                                            const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                                                            const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                                                            return (
+                                                                <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold">
+                                                                    {`${(percent * 100).toFixed(0)}%`}
+                                                                </text>
+                                                            );
+                                                        }}
+                                                    >
+                                                    {categoryData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                    </Pie>
+                                                </RechartsPieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div className="w-full flex flex-col gap-2">
+                                            {categoryData.map(item => (
+                                                 <div key={item.name} className="flex items-center justify-between text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}/>
+                                                        <span className="text-muted-foreground">{item.name}</span>
+                                                    </div>
+                                                    <span className="font-medium text-foreground">{formatDuration(item.value)}</span>
                                                 </div>
-                                                <span className="font-medium text-foreground">{formatDuration(item.value)}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="py-10 text-center text-muted-foreground border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
+                                        <PieChart className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                                        <p className="mt-2 font-semibold">Not enough data</p>
+                                        <p className="text-sm">Log tasks to see your breakdown.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Task Log</CardTitle>
+                                <CardDescription>A list of all tasks in the selected period.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {filteredTasks.length > 0 ? (
+                                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                        {sortedGroupKeys.map((day) => (
+                                            <div key={day}>
+                                                <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
+                                                <div className="space-y-3">
+                                                    {groupedTasks[day].map((task) => (
+                                                        <div key={task.id} className="flex items-center justify-between gap-2 p-3 rounded-lg bg-card border">
+                                                            <div className="flex-1 min-w-0">
+                                                                <span className="font-semibold block truncate">{task.name}</span>
+                                                                <span className="text-sm text-muted-foreground">
+                                                                    Time spent: {formatDuration(task.duration)}
+                                                                    {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
+                                                                    {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex-shrink-0">
+                                                                {task.completed ? (
+                                                                    <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-md">
+                                                                        <ThumbsUp className="h-4 w-4" />
+                                                                        <span className="text-sm font-medium">Done</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
+                                                                        <Play className="mr-2 h-3 w-3" />
+                                                                        Continue
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="py-10 text-center text-muted-foreground border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
-                                    <PieChart className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                                    <p className="mt-2 font-semibold">Not enough data</p>
-                                    <p className="text-sm">Log tasks to see your breakdown.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Task Log</CardTitle>
-                            <CardDescription>A list of all tasks in the selected period.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {filteredTasks.length > 0 ? (
-                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                                    {sortedGroupKeys.map((day) => (
-                                        <div key={day}>
-                                            <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
-                                            <div className="space-y-3">
-                                                {groupedTasks[day].map((task) => (
-                                                    <div key={task.id} className="flex flex-wrap items-center justify-between gap-y-2 p-3 rounded-lg bg-card border">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold">{task.name}</span>
-                                                            <span className="text-sm text-muted-foreground">
-                                                                Time spent: {formatDuration(task.duration)}
-                                                                {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
-                                                                {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {task.completed ? (
-                                                                <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-md">
-                                                                    <ThumbsUp className="h-4 w-4" />
-                                                                    <span className="text-sm font-medium">Done</span>
-                                                                </div>
-                                                            ) : (
-                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                    <Play className="mr-2 h-3 w-3" />
-                                                                    Continue
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                                    <BookText className="mx-auto h-12 w-12" />
-                                    <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
-                                    <p className="mt-1 text-sm">No tasks were logged in this period.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            </>
-        )}
+                                ) : (
+                                    <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                                        <BookText className="mx-auto h-12 w-12" />
+                                        <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
+                                        <p className="mt-1 text-sm">No tasks were logged in this period.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </>
+            )}
+        </div>
     </div>
   );
 }
