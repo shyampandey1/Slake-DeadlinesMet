@@ -425,11 +425,11 @@ function TaskLogBookContent() {
                                         <div className="w-full flex flex-col gap-2">
                                             {categoryData.map(item => (
                                                  <div key={item.name} className="flex items-center justify-between text-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}/>
-                                                        <span className="text-muted-foreground">{item.name}</span>
+                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                        <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}/>
+                                                        <span className="text-muted-foreground truncate">{item.name}</span>
                                                     </div>
-                                                    <span className="font-medium text-foreground">{formatDuration(item.value)}</span>
+                                                    <span className="font-medium text-foreground whitespace-nowrap">{formatDuration(item.value)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -508,5 +508,7 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
+
+    
 
     
