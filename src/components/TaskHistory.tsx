@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
-import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets, Download, FileDown, ImageDown } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { DateRange } from "react-day-picker";
 import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 'recharts';
 import { useProfile } from "@/hooks/useProfile";
 import { getTaskCategoryDetails, categoryColors } from "@/lib/categorization";
+import html2canvas from 'html2canvas';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import AuthWrapper from "./AuthWrapper";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Task, ProfileType } from "@/types";
 import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
@@ -39,6 +41,7 @@ function TaskLogBookContent() {
   const [filter, setFilter] = useState("today");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const loading = tasksLoading || profileLoading;
 
@@ -205,6 +208,43 @@ function TaskLogBookContent() {
     }
   };
 
+    const downloadCSV = () => {
+    const headers = ['Date', 'Task Name', 'Category', 'Time Spent (min)', 'Initial Duration (min)', 'Completed'];
+    const rows = filteredTasks.map(task => [
+        format(new Date(task.createdAt), 'yyyy-MM-dd HH:mm'),
+        `"${task.name.replace(/"/g, '""')}"`,
+        getTaskCategoryDetails(task.name, profile as ProfileType).mainCategory,
+        task.duration,
+        task.initialDuration,
+        task.completed ? 'Yes' : 'No'
+    ].join(','));
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `deadlinesmet_report_${format(new Date(), 'yyyyMMdd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadImage = () => {
+    if (reportRef.current) {
+        html2canvas(reportRef.current, {
+            useCORS: true,
+            backgroundColor: 'hsl(var(--background))',
+            scale: 2,
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `deadlinesmet_report_${format(new Date(), 'yyyyMMdd')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+  };
+
+
   const renderSkeleton = () => (
     <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -219,58 +259,79 @@ function TaskLogBookContent() {
   );
 
   return (
-    <div className="space-y-8">
-        <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
-             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <div className="flex items-center gap-2">
-                    <Select value={filter} onValueChange={handleFilterChange}>
-                        <SelectTrigger className="w-auto sm:w-[180px]">
-                            <SelectValue placeholder="Select a range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Time</SelectItem>
-                            <SelectItem value="today">Today</SelectItem>
-                            <SelectItem value="last7">Last 7 days</SelectItem>
-                            <SelectItem value="last30">Last 30 days</SelectItem>
-                            <SelectItem value="prevMonth">Previous Month</SelectItem>
-                            <SelectItem value="thisYear">This Year</SelectItem>
-                            <SelectItem value="lastYear">Last Year</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <PopoverTrigger asChild>
-                        <Button
-                            id="date"
-                            variant={"outline"}
-                            className={cn("w-auto justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
-                            onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dateRange?.from ? (
-                            dateRange.to ? (
-                                <>
-                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
-                                </>
-                            ) : (
-                                format(dateRange.from, "LLL dd, y")
-                            )
-                            ) : (
-                            <span className="hidden sm:inline">Custom</span>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                </div>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={handleDateSelect}
-                        numberOfMonths={2}
-                    />
-                </PopoverContent>
-            </Popover>
+    <div ref={reportRef} className="space-y-8">
+        <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <div className="flex items-center gap-2">
+                      <Select value={filter} onValueChange={handleFilterChange}>
+                          <SelectTrigger className="w-auto sm:w-[180px]">
+                              <SelectValue placeholder="Select a range" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="all">All Time</SelectItem>
+                              <SelectItem value="today">Today</SelectItem>
+                              <SelectItem value="last7">Last 7 days</SelectItem>
+                              <SelectItem value="last30">Last 30 days</SelectItem>
+                              <SelectItem value="prevMonth">Previous Month</SelectItem>
+                              <SelectItem value="thisYear">This Year</SelectItem>
+                              <SelectItem value="lastYear">Last Year</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <PopoverTrigger asChild>
+                          <Button
+                              id="date"
+                              variant={"outline"}
+                              className={cn("w-auto justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                              onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
+                          >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {dateRange?.from ? (
+                              dateRange.to ? (
+                                  <>
+                                  {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
+                                  </>
+                              ) : (
+                                  format(dateRange.from, "LLL dd, y")
+                              )
+                              ) : (
+                              <span className="hidden sm:inline">Custom</span>
+                              )}
+                          </Button>
+                      </PopoverTrigger>
+                  </div>
+                  <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                          initialFocus
+                          mode="range"
+                          defaultMonth={dateRange?.from}
+                          selected={dateRange}
+                          onSelect={handleDateSelect}
+                          numberOfMonths={2}
+                      />
+                  </PopoverContent>
+              </Popover>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={downloadCSV}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Download as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadImage}>
+                    <ImageDown className="mr-2 h-4 w-4" />
+                    Download as Image
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
         </div>
       
         {loading ? renderSkeleton() : (
