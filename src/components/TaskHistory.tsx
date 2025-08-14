@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets, Download, FileDown, ImageDown } from "lucide-react";
+import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets, Download, FileDown, ImageDown, X } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,8 @@ function formatDuration(minutes: number): string {
     return `${minutes} min`;
 }
 
+const allCategories = Object.keys(categoryColors);
+
 function TaskLogBookContent() {
   const { tasks, loading: tasksLoading } = useTasks();
   const { profile, loading: profileLoading } = useProfile();
@@ -42,6 +44,8 @@ function TaskLogBookContent() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
 
   const loading = tasksLoading || profileLoading;
 
@@ -59,7 +63,7 @@ function TaskLogBookContent() {
     }
   };
 
-  const { filteredTasks, dateFilterRange } = useMemo(() => {
+  const { filteredTasksByDate, dateFilterRange } = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = now;
@@ -93,12 +97,11 @@ function TaskLogBookContent() {
           startDate = startOfDay(dateRange.from);
           endDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
         } else {
-          return { filteredTasks: [], dateFilterRange: { start: now, end: now }};
+          return { filteredTasksByDate: [], dateFilterRange: { start: now, end: now }};
         }
         break;
-      default:
-        startDate = new Date(0); // All time
-        break;
+      default: // all
+        return { filteredTasksByDate: tasks, dateFilterRange: { start: new Date(0), end: now }};
     }
 
     const tasksInRange = tasks.filter(task => {
@@ -106,12 +109,21 @@ function TaskLogBookContent() {
       return isWithinInterval(taskDate, { start: startDate, end: endDate });
     });
 
-    return { filteredTasks: tasksInRange, dateFilterRange: { start: startDate, end: endDate } };
+    return { filteredTasksByDate: tasksInRange, dateFilterRange: { start: startDate, end: endDate } };
   }, [tasks, filter, dateRange]);
+
+  const filteredTasks = useMemo(() => {
+    if (!selectedCategory) {
+      return filteredTasksByDate;
+    }
+    return filteredTasksByDate.filter(task => getTaskCategoryDetails(task.name, profile as ProfileType).mainCategory === selectedCategory);
+  }, [filteredTasksByDate, selectedCategory, profile]);
+
   
   const categoryData = useMemo(() => {
     const data: { [key: string]: number } = {};
-    filteredTasks.forEach(task => {
+    // Calculate data based on the date-filtered tasks, NOT the category-filtered ones
+    filteredTasksByDate.forEach(task => {
         const categoryDetails = getTaskCategoryDetails(task.name, profile as ProfileType);
         const category = categoryDetails.mainCategory || 'Uncategorized';
         data[category] = (data[category] || 0) + task.duration;
@@ -120,31 +132,32 @@ function TaskLogBookContent() {
     const totalDuration = Object.values(data).reduce((sum, duration) => sum + duration, 0);
     if (totalDuration === 0) return [];
 
-    return Object.entries(data).map(([name, value]) => ({
+    return allCategories.map((name) => ({
       name,
-      value,
-      percentage: Math.round((value / totalDuration) * 100),
+      value: data[name] || 0,
+      percentage: totalDuration > 0 ? Math.round(( (data[name] || 0) / totalDuration) * 100) : 0,
       color: categoryColors[name as keyof typeof categoryColors] || categoryColors.Default
     })).sort((a,b) => b.value - a.value);
-  }, [filteredTasks, profile]);
+  }, [filteredTasksByDate, profile]);
 
 
   const stats = useMemo(() => {
-    if (loading || filteredTasks.length === 0) {
+    const sourceTasks = selectedCategory ? filteredTasks : filteredTasksByDate;
+    if (loading || sourceTasks.length === 0) {
       return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0, hydrationProgress: 0, hydrationGoal: 8, glassesDrunk: 0 };
     }
-    const completedTasks = filteredTasks.filter(t => t.completed).length;
-    const totalTime = filteredTasks.reduce((acc, t) => acc + t.duration, 0);
-    const completionRate = filteredTasks.length > 0 ? Math.round((completedTasks / filteredTasks.length) * 100) : 0;
+    const completedTasks = sourceTasks.filter(t => t.completed).length;
+    const totalTime = sourceTasks.reduce((acc, t) => acc + t.duration, 0);
+    const completionRate = sourceTasks.length > 0 ? Math.round((completedTasks / sourceTasks.length) * 100) : 0;
     
-    const glassesDrunk = filteredTasks.filter(t => getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory === 'Hydration' && t.completed).length;
+    const glassesDrunk = filteredTasksByDate.filter(t => getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory === 'Hydration' && t.completed).length;
 
     const daysInFilter = differenceInDays(dateFilterRange.end, dateFilterRange.start) + 1;
     const hydrationGoal = daysInFilter * 8;
     const hydrationProgress = hydrationGoal > 0 ? Math.min(100, Math.round((glassesDrunk / hydrationGoal) * 100)) : 0;
 
     return {
-      totalTasks: filteredTasks.length,
+      totalTasks: sourceTasks.length,
       completedTasks,
       totalTime,
       completionRate,
@@ -152,7 +165,7 @@ function TaskLogBookContent() {
       hydrationGoal,
       glassesDrunk
     };
-  }, [filteredTasks, loading, profile, dateFilterRange]);
+  }, [filteredTasks, filteredTasksByDate, selectedCategory, loading, profile, dateFilterRange]);
 
   const groupedTasks = useMemo(() => {
     const groups: { [key: string]: Task[] } = {};
@@ -210,7 +223,7 @@ function TaskLogBookContent() {
 
     const downloadCSV = () => {
     const headers = ['Date', 'Task Name', 'Category', 'Time Spent (min)', 'Initial Duration (min)', 'Completed'];
-    const rows = filteredTasks.map(task => [
+    const rows = filteredTasksByDate.map(task => [
         format(new Date(task.createdAt), 'yyyy-MM-dd HH:mm'),
         `"${task.name.replace(/"/g, '""')}"`,
         getTaskCategoryDetails(task.name, profile as ProfileType).mainCategory,
@@ -234,7 +247,7 @@ function TaskLogBookContent() {
         html2canvas(reportRef.current, {
             useCORS: true,
             backgroundColor: getComputedStyle(document.body).backgroundColor,
-            scale: 3, // Increase scale for better resolution
+            scale: 3, 
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = `deadlinesmet_report_${format(new Date(), 'yyyyMMdd')}.png`;
@@ -390,62 +403,71 @@ function TaskLogBookContent() {
                                 <CardDescription>Time spent per category in the selected period.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {categoryData.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                        <div className="h-48 w-full">
-                                            <ResponsiveContainer>
-                                                <RechartsPieChart>
-                                                    <Pie
-                                                        data={categoryData}
-                                                        dataKey="value"
-                                                        nameKey="name"
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        outerRadius={80}
-                                                        labelLine={false}
-                                                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                                                            if (percent < 0.05) return null;
-                                                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                                            const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                                                            const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                                                            return (
-                                                                <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold">
-                                                                    {`${(percent * 100).toFixed(0)}%`}
-                                                                </text>
-                                                            );
-                                                        }}
-                                                    >
-                                                    {categoryData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                                    ))}
-                                                    </Pie>
-                                                </RechartsPieChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                        <div className="w-full flex flex-col gap-2">
-                                            {categoryData.map(item => (
-                                                 <div key={item.name} className="flex items-center justify-between text-sm">
-                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                        <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}/>
-                                                        <span className="text-muted-foreground truncate">{item.name}</span>
-                                                    </div>
-                                                    <span className="font-medium text-foreground whitespace-nowrap">{formatDuration(item.value)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                    <div className="h-48 w-full">
+                                      {categoryData.length > 0 ? (
+                                        <ResponsiveContainer>
+                                            <RechartsPieChart>
+                                                <Pie
+                                                    data={categoryData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={40}
+                                                    outerRadius={80}
+                                                    labelLine={false}
+                                                >
+                                                {categoryData.map((entry, index) => (
+                                                    <Cell 
+                                                      key={`cell-${index}`} 
+                                                      fill={entry.color} 
+                                                      stroke={entry.color}
+                                                      className={cn("transition-opacity", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                                                    />
+                                                ))}
+                                                </Pie>
+                                            </RechartsPieChart>
+                                        </ResponsiveContainer>
+                                      ) : (
+                                          <div className="h-full flex items-center justify-center">
+                                            <PieChart className="mx-auto h-16 w-16 text-muted-foreground/30" />
+                                          </div>
+                                      )}
                                     </div>
-                                ) : (
-                                    <div className="py-10 text-center text-muted-foreground border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
-                                        <PieChart className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                                        <p className="mt-2 font-semibold">Not enough data</p>
-                                        <p className="text-sm">Log tasks to see your breakdown.</p>
+                                    <div className="flex flex-wrap gap-2 justify-center">
+                                        {allCategories.map(cat => {
+                                          const catDataItem = categoryData.find(item => item.name === cat);
+                                          const value = catDataItem ? catDataItem.value : 0;
+                                          return (
+                                            <Badge
+                                                key={cat}
+                                                onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                                                className={cn("cursor-pointer flex gap-2 transition-all duration-200 border-2",
+                                                    selectedCategory === cat ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
+                                                )}
+                                                style={{ backgroundColor: `${categoryColors[cat as keyof typeof categoryColors]}20`, color: categoryColors[cat as keyof typeof categoryColors] }}
+                                            >
+                                                <span>{cat}</span>
+                                                <span className="font-bold">{formatDuration(value)}</span>
+                                            </Badge>
+                                          )
+                                        })}
                                     </div>
-                                )}
+                                </div>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader>
-                                <CardTitle>Task Log</CardTitle>
+                                <CardTitle className="flex justify-between items-center">
+                                    <span>Task Log</span>
+                                    {selectedCategory && (
+                                        <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
+                                            <X className="w-3 h-3 mr-1"/>
+                                            Clear filter
+                                        </Button>
+                                    )}
+                                </CardTitle>
                                 <CardDescription>A list of all tasks in the selected period.</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -508,7 +530,3 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
-
-    
-
-    
