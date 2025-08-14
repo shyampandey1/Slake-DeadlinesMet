@@ -6,7 +6,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, CloudSun } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
-import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
+import { categorizeTask } from "@/ai/flows/categorize-task";
+import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -189,12 +190,27 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
+    let finalCategory = category;
+
+    if (!finalCategory) {
+        try {
+            const result = await categorizeTask({
+                taskName: taskName,
+                availableCategories: getAvailableCategories(),
+            });
+            finalCategory = result.category;
+        } catch (error) {
+            console.error("Failed to categorize task, using default:", error);
+            finalCategory = "Work & Focus";
+        }
+    }
+
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
       duration: actualDuration,
       initialDuration: initialDuration,
       completed,
-      category: category,
+      category: finalCategory,
     };
     await addTask(newTask);
 
@@ -328,7 +344,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         </div>
 
 
-      <AlertDialog open={isFinished} onOpenChange={setIsFinished}>
+      <AlertDialog open={isFinished} onOpenChange={(open) => !open && router.push('/')}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
@@ -356,7 +372,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       </AlertDialog>
 
       <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
-        <DialogContent>
+        <DialogContent onPointerDownOutside={() => handleMotivationalDialogChange(false)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
               <PartyPopper className="text-primary" />
