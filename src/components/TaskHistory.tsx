@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp, Droplets } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -101,16 +101,23 @@ function TaskLogBookContent() {
 
   const stats = useMemo(() => {
     if (loading || filteredTasks.length === 0) {
-      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0 };
+      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0, hydrationProgress: 0 };
     }
     const completedTasks = filteredTasks.filter(t => t.completed).length;
     const totalTime = filteredTasks.reduce((acc, t) => acc + t.duration, 0);
     const completionRate = filteredTasks.length > 0 ? Math.round((completedTasks / filteredTasks.length) * 100) : 0;
+    
+    // Hydration calculation
+    const waterTasks = filteredTasks.filter(t => t.name === "Drink a glass of water" && t.completed).length;
+    const hydrationGoal = 8; // 8 glasses per day
+    const hydrationProgress = Math.min(100, Math.round((waterTasks / hydrationGoal) * 100));
+
     return {
       totalTasks: filteredTasks.length,
       completedTasks,
       totalTime,
-      completionRate
+      completionRate,
+      hydrationProgress
     };
   }, [filteredTasks, loading]);
 
@@ -318,12 +325,12 @@ function TaskLogBookContent() {
                     </Card>
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Top Category</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Daily Hydration</CardTitle>
+                            <Droplets className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{categoryData.length > 0 ? categoryData.sort((a,b) => b.value - a.value)[0].name : 'N/A'}</div>
-                            <p className="text-xs text-muted-foreground">based on time spent</p>
+                            <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
+                            <p className="text-xs text-muted-foreground">Goal: 8 glasses</p>
                         </CardContent>
                     </Card>
                 </div>
