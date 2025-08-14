@@ -1,14 +1,15 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
-import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp, Droplets } from "lucide-react";
+import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
-import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell, Legend } from 'recharts';
+import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 'recharts';
+import { useProfile } from "@/hooks/useProfile";
+import { getTaskCategoryDetails, categoryColors } from "@/lib/categorization";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,9 @@ import AuthWrapper from "./AuthWrapper";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Task } from "@/types";
+import type { Task, ProfileType } from "@/types";
 import { cn } from "@/lib/utils";
+import { Badge } from "./ui/badge";
 
 
 function formatDuration(minutes: number): string {
@@ -31,11 +33,14 @@ function formatDuration(minutes: number): string {
 }
 
 function TaskLogBookContent() {
-  const { tasks, loading } = useTasks();
+  const { tasks, loading: tasksLoading } = useTasks();
+  const { profile, loading: profileLoading } = useProfile();
   const router = useRouter();
   const [filter, setFilter] = useState("today");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const loading = tasksLoading || profileLoading;
 
   const handleTaskClick = (task: Task) => {
     if (!task.completed) {
@@ -98,6 +103,26 @@ function TaskLogBookContent() {
       return isWithinInterval(taskDate, { start: startDate, end: endDate });
     });
   }, [tasks, filter, dateRange]);
+  
+  const categoryData = useMemo(() => {
+    const data: { [key: string]: number } = {};
+    filteredTasks.forEach(task => {
+        const categoryDetails = getTaskCategoryDetails(task.name, profile as ProfileType);
+        const category = categoryDetails.mainCategory || 'Uncategorized';
+        data[category] = (data[category] || 0) + task.duration;
+    });
+    
+    const totalDuration = Object.values(data).reduce((sum, duration) => sum + duration, 0);
+    if (totalDuration === 0) return [];
+
+    return Object.entries(data).map(([name, value]) => ({
+      name,
+      value,
+      percentage: Math.round((value / totalDuration) * 100),
+      color: categoryColors[name as keyof typeof categoryColors] || categoryColors.Default
+    })).sort((a,b) => b.value - a.value);
+  }, [filteredTasks, profile]);
+
 
   const stats = useMemo(() => {
     if (loading || filteredTasks.length === 0) {
@@ -107,8 +132,7 @@ function TaskLogBookContent() {
     const totalTime = filteredTasks.reduce((acc, t) => acc + t.duration, 0);
     const completionRate = filteredTasks.length > 0 ? Math.round((completedTasks / filteredTasks.length) * 100) : 0;
     
-    // Hydration calculation
-    const waterTasks = filteredTasks.filter(t => t.name === "Drink a glass of water" && t.completed).length;
+    const waterTasks = filteredTasks.filter(t => getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory === 'Hydration' && t.completed).length;
     const hydrationGoal = 8; // 8 glasses per day
     const hydrationProgress = Math.min(100, Math.round((waterTasks / hydrationGoal) * 100));
 
@@ -119,37 +143,7 @@ function TaskLogBookContent() {
       completionRate,
       hydrationProgress
     };
-  }, [filteredTasks, loading]);
-
-  const categoryData = useMemo(() => {
-    const data: { [key: string]: number } = {};
-    filteredTasks.forEach(task => {
-        const category = task.category || 'Uncategorized';
-        data[category] = (data[category] || 0) + task.duration;
-    });
-    
-    const totalDuration = Object.values(data).reduce((sum, duration) => sum + duration, 0);
-    if (totalDuration === 0) return [];
-
-    return Object.entries(data).map(([name, duration]) => ({
-      name,
-      value: duration,
-      percentage: Math.round((duration / totalDuration) * 100)
-    }));
-  }, [filteredTasks]);
-
-  const categoryColors: { [key: string]: string } = {
-    'Morning Routine': '#38bdf8', // sky-400
-    'Work & Focus': '#3b82f6', // blue-500
-    'Breaks & Meals': '#f97316', // orange-500
-    'Health & Wellness': '#22c55e', // green-500
-    'Evening Wind-down': '#f59e0b', // amber-500
-    'Bedtime Routine': '#8b5cf6', // violet-500
-    'Today\'s Events': '#eab308', // yellow-500
-    'Default': '#64748b', // slate-500
-    'Uncategorized': '#94a3b8' // slate-400
-  };
-
+  }, [filteredTasks, loading, profile]);
 
   const groupedTasks = useMemo(() => {
     const groups: { [key: string]: Task[] } = {};
@@ -217,23 +211,6 @@ function TaskLogBookContent() {
         <Skeleton className="h-40 w-full" />
     </div>
   );
-
-  const renderCustomLegend = (props: any) => {
-    const { payload } = props;
-    return (
-      <ul className="flex flex-col space-y-2 text-sm text-muted-foreground">
-        {payload.map((entry: any, index: number) => (
-          <li key={`item-${index}`} className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: entry.color }} />
-              {entry.payload.name}
-            </div>
-            <span className="font-medium text-foreground">{entry.payload.percentage}%</span>
-          </li>
-        ))}
-      </ul>
-    );
-  };
 
   return (
     <div className="space-y-8">
@@ -368,20 +345,22 @@ function TaskLogBookContent() {
                                                     }}
                                                 >
                                                 {categoryData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={categoryColors[entry.name] || '#ccc'} />
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
                                                 ))}
                                                 </Pie>
                                             </RechartsPieChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    <div className="w-full">
-                                        <Legend content={renderCustomLegend} payload={categoryData.map((item, index) => ({
-                                            value: item.name,
-                                            type: 'square',
-                                            id: `id-${index}`,
-                                            color: categoryColors[item.name] || '#ccc',
-                                            payload: item,
-                                        }))} />
+                                    <div className="w-full flex flex-col gap-2">
+                                        {categoryData.map(item => (
+                                             <div key={item.name} className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}/>
+                                                    <span className="text-muted-foreground">{item.name}</span>
+                                                </div>
+                                                <span className="font-medium text-foreground">{formatDuration(item.value)}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ) : (
