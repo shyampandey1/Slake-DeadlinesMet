@@ -24,15 +24,18 @@ import type { Task, ProfileType } from "@/types";
 import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
+import { Separator } from "./ui/separator";
 
 
 function formatDuration(minutes: number): string {
+    if (minutes === 0) return "0m";
+    if (minutes < 1) return "<1m";
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
       return `${hours}h ${remainingMinutes}m`;
     }
-    return `${minutes} min`;
+    return `${minutes}m`;
 }
 
 const allCategories = Object.keys(categoryColors);
@@ -64,45 +67,59 @@ function TaskLogBookContent() {
     }
   };
 
-  const { filteredTasksByDate, dateFilterRange } = useMemo(() => {
+  const { filteredTasksByDate, dateFilterRange, dateFilterLabel } = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = now;
+    let label: string = 'Today';
 
     switch (filter) {
       case "today":
         startDate = startOfDay(now);
         endDate = endOfDay(now);
+        label = "Today";
         break;
       case "last7":
         startDate = startOfDay(subDays(now, 6));
+        label = "Last 7 Days";
         break;
       case "last30":
         startDate = startOfDay(subDays(now, 29));
+        label = "Last 30 Days";
         break;
       case "prevMonth":
         const prevMonthDate = subMonths(now, 1);
         startDate = startOfMonth(prevMonthDate);
         endDate = endOfMonth(prevMonthDate);
+        label = format(prevMonthDate, 'MMMM yyyy');
         break;
       case "thisYear":
         startDate = startOfYear(now);
+        label = "This Year";
         break;
       case "lastYear":
          const prevYearDate = subYears(now, 1);
          startDate = startOfYear(prevYearDate);
          endDate = endOfYear(prevYearDate);
+         label = format(prevYearDate, 'yyyy');
          break;
       case "custom":
         if (dateRange?.from) {
           startDate = startOfDay(dateRange.from);
           endDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+          if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+             label = `${format(dateRange.from, "LLL d")} - ${format(dateRange.to, "LLL d, y")}`;
+          } else {
+             label = format(dateRange.from, "PPP");
+          }
         } else {
-          return { filteredTasksByDate: [], dateFilterRange: { start: now, end: now }};
+          return { filteredTasksByDate: [], dateFilterRange: { start: now, end: now }, dateFilterLabel: "Select Range"};
         }
         break;
       default: // all
-        return { filteredTasksByDate: tasks, dateFilterRange: { start: new Date(0), end: now }};
+        startDate = new Date(0);
+        label = "All Time";
+        return { filteredTasksByDate: tasks, dateFilterRange: { start: startDate, end: now }, dateFilterLabel: label};
     }
 
     const tasksInRange = tasks.filter(task => {
@@ -110,7 +127,7 @@ function TaskLogBookContent() {
       return isWithinInterval(taskDate, { start: startDate, end: endDate });
     });
 
-    return { filteredTasksByDate: tasksInRange, dateFilterRange: { start: startDate, end: endDate } };
+    return { filteredTasksByDate: tasksInRange, dateFilterRange: { start: startDate, end: endDate }, dateFilterLabel: label };
   }, [tasks, filter, dateRange]);
 
   const filteredTasks = useMemo(() => {
@@ -191,6 +208,12 @@ function TaskLogBookContent() {
     });
     return groups;
   }, [filteredTasks]);
+  
+  const isSameDay = (d1: Date, d2: Date) => {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  };
 
   const sortedGroupKeys = useMemo(() => {
     return Object.keys(groupedTasks).sort((a, b) => {
@@ -267,62 +290,61 @@ function TaskLogBookContent() {
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
         </div>
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-[500px] w-full" />
     </div>
   );
 
   return (
-    <div className="space-y-8 bg-background p-1">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-            <div>
+    <div className="space-y-6 bg-background p-1">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+             <div>
               <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-                      <Select value={filter} onValueChange={handleFilterChange}>
-                          <SelectTrigger className="w-full sm:w-[180px]">
-                              <SelectValue placeholder="Select a range" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="all">All Time</SelectItem>
-                              <SelectItem value="today">Today</SelectItem>
-                              <SelectItem value="last7">Last 7 days</SelectItem>
-                              <SelectItem value="last30">Last 30 days</SelectItem>
-                              <SelectItem value="prevMonth">Previous Month</SelectItem>
-                              <SelectItem value="thisYear">This Year</SelectItem>
-                              <SelectItem value="lastYear">Last Year</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <PopoverTrigger asChild>
-                          <Button
-                              id="date"
-                              variant={"outline"}
-                              className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
-                              onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
-                          >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateRange?.from ? (
-                              dateRange.to ? (
-                                  <>
-                                  {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
-                                  </>
-                              ) : (
-                                  format(dateRange.from, "LLL dd, y")
-                              )
-                              ) : (
-                                <span>Custom</span>
-                              )}
-                          </Button>
-                      </PopoverTrigger>
-                  </div>
+                <div className="flex items-center gap-2 w-full">
+                    <Select value={filter} onValueChange={handleFilterChange}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Select a range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="today">Today</SelectItem>
+                            <SelectItem value="last7">Last 7 days</SelectItem>
+                            <SelectItem value="last30">Last 30 days</SelectItem>
+                            <SelectItem value="prevMonth">Previous Month</SelectItem>
+                            <SelectItem value="thisYear">This Year</SelectItem>
+                             <SelectItem value="lastYear">Last Year</SelectItem>
+                             <SelectItem value="all">All Time</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <PopoverTrigger asChild>
+                        <Button
+                            id="date"
+                            variant={"outline"}
+                            className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                            onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            <span>Custom</span>
+                        </Button>
+                    </PopoverTrigger>
+                </div>
+                 <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={handleDateSelect}
+                        numberOfMonths={2}
+                    />
+                    </PopoverContent>
               </Popover>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full sm:w-auto">
                     <Download className="mr-2 h-4 w-4" />
-                    Download Report
+                    Download
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -339,220 +361,164 @@ function TaskLogBookContent() {
             </div>
         </div>
       
-        <div ref={reportRef}>
-            {loading ? renderSkeleton() : (
-                <>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
-                                <BookText className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.totalTasks}</div>
-                                <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
-                                <p className="text-xs text-muted-foreground">across all sessions</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={{}} className="mx-auto aspect-square h-full w-full">
-                                    <RechartsPieChart>
-                                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                                        <Pie data={[{ value: stats.completionRate }, { value: 100 - stats.completionRate }]} dataKey="value" nameKey="name" innerRadius={34} outerRadius={42} startAngle={90} endAngle={450} cornerRadius={50}>
-                                            <Cell fill="hsl(var(--primary))" />
-                                            <Cell fill="hsl(var(--muted))" />
-                                            <RechartsLabel
-                                                content={({ viewBox }) => {
-                                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                                    return (
-                                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                                            <tspan x={viewBox.cx} y={viewBox.cy} className="text-2xl font-bold fill-foreground">
-                                                                {stats.completionRate}%
-                                                            </tspan>
-                                                        </text>
-                                                    )
-                                                    }
-                                                }}
-                                            />
-                                        </Pie>
-                                    </RechartsPieChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                               <ChartContainer config={{}} className="mx-auto aspect-square h-full w-full">
-                                    <RechartsPieChart>
-                                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                                        <Pie data={[{ value: stats.hydrationProgress }, { value: 100 - stats.hydrationProgress }]} dataKey="value" nameKey="name" innerRadius={34} outerRadius={42} startAngle={90} endAngle={450} cornerRadius={50}>
-                                            <Cell fill="hsl(var(--primary))" />
-                                            <Cell fill="hsl(var(--muted))" />
-                                            <RechartsLabel
-                                                content={({ viewBox }) => {
-                                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                                                    return (
-                                                        <>
-                                                            <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                                                <tspan x={viewBox.cx} y={viewBox.cy - 5} className="text-2xl font-bold fill-foreground">
-                                                                    {stats.hydrationProgress}%
-                                                                </tspan>
-                                                            </text>
-                                                            <text x={viewBox.cx} y={viewBox.cy + 12} textAnchor="middle" dominantBaseline="middle">
-                                                                 <tspan className="text-xs fill-muted-foreground">
-                                                                     {stats.glassesDrunk} of {stats.hydrationGoal}
-                                                                </tspan>
-                                                            </text>
-                                                        </>
-                                                    )
-                                                    }
-                                                }}
-                                            />
-                                        </Pie>
-                                    </RechartsPieChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2 mt-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Category Breakdown</CardTitle>
-                                <CardDescription>Time spent per category in the selected period.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                    <div className="h-48 w-full">
-                                      {categoryData.length > 0 ? (
-                                        <ResponsiveContainer>
-                                            <RechartsPieChart>
-                                                <Pie
-                                                    data={categoryData}
-                                                    dataKey="value"
-                                                    nameKey="name"
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={45}
-                                                    outerRadius={80}
-                                                    labelLine={false}
-                                                >
+        {loading ? renderSkeleton() : (
+            <div ref={reportRef} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
+                            <BookText className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.totalTasks}</div>
+                            <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                            <p className="text-xs text-muted-foreground">of all logged tasks</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
+                            <p className="text-xs text-muted-foreground">across all sessions</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
+                             <Droplets className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
+                            <p className="text-xs text-muted-foreground">{stats.glassesDrunk} of {stats.hydrationGoal} glasses</p>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex justify-between items-center">
+                            <span>Category Breakdown</span>
+                             {selectedCategory && (
+                                <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
+                                    <X className="w-3 h-3 mr-1"/>
+                                    Clear filter
+                                </Button>
+                            )}
+                        </CardTitle>
+                        <CardDescription>{dateFilterLabel}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {filteredTasksByDate.length > 0 ? (
+                            <>
+                                <div className="h-48 w-full mb-4">
+                                    <ResponsiveContainer>
+                                        <RechartsPieChart>
+                                            <Pie
+                                                data={categoryData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                labelLine={false}
+                                                paddingAngle={2}
+                                            >
                                                 {categoryData.map((entry, index) => (
                                                     <Cell 
-                                                      key={`cell-${index}`} 
-                                                      fill={entry.color} 
-                                                      stroke={entry.color}
-                                                      className={cn("transition-opacity", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                                                    key={`cell-${index}`} 
+                                                    fill={entry.color} 
+                                                    stroke={entry.color}
+                                                    className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
                                                     />
                                                 ))}
-                                                </Pie>
-                                            </RechartsPieChart>
-                                        </ResponsiveContainer>
-                                      ) : (
-                                          <div className="h-full flex items-center justify-center">
-                                            <PieChart className="mx-auto h-16 w-16 text-muted-foreground/30" />
-                                          </div>
-                                      )}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {allCategories.map(cat => {
-                                          const catDataItem = categoryData.find(item => item.name === cat);
-                                          const value = catDataItem ? catDataItem.value : 0;
-                                          return (
-                                            <Badge
-                                                key={cat}
-                                                onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                                                className={cn("cursor-pointer flex items-center justify-between gap-2 transition-all duration-200 border-2",
-                                                    selectedCategory === cat ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
-                                                )}
-                                                style={{ backgroundColor: `${categoryColors[cat as keyof typeof categoryColors]}20`, color: categoryColors[cat as keyof typeof categoryColors] }}
-                                            >
-                                                <span>{cat}</span>
-                                                <span className="font-bold whitespace-nowrap">{formatDuration(value)}</span>
-                                            </Badge>
-                                          )
-                                        })}
-                                    </div>
+                                                <RechartsLabel
+                                                    value={formatDuration(stats.totalTime)}
+                                                    position="center"
+                                                    className="fill-foreground text-xl font-bold"
+                                                />
+                                            </Pie>
+                                        </RechartsPieChart>
+                                    </ResponsiveContainer>
                                 </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex justify-between items-center">
-                                    <span>Task Log</span>
-                                    {selectedCategory && (
-                                        <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
-                                            <X className="w-3 h-3 mr-1"/>
-                                            Clear filter
-                                        </Button>
-                                    )}
-                                </CardTitle>
-                                <CardDescription>A list of all tasks in the selected period.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {filteredTasks.length > 0 ? (
-                                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                                        {sortedGroupKeys.map((day) => (
-                                            <div key={day}>
-                                                <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
-                                                <div className="space-y-3">
-                                                    {groupedTasks[day].map((task) => (
-                                                        <div key={task.id} className="flex items-center justify-between gap-2 p-3 rounded-lg bg-card border">
-                                                            <div className="flex-1 min-w-0">
-                                                                <span className="font-semibold block truncate">{task.name}</span>
-                                                                <span className="text-sm text-muted-foreground">
-                                                                    Time spent: {formatDuration(task.duration)}
-                                                                    {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
-                                                                    {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex-shrink-0">
-                                                                {task.completed ? (
-                                                                    <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-md">
-                                                                        <ThumbsUp className="h-4 w-4" />
-                                                                        <span className="text-sm font-medium">Done</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                        <Play className="mr-2 h-3 w-3" />
-                                                                        Continue
-                                                                    </Button>
-                                                                )}
-                                                            </div>
+                                
+                                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                  {categoryData.map(cat => (
+                                    cat.value > 0 && (
+                                    <button
+                                      key={cat.name}
+                                      onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                                      className={cn("flex items-center gap-2 p-1 rounded-md transition-colors", selectedCategory === cat.name && 'bg-accent')}
+                                    >
+                                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                                      <span className="text-sm text-muted-foreground">{cat.name}</span>
+                                      <span className="ml-auto text-sm font-semibold text-foreground">{formatDuration(cat.value)}</span>
+                                    </button>
+                                    )
+                                  ))}
+                                </div>
+
+                                <Separator className="my-6" />
+
+                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                    {sortedGroupKeys.map((day) => (
+                                        <div key={day}>
+                                            <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
+                                            <div className="space-y-3">
+                                                {groupedTasks[day].map((task) => (
+                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-card border">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-semibold block truncate">{task.name}</p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Time spent: {formatDuration(task.duration)}
+                                                                {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
+                                                                {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
+                                                            </p>
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <div className="flex-shrink-0">
+                                                            {task.completed ? (
+                                                                <div className="flex items-center gap-1.5 text-green-500">
+                                                                    <ThumbsUp className="h-4 w-4" />
+                                                                    <span className="text-sm font-medium">Done</span>
+                                                                </div>
+                                                            ) : (
+                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
+                                                                    <Play className="mr-2 h-3 w-3" />
+                                                                    Continue
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                                        <BookText className="mx-auto h-12 w-12" />
-                                        <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
-                                        <p className="mt-1 text-sm">No tasks were logged in this period.</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                </>
-            )}
-        </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                            </>
+                        ) : (
+                           <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                                <BookText className="mx-auto h-12 w-12" />
+                                <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
+                                <p className="mt-1 text-sm">No tasks were logged in this period.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        )}
     </div>
   );
 }
