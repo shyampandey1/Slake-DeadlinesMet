@@ -1,21 +1,27 @@
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  console.log('Service Worker installing.');
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  console.log('Service Worker activating.');
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      if (clientList.length > 0) {
+        let client = clientList[0];
+        for (let i = 0; i < clientList.length; i++) {
+          if (clientList[i].focused) {
+            client = clientList[i];
+          }
+        }
+        return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow('/');
+      return clients.openWindow('/');
     })
   );
 });
