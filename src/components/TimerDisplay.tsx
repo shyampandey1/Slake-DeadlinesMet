@@ -344,7 +344,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         </div>
 
 
-      <AlertDialog open={isFinished} onOpenChange={(open) => !open && router.push('/')}>
+      <AlertDialog open={isFinished}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
@@ -372,7 +372,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       </AlertDialog>
 
       <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
-        <DialogContent onPointerDownOutside={() => handleMotivationalDialogChange(false)}>
+        <DialogContent onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
               <PartyPopper className="text-primary" />
