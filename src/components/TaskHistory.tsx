@@ -33,7 +33,7 @@ function formatDuration(minutes: number): string {
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const remainingMinutes = minutes % 60;
-      return `${hours}h ${remainingMinutes}m`;
+      return `${hours}h ${remainingMinutes > 0 ? ` ${remainingMinutes}m` : ''}`;
     }
     return `${minutes}m`;
 }
@@ -239,9 +239,12 @@ function TaskLogBookContent() {
 
   const handleDateSelect = (range: DateRange | undefined) => {
     setDateRange(range);
-    if (range?.from) {
-      setFilter("custom");
-      setIsCalendarOpen(false);
+    if (range?.from && range?.to) {
+        setFilter("custom");
+        setIsCalendarOpen(false);
+    } else if (range?.from && !range.to) {
+        // Keep popover open if only start date is selected
+        setFilter("custom");
     }
   };
 
@@ -325,7 +328,17 @@ function TaskLogBookContent() {
                             onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            <span>Custom</span>
+                            {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                        {format(dateRange.from, "LLL d")} - {format(dateRange.to, "LLL d")}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "LLL d, y")
+                                )
+                            ) : (
+                                <span>Custom</span>
+                            )}
                         </Button>
                     </PopoverTrigger>
                 </div>
@@ -336,7 +349,7 @@ function TaskLogBookContent() {
                         defaultMonth={dateRange?.from}
                         selected={dateRange}
                         onSelect={handleDateSelect}
-                        numberOfMonths={2}
+                        numberOfMonths={1}
                     />
                     </PopoverContent>
               </Popover>
@@ -463,7 +476,7 @@ function TaskLogBookContent() {
                                       className={cn("flex items-center gap-2 p-1 rounded-md transition-colors", selectedCategory === cat.name && 'bg-accent')}
                                     >
                                       <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                                      <span className="text-sm text-muted-foreground">{cat.name}</span>
+                                      <span className="text-sm text-muted-foreground flex-1 text-left">{cat.name}</span>
                                       <span className="ml-auto text-sm font-semibold text-foreground whitespace-nowrap">{formatDuration(cat.value)}</span>
                                     </button>
                                     )
