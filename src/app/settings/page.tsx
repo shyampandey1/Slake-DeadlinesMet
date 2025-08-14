@@ -77,6 +77,21 @@ function SettingsPageComponent() {
         fetchWeatherForCurrentUserLocation();
     }
 
+    const handleNotificationToggle = async (enabled: boolean) => {
+        if (enabled && Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                setNotificationsEnabled(true);
+                 toast({ title: "Notifications enabled!" });
+            } else {
+                setNotificationsEnabled(false);
+                toast({ title: "Notifications permission denied.", variant: 'destructive' });
+            }
+        } else {
+            setNotificationsEnabled(enabled);
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen">
             <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
@@ -154,14 +169,14 @@ function SettingsPageComponent() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="flex items-center justify-between">
-                                <label htmlFor="audio-switch" className="font-medium flex items-center gap-2">
+                                <label htmlFor="notifications-switch" className="font-medium flex items-center gap-2">
                                     <Bell className="h-4 w-4" />
                                     Push Notifications
                                 </label>
                                 <Switch
                                     id="notifications-switch"
                                     checked={notificationsEnabled}
-                                    onCheckedChange={setNotificationsEnabled}
+                                    onCheckedChange={handleNotificationToggle}
                                 />
                             </div>
                              <p className="text-sm text-muted-foreground -mt-2">

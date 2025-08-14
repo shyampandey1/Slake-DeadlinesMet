@@ -61,6 +61,15 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Task Complete!', {
+        body: `You've finished your task: ${taskName}`,
+        icon: '/icon.svg'
+      });
+    }
+  };
   
   const stopTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -78,6 +87,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           setIsFinished(true);
           setFlashState('none');
           playSound();
+          showNotification();
           return 0;
         }
         
@@ -96,7 +106,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         return prev - 1;
       });
     }, 1000);
-  }, [stopTimer, playSound]);
+  }, [stopTimer, playSound, taskName]);
 
   useEffect(() => {
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
