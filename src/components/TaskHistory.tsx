@@ -375,165 +375,180 @@ function TaskLogBookContent() {
         </div>
       
         {loading ? renderSkeleton() : (
-            <div ref={reportRef} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <>
+                <div ref={reportRef} className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
+                                <BookText className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.totalTasks}</div>
+                                <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.completionRate}%</div>
+                                <p className="text-xs text-muted-foreground">of all logged tasks</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
+                                <p className="text-xs text-muted-foreground">across all sessions</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
+                                <Droplets className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
+                                <p className="text-xs text-muted-foreground">{stats.glassesDrunk} of {stats.hydrationGoal} glasses</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
-                            <BookText className="h-4 w-4 text-muted-foreground" />
+                        <CardHeader>
+                            <CardTitle className="flex justify-between items-center">
+                                <span>Category Breakdown</span>
+                                {selectedCategory && (
+                                    <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
+                                        <X className="w-3 h-3 mr-1"/>
+                                        Clear filter
+                                    </Button>
+                                )}
+                            </CardTitle>
+                            <CardDescription>{dateFilterLabel}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.totalTasks}</div>
-                            <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats.completionRate}%</div>
-                            <p className="text-xs text-muted-foreground">of all logged tasks</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
-                            <p className="text-xs text-muted-foreground">across all sessions</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
-                             <Droplets className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
-                            <p className="text-xs text-muted-foreground">{stats.glassesDrunk} of {stats.hydrationGoal} glasses</p>
-                        </CardContent>
-                    </Card>
-                </div>
-                
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex justify-between items-center">
-                            <span>Category Breakdown</span>
-                             {selectedCategory && (
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
-                                    <X className="w-3 h-3 mr-1"/>
-                                    Clear filter
-                                </Button>
-                            )}
-                        </CardTitle>
-                        <CardDescription>{dateFilterLabel}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {filteredTasksByDate.length > 0 ? (
-                            <>
-                                <div className="h-48 w-full mb-4">
-                                    <ResponsiveContainer>
-                                        <RechartsPieChart>
-                                            <Pie
-                                                data={categoryData}
-                                                dataKey="value"
-                                                nameKey="name"
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={80}
-                                                labelLine={false}
-                                                paddingAngle={2}
-                                            >
-                                                {categoryData.map((entry, index) => (
-                                                    <Cell 
-                                                    key={`cell-${index}`} 
-                                                    fill={entry.color} 
-                                                    stroke={entry.color}
-                                                    className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                            {filteredTasksByDate.length > 0 ? (
+                                <>
+                                    <div className="h-48 w-full mb-4">
+                                        <ResponsiveContainer>
+                                            <RechartsPieChart>
+                                                <Pie
+                                                    data={categoryData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    labelLine={false}
+                                                    paddingAngle={2}
+                                                >
+                                                    {categoryData.map((entry, index) => (
+                                                        <Cell 
+                                                        key={`cell-${index}`} 
+                                                        fill={entry.color} 
+                                                        stroke={entry.color}
+                                                        className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                                                        />
+                                                    ))}
+                                                    <RechartsLabel
+                                                        value={formatDuration(stats.totalTime)}
+                                                        position="center"
+                                                        className="fill-foreground text-xl font-bold"
                                                     />
-                                                ))}
-                                                <RechartsLabel
-                                                    value={formatDuration(stats.totalTime)}
-                                                    position="center"
-                                                    className="fill-foreground text-xl font-bold"
-                                                />
-                                            </Pie>
-                                        </RechartsPieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                                  {categoryData.map(cat => (
-                                    cat.value > 0 && (
-                                    <button
-                                      key={cat.name}
-                                      onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-                                      className={cn(
-                                          "flex items-center gap-2 p-1 rounded-md transition-colors",
-                                          selectedCategory === cat.name && 'bg-accent text-accent-foreground'
-                                      )}
-                                    >
-                                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                                      <span className="text-sm text-muted-foreground text-left">{cat.name}</span>
-                                      <span className="ml-auto text-sm font-semibold text-foreground whitespace-nowrap">{formatDuration(cat.value)}</span>
-                                    </button>
-                                    )
-                                  ))}
-                                </div>
-
-                                <Separator className="my-6" />
-
-                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                                    {sortedGroupKeys.map((day) => (
-                                        <div key={day}>
-                                            <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
-                                            <div className="space-y-3">
-                                                {groupedTasks[day].map((task) => (
-                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-card border">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-semibold block truncate">{task.name}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Time spent: {formatDuration(task.duration)}
-                                                                {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
-                                                                {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
-                                                            </p>
-                                                        </div>
-                                                        <div className="flex-shrink-0">
-                                                            {task.completed ? (
-                                                                <div className="flex items-center gap-1.5 text-green-500">
-                                                                    <ThumbsUp className="h-4 w-4" />
-                                                                    <span className="text-sm font-medium">Done</span>
-                                                                </div>
-                                                            ) : (
-                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                    <Play className="mr-2 h-3 w-3" />
-                                                                    Continue
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                            </>
-                        ) : (
-                           <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                                                </Pie>
+                                            </RechartsPieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                      {categoryData.map(cat => (
+                                        cat.value > 0 && (
+                                        <button
+                                          key={cat.name}
+                                          onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                                          className={cn(
+                                              "flex items-center gap-2 p-1 rounded-md transition-colors",
+                                              selectedCategory === cat.name && 'bg-accent text-accent-foreground'
+                                          )}
+                                        >
+                                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                                          <span className="text-sm text-muted-foreground text-left">{cat.name}</span>
+                                          <span className="ml-auto text-sm font-semibold text-foreground whitespace-nowrap">{formatDuration(cat.value)}</span>
+                                        </button>
+                                        )
+                                      ))}
+                                    </div>
+                                </>
+                            ) : (
+                            <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                                 <BookText className="mx-auto h-12 w-12" />
                                 <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
                                 <p className="mt-1 text-sm">No tasks were logged in this period.</p>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+                {/* Task log list is now outside the reportRef */}
+                {filteredTasksByDate.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Task Log</CardTitle>
+                            {selectedCategory && (
+                                <CardDescription>Showing tasks for the '{selectedCategory}' category</CardDescription>
+                            )}
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                {sortedGroupKeys.length > 0 ? sortedGroupKeys.map((day) => (
+                                    <div key={day}>
+                                        <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
+                                        <div className="space-y-3">
+                                            {groupedTasks[day].map((task) => (
+                                                <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-card border">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold block truncate">{task.name}</p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Time spent: {formatDuration(task.duration)}
+                                                            {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
+                                                            {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex-shrink-0">
+                                                        {task.completed ? (
+                                                            <div className="flex items-center gap-1.5 text-green-500">
+                                                                <ThumbsUp className="h-4 w-4" />
+                                                                <span className="text-sm font-medium">Done</span>
+                                                            </div>
+                                                        ) : (
+                                                            <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
+                                                                <Play className="mr-2 h-3 w-3" />
+                                                                Continue
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="py-10 text-center text-muted-foreground">
+                                        <p>No tasks found for '{selectedCategory}' in this period.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </>
         )}
     </div>
   );
