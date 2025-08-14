@@ -260,15 +260,15 @@ function TaskLogBookContent() {
 
   return (
     <div className="space-y-8 bg-background p-1">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full">
                       <Select value={filter} onValueChange={handleFilterChange}>
-                          <SelectTrigger className="w-auto sm:w-[180px]">
+                          <SelectTrigger className="w-full sm:w-[180px]">
                               <SelectValue placeholder="Select a range" />
                           </SelectTrigger>
                           <SelectContent>
@@ -285,7 +285,7 @@ function TaskLogBookContent() {
                           <Button
                               id="date"
                               variant={"outline"}
-                              className={cn("w-auto justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                              className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
                               onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                           >
                               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -298,7 +298,7 @@ function TaskLogBookContent() {
                                   format(dateRange.from, "LLL dd, y")
                               )
                               ) : (
-                              <span className="hidden sm:inline">Custom</span>
+                                <span>Custom</span>
                               )}
                           </Button>
                       </PopoverTrigger>
@@ -316,8 +316,9 @@ function TaskLogBookContent() {
               </Popover>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Download className="h-4 w-4" />
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <Download className="mr-2 h-4 w-4" />
+                    <span className="sm:hidden">Download Report</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -507,3 +508,5 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
+
+    
