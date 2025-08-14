@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { ProfileProvider } from '@/hooks/useProfile';
 import { TimerUIProvider } from '@/hooks/useTimerUI';
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 
 export const metadata: Metadata = {
   title: 'DeadlinesMet',
@@ -40,6 +41,7 @@ export default function RootLayout({
             <ProfileProvider>
                 <TimerUIProvider>
                     <div className="flex flex-col min-h-screen">
+                        <ServiceWorkerRegistrar />
                         <main className="flex-1">{children}</main>
                         <BottomNav />
                     </div>

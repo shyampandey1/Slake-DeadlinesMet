@@ -62,14 +62,28 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const showNotification = () => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Task Complete!', {
-        body: `You've finished your task: ${taskName}`,
-        icon: '/icon.svg'
-      });
+  const showCompletionNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification('Task Complete!', {
+                body: `You've finished your task: ${taskName}`,
+                icon: '/icon.svg',
+            });
+        });
     }
   };
+
+  const showStartNotification = useCallback(() => {
+    if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(`Task Started: ${taskName}`, {
+                body: `Timer set for ${initialDuration} minutes.`,
+                icon: '/icon.svg',
+                silent: true,
+            });
+        });
+    }
+  }, [taskName, initialDuration]);
   
   const stopTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -87,7 +101,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           setIsFinished(true);
           setFlashState('none');
           playSound();
-          showNotification();
+          showCompletionNotification();
           return 0;
         }
         
@@ -112,6 +126,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(dateInterval);
   }, []);
+
+  useEffect(() => {
+    showStartNotification();
+  }, [showStartNotification]);
+
 
   useEffect(() => {
     const hour = currentDate.getHours();
