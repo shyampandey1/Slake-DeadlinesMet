@@ -7,7 +7,7 @@ import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
-import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell } from 'recharts';
+import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell, Label as RechartsLabel } from 'recharts';
 import { useProfile } from "@/hooks/useProfile";
 import { getTaskCategoryDetails, categoryColors } from "@/lib/categorization";
 import html2canvas from 'html2canvas';
@@ -23,6 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { Task, ProfileType } from "@/types";
 import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 
 
 function formatDuration(minutes: number): string {
@@ -279,7 +280,7 @@ function TaskLogBookContent() {
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <div className="flex items-center gap-2 w-full">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                       <Select value={filter} onValueChange={handleFilterChange}>
                           <SelectTrigger className="w-full sm:w-[180px]">
                               <SelectValue placeholder="Select a range" />
@@ -316,22 +317,12 @@ function TaskLogBookContent() {
                           </Button>
                       </PopoverTrigger>
                   </div>
-                  <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={dateRange?.from}
-                          selected={dateRange}
-                          onSelect={handleDateSelect}
-                          numberOfMonths={2}
-                      />
-                  </PopoverContent>
               </Popover>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full sm:w-auto">
                     <Download className="mr-2 h-4 w-4" />
-                    <span className="sm:hidden">Download Report</span>
+                    Download Report
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -364,7 +355,7 @@ function TaskLogBookContent() {
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Time Focused</CardTitle>
+                                <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
@@ -373,25 +364,68 @@ function TaskLogBookContent() {
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardHeader>
                                 <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{stats.completionRate}%</div>
-                                <p className="text-xs text-muted-foreground">Keep up the great work!</p>
+                                <ChartContainer config={{}} className="mx-auto aspect-square h-full w-full">
+                                    <RechartsPieChart>
+                                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                                        <Pie data={[{ value: stats.completionRate }, { value: 100 - stats.completionRate }]} dataKey="value" nameKey="name" innerRadius={34} outerRadius={42} startAngle={90} endAngle={450} cornerRadius={50}>
+                                            <Cell fill="hsl(var(--primary))" />
+                                            <Cell fill="hsl(var(--muted))" />
+                                            <RechartsLabel
+                                                content={({ viewBox }) => {
+                                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                                    return (
+                                                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                                            <tspan x={viewBox.cx} y={viewBox.cy} className="text-2xl font-bold fill-foreground">
+                                                                {stats.completionRate}%
+                                                            </tspan>
+                                                        </text>
+                                                    )
+                                                    }
+                                                }}
+                                            />
+                                        </Pie>
+                                    </RechartsPieChart>
+                                </ChartContainer>
                             </CardContent>
                         </Card>
                          <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Hydration</CardTitle>
-                                <Droplets className="h-4 w-4 text-muted-foreground" />
+                            <CardHeader>
+                                <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
-                                <p className="text-xs text-muted-foreground">
-                                    {stats.glassesDrunk} of {stats.hydrationGoal} glasses
-                                </p>
+                               <ChartContainer config={{}} className="mx-auto aspect-square h-full w-full">
+                                    <RechartsPieChart>
+                                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                                        <Pie data={[{ value: stats.hydrationProgress }, { value: 100 - stats.hydrationProgress }]} dataKey="value" nameKey="name" innerRadius={34} outerRadius={42} startAngle={90} endAngle={450} cornerRadius={50}>
+                                            <Cell fill="hsl(var(--primary))" />
+                                            <Cell fill="hsl(var(--muted))" />
+                                            <RechartsLabel
+                                                content={({ viewBox }) => {
+                                                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                                    return (
+                                                        <>
+                                                            <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                                                <tspan x={viewBox.cx} y={viewBox.cy - 5} className="text-2xl font-bold fill-foreground">
+                                                                    {stats.hydrationProgress}%
+                                                                </tspan>
+                                                            </text>
+                                                            <text x={viewBox.cx} y={viewBox.cy + 12} textAnchor="middle" dominantBaseline="middle">
+                                                                 <tspan className="text-xs fill-muted-foreground">
+                                                                     {stats.glassesDrunk} of {stats.hydrationGoal}
+                                                                </tspan>
+                                                            </text>
+                                                        </>
+                                                    )
+                                                    }
+                                                }}
+                                            />
+                                        </Pie>
+                                    </RechartsPieChart>
+                                </ChartContainer>
                             </CardContent>
                         </Card>
                     </div>
@@ -414,7 +448,7 @@ function TaskLogBookContent() {
                                                     nameKey="name"
                                                     cx="50%"
                                                     cy="50%"
-                                                    innerRadius={40}
+                                                    innerRadius={45}
                                                     outerRadius={80}
                                                     labelLine={false}
                                                 >
@@ -443,13 +477,13 @@ function TaskLogBookContent() {
                                             <Badge
                                                 key={cat}
                                                 onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                                                className={cn("cursor-pointer flex gap-2 transition-all duration-200 border-2",
+                                                className={cn("cursor-pointer flex items-center justify-between gap-2 flex-1 min-w-[120px] transition-all duration-200 border-2",
                                                     selectedCategory === cat ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
                                                 )}
                                                 style={{ backgroundColor: `${categoryColors[cat as keyof typeof categoryColors]}20`, color: categoryColors[cat as keyof typeof categoryColors] }}
                                             >
                                                 <span>{cat}</span>
-                                                <span className="font-bold">{formatDuration(value)}</span>
+                                                <span className="font-bold whitespace-nowrap">{formatDuration(value)}</span>
                                             </Badge>
                                           )
                                         })}
