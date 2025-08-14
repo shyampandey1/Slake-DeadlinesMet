@@ -233,7 +233,7 @@ function TaskLogBookContent() {
     if (reportRef.current) {
         html2canvas(reportRef.current, {
             useCORS: true,
-            backgroundColor: 'hsl(var(--background))',
+            backgroundColor: getComputedStyle(document.body).backgroundColor,
             scale: 2,
         }).then(canvas => {
             const link = document.createElement('a');
@@ -259,7 +259,7 @@ function TaskLogBookContent() {
   );
 
   return (
-    <div ref={reportRef} className="space-y-8">
+    <div ref={reportRef} className="space-y-8 bg-background p-1">
         <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
