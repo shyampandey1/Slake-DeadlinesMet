@@ -469,7 +469,7 @@ function TaskLogBookContent() {
                                           </div>
                                       )}
                                     </div>
-                                    <div className="flex flex-wrap gap-2 justify-center">
+                                    <div className="grid grid-cols-2 gap-2">
                                         {allCategories.map(cat => {
                                           const catDataItem = categoryData.find(item => item.name === cat);
                                           const value = catDataItem ? catDataItem.value : 0;
@@ -477,7 +477,7 @@ function TaskLogBookContent() {
                                             <Badge
                                                 key={cat}
                                                 onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                                                className={cn("cursor-pointer flex items-center justify-between gap-2 flex-1 min-w-[120px] transition-all duration-200 border-2",
+                                                className={cn("cursor-pointer flex items-center justify-between gap-2 transition-all duration-200 border-2",
                                                     selectedCategory === cat ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
                                                 )}
                                                 style={{ backgroundColor: `${categoryColors[cat as keyof typeof categoryColors]}20`, color: categoryColors[cat as keyof typeof categoryColors] }}
