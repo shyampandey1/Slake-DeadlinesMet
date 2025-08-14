@@ -260,7 +260,7 @@ function TaskLogBookContent() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `deadlinesmet_report_${format(new Date(), 'yyyyMMdd')}.csv`);
+    link.setAttribute("download", "DeadlinesMet-logbook.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -274,7 +274,7 @@ function TaskLogBookContent() {
             scale: 3, 
         }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `deadlinesmet_report_${format(new Date(), 'yyyyMMdd')}.png`;
+            link.download = "DeadlinesMet-logbook.png";
             link.href = canvas.toDataURL('image/png');
             link.click();
         });
@@ -464,7 +464,7 @@ function TaskLogBookContent() {
                                     >
                                       <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
                                       <span className="text-sm text-muted-foreground">{cat.name}</span>
-                                      <span className="ml-auto text-sm font-semibold text-foreground">{formatDuration(cat.value)}</span>
+                                      <span className="ml-auto text-sm font-semibold text-foreground whitespace-nowrap">{formatDuration(cat.value)}</span>
                                     </button>
                                     )
                                   ))}
