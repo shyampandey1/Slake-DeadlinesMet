@@ -473,10 +473,13 @@ function TaskLogBookContent() {
                                     <button
                                       key={cat.name}
                                       onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
-                                      className={cn("flex items-center gap-2 p-1 rounded-md transition-colors", selectedCategory === cat.name && 'bg-accent')}
+                                      className={cn(
+                                          "flex items-center gap-2 p-1 rounded-md transition-colors",
+                                          selectedCategory === cat.name && 'bg-accent text-accent-foreground'
+                                      )}
                                     >
                                       <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                                      <span className="text-sm text-muted-foreground flex-1 text-left">{cat.name}</span>
+                                      <span className="text-sm text-muted-foreground text-left">{cat.name}</span>
                                       <span className="ml-auto text-sm font-semibold text-foreground whitespace-nowrap">{formatDuration(cat.value)}</span>
                                     </button>
                                     )
