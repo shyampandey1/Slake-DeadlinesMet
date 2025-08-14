@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -193,6 +194,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       duration: actualDuration,
       initialDuration: initialDuration,
       completed,
+      category: category,
     };
     await addTask(newTask);
 

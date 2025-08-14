@@ -1,12 +1,14 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
-import { BookText, ThumbsUp, Pause, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, TrendingUp } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
 import { DateRange } from "react-day-picker";
+import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell, Legend } from 'recharts';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,24 +44,12 @@ function TaskLogBookContent() {
         task: task.name,
         duration: Math.max(1, remainingDuration).toString(),
       });
+      if (task.category) {
+        params.append("category", task.category);
+      }
       router.push(`/timer?${params.toString()}`);
     }
   };
-
-  const stats = useMemo(() => {
-    if (loading || tasks.length === 0) {
-      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0 };
-    }
-    const completedTasks = tasks.filter(t => t.completed).length;
-    const totalTime = tasks.reduce((acc, t) => acc + t.duration, 0);
-    const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
-    return {
-      totalTasks: tasks.length,
-      completedTasks,
-      totalTime,
-      completionRate
-    };
-  }, [tasks, loading]);
 
   const filteredTasks = useMemo(() => {
     const now = new Date();
@@ -99,7 +89,8 @@ function TaskLogBookContent() {
         }
         break;
       default:
-        return tasks;
+        startDate = new Date(0); // All time
+        break;
     }
 
     return tasks.filter(task => {
@@ -107,6 +98,50 @@ function TaskLogBookContent() {
       return isWithinInterval(taskDate, { start: startDate, end: endDate });
     });
   }, [tasks, filter, dateRange]);
+
+  const stats = useMemo(() => {
+    if (loading || filteredTasks.length === 0) {
+      return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0 };
+    }
+    const completedTasks = filteredTasks.filter(t => t.completed).length;
+    const totalTime = filteredTasks.reduce((acc, t) => acc + t.duration, 0);
+    const completionRate = filteredTasks.length > 0 ? Math.round((completedTasks / filteredTasks.length) * 100) : 0;
+    return {
+      totalTasks: filteredTasks.length,
+      completedTasks,
+      totalTime,
+      completionRate
+    };
+  }, [filteredTasks, loading]);
+
+  const categoryData = useMemo(() => {
+    const data: { [key: string]: number } = {};
+    filteredTasks.forEach(task => {
+        const category = task.category || 'Uncategorized';
+        data[category] = (data[category] || 0) + task.duration;
+    });
+    
+    const totalDuration = Object.values(data).reduce((sum, duration) => sum + duration, 0);
+    if (totalDuration === 0) return [];
+
+    return Object.entries(data).map(([name, duration]) => ({
+      name,
+      value: duration,
+      percentage: Math.round((duration / totalDuration) * 100)
+    }));
+  }, [filteredTasks]);
+
+  const categoryColors: { [key: string]: string } = {
+    'Morning Routine': '#38bdf8', // sky-400
+    'Work & Focus': '#3b82f6', // blue-500
+    'Breaks & Meals': '#f97316', // orange-500
+    'Health & Wellness': '#22c55e', // green-500
+    'Evening Wind-down': '#f59e0b', // amber-500
+    'Bedtime Routine': '#8b5cf6', // violet-500
+    'Today\'s Events': '#eab308', // yellow-500
+    'Default': '#64748b', // slate-500
+    'Uncategorized': '#94a3b8' // slate-400
+  };
 
 
   const groupedTasks = useMemo(() => {
@@ -165,7 +200,8 @@ function TaskLogBookContent() {
 
   const renderSkeleton = () => (
     <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
@@ -175,23 +211,89 @@ function TaskLogBookContent() {
     </div>
   );
 
+  const renderCustomLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <ul className="flex flex-col space-y-2 text-sm text-muted-foreground">
+        {payload.map((entry: any, index: number) => (
+          <li key={`item-${index}`} className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: entry.color }} />
+              {entry.payload.name}
+            </div>
+            <span className="font-medium text-foreground">{entry.payload.percentage}%</span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
     <div className="space-y-8">
         <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
+             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <div className="flex items-center gap-2">
+                    <Select value={filter} onValueChange={handleFilterChange}>
+                        <SelectTrigger className="w-auto sm:w-[180px]">
+                            <SelectValue placeholder="Select a range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Time</SelectItem>
+                            <SelectItem value="today">Today</SelectItem>
+                            <SelectItem value="last7">Last 7 days</SelectItem>
+                            <SelectItem value="last30">Last 30 days</SelectItem>
+                            <SelectItem value="prevMonth">Previous Month</SelectItem>
+                            <SelectItem value="thisYear">This Year</SelectItem>
+                            <SelectItem value="lastYear">Last Year</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <PopoverTrigger asChild>
+                        <Button
+                            id="date"
+                            variant={"outline"}
+                            className={cn("w-auto justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                            onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dateRange?.from ? (
+                            dateRange.to ? (
+                                <>
+                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
+                                </>
+                            ) : (
+                                format(dateRange.from, "LLL dd, y")
+                            )
+                            ) : (
+                            <span className="hidden sm:inline">Custom</span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                </div>
+                <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={handleDateSelect}
+                        numberOfMonths={2}
+                    />
+                </PopoverContent>
+            </Popover>
         </div>
       
         {loading ? renderSkeleton() : (
             <>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
-                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
+                            <BookText className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{stats.completedTasks}</div>
-                            <p className="text-xs text-muted-foreground">out of {stats.totalTasks} total tasks</p>
+                            <div className="text-2xl font-bold">{stats.totalTasks}</div>
+                            <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -207,114 +309,134 @@ function TaskLogBookContent() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.completionRate}%</div>
                             <p className="text-xs text-muted-foreground">Keep up the great work!</p>
                         </CardContent>
                     </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Top Category</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{categoryData.length > 0 ? categoryData.sort((a,b) => b.value - a.value)[0].name : 'N/A'}</div>
+                            <p className="text-xs text-muted-foreground">based on time spent</p>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                         <div className="flex flex-wrap items-center justify-between gap-4">
-                            <CardTitle>Task Log</CardTitle>
-                             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                                <div className="flex items-center gap-2">
-                                    <Select value={filter} onValueChange={handleFilterChange}>
-                                        <SelectTrigger className="w-auto sm:w-[180px]">
-                                            <SelectValue placeholder="Select a range" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="today">Today</SelectItem>
-                                            <SelectItem value="last7">Last 7 days</SelectItem>
-                                            <SelectItem value="last30">Last 30 days</SelectItem>
-                                            <SelectItem value="prevMonth">Previous Month</SelectItem>
-                                            <SelectItem value="thisYear">This Year</SelectItem>
-                                            <SelectItem value="lastYear">Last Year</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="date"
-                                            variant={"outline"}
-                                            className={cn("w-auto justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
-                                            onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {dateRange?.from ? (
-                                            dateRange.to ? (
-                                                <>
-                                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
-                                                </>
-                                            ) : (
-                                                format(dateRange.from, "LLL dd, y")
-                                            )
-                                            ) : (
-                                            <span className="hidden sm:inline">Pick a date</span>
-                                            )}
-                                        </Button>
-                                    </PopoverTrigger>
-                                </div>
-                                <PopoverContent className="w-auto p-0" align="end">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
-                                        onSelect={handleDateSelect}
-                                        numberOfMonths={2}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {filteredTasks.length > 0 ? (
-                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                                {sortedGroupKeys.map((day) => (
-                                    <div key={day}>
-                                        <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
-                                        <div className="space-y-3">
-                                            {groupedTasks[day].map((task) => (
-                                                 <div key={task.id} className="flex flex-wrap items-center justify-between gap-y-2 p-3 rounded-lg bg-card border">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold">{task.name}</span>
-                                                        <span className="text-sm text-muted-foreground">
-                                                            Time spent: {formatDuration(task.duration)}
-                                                            {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
-                                                            {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {task.completed ? (
-                                                            <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-md">
-                                                                <ThumbsUp className="h-4 w-4" />
-                                                                <span className="text-sm font-medium">Done</span>
-                                                            </div>
-                                                        ) : (
-                                                             <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                <Play className="mr-2 h-3 w-3" />
-                                                                Continue
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Category Breakdown</CardTitle>
+                            <CardDescription>Time spent per category in the selected period.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {categoryData.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                    <div className="h-48 w-full">
+                                        <ResponsiveContainer>
+                                            <RechartsPieChart>
+                                                <Pie
+                                                    data={categoryData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    outerRadius={80}
+                                                    labelLine={false}
+                                                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                                        if (percent < 0.05) return null;
+                                                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                                        const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                                                        const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                                                        return (
+                                                            <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold">
+                                                                {`${(percent * 100).toFixed(0)}%`}
+                                                            </text>
+                                                        );
+                                                    }}
+                                                >
+                                                {categoryData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={categoryColors[entry.name] || '#ccc'} />
+                                                ))}
+                                                </Pie>
+                                            </RechartsPieChart>
+                                        </ResponsiveContainer>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                             <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                                <BookText className="mx-auto h-12 w-12" />
-                                <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
-                                <p className="mt-1 text-sm">No tasks were logged in this period.</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                    <div className="w-full">
+                                        <Legend content={renderCustomLegend} payload={categoryData.map((item, index) => ({
+                                            value: item.name,
+                                            type: 'square',
+                                            id: `id-${index}`,
+                                            color: categoryColors[item.name] || '#ccc',
+                                            payload: item,
+                                        }))} />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="py-10 text-center text-muted-foreground border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
+                                    <PieChart className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                                    <p className="mt-2 font-semibold">Not enough data</p>
+                                    <p className="text-sm">Log tasks to see your breakdown.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Task Log</CardTitle>
+                            <CardDescription>A list of all tasks in the selected period.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {filteredTasks.length > 0 ? (
+                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                    {sortedGroupKeys.map((day) => (
+                                        <div key={day}>
+                                            <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
+                                            <div className="space-y-3">
+                                                {groupedTasks[day].map((task) => (
+                                                    <div key={task.id} className="flex flex-wrap items-center justify-between gap-y-2 p-3 rounded-lg bg-card border">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold">{task.name}</span>
+                                                            <span className="text-sm text-muted-foreground">
+                                                                Time spent: {formatDuration(task.duration)}
+                                                                {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
+                                                                {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            {task.completed ? (
+                                                                <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 px-3 py-1.5 rounded-md">
+                                                                    <ThumbsUp className="h-4 w-4" />
+                                                                    <span className="text-sm font-medium">Done</span>
+                                                                </div>
+                                                            ) : (
+                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
+                                                                    <Play className="mr-2 h-3 w-3" />
+                                                                    Continue
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                                    <BookText className="mx-auto h-12 w-12" />
+                                    <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
+                                    <p className="mt-1 text-sm">No tasks were logged in this period.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             </>
         )}
     </div>

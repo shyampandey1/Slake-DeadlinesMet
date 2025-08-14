@@ -11,6 +11,7 @@ export type Task = {
   initialDuration: number; // in minutes, original planned duration
   completed: boolean;
   createdAt: any; // Can be a server timestamp
+  category?: string;
 };
 
 export type MockUser = {
