@@ -1,5 +1,4 @@
 
-
 import type {Config} from 'tailwindcss';
 import plugin from 'tailwindcss/plugin';
 
@@ -61,6 +60,9 @@ export default {
   ],
   theme: {
     extend: {
+      transitionDuration: {
+        '3000': '3000ms',
+      },
       fontFamily: {
         body: ['Nunito', 'sans-serif'],
         headline: ['Space Grotesk', 'sans-serif'],

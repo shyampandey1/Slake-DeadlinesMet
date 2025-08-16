@@ -159,7 +159,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         <div className="relative w-full h-64">
              {/* Background with Vectors - This part is NOT blurred */}
             <div className="absolute inset-0 overflow-hidden border-b border-border/20">
-                 <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-[3000ms] ease-in-out", skyClass)}>
+                 <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>
                     <div className="absolute inset-0 opacity-100">
                          {/* Smokey Clouds using Framer Motion */}
                         <MotionCloud
