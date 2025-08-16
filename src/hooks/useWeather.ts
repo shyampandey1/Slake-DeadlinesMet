@@ -18,7 +18,7 @@ export interface WeatherData {
 }
 
 export function useWeather() {
-  const [location, setLocationState] = useState('London');
+  const [location, setLocationState] = useState('Delhi, India');
   const [unit, setUnitState] = useState<'C' | 'F'>('C');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,9 +30,9 @@ export function useWeather() {
     // For this example, we'll return mock data.
     setTimeout(() => {
       const mockWeather: WeatherData = {
-        temp: u === 'C' ? 18 : 64,
-        main: "Clouds",
-        description: "overcast clouds",
+        temp: u === 'C' ? 32 : 90,
+        main: "Clear",
+        description: "clear sky",
         location: loc,
         unit: u,
         timestamp: Date.now(),
@@ -71,7 +71,7 @@ export function useWeather() {
   }, [fetchWeatherForLocation]);
 
   useEffect(() => {
-    let initialLocation = 'London';
+    let initialLocation = 'Delhi, India';
     let initialUnit: 'C' | 'F' = 'C';
     
     try {

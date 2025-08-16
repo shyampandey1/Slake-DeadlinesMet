@@ -136,7 +136,7 @@ function SettingsPageComponent() {
                                         value={tempLocation}
                                         onChange={(e) => setTempLocation(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleLocationSave()}
-                                        placeholder="e.g., London, UK"
+                                        placeholder="e.g., Delhi, India"
                                     />
                                     <Button size="icon" variant="outline" onClick={handleDetectLocation}>
                                         <LocateFixed className="h-4 w-4" />
