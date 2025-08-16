@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info, Cloud, Users2, Layers, Zap } from "lucide-react";
+import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings, Info, Cloud, Users2, Layers, Zap, PieChart, Bug } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,16 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 
 const changelog = [
+     {
+      version: "v1.4",
+      date: "Day 5",
+      features: [
+        { name: "Expert-Tuned Routines", description: "Completely overhauled all professional routines based on extensive research for maximum effectiveness.", icon: ClipboardList },
+        { name: "Dashboard Redesign", description: "The Log Book dashboard now features a cleaner side-by-side layout for stats and charts.", icon: PieChart },
+        { name: "Brighter Days Ahead", description: "The home page header is now bigger, brighter, and sunnier on clear-weather days.", icon: Sun },
+        { name: "Final Bug Squash", description: "Implemented a definitive fix to permanently eliminate the task duplication bug.", icon: Bug },
+      ]
+  },
     {
       version: "v1.3",
       date: "Day 4",
@@ -111,7 +121,7 @@ export default function HamburgerMenu() {
               <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3" onClick={() => navigateTo('/settings')}>
                 <User className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground truncate">
-                  {user.email}
+                  {user.displayName || user.email}
                 </span>
               </Button>
             )}
