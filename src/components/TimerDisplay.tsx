@@ -74,6 +74,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Updating the logbook...");
   const [flashState, setFlashState] = useState<FlashState>('none');
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -191,7 +192,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   };
 
   const handleSaveTask = async (completed: boolean) => {
-    setIsFinished(false); // Close the dialog immediately
+    setIsFinished(false);
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
@@ -217,12 +218,15 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       completed,
       category: finalCategory,
     };
-    await addTask(newTask);
-
+    
     if (completed) {
-      await findAndSyncPresetTask(taskName, actualDuration);
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
+      setLoadingMessage("Updating the logbook...");
+      await addTask(newTask);
+      await findAndSyncPresetTask(taskName, actualDuration);
+      setLoadingMessage("Generating your motivational message...");
+      
       try {
         const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
         const userRoutine = Object.values(presetTasks).flatMap(category => category.tasks.map(task => ({...task})));
@@ -243,6 +247,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setIsLoadingAI(false);
       }
     } else {
+      await addTask(newTask);
       router.push("/");
     }
   };
@@ -398,7 +403,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 {isLoadingAI ? (
                     <div className="flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        <p>Generating your motivational message...</p>
+                        <p>{loadingMessage}</p>
                     </div>
                 ) : (
                   <>
