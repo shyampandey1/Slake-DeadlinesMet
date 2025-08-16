@@ -328,33 +328,30 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             <div className="flex w-full items-center justify-center">
                 <CircularProgress progress={progress}>
                     <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
-                    {formatTime(timeRemaining)}
+                        {formatTime(timeRemaining)}
+                    </div>
+                     <div className={cn(
+                        "flex items-center justify-center gap-4 transition-opacity duration-300 mt-4",
+                        isUIVisible ? "opacity-100" : "opacity-0"
+                    )}>
+                        <Button
+                            onClick={() => setIsPaused(!isPaused)}
+                            size="icon"
+                            variant="ghost"
+                            className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20"
+                        >
+                            {isPaused ? <Play className="h-7 w-7 text-white" /> : <Pause className="h-7 w-7 text-white" />}
+                        </Button>
+                        <Button 
+                            onClick={handleEndEarly} 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-16 h-16 rounded-full bg-destructive/40 hover:bg-destructive/60"
+                        >
+                            <Square className="h-7 w-7 text-white" />
+                        </Button>
                     </div>
                 </CircularProgress>
-            </div>
-
-
-            {/* Bottom Buttons */}
-            <div className={cn(
-                "flex items-center justify-center gap-4 transition-opacity duration-300",
-                isUIVisible ? "opacity-100" : "opacity-0"
-            )}>
-                <Button
-                    onClick={() => setIsPaused(!isPaused)}
-                    size="icon"
-                    variant={isPaused ? "default" : "secondary"}
-                    className="w-20 h-20 rounded-full"
-                >
-                    {isPaused ? <Play className="h-8 w-8 text-white" /> : <Pause className="h-8 w-8 text-white" />}
-                </Button>
-                <Button 
-                    onClick={handleEndEarly} 
-                    variant="destructive" 
-                    size="icon" 
-                    className="w-20 h-20 rounded-full"
-                >
-                    <Square className="h-8 w-8 text-white" />
-                </Button>
             </div>
         </div>
 

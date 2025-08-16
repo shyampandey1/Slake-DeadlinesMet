@@ -63,7 +63,7 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                     }}
                 />
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
                 {children}
             </div>
         </div>
