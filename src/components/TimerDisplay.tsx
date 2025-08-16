@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, CloudSun, LucideIcon, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, CloudSun, LucideIcon, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
 import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
