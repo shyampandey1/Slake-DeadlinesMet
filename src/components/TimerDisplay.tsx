@@ -334,7 +334,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         </div>
 
         {/* Bottom Buttons */}
-         <div className={cn(
+        <div className={cn(
             "absolute bottom-4 sm:bottom-6 md:bottom-8 flex items-center gap-4 transition-opacity duration-300",
             isUIVisible ? "opacity-100" : "opacity-0"
         )}>
@@ -342,18 +342,19 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 onClick={() => setIsPaused(!isPaused)}
                 size="lg"
                 variant={isPaused ? "default" : "secondary"}
-                className="w-32 text-lg"
+                className="w-32 text-lg flex items-center justify-center gap-2"
             >
-                {isPaused ? (
-                    <Play className="mr-2 h-6 w-6" />
-                ) : (
-                    <Pause className="mr-2 h-6 w-6" />
-                )}
-                {isPaused ? "Resume" : "Pause"}
+                {isPaused ? <Play className="h-7 w-7 text-white" /> : <Pause className="h-7 w-7 text-white" />}
+                <span className="flex-1 text-center">{isPaused ? "Resume" : "Pause"}</span>
             </Button>
-            <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
-                <Square className="mr-2 h-6 w-6" />
-                End
+            <Button 
+                onClick={handleEndEarly} 
+                variant="destructive" 
+                size="lg" 
+                className="w-32 text-lg flex items-center justify-center gap-2"
+            >
+                <Square className="h-7 w-7 text-white" />
+                <span className="flex-1 text-center">End</span>
             </Button>
         </div>
 
