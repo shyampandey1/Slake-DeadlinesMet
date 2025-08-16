@@ -468,14 +468,14 @@ function TaskLogBookContent() {
                                         </ResponsiveContainer>
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                    <div className="flex flex-col gap-2">
                                       {categoryData.map(cat => (
                                         cat.value > 0 && (
                                         <button
                                           key={cat.name}
                                           onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
                                           className={cn(
-                                              "flex items-center gap-2 p-1 rounded-md transition-colors w-full",
+                                              "flex items-center gap-3 p-2 rounded-md transition-colors w-full",
                                               selectedCategory === cat.name && 'bg-accent'
                                           )}
                                         >
@@ -561,4 +561,3 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
-
