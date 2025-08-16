@@ -1,5 +1,3 @@
-# Nexjs app
-
 # DeadlinesMet
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
@@ -21,7 +19,7 @@ DeadlinesMet transforms your daily routine from a list of chores into a seamless
 ### 🎯 Core Productivity
 * **Quick Start Tasks:** Jump right into your day with categorized, pre-defined tasks based on your chosen routine.
 * **Focus-Driven Timer:** A beautifully designed, distraction-free timer with dynamic backgrounds and audio cues to help you concentrate on one task at a time.
-* **Dynamic Home Dashboard:** The app's header dynamically changes based on the real time of day and local weather for a personalized, ambient experience.
+* **Dynamic Home Dashboard:** The app's header dynamically changes based on the real time of day and local weather (*powered by the Open-Meteo API*), creating an ambient, personalized experience.
 
 ### 📊 Analytics & Insights
 * **Comprehensive Log Book:** Keep a detailed history of every task you complete or attempt.
@@ -38,6 +36,7 @@ DeadlinesMet transforms your daily routine from a list of chores into a seamless
 
 * **Frontend:** Next.js, React, ShadCN UI, Tailwind CSS
 * **Backend & AI:** Google Firebase (Auth, Firestore), Google Gemini AI Models, Genkit
+* **APIs & Services:** Open-Meteo API for real-time, hyperlocal weather data.
 
 ## 🚀 Getting Started
 
@@ -88,3 +87,4 @@ Please refer to our `CONTRIBUTING.md` file for details on our code of conduct an
 ## 📄 License
 
 This project is licensed under the MIT License - see the `LICENSE.md` file for details.
+````
