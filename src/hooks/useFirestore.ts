@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-export const ROUTINE_TEMPLATE_VERSION = 24;
+export const ROUTINE_TEMPLATE_VERSION = 25;
 
 const creativeProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
