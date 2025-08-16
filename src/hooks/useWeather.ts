@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchWeatherApi } from 'openmeteo';
+import { fetchWeatherApi } from '@openmeteo/sdk';
 
 const WEATHER_LOCATION_KEY = 'weather_location';
 const WEATHER_UNIT_KEY = 'weather_unit';
