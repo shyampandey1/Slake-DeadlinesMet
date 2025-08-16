@@ -14,8 +14,7 @@ import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, writeBatch, runTransaction } from "firebase/firestore";
 import type { ProfileType, CustomProfession, UserProfile, Day } from "@/types";
-import { ROUTINE_TEMPLATE_VERSION, defaultRoutines, profileToRoutineMap } from './useFirestore';
-import { getDay, isSameDay } from "date-fns";
+import { ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, defaultRoutines } from '@/lib/routines';
 
 
 export type Profession = {
@@ -60,10 +59,6 @@ interface ProfileContextType {
   setProfile: (profile: ProfileType) => void;
   daysOff: Day[];
   setDaysOff: (daysOff: Day[]) => void;
-  getEffectiveProfile: () => ProfileType;
-  isAnalystOnDayOff: () => boolean;
-  isHealthcareOnDayOff: () => boolean;
-  isOnTheGoOnAdminDay: () => boolean;
   customProfessions: CustomProfession[];
   deleteCustomProfession: (professionName: string) => Promise<void>;
   loading: boolean;
@@ -75,10 +70,6 @@ const ProfileContext = createContext<ProfileContextType>({
   setProfile: () => {},
   daysOff: [],
   setDaysOff: () => {},
-  getEffectiveProfile: () => "General",
-  isAnalystOnDayOff: () => false,
-  isHealthcareOnDayOff: () => false,
-  isOnTheGoOnAdminDay: () => false,
   customProfessions: [],
   deleteCustomProfession: async () => {},
   loading: true,
@@ -93,16 +84,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const profile = profileData?.profile || "General";
   const daysOff = profileData?.daysOff || [];
   const customProfessions = profileData?.customProfessions || [];
-
+  
   const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType, userProfile: UserProfile) => {
     if (!prof || !isSyncEnabled || !profileToRoutineMap[prof]) return;
-
     try {
         const currentVersion = userProfile?.routineVersions?.[prof] || 0;
         if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
             return;
         }
 
+        const profileRef = doc(db, 'userProfiles', uid);
         await runTransaction(db, async (transaction) => {
             const tasksToDeleteQuery = query(
                 collection(db, 'userPresetTasks'),
@@ -119,9 +110,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 const newTaskRef = doc(collection(db, "userPresetTasks"));
                 transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
             });
-
-            const profileRef = doc(db, 'userProfiles', uid);
-            const routineVersions = { ...(userProfile.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
+            
+            const freshProfile = await transaction.get(profileRef);
+            const freshProfileData = freshProfile.data() || {};
+            const routineVersions = { ...(freshProfileData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
             transaction.set(profileRef, { routineVersions }, { merge: true });
         });
     } catch (error) {
@@ -136,8 +128,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             try {
                 const storedProfile = localStorage.getItem('user-profile');
                 if (storedProfile) {
-                    const parsedProfile: UserProfile = JSON.parse(storedProfile);
-                    setProfileData(parsedProfile);
+                    setProfileData(JSON.parse(storedProfile));
                 } else {
                     setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
                 }
@@ -161,7 +152,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 dataToSet.routineVersions = {};
             }
         } else {
-            // If no profile, set default "General"
             dataToSet = { profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
             setDoc(profileRef, dataToSet);
         }
@@ -176,11 +166,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        // After setting profile data, check if the current routine needs an update.
         if (dataToSet.profile) {
-            initializeUserTasks(user.uid, dataToSet.profile, dataToSet).finally(() => {
-                setLoading(false);
-            });
+            initializeUserTasks(user.uid, dataToSet.profile, dataToSet).finally(() => setLoading(false));
         } else {
             setLoading(false);
         }
@@ -199,19 +186,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     
     const updatedData = { ...profileData, profile: newProfile } as UserProfile;
     setProfileData(updatedData);
+
     if (typeof window !== 'undefined') {
         try {
             localStorage.setItem('user-profile', JSON.stringify(updatedData));
-        } catch(e) {
-            console.warn("Could not access localStorage for profile");
-        }
+        } catch(e) { console.warn("Could not access localStorage for profile"); }
     }
 
     if (user && !isOffline && isSyncEnabled) {
         try {
             const profileRef = doc(db, 'userProfiles', user.uid);
             await setDoc(profileRef, { profile: newProfile }, { merge: true });
-            // After setting profile, ensure its routine is up-to-date
             await initializeUserTasks(user.uid, newProfile, updatedData);
         } catch (error) {
             console.error("Failed to set profile: ", error);
@@ -226,9 +211,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
          try {
             localStorage.setItem('user-profile', JSON.stringify(updatedData));
-        } catch(e) {
-            console.warn("Could not access localStorage for profile");
-        }
+        } catch(e) { console.warn("Could not access localStorage for profile"); }
     }
 
     if (user && !isOffline && isSyncEnabled) {
@@ -278,38 +261,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   }, [user, isOffline, profile, isSyncEnabled]);
 
-  const dayMap: { [key in Day]: number } = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
-  
-  const isDayOff = useCallback(() => {
-    const today = getDay(new Date());
-    for (const dayOff of daysOff) {
-        if (dayMap[dayOff] === today) {
-            return true;
-        }
-    }
-    return false;
-  }, [daysOff, dayMap]);
-
-  const isAnalystOnDayOff = useCallback(() => profile === 'Analyst' && isDayOff(), [profile, isDayOff]);
-  const isHealthcareOnDayOff = useCallback(() => profile === 'Healthcare Professional' && isDayOff(), [profile, isDayOff]);
-  
-  const isOnTheGoOnAdminDay = useCallback(() => {
-    const onTheGoProfiles = ["Sales", "Medical Representative", "Delivery Agent"];
-    const isWednesday = getDay(new Date()) === 3; // Wednesday
-    return onTheGoProfiles.includes(profile) && isWednesday;
-  }, [profile]);
-  
-  const getEffectiveProfile = useCallback(() => {
-    if (isAnalystOnDayOff()) return 'Day Off - Analyst';
-    if (isHealthcareOnDayOff()) return 'Day Off - Healthcare';
-    if (isOnTheGoOnAdminDay()) return 'Admin Day - On The Go';
-    if (isDayOff()) return 'Day Off';
-    return profile;
-  }, [profile, isDayOff, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay]);
-
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, getEffectiveProfile, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay, loading, customProfessions, deleteCustomProfession, profileData }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData }}>
       {children}
     </ProfileContext.Provider>
   );
