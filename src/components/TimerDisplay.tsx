@@ -74,7 +74,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("Updating the logbook...");
   const [flashState, setFlashState] = useState<FlashState>('none');
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -222,10 +221,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     if (completed) {
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
-      setLoadingMessage("Updating the logbook...");
       await addTask(newTask);
       await findAndSyncPresetTask(taskName, actualDuration);
-      setLoadingMessage("Generating your motivational message...");
       
       try {
         const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
@@ -401,7 +398,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 {isLoadingAI ? (
                     <div className="flex items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        <p>{loadingMessage}</p>
+                        <p>Updating the logbook...</p>
                     </div>
                 ) : (
                   <>
