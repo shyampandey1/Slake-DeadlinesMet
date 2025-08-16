@@ -22,8 +22,9 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
-import { add, set, getDay, isToday, format as formatDate, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
+import { getDay } from 'date-fns';
 import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
+import { set, format as formatDate, parse, compareDesc } from 'date-fns';
 
 // Re-export for easier access in other components
 export const getAvailableCategories = getCats;
@@ -174,11 +175,12 @@ export function usePresetTasks() {
 
   useEffect(() => {
     if (profileLoading) return;
-    if (isOffline) {
-        const routineKey = 'General';
-        const defaultTasks = defaultRoutines.routines[routineKey] || [];
+    
+    if (isOffline || !isSyncEnabled) {
+        const routineKey = profileToRoutineMap[effectiveProfile];
+        const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
         let order = 0;
-        const tasksWithOrder = defaultTasks.map(task => ({ ...task, order: order++ }));
+        const tasksWithOrder = defaultTasks.map(task => ({ ...task, profession: effectiveProfile, order: order++ }));
         
         const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
             const category = task.category || 'Default';
@@ -342,13 +344,16 @@ export function usePresetTasks() {
         'Breaks & Meals': { start: 12, end: 14 }, 
         'Health & Wellness': {start: 17, end: 19 }, 
         'Evening Wind-down': { start: 19, end: 21 },
+        // On-The-Go
         'Morning Prep': { start: 6, end: 9 },
         'On the Road': { start: 9, end: 17 },
         'Post-Work Admin': { start: 17, end: 18 },
         'Evening & Bedtime': { start: 18, end: 24 },
+        // Healthcare
         'Pre-Shift Routine': { start: 5, end: 7 },
         'During Shift': { start: 7, end: 19 },
         'Post-Shift Decompression': { start: 19, end: 21 },
+        // Day Off
         'Morning Recovery': { start: 7, end: 12 },
         'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
         'Evening & Bedtime Reset': { start: 18, end: 24 },
@@ -499,3 +504,5 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
+
+    

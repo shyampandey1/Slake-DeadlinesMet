@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import {
@@ -85,16 +84,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const daysOff = profileData?.daysOff || [];
   const customProfessions = profileData?.customProfessions || [];
   
-  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType, userProfile: UserProfile) => {
-    if (!prof || !isSyncEnabled || !profileToRoutineMap[prof]) return;
-    try {
-        const currentVersion = userProfile?.routineVersions?.[prof] || 0;
-        if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
-            return;
-        }
+  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+    if (!prof || !isSyncEnabled || isOffline) return;
 
+    try {
         const profileRef = doc(db, 'userProfiles', uid);
+        
         await runTransaction(db, async (transaction) => {
+            const freshProfileDoc = await transaction.get(profileRef);
+            const freshProfileData = freshProfileDoc.data() as UserProfile || { routineVersions: {} };
+            const currentVersion = freshProfileData.routineVersions?.[prof] || 0;
+
+            if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
+                return;
+            }
+
             const tasksToDeleteQuery = query(
                 collection(db, 'userPresetTasks'),
                 where('userId', '==', uid),
@@ -103,39 +107,44 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             const tasksToDeleteSnapshot = await getDocs(tasksToDeleteQuery);
             tasksToDeleteSnapshot.forEach(doc => transaction.delete(doc.ref));
 
-            const routineKey = profileToRoutineMap[prof]!;
-            const defaultTasks = defaultRoutines.routines[routineKey] || [];
+            const routineKey = profileToRoutineMap[prof];
+            const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] : [];
+            
             let order = 0;
             defaultTasks.forEach(task => {
                 const newTaskRef = doc(collection(db, "userPresetTasks"));
                 transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
             });
             
-            const freshProfile = await transaction.get(profileRef);
-            const freshProfileData = freshProfile.data() || {};
             const routineVersions = { ...(freshProfileData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
             transaction.set(profileRef, { routineVersions }, { merge: true });
         });
     } catch (error) {
         console.error(`Transaction to initialize/update tasks for ${prof} failed: `, error);
     }
-  }, [isSyncEnabled]);
+  }, [isSyncEnabled, isOffline]);
 
 
   useEffect(() => {
-    if (!user || isOffline || !isSyncEnabled) {
-        if (typeof window !== 'undefined') {
-            try {
-                const storedProfile = localStorage.getItem('user-profile');
-                if (storedProfile) {
-                    setProfileData(JSON.parse(storedProfile));
-                } else {
-                    setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
-                }
-            } catch (e) {
-                console.warn("Could not access localStorage for profile");
-                setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
+    if (!user) {
+        setLoading(false);
+        return;
+    }
+
+    if (isOffline || !isSyncEnabled) {
+        setLoading(true);
+        try {
+            const storedProfile = localStorage.getItem('user-profile');
+            if (storedProfile) {
+                setProfileData(JSON.parse(storedProfile));
+            } else {
+                const defaultProfile = { profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}};
+                setProfileData(defaultProfile);
+                localStorage.setItem('user-profile', JSON.stringify(defaultProfile));
             }
+        } catch (e) {
+            console.warn("Could not access localStorage for profile");
+            setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
         }
         setLoading(false);
         return;
@@ -144,7 +153,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const profileRef = doc(db, 'userProfiles', user.uid);
 
-    const unsubscribe = onSnapshot(profileRef, (docSnap) => {
+    const unsubscribe = onSnapshot(profileRef, async (docSnap) => {
         let dataToSet: UserProfile;
         if (docSnap.exists()) {
             dataToSet = docSnap.data() as UserProfile;
@@ -153,24 +162,22 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             }
         } else {
             dataToSet = { profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
-            setDoc(profileRef, dataToSet);
+            await setDoc(profileRef, dataToSet);
         }
 
         setProfileData(dataToSet);
 
-        if (typeof window !== 'undefined') {
-            try {
-                localStorage.setItem('user-profile', JSON.stringify(dataToSet));
-            } catch (e) {
-                console.warn("Could not write profile to localStorage");
-            }
+        try {
+            localStorage.setItem('user-profile', JSON.stringify(dataToSet));
+        } catch (e) {
+            console.warn("Could not write profile to localStorage");
         }
         
         if (dataToSet.profile) {
-            initializeUserTasks(user.uid, dataToSet.profile, dataToSet).finally(() => setLoading(false));
-        } else {
-            setLoading(false);
+            await initializeUserTasks(user.uid, dataToSet.profile);
         }
+        setLoading(false);
+
     }, (error) => {
         console.error("Error fetching profile:", error);
         setLoading(false);
@@ -184,20 +191,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const setProfile = useCallback(async (newProfile: ProfileType) => {
     if (profile === newProfile) return;
     
-    const updatedData = { ...profileData, profile: newProfile } as UserProfile;
+    const updatedData = { ...(profileData || { daysOff: [], customProfessions: [], routineVersions: {} }), profile: newProfile } as UserProfile;
     setProfileData(updatedData);
 
-    if (typeof window !== 'undefined') {
-        try {
-            localStorage.setItem('user-profile', JSON.stringify(updatedData));
-        } catch(e) { console.warn("Could not access localStorage for profile"); }
-    }
+    try {
+        localStorage.setItem('user-profile', JSON.stringify(updatedData));
+    } catch(e) { console.warn("Could not access localStorage for profile"); }
 
     if (user && !isOffline && isSyncEnabled) {
         try {
             const profileRef = doc(db, 'userProfiles', user.uid);
             await setDoc(profileRef, { profile: newProfile }, { merge: true });
-            await initializeUserTasks(user.uid, newProfile, updatedData);
+            await initializeUserTasks(user.uid, newProfile);
         } catch (error) {
             console.error("Failed to set profile: ", error);
         }
@@ -205,14 +210,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled, profile, profileData, initializeUserTasks]);
   
   const setDaysOff = useCallback(async (newDaysOff: Day[]) => {
-    const updatedData = { ...profileData, daysOff: newDaysOff } as UserProfile;
+    const updatedData = { ...(profileData || { profile: 'General', customProfessions: [], routineVersions: {} }), daysOff: newDaysOff } as UserProfile;
     setProfileData(updatedData);
 
-    if (typeof window !== 'undefined') {
-         try {
-            localStorage.setItem('user-profile', JSON.stringify(updatedData));
-        } catch(e) { console.warn("Could not access localStorage for profile"); }
-    }
+     try {
+        localStorage.setItem('user-profile', JSON.stringify(updatedData));
+    } catch(e) { console.warn("Could not access localStorage for profile"); }
 
     if (user && !isOffline && isSyncEnabled) {
         try {
@@ -270,3 +273,5 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 }
 
 export const useProfile = () => useContext(ProfileContext);
+
+    
