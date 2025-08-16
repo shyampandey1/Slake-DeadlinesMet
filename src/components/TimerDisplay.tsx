@@ -345,21 +345,19 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         )}>
             <Button
                 onClick={() => setIsPaused(!isPaused)}
-                size="lg"
+                size="icon"
                 variant={isPaused ? "default" : "secondary"}
-                className="w-32 text-lg flex items-center justify-center gap-2"
+                className="w-20 h-20 rounded-full"
             >
-                {isPaused ? <Play className="h-7 w-7 text-white" /> : <Pause className="h-7 w-7 text-white" />}
-                <span className="flex-1 text-center">{isPaused ? "Resume" : "Pause"}</span>
+                {isPaused ? <Play className="h-10 w-10 text-white" /> : <Pause className="h-10 w-10 text-white" />}
             </Button>
             <Button 
                 onClick={handleEndEarly} 
                 variant="destructive" 
-                size="lg" 
-                className="w-32 text-lg flex items-center justify-center gap-2"
+                size="icon" 
+                className="w-20 h-20 rounded-full"
             >
-                <Square className="h-7 w-7 text-white" />
-                <span className="flex-1 text-center">End</span>
+                <Square className="h-10 w-10 text-white" />
             </Button>
         </div>
 
