@@ -122,7 +122,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           return 0;
         }
         
-        // Flashing logic
         if (prev > 10) {
             setFlashState('none');
         } else if (prev > 5) {
@@ -161,9 +160,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   }, [isPaused, startTimer, stopTimer]);
 
   useEffect(() => {
-    // Disable scrolling on the body when the timer is active
     document.body.style.overflow = 'hidden';
-    // Re-enable scrolling when the component unmounts
     return () => {
       document.body.style.overflow = 'auto';
     };
@@ -181,9 +178,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       task: suggestedTask,
       duration: "25",
     });
-    // Use window.location.href to force a full page reload with the new params
     window.location.href = `/timer?${params.toString()}`;
-  }
+  };
   
   const handleInteraction = () => {
     showUI();
@@ -267,8 +263,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   };
   
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
-
-  // Dynamically set CSS variables for the timer theme
   const timerColor = 'hsl(var(--primary))';
   
   const hour = currentDate.getHours();
@@ -289,13 +283,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         }
       )}
       style={{
-        backgroundColor: 'hsl(20 14% 4%)', // Always dark background
+        backgroundColor: 'hsl(20 14% 4%)', 
         '--timer-primary-color': timerColor,
         '--timer-background-color': 'hsl(20 14% 4%)',
         '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
-        {/* Top Info Bar */}
         <div className={cn(
             "w-full max-w-sm mx-auto transition-opacity duration-300 absolute top-4",
              isUIVisible ? "opacity-100" : "opacity-0"
@@ -315,7 +308,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         </div>
 
         <div className="flex flex-col items-center justify-center text-center gap-8">
-            {/* Task Name */}
             <div className="w-full max-w-4xl mx-auto transition-opacity duration-300">
                 <h2 className="mb-1 text-base font-medium tracking-wide text-white/60">{category || 'Focus Session'}</h2>
                 <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl font-headline break-words">
@@ -323,36 +315,34 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 </h1>
             </div>
             
-            {/* Center Content: Dial */}
-            <div className="flex w-full flex-col items-center justify-center gap-8">
-                <CircularProgress progress={progress}>
+            <CircularProgress progress={progress} isUIVisible={isUIVisible}>
+                <div className="flex flex-col items-center justify-center gap-4">
                     <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
                         {formatTime(timeRemaining)}
                     </div>
-                </CircularProgress>
-
-                <div className={cn(
-                    "flex items-center justify-center gap-4 transition-opacity duration-300",
-                    isUIVisible ? "opacity-100" : "opacity-0"
-                )}>
-                    <Button
-                        onClick={() => setIsPaused(!isPaused)}
-                        size="icon"
-                        variant="ghost"
-                        className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20"
-                    >
-                        {isPaused ? <Play className="h-7 w-7 text-white" /> : <Pause className="h-7 w-7 text-white" />}
-                    </Button>
-                    <Button 
-                        onClick={handleEndEarly} 
-                        variant="ghost" 
-                        size="icon" 
-                        className="w-16 h-16 rounded-full bg-destructive/40 hover:bg-destructive/60"
-                    >
-                        <Square className="h-7 w-7 text-white" />
-                    </Button>
+                    <div className={cn(
+                        "flex items-center justify-center gap-4 transition-opacity duration-300",
+                        isUIVisible ? "opacity-100" : "opacity-0"
+                    )}>
+                        <Button
+                            onClick={() => setIsPaused(!isPaused)}
+                            size="icon"
+                            variant="ghost"
+                            className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20"
+                        >
+                            {isPaused ? <Play className="h-7 w-7 text-white" /> : <Pause className="h-7 w-7 text-white" />}
+                        </Button>
+                        <Button 
+                            onClick={handleEndEarly} 
+                            variant="ghost" 
+                            size="icon" 
+                            className="w-16 h-16 rounded-full bg-destructive/40 hover:bg-destructive/60"
+                        >
+                            <Square className="h-7 w-7 text-white" />
+                        </Button>
+                    </div>
                 </div>
-            </div>
+            </CircularProgress>
         </div>
 
 
