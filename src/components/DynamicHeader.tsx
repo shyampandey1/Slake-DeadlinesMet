@@ -98,7 +98,12 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     } else if (timeInMinutes >= dayStart && timeInMinutes < dayEnd) {
         // Daytime
         const progress = (timeInMinutes - dayStart) / (dayEnd - dayStart);
-        skyClass = 'from-sky-400/80 to-sky-600/80';
+        // Special override for clear weather to make it look sunnier
+        if (weather?.main === 'Clear') {
+            skyClass = 'from-orange-300/80 via-yellow-300/80 to-sky-400/80';
+        } else {
+            skyClass = 'from-sky-400/80 to-sky-600/80';
+        }
         sunMoonY = 10 + progress * 5; // Slight movement
         sunMoonX = 50; // Centered for simplicity in daytime view
         sunMoonOpacity = 1;
@@ -199,7 +204,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             {isNight ? (
                                 <Moon className="w-14 h-14 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
                             ) : (
-                                <Sun className="w-16 h-16 text-yellow-300/90" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(255, 223, 100, 0.8))' }}/>
+                                <Sun className="w-24 h-24 text-yellow-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(255, 223, 100, 0.9))' }}/>
                             )}
                         </g>
                         {/* Stars */}
