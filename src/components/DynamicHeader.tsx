@@ -4,9 +4,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import { Sun, Moon, Cloud } from 'lucide-react';
+import { Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useWeather } from '@/hooks/useWeather';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -27,7 +28,22 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
     </motion.div>
 );
 
+const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
+    if (code >= 200 && code < 300) return CloudLightning;
+    if (code >= 300 && code < 400) return CloudDrizzle;
+    if (code >= 500 && code < 600) return CloudRain;
+    if (code >= 600 && code < 700) return CloudSnow;
+    if (code >= 700 && code < 800) return CloudFog;
+    if (code === 800) return isNight ? Moon : Sun;
+    if (code === 801) return isNight ? CloudMoon : CloudSun;
+    if (code === 802) return Cloud;
+    if (code > 802) return Cloudy;
+    return Cloud;
+};
+
+
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
+    const { weatherData } = useWeather();
     const [stars, setStars] = useState<JSX.Element[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -70,6 +86,9 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     let sunMoonOpacity = 0;
     let isNight = false;
 
+    // Is it a clear sunny day?
+    const isSunnyDay = weatherData?.code === 800 && !isNight;
+
     if (timeInMinutes >= sunriseStart && timeInMinutes < sunriseEnd) {
         // Sunrise
         const progress = (timeInMinutes - sunriseStart) / (sunriseEnd - sunriseStart);
@@ -80,7 +99,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     } else if (timeInMinutes >= dayStart && timeInMinutes < dayEnd) {
         // Daytime
         const progress = (timeInMinutes - dayStart) / (dayEnd - dayStart);
-        skyClass = 'from-sky-400/80 to-sky-600/80';
+        skyClass = isSunnyDay ? 'from-amber-300/80 to-orange-400/80' : 'from-sky-400/80 to-sky-600/80';
         sunMoonY = 10 + progress * 5; // Slight movement
         sunMoonX = 50; // Centered for simplicity in daytime view
         sunMoonOpacity = 1;
@@ -133,6 +152,8 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         }
     }, [dimensions, isNight]);
     
+    const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
+
 
     return (
         <div className="relative w-full h-64">
@@ -175,10 +196,8 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                         }}>
                             {isNight ? (
                                 <Moon className="w-24 h-24 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
-                            ) : timeInMinutes >= sunriseStart && timeInMinutes < sunsetEnd ? (
-                                 <Sun className="w-24 h-24 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(252, 211, 77, 0.8))' }}/>
- ) : ( // If not night, sunrise, or sunset, render nothing
- null
+                            ) : (
+                                <Sun className="w-32 h-32 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(252, 211, 77, 0.9))' }}/>
                             )}
                         </g>
                         {/* Stars */}
@@ -202,7 +221,12 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                 <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
                                 <div className="flex items-center justify-start gap-2">
                                     <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
-                                    {/* Weather information removed */}
+                                    {weatherData && (
+                                        <div className="flex items-center gap-1.5 pl-2 border-l border-white/30">
+                                            <WeatherIcon className="h-4 w-4" />
+                                            <span className="text-xs">{weatherData.temp}°</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -219,5 +243,3 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         </div>
     );
 }
-
-    

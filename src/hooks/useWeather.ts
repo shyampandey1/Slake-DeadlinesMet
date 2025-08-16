@@ -2,17 +2,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchWeatherApi } from '@openmeteo/sdk';
 
 const WEATHER_LOCATION_KEY = 'weather_location';
 const WEATHER_UNIT_KEY = 'weather_unit';
+const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
 
 type Unit = 'C' | 'F';
 
 export function useWeather() {
   const [location, setLocationState] = useState('Delhi, India');
   const [unit, setUnitState] = useState<Unit>('C');
-  const [weatherData, setWeatherData] =useState<{ temp: number; code: number; } | null>(null);
+  const [weatherData, setWeatherData] = useState<{ temp: number; code: number; } | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load from localStorage on initial render
@@ -47,24 +47,25 @@ export function useWeather() {
   }, []);
 
   const fetchWeather = useCallback(async (lat: number, lon: number) => {
+    if (!API_KEY) {
+        console.error("OpenWeatherMap API key is missing.");
+        setLoading(false);
+        return;
+    }
     setLoading(true);
     try {
-      const params = {
-        "latitude": lat,
-        "longitude": lon,
-        "current": ["temperature_2m", "weather_code"],
-        "temperature_unit": unit === 'C' ? 'celsius' : 'fahrenheit',
-      };
-      const url = "https://api.open-meteo.com/v1/forecast";
-      const responses = await fetchWeatherApi(url, params);
-      const response = responses[0];
+      const units = unit === 'C' ? 'metric' : 'imperial';
+      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=${units}`;
+      const response = await fetch(url);
+      const data = await response.json();
       
-      const current = response.current();
-      if (current) {
+      if (response.ok) {
         setWeatherData({
-          temp: Math.round(current.variables(0)!.value()),
-          code: current.variables(1)!.value(),
+          temp: Math.round(data.main.temp),
+          code: data.weather[0].id,
         });
+      } else {
+        console.error("Failed to fetch weather data:", data.message);
       }
     } catch (error) {
       console.error("Failed to fetch weather data:", error);
@@ -74,13 +75,18 @@ export function useWeather() {
   }, [unit]);
 
   const fetchCoordinates = useCallback(async (loc: string) => {
+    if (!API_KEY) {
+        console.error("OpenWeatherMap API key is missing.");
+        setLoading(false);
+        return;
+    }
     setLoading(true);
     try {
-      const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1`);
+      const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(loc)}&limit=1&appid=${API_KEY}`);
       const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const { latitude, longitude } = data.results[0];
-        fetchWeather(latitude, longitude);
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        fetchWeather(lat, lon);
       } else {
           setLoading(false);
           console.error("Location not found");
