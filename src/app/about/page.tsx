@@ -26,29 +26,21 @@ function AboutPageComponent() {
                                 <Building className="h-16 w-16" />
                             </div>
                             <CardTitle className="font-headline text-3xl">Slake Corporation</CardTitle>
-                            <CardDescription className="text-lg">Engineered for Efficiency. From the Factory Floor to Your Daily Focus.</CardDescription>
+                            <CardDescription className="text-lg">Engineered for Efficiency. From Complex Systems to Your Daily Focus.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 text-foreground/90">
                             <div>
                                 <h2 className="font-headline text-xl mb-2">Our Story</h2>
                                 <p className="text-muted-foreground">
-                                    At Slake Corporation, our journey began in the world of industrial and home automation. For years, we have been at the forefront of helping industries streamline complex processes and homes become more intelligent and efficient. Our expertise lies in identifying bottlenecks, eliminating friction, and engineering systems that work seamlessly to achieve maximum output.
+                                    At Slake Corporation, our journey began by mastering high-efficiency systems. For years, we have been at the forefront of helping complex operations become more streamlined and intelligent by identifying bottlenecks, eliminating friction, and engineering systems that work seamlessly to achieve maximum output.
                                 </p>
                                 <br/>
                                 <p className="text-muted-foreground">
-                                    Our core principle has always been the same: to unlock potential through intelligent automation.
+                                    After mastering the automation of large-scale processes, we turned our attention to the most crucial system of all: the human routine. We realized the same principles of task management and efficiency could be applied to supercharge an individual's personal and professional life.
                                 </p>
                                 <br/>
                                 <p className="text-muted-foreground">
-                                    After mastering the automation of physical tasks, we turned our attention to the digital realm. We recognized that the most crucial and complex system of all is the human mind and its daily routine. The same principles of process control, task management, and efficiency that power a state-of-the-art factory can be applied to supercharge an individual's personal and professional life.
-                                </p>
-                                <br/>
-                                <p className="text-muted-foreground">
-                                    This vision led to the creation of DeadlinesMet. DeadlinesMet is more than just a productivity app; it is the culmination of our deep-rooted expertise in automation, redesigned for personal workflow. We've taken industrial-grade principles of focus and efficiency and engineered a tool that helps you automate your focus, structure your day, and take command of your time.
-                                </p>
-                                <br/>
-                                <p className="text-muted-foreground">
-                                     Slake Corporation is dedicated to building a more efficient future—whether that's a fully automated production line or your most productive day ever.
+                                    This vision led to the creation of DeadlinesMet. It is more than just a productivity app; it is the culmination of our expertise in automation, redesigned for personal workflow. We've engineered a tool that helps you automate your focus, structure your day, and take command of your time, proving that a more efficient future starts with a more productive you.
                                 </p>
                             </div>
 
@@ -57,7 +49,7 @@ function AboutPageComponent() {
                                 <div>
                                     <h2 className="font-headline text-xl mb-2">Our Mission</h2>
                                     <blockquote className="text-muted-foreground italic">
-                                        "To empower individuals and industries to achieve peak efficiency and unlock their full potential through intelligent and intuitive automation solutions."
+                                        "To empower individuals and organizations to achieve peak efficiency and unlock their full potential through intelligent and intuitive automation solutions."
                                     </blockquote>
                                 </div>
                             </div>
