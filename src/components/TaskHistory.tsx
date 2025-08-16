@@ -435,8 +435,8 @@ function TaskLogBookContent() {
                         </CardHeader>
                         <CardContent>
                             {filteredTasksByDate.length > 0 ? (
-                                <>
-                                    <div className="h-48 w-full">
+                                <div className="grid md:grid-cols-2 gap-6 items-center">
+                                    <div className="h-64 w-full">
                                         <ResponsiveContainer>
                                             <RechartsPieChart>
                                                 <Pie
@@ -452,24 +452,22 @@ function TaskLogBookContent() {
                                                 >
                                                     {categoryData.map((entry, index) => (
                                                         <Cell 
-                                                        key={`cell-${index}`} 
-                                                        fill={entry.color} 
-                                                        stroke={entry.color}
-                                                        className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                                                            key={`cell-${index}`} 
+                                                            fill={entry.color} 
+                                                            stroke={entry.color}
+                                                            className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
                                                         />
                                                     ))}
                                                     <RechartsLabel
                                                         value={formatDuration(stats.totalTime)}
                                                         position="center"
-                                                        className="fill-foreground text-xl font-bold"
+                                                        className="fill-foreground text-2xl font-bold"
                                                     />
                                                 </Pie>
                                             </RechartsPieChart>
                                         </ResponsiveContainer>
                                     </div>
                                     
-                                    <Separator className="my-4" />
-
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                       {categoryData.map(cat => (
                                         cat.value > 0 && (
@@ -488,7 +486,7 @@ function TaskLogBookContent() {
                                         )
                                       ))}
                                     </div>
-                                </>
+                                </div>
                             ) : (
                             <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                                 <BookText className="mx-auto h-12 w-12" />
@@ -563,3 +561,4 @@ export default function WrappedTaskHistory() {
     </AuthWrapper>
   );
 }
+
