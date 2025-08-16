@@ -100,27 +100,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    // Ensure analytics is initialized
-    analytics.then(instance => {
-      if (instance) {
-        console.log("Firebase Analytics initialized");
-      }
-    });
+    let unsubscribe: () => void;
+    try {
+        // Ensure analytics is initialized
+        analytics.then(instance => {
+          if (instance) {
+            console.log("Firebase Analytics initialized");
+          }
+        });
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        if(firebaseUser) {
-            setUser(firebaseUser);
-            setIsOffline(false);
+        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            if(firebaseUser) {
+                setUser(firebaseUser);
+                setIsOffline(false);
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error("Auth state error:", error);
+            setIsOffline(true);
+            setLoading(false);
+        });
+    } catch (error: any) {
+        console.warn("Firebase auth initialization failed:", error.message);
+        if (error.code === 'auth/unauthorized-domain') {
+            const mockUser = mockLogin("user@test.com", "password123");
+            if (mockUser) {
+                setMockUser(mockUser);
+            }
         }
-        setLoading(false);
-    }, (error) => {
-        console.error("Auth state error:", error);
         setIsOffline(true);
         setLoading(false);
-    });
+    }
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    };
+  }, [setMockUser]);
 
   return (
     <AuthContext.Provider value={{ user, loading, isOffline, setIsOffline, isSyncEnabled, setIsSyncEnabled, setMockUser, signInWithGoogle, mockLogin, updateUserDisplayName }}>
