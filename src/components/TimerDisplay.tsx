@@ -187,6 +187,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   };
 
   const handleSaveTask = async (completed: boolean) => {
+    setIsFinished(false); // Close the dialog immediately
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
