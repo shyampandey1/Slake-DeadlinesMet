@@ -15,6 +15,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, writeBatch, runTransaction } from "firebase/firestore";
 import type { ProfileType, CustomProfession, UserProfile, Day } from "@/types";
 import { ROUTINE_TEMPLATE_VERSION, defaultRoutines, profileToRoutineMap } from './useFirestore';
+import { getDay } from "date-fns";
 
 
 export type Profession = {
@@ -25,32 +26,32 @@ export type Profession = {
 
 export const professions: { [group: string]: Profession[] } = {
     "Creative": [
-        { name: "Artist", icon: "Palette", color: "text-rose-800" },
-        { name: "Content Creator", icon: "Camera", color: "text-orange-800" },
-        { name: "Designer", icon: "PenTool", color: "text-purple-800" },
-        { name: "Writer", icon: "PenLine", color: "text-blue-800" },
+        { name: "Artist", icon: "Palette", color: "text-rose-400 border-rose-500/80 hover:bg-rose-800 hover:text-white" },
+        { name: "Content Creator", icon: "Camera", color: "text-orange-400 border-orange-500/80 hover:bg-orange-800 hover:text-white" },
+        { name: "Designer", icon: "PenTool", color: "text-purple-400 border-purple-500/80 hover:bg-purple-800 hover:text-white" },
+        { name: "Writer", icon: "PenLine", color: "text-blue-400 border-blue-500/80 hover:bg-blue-800 hover:text-white" },
     ],
     "Business & Management": [
-        { name: "Consultant", icon: "Briefcase", color: "text-cyan-800" },
-        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-800" },
-        { name: "Manager", icon: "Users", color: "text-lime-800" },
-        { name: "Marketer", icon: "Megaphone", color: "text-red-800" },
-        { name: "Sales", icon: "TrendingUp", color: "text-green-800" },
-        { name: "Medical Representative", icon: "Briefcase", color: "text-stone-800" }
+        { name: "Consultant", icon: "Briefcase", color: "text-cyan-400 border-cyan-500/80 hover:bg-cyan-800 hover:text-white" },
+        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-400 border-amber-500/80 hover:bg-amber-800 hover:text-white" },
+        { name: "Manager", icon: "Users", color: "text-lime-400 border-lime-500/80 hover:bg-lime-800 hover:text-white" },
+        { name: "Marketer", icon: "Megaphone", color: "text-red-400 border-red-500/80 hover:bg-red-800 hover:text-white" },
+        { name: "Sales", icon: "TrendingUp", color: "text-green-400 border-green-500/80 hover:bg-green-800 hover:text-white" },
+        { name: "Medical Representative", icon: "Briefcase", color: "text-stone-400 border-stone-500/80 hover:bg-stone-800 hover:text-white" }
     ],
     "Technical & Health": [
-        { name: "Analyst", icon: "BarChart", color: "text-emerald-800" },
-        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-800" },
-        { name: "IT Professional", icon: "Laptop", color: "text-indigo-800" },
-        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-800" },
-        { name: "Researcher", icon: "FlaskConical", color: "text-sky-800" },
+        { name: "Analyst", icon: "BarChart", color: "text-emerald-400 border-emerald-500/80 hover:bg-emerald-800 hover:text-white" },
+        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-400 border-teal-500/80 hover:bg-teal-800 hover:text-white" },
+        { name: "IT Professional", icon: "Laptop", color: "text-indigo-400 border-indigo-500/80 hover:bg-indigo-800 hover:text-white" },
+        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-400 border-fuchsia-500/80 hover:bg-fuchsia-800 hover:text-white" },
+        { name: "Researcher", icon: "FlaskConical", color: "text-sky-400 border-sky-500/80 hover:bg-sky-800 hover:text-white" },
     ],
     "General & Freelance": [
-        { name: "Educator", icon: "School", color: "text-yellow-800" },
-        { name: "Freelancer", icon: "Network", color: "text-rose-800" },
-        { name: "Student", icon: "GraduationCap", color: "text-stone-800" },
-        { name: "General", icon: "User", color: "text-gray-800" },
-        { name: "Delivery Agent", icon: "Truck", color: "text-slate-800" },
+        { name: "Educator", icon: "School", color: "text-yellow-400 border-yellow-500/80 hover:bg-yellow-800 hover:text-white" },
+        { name: "Freelancer", icon: "Network", color: "text-rose-400 border-rose-500/80 hover:bg-rose-800 hover:text-white" },
+        { name: "Student", icon: "GraduationCap", color: "text-stone-400 border-stone-500/80 hover:bg-stone-800 hover:text-white" },
+        { name: "General", icon: "User", color: "text-gray-400 border-gray-500/80 hover:bg-gray-800 hover:text-white" },
+        { name: "Delivery Agent", icon: "Truck", color: "text-slate-400 border-slate-500/80 hover:bg-slate-800 hover:text-white" },
     ]
 };
 
@@ -60,6 +61,9 @@ interface ProfileContextType {
   setProfile: (profile: ProfileType) => void;
   daysOff: Day[];
   setDaysOff: (daysOff: Day[]) => void;
+  isAnalystOnDayOff: () => boolean;
+  isHealthcareOnDayOff: () => boolean;
+  isOnTheGoOnAdminDay: () => boolean;
   customProfessions: CustomProfession[];
   deleteCustomProfession: (professionName: string) => Promise<void>;
   loading: boolean;
@@ -71,6 +75,9 @@ const ProfileContext = createContext<ProfileContextType>({
   setProfile: () => {},
   daysOff: [],
   setDaysOff: () => {},
+  isAnalystOnDayOff: () => false,
+  isHealthcareOnDayOff: () => false,
+  isOnTheGoOnAdminDay: () => false,
   customProfessions: [],
   deleteCustomProfession: async () => {},
   loading: true,
@@ -278,8 +285,27 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   }, [user, isOffline, profile, isSyncEnabled]);
 
+  const dayMap: { [key in Day]: number } = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+  
+  const isDayOff = useCallback(() => {
+    const today = getDay(new Date());
+    for (const dayOff of daysOff) {
+        if (dayMap[dayOff] === today) {
+            return true;
+        }
+    }
+    return false;
+  }, [daysOff, dayMap]);
+
+  const isAnalystOnDayOff = useCallback(() => profile === 'Analyst' && isDayOff(), [profile, isDayOff]);
+  const isHealthcareOnDayOff = useCallback(() => profile === 'Healthcare Professional' && isDayOff(), [profile, isDayOff]);
+  const isOnTheGoOnAdminDay = useCallback(() => {
+    const onTheGoProfiles = ["Sales", "Medical Representative", "Delivery Agent"];
+    return onTheGoProfiles.includes(profile) && !isDayOff(); // Placeholder logic for admin day
+  }, [profile, isDayOff]);
+
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay, loading, customProfessions, deleteCustomProfession, profileData }}>
       {children}
     </ProfileContext.Provider>
   );
