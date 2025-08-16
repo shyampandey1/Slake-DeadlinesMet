@@ -20,8 +20,8 @@ const categorizationMap = {
     },
     'Business Professional': {
         'Productivity': ["Review Day's Top 3 Priorities", "Tackle Most Important Task", "Strategic Thinking / 'No-Meeting' Block", "Meetings & Collaborative Tasks", "Scan & Reply to Emails", "End-of-Day Review & Shutdown Ritual", "Prepare for the Next Day", "Networking & Outreach", "Financial Review", "Pipeline Management", "Follow-ups & Nurturing", "Client Demos & Meetings"],
-        'Health': ["Workout/Exercise", "Breakfast & Scan News", "Power Lunch / Quick Walk", "Dinner with Family/Friends", "High-Intensity Workout"],
-        'Hydration': ["Drink a glass of water"],
+        'Health': ["Workout/Exercise", "Breakfast & Scan News", "Power Lunch / Quick Walk", "Dinner with Family/Friends", "High-Intensity Workout", "Short Break", "Mindful Rest"],
+        'Hydration': ["Drink a glass of water", "Quick Water Break"],
         'Mindfulness & Meditation': ["Meditation for Stress Release"],
         'Entertainment & Hobbies': ["Hobby / Leisure"],
         'Well-being & Social': ["Light Reading (non-work related)", "Walk to Decompress"]

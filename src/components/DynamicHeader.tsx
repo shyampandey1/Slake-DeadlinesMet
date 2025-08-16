@@ -4,10 +4,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import { Sun, Moon, Cloud, CloudSun, Snowflake, Zap, CloudRain, SunSnow } from 'lucide-react';
+import { Sun, Moon, Cloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { useWeather } from '@/hooks/useWeather';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -32,23 +31,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-    const { weather, loading: weatherLoading } = useWeather();
-
-    const weatherIcons = {
-        Clear: Sun,
-        Clouds: Cloud,
-        Rain: CloudRain,
-        Snow: Snowflake,
-        Thunderstorm: Zap,
-        Haze: CloudSun,
-        Mist: CloudSun,
-        Default: CloudSun,
-    };
-    
-    let WeatherIcon = weatherIcons.Default;
-    if(weather?.main) {
-        WeatherIcon = weatherIcons[weather.main as keyof typeof weatherIcons] || weatherIcons.Default;
-    }
 
 
     useEffect(() => {
@@ -98,12 +80,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     } else if (timeInMinutes >= dayStart && timeInMinutes < dayEnd) {
         // Daytime
         const progress = (timeInMinutes - dayStart) / (dayEnd - dayStart);
-        // Special override for clear weather to make it look sunnier
-        if (weather?.main === 'Clear') {
-            skyClass = 'from-orange-300/80 via-yellow-300/80 to-sky-400/80';
-        } else {
-            skyClass = 'from-sky-400/80 to-sky-600/80';
-        }
+        skyClass = 'from-sky-400/80 to-sky-600/80';
         sunMoonY = 10 + progress * 5; // Slight movement
         sunMoonX = 50; // Centered for simplicity in daytime view
         sunMoonOpacity = 1;
@@ -133,13 +110,8 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         sunMoonOpacity = 1;
     }
     
-    useEffect(() => {
-        if (isNight) {
-            WeatherIcon = weatherIcons.Default;
-        }
-    }, [isNight]);
-    
-    useEffect(() => {
+    useEffect(() => { 
+       
         if (dimensions.width > 0 && dimensions.height > 0 && isNight) {
             const generatedStars = Array.from({ length: 50 }, (_, i) => {
                 const cx = Math.random() * dimensions.width;
@@ -202,9 +174,11 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             opacity: sunMoonOpacity,
                         }}>
                             {isNight ? (
-                                <Moon className="w-14 h-14 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
-                            ) : (
-                                <Sun className="w-24 h-24 text-yellow-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(255, 223, 100, 0.9))' }}/>
+                                <Moon className="w-24 h-24 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
+                            ) : timeInMinutes >= sunriseStart && timeInMinutes < sunsetEnd ? (
+                                 <Sun className="w-24 h-24 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 15px rgba(252, 211, 77, 0.8))' }}/>
+ ) : ( // If not night, sunrise, or sunset, render nothing
+ null
                             )}
                         </g>
                         {/* Stars */}
@@ -228,12 +202,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                 <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
                                 <div className="flex items-center justify-start gap-2">
                                     <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
-                                    {!weatherLoading && weather && (
-                                        <>
-                                            <WeatherIcon className="h-4 w-4 text-white/90" />
-                                            <p className="text-xs opacity-90">{weather.temp}°{weather.unit}</p>
-                                        </>
-                                    )}
+                                    {/* Weather information removed */}
                                 </div>
                             </div>
                         </div>
