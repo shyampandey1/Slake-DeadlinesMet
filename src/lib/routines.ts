@@ -1,7 +1,7 @@
 import type { UserPresetTask, ProfileType } from '@/types';
 
 // Version for the default routines data structure
-export const ROUTINE_TEMPLATE_VERSION = 26;
+export const ROUTINE_TEMPLATE_VERSION = 27;
 
 const creativeProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -155,14 +155,14 @@ const analystRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Commute from Office", duration: 30, icon: "Car", category: "Post-Work Decompression" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
     { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
-    { name: "Strict Screen Cutoff", duration: 30, icon: "Smartphone", category: "Evening Routine" },
-    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Evening Routine" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Bedtime" },
+    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Bedtime" },
+    { name: "Strict Screen Cutoff", duration: 30, icon: "Smartphone", category: "Evening & Bedtime" },
+    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Evening & Bedtime" },
 ];
 
 
-export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order">[] } } = {
+export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order" | "profession">[] } } = {
     version: ROUTINE_TEMPLATE_VERSION,
     routines: {
         "Analyst": analystRoutine,
@@ -333,6 +333,7 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
     // Healthcare
     'Pre-Shift Routine': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'During Shift': { color: 'bg-blue-800 text-blue-100', order: 2 },
+    'Post-Shift Decompression': { color: 'bg-purple-800 text-purple-100', order: 3 },
     // Day Off
     'Morning Recovery': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'Afternoon Life Admin & Recharge': { color: 'bg-green-800 text-green-100', order: 2 },

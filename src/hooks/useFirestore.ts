@@ -138,7 +138,7 @@ export function useTasks() {
 // Hook for managing preset tasks and routines
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
-  const { profile, loading: profileLoading, daysOff, profileData } = useProfile();
+  const { profile, loading: profileLoading, daysOff } = useProfile();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
 
@@ -153,21 +153,17 @@ export function usePresetTasks() {
     }
     return false;
   }, [daysOff, dayMap]);
-
+  
   const effectiveProfile = useMemo(() => {
-    const onDayOff = isDayOff();
-    if (onDayOff) {
-      if (profile === 'Analyst') return 'Day Off - Analyst';
-      if (profile === 'Healthcare Professional') return 'Day Off - Healthcare';
-      return 'Day Off';
+    if (isDayOff()) {
+        if (profile === 'Analyst') return 'Day Off - Analyst';
+        if (profile === 'Healthcare Professional') return 'Day Off - Healthcare';
+        return 'Day Off';
     }
-    
     const onTheGoProfiles = ["Sales", "Medical Representative", "Delivery Agent"];
-    const isWednesday = getDay(new Date()) === 3;
-    if (onTheGoProfiles.includes(profile) && isWednesday) {
+    if (onTheGoProfiles.includes(profile) && getDay(new Date()) === 3) { // Wednesday
         return 'Admin Day - On The Go';
     }
-
     return profile;
   }, [profile, isDayOff]);
 
@@ -175,63 +171,9 @@ export function usePresetTasks() {
   const isDefaultTask = (task: UserPresetTask) => {
     return !!profileToRoutineMap[task.profession || profile];
   };
-  
-  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
-    if (!prof || !isSyncEnabled || !profileToRoutineMap[prof]) return;
-
-    try {
-        const profileRef = doc(db, 'userProfiles', uid);
-        await runTransaction(db, async (transaction) => {
-            const userProfileDoc = await transaction.get(profileRef);
-            const userProfile = userProfileDoc.data() as any; // Cast as any to avoid TS errors
-            const currentVersion = userProfile?.routineVersions?.[prof] || 0;
-
-            if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
-                return; // Already up-to-date
-            }
-
-            const tasksToDeleteQuery = query(
-                collection(db, 'userPresetTasks'),
-                where('userId', '==', uid),
-                where('profession', '==', prof)
-            );
-            const tasksToDeleteSnapshot = await getDocs(tasksToDeleteQuery);
-            tasksToDeleteSnapshot.forEach(doc => transaction.delete(doc.ref));
-
-            const routineKey = profileToRoutineMap[prof]!;
-            const defaultTasks = defaultRoutines.routines[routineKey] || [];
-            let order = 0;
-            defaultTasks.forEach(task => {
-                const newTaskRef = doc(collection(db, "userPresetTasks"));
-                transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
-            });
-
-            const routineVersions = { ...(userProfile?.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-            transaction.set(profileRef, { routineVersions }, { merge: true });
-        });
-    } catch (error) {
-        console.error(`Transaction to initialize/update tasks for ${prof} failed: `, error);
-    }
-  }, [isSyncEnabled]);
 
   useEffect(() => {
-    if (profileLoading) {
-      return;
-    }
-    
-    // Initialize routine for the selected profile if needed
-    if (user && !isOffline && isSyncEnabled && profile) {
-        initializeUserTasks(user.uid, profile);
-    }
-
-  }, [profile, user, isOffline, isSyncEnabled, profileLoading, initializeUserTasks]);
-
-
-  useEffect(() => {
-    if (profileLoading) {
-      return;
-    }
-
+    if (profileLoading) return;
     if (isOffline) {
         const routineKey = 'General';
         const defaultTasks = defaultRoutines.routines[routineKey] || [];
@@ -406,6 +348,7 @@ export function usePresetTasks() {
         'Evening & Bedtime': { start: 18, end: 24 },
         'Pre-Shift Routine': { start: 5, end: 7 },
         'During Shift': { start: 7, end: 19 },
+        'Post-Shift Decompression': { start: 19, end: 21 },
         'Morning Recovery': { start: 7, end: 12 },
         'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
         'Evening & Bedtime Reset': { start: 18, end: 24 },
