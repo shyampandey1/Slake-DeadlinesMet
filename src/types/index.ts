@@ -52,7 +52,32 @@ export type Preset = {
     };
 };
 
-export type ProfileType = "Artist" | "Consultant" | "Content Creator" | "Designer" | "Educator" | "Entrepreneur" | "Freelancer" | "General" | "Healthcare Professional" | "Day Off" | "IT Professional" | "Manager" | "Marketer" | "Researcher" | "Sales" | "Software Engineer" | "Student" | "Writer" | "Medical Representative" | "Delivery Agent" | "Analyst" | string;
+export type ProfileType = 
+    | "Artist" 
+    | "Consultant" 
+    | "Content Creator" 
+    | "Designer" 
+    | "Educator" 
+    | "Entrepreneur" 
+    | "Freelancer" 
+    | "General" 
+    | "Healthcare Professional" 
+    | "Day Off"
+    | "Day Off - Analyst"
+    | "Day Off - Healthcare"
+    | "Admin Day - On The Go"
+    | "IT Professional" 
+    | "Manager" 
+    | "Marketer" 
+    | "Researcher" 
+    | "Sales" 
+    | "Software Engineer" 
+    | "Student" 
+    | "Writer" 
+    | "Medical Representative" 
+    | "Delivery Agent" 
+    | "Analyst" 
+    | string;
 
 export type CustomProfession = {
     name: string;
@@ -76,5 +101,3 @@ export type UserEvent = {
     icon: string;
     date: string; // ISO string
 };
-
-    

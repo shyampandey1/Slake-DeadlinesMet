@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map } from 'lucide-react';
+import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { EmblaCarouselType } from 'embla-carousel-react'
 import { format, isToday, parseISO } from "date-fns";
@@ -65,7 +65,7 @@ const iconMap: { [key: string]: LucideIcon } = {
     Target,
     ShoppingBag,
     Calendar,
-    Gamepad: Gamepad2,
+    Gamepad2,
     Eye,
     PenTool,
     Smartphone,
@@ -83,7 +83,20 @@ const iconMap: { [key: string]: LucideIcon } = {
     ShoppingCart,
     Headphones,
     Power,
-    Map
+    Map,
+    Wand2,
+    Camera,
+    Briefcase,
+    Megaphone,
+    Stethoscope,
+    Laptop,
+    Code,
+    FlaskConical,
+    School,
+    Network,
+    GraduationCap,
+    TrendingUp,
+    Package,
 };
 
 function formatDuration(minutes: number): string {

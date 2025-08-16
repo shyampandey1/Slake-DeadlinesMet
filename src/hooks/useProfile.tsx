@@ -60,6 +60,7 @@ interface ProfileContextType {
   setProfile: (profile: ProfileType) => void;
   daysOff: Day[];
   setDaysOff: (daysOff: Day[]) => void;
+  getEffectiveProfile: () => ProfileType;
   isAnalystOnDayOff: () => boolean;
   isHealthcareOnDayOff: () => boolean;
   isOnTheGoOnAdminDay: () => boolean;
@@ -74,6 +75,7 @@ const ProfileContext = createContext<ProfileContextType>({
   setProfile: () => {},
   daysOff: [],
   setDaysOff: () => {},
+  getEffectiveProfile: () => "General",
   isAnalystOnDayOff: () => false,
   isHealthcareOnDayOff: () => false,
   isOnTheGoOnAdminDay: () => false,
@@ -91,7 +93,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const profile = profileData?.profile || "General";
   const daysOff = profileData?.daysOff || [];
   const customProfessions = profileData?.customProfessions || [];
-  const lastAdminDay = profileData?.lastAdminDay ? new Date(profileData.lastAdminDay) : null;
 
   const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType, userProfile: UserProfile) => {
     if (!prof || !isSyncEnabled) return;
@@ -141,11 +142,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                     const parsedProfile: UserProfile = JSON.parse(storedProfile);
                     setProfileData(parsedProfile);
                 } else {
-                    setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}, lastAdminDay: null });
+                    setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
                 }
             } catch (e) {
                 console.warn("Could not access localStorage for profile");
-                setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}, lastAdminDay: null });
+                setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
             }
         }
         setLoading(false);
@@ -164,7 +165,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             }
         } else {
             // If no profile, set default "General"
-            dataToSet = { profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {}, lastAdminDay: null };
+            dataToSet = { profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
             setDoc(profileRef, dataToSet);
         }
 
@@ -305,9 +306,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     const isWednesday = getDay(new Date()) === 3; // Wednesday
     return onTheGoProfiles.includes(profile) && isWednesday;
   }, [profile]);
+  
+  const getEffectiveProfile = useCallback(() => {
+    if (isAnalystOnDayOff()) return 'Day Off - Analyst';
+    if (isHealthcareOnDayOff()) return 'Day Off - Healthcare';
+    if (isOnTheGoOnAdminDay()) return 'Admin Day - On The Go';
+    if (isDayOff()) return 'Day Off';
+    return profile;
+  }, [profile, isDayOff, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay]);
+
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay, loading, customProfessions, deleteCustomProfession, profileData }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, getEffectiveProfile, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay, loading, customProfessions, deleteCustomProfession, profileData }}>
       {children}
     </ProfileContext.Provider>
   );

@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-export const ROUTINE_TEMPLATE_VERSION = 23;
+export const ROUTINE_TEMPLATE_VERSION = 24;
 
 const creativeProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -192,9 +192,9 @@ const technicalProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profe
     { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Primary Work Session" },
     { name: "Short Break", duration: 10, icon: "Coffee", category: "Primary Work Session" },
     { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Primary Work Session" },
+    { name: "CRITICAL: Hourly Eye Strain Break", duration: 1, icon: "Eye", category: "Primary Work Session" },
     { name: "Short Break", duration: 10, icon: "Coffee", category: "Primary Work Session" },
     { name: "Deep Work Coding / Analysis Session", duration: 50, icon: "BrainCircuit", category: "Primary Work Session" },
-    { name: "CRITICAL: Hourly Eye Strain Break", duration: 1, icon: "Eye", category: "Primary Work Session" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
     { name: "Screen-Free Lunch & Walk", duration: 45, icon: "Footprints", category: "Lunch Break" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Session" },
@@ -253,19 +253,6 @@ const dayOffRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Consistent bedtime routine", duration: 30, icon: "Bed", category: "Evening & Bedtime Reset" },
 ];
 
-const dayOffRoutineAnalyst: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
-    { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Recovery" },
-    { name: "Leisurely Breakfast", duration: 30, icon: "Coffee", category: "Morning Recovery" },
-    { name: "Run errands, appointments, groceries", duration: 90, icon: "ShoppingCart", category: "Afternoon Life Admin & Recharge" },
-    { name: "Dedicate time to a relaxing hobby", duration: 60, icon: "Gamepad2", category: "Afternoon Life Admin & Recharge" },
-    { name: "Connect with friends or family", duration: 60, icon: "Users", category: "Afternoon Life Admin & Recharge" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Bedtime Reset" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Bedtime Reset" },
-    { name: "Relaxing entertainment", duration: 60, icon: "Tv", category: "Evening & Bedtime Reset" },
-    { name: "Consistent bedtime routine", duration: 30, icon: "Bed", category: "Evening & Bedtime Reset" },
-];
-
 const dayOffRoutineHealthcare: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
     { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Recovery" },
@@ -298,10 +285,10 @@ const analystRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Commute from Office", duration: 30, icon: "Car", category: "Post-Work Decompression" },
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
     { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
-    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Bedtime" },
-    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Bedtime" },
-    { name: "Strict Screen Cutoff", duration: 30, icon: "Smartphone", category: "Evening & Bedtime" },
-    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Evening & Bedtime" },
+    { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
+    { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
+    { name: "Strict Screen Cutoff", duration: 30, icon: "Smartphone", category: "Evening Routine" },
+    { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Evening Routine" },
 ];
 
 
@@ -357,7 +344,7 @@ export const defaultRoutines: { version: number, routines: { [key in ProfileType
             { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
         ],
         "Healthcare Professional": healthcareRoutine,
-        "Day Off - Analyst": dayOffRoutineAnalyst,
+        "Day Off - Analyst": dayOffRoutine,
         "Day Off - Healthcare": dayOffRoutineHealthcare,
         "Admin Day - On The Go": businessProfessionalRoutine,
         "Day Off": dayOffRoutine,
@@ -441,6 +428,9 @@ export const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines.
     "General": "General",
     "Healthcare Professional": "Healthcare Professional",
     "Day Off": "Day Off",
+    "Day Off - Analyst": "Day Off - Analyst",
+    "Day Off - Healthcare": "Day Off - Healthcare",
+    "Admin Day - On The Go": "Admin Day - On The Go",
     "IT Professional": "IT Professional",
     "Manager": "Manager",
     "Marketer": "Marketer",
@@ -473,7 +463,6 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
     // Healthcare
     'Pre-Shift Routine': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'During Shift': { color: 'bg-blue-800 text-blue-100', order: 2 },
-    // 'Post-Shift Decompression' is already defined
     // Day Off
     'Morning Recovery': { color: 'bg-sky-800 text-sky-100', order: 1 },
     'Afternoon Life Admin & Recharge': { color: 'bg-green-800 text-green-100', order: 2 },
@@ -482,13 +471,13 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
 };
 
 export const getAvailableCategories = () => Object.keys(categoryConfig);
-export const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck", "FileCode", "PenSquare", "Puzzle", "Lightbulb", "Presentation", "BarChart", "ShoppingCart", "Headphones", "Power", "Map"];
+export const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck", "FileCode", "PenSquare", "Puzzle", "Lightbulb", "Presentation", "BarChart", "ShoppingCart", "Headphones", "Power", "Map", "Wand2"];
 
 
 // Hook for managing preset tasks and routines
 export function usePresetTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
-  const { profile, daysOff, loading: profileLoading, profileData, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay } = useProfile();
+  const { profile, loading: profileLoading, profileData, getEffectiveProfile } = useProfile();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
 
@@ -496,19 +485,6 @@ export function usePresetTasks() {
     // A task is default if it's from a built-in profession profile
     return !!profileToRoutineMap[task.profession || profile];
   };
-  
-  const getEffectiveProfile = useCallback(() => {
-    if (isAnalystOnDayOff()) {
-        return 'Day Off - Analyst';
-    }
-    if (isHealthcareOnDayOff()) {
-        return 'Day Off - Healthcare';
-    }
-    if (isOnTheGoOnAdminDay()) {
-        return 'Admin Day - On The Go';
-    }
-    return profile;
-  }, [profile, isAnalystOnDayOff, isHealthcareOnDayOff, isOnTheGoOnAdminDay]);
   
   const effectiveProfile = useMemo(() => {
     return getEffectiveProfile();
