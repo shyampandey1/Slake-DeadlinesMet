@@ -86,26 +86,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const daysOff = profileData?.daysOff || [];
   const customProfessions = profileData?.customProfessions || [];
 
-  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType, userProfile: UserProfile) => {
     if (!prof || !isSyncEnabled) return;
 
     try {
+        const currentVersion = userProfile?.routineVersions?.[prof] || 0;
+        if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
+            return; // Already up to date
+        }
+
         await runTransaction(db, async (transaction) => {
-            const profileRef = doc(db, 'userProfiles', uid);
-            const userProfileDoc = await transaction.get(profileRef);
-            const userProfile = userProfileDoc.data() as UserProfile | undefined;
-            const currentVersion = userProfile?.routineVersions?.[prof] || 0;
-
-            if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
-                return; // Already up to date
-            }
-
             // Delete old tasks for this profession
             const tasksToDeleteQuery = query(
                 collection(db, 'userPresetTasks'),
                 where('userId', '==', uid),
                 where('profession', '==', prof)
             );
+            // We must get docs outside transaction for reads
             const tasksToDeleteSnapshot = await getDocs(tasksToDeleteQuery);
             tasksToDeleteSnapshot.forEach(doc => transaction.delete(doc.ref));
 
@@ -119,12 +116,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             });
 
             // Update the version number in the user's profile
-            transaction.set(profileRef, { 
-                routineVersions: { ...userProfile?.routineVersions, [prof]: ROUTINE_TEMPLATE_VERSION }
-            }, { merge: true });
+            const profileRef = doc(db, 'userProfiles', uid);
+            const routineVersions = { ...(userProfile.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
+            transaction.set(profileRef, { routineVersions }, { merge: true });
         });
     } catch (error) {
-        console.error("Transaction to initialize/update user tasks failed: ", error);
+        console.error(`Transaction to initialize/update tasks for ${prof} failed: `, error);
     }
   }, [isSyncEnabled]);
 
@@ -167,11 +164,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
         setProfileData(dataToSet);
 
-        // This ensures the default routine is initialized for the user if it hasn't been already
-        if(user && dataToSet.profile) {
-            initializeUserTasks(user.uid, dataToSet.profile);
-        }
-
         if (typeof window !== 'undefined') {
             try {
                 localStorage.setItem('user-profile', JSON.stringify(dataToSet));
@@ -187,7 +179,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     
     return () => unsubscribe();
 
-  }, [user, isOffline, isSyncEnabled, initializeUserTasks]);
+  }, [user, isOffline, isSyncEnabled]);
+
+
+  // Effect to initialize routines for all professions once
+  useEffect(() => {
+    if (user && profileData && !loading) {
+      const allProfessionKeys = Object.keys(profileToRoutineMap) as ProfileType[];
+      const promises = allProfessionKeys.map(prof => initializeUserTasks(user.uid, prof, profileData));
+      
+      Promise.all(promises).then(() => {
+          // Optional: do something after all initializations are checked/done
+      }).catch(err => {
+          console.error("Error initializing all profession routines", err);
+      });
+    }
+  }, [user, profileData, loading, initializeUserTasks]);
+
 
   const setProfile = useCallback(async (newProfile: ProfileType) => {
     if (profile === newProfile) return;
@@ -206,12 +214,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         try {
             const profileRef = doc(db, 'userProfiles', user.uid);
             await setDoc(profileRef, { profile: newProfile }, { merge: true });
-            await initializeUserTasks(user.uid, newProfile);
         } catch (error) {
             console.error("Failed to set profile: ", error);
         }
     }
-  }, [user, isOffline, isSyncEnabled, profile, profileData, initializeUserTasks]);
+  }, [user, isOffline, isSyncEnabled, profile, profileData]);
   
   const setDaysOff = useCallback(async (newDaysOff: Day[]) => {
     const updatedData = { ...profileData, daysOff: newDaysOff } as UserProfile;
