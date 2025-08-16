@@ -376,7 +376,7 @@ function TaskLogBookContent() {
       
         {loading ? renderSkeleton() : (
             <>
-                <div ref={reportRef} className="space-y-4">
+                <div ref={reportRef}>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -420,7 +420,7 @@ function TaskLogBookContent() {
                         </Card>
                     </div>
                     
-                    <Card>
+                    <Card className="mt-4">
                         <CardHeader>
                             <CardTitle className="flex justify-between items-center">
                                 <span>Category Breakdown</span>
@@ -436,7 +436,7 @@ function TaskLogBookContent() {
                         <CardContent>
                             {filteredTasksByDate.length > 0 ? (
                                 <>
-                                    <div className="h-48 w-full mb-4">
+                                    <div className="h-48 w-full">
                                         <ResponsiveContainer>
                                             <RechartsPieChart>
                                                 <Pie
@@ -468,6 +468,8 @@ function TaskLogBookContent() {
                                         </ResponsiveContainer>
                                     </div>
                                     
+                                    <Separator className="my-4" />
+
                                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                                       {categoryData.map(cat => (
                                         cat.value > 0 && (
@@ -475,13 +477,13 @@ function TaskLogBookContent() {
                                           key={cat.name}
                                           onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
                                           className={cn(
-                                              "flex items-center gap-2 p-1 rounded-md transition-colors",
-                                              selectedCategory === cat.name && 'bg-accent text-accent-foreground'
+                                              "flex items-center gap-2 p-1 rounded-md transition-colors w-full",
+                                              selectedCategory === cat.name && 'bg-accent'
                                           )}
                                         >
                                           <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                                          <span className="text-sm text-muted-foreground text-left">{cat.name}</span>
-                                          <span className="ml-auto text-sm font-semibold text-foreground whitespace-nowrap">{formatDuration(cat.value)}</span>
+                                          <span className={cn("text-sm text-muted-foreground", selectedCategory === cat.name && "text-accent-foreground")}>{cat.name}</span>
+                                          <span className={cn("ml-auto text-sm font-semibold text-foreground", selectedCategory === cat.name && "text-accent-foreground")}>{formatDuration(cat.value)}</span>
                                         </button>
                                         )
                                       ))}
