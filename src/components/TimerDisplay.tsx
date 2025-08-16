@@ -282,8 +282,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex flex-col min-h-screen w-full p-4 sm:p-6 md:p-8 transition-colors duration-500 text-white",
-        "grid grid-rows-[auto_auto_1fr_auto]",
+        "relative flex flex-col min-h-screen w-full p-4 sm:p-6 md:p-8 transition-colors duration-500 text-white justify-center items-center",
         {
           'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
@@ -299,7 +298,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     >
         {/* Top Info Bar */}
         <div className={cn(
-            "w-full max-w-sm mx-auto transition-opacity duration-300 row-start-1",
+            "w-full max-w-sm mx-auto transition-opacity duration-300 absolute top-4",
              isUIVisible ? "opacity-100" : "opacity-0"
         )}>
             <div className="bg-black/20 backdrop-blur-md rounded-xl p-3 flex items-center justify-between text-sm">
@@ -316,46 +315,47 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
         </div>
 
+        <div className="flex flex-col items-center justify-center gap-8">
+            {/* Task Name */}
+            <div className="w-full max-w-4xl mx-auto text-center transition-opacity duration-300">
+                <h2 className="mb-1 text-base font-medium tracking-wide text-white/60">{category || 'Focus Session'}</h2>
+                <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl font-headline break-words">
+                {taskName}
+                </h1>
+            </div>
+            
+            {/* Center Content: Dial */}
+            <div className="flex w-full items-center justify-center">
+                <CircularProgress progress={progress}>
+                    <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
+                    {formatTime(timeRemaining)}
+                    </div>
+                </CircularProgress>
+            </div>
 
-        {/* Task Name */}
-        <div className="w-full max-w-4xl mx-auto text-center transition-opacity duration-300 row-start-2 pt-8 pb-4">
-            <h2 className="mb-1 text-base font-medium tracking-wide text-white/60">{category || 'Focus Session'}</h2>
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl font-headline break-words">
-            {taskName}
-            </h1>
-        </div>
-        
-        {/* Center Content: Dial */}
-        <div className="flex w-full items-center justify-center row-start-3">
-            <CircularProgress progress={progress}>
-                <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
-                {formatTime(timeRemaining)}
-                </div>
-            </CircularProgress>
-        </div>
 
-
-        {/* Bottom Buttons */}
-        <div className={cn(
-            "flex items-center justify-center gap-4 transition-opacity duration-300 row-start-4",
-            isUIVisible ? "opacity-100" : "opacity-0"
-        )}>
-            <Button
-                onClick={() => setIsPaused(!isPaused)}
-                size="icon"
-                variant={isPaused ? "default" : "secondary"}
-                className="w-20 h-20 rounded-full"
-            >
-                {isPaused ? <Play className="h-8 w-8 text-white" /> : <Pause className="h-8 w-8 text-white" />}
-            </Button>
-            <Button 
-                onClick={handleEndEarly} 
-                variant="destructive" 
-                size="icon" 
-                className="w-20 h-20 rounded-full"
-            >
-                <Square className="h-8 w-8 text-white" />
-            </Button>
+            {/* Bottom Buttons */}
+            <div className={cn(
+                "flex items-center justify-center gap-4 transition-opacity duration-300",
+                isUIVisible ? "opacity-100" : "opacity-0"
+            )}>
+                <Button
+                    onClick={() => setIsPaused(!isPaused)}
+                    size="icon"
+                    variant={isPaused ? "default" : "secondary"}
+                    className="w-20 h-20 rounded-full"
+                >
+                    {isPaused ? <Play className="h-8 w-8 text-white" /> : <Pause className="h-8 w-8 text-white" />}
+                </Button>
+                <Button 
+                    onClick={handleEndEarly} 
+                    variant="destructive" 
+                    size="icon" 
+                    className="w-20 h-20 rounded-full"
+                >
+                    <Square className="h-8 w-8 text-white" />
+                </Button>
+            </div>
         </div>
 
 
