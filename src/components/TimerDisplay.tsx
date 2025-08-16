@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, CloudSun } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, CloudSun, LucideIcon, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
 import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
@@ -33,6 +33,7 @@ import {
 import CircularProgress from "./CircularProgress";
 import { useTimerUI } from "@/hooks/useTimerUI";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
+import { useWeather } from "@/hooks/useWeather";
 
 
 interface TimerDisplayProps {
@@ -44,12 +45,27 @@ interface TimerDisplayProps {
 
 type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
 
+const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
+    if (code >= 200 && code < 300) return CloudLightning;
+    if (code >= 300 && code < 400) return CloudDrizzle;
+    if (code >= 500 && code < 600) return CloudRain;
+    if (code >= 600 && code < 700) return CloudSnow;
+    if (code >= 700 && code < 800) return CloudFog;
+    if (code === 800) return isNight ? Moon : Sun;
+    if (code === 801) return isNight ? CloudMoon : CloudSun;
+    if (code === 802) return Cloud;
+    if (code > 802) return Cloudy;
+    return Cloud;
+};
+
+
 export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
   const { presetTasks, findAndSyncPresetTask } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
+  const { weatherData } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
@@ -59,8 +75,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
-  const [weather, setWeather] = useState({ temp: 22, icon: CloudSun });
-
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -135,16 +149,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     showStartNotification();
   }, [showStartNotification]);
 
-
-  useEffect(() => {
-    const hour = currentDate.getHours();
-    const isNight = hour < 6 || hour > 19;
-     if (isNight) {
-        setWeather({ temp: 18, icon: Moon });
-    } else {
-        setWeather({ temp: 22, icon: Sun });
-    }
-  }, [currentDate]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -265,7 +269,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Dynamically set CSS variables for the timer theme
   const timerColor = 'hsl(var(--primary))';
-  const WeatherIcon = weather.icon;
+  
+  const hour = currentDate.getHours();
+  const isNight = hour < 6 || hour > 19;
+  const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
 
   return (
@@ -296,10 +303,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 <div className="font-bold font-headline">{format(currentDate, 'p')}</div>
                 <div className="flex items-center gap-3 opacity-80">
                     <span>{format(currentDate, 'E, LLL d')}</span>
-                    <div className="flex items-center gap-1.5">
-                        <WeatherIcon className="h-4 w-4" />
-                        <span>{weather.temp}°C</span>
-                    </div>
+                    {weatherData && (
+                        <div className="flex items-center gap-1.5">
+                            <WeatherIcon className="h-4 w-4" />
+                            <span>{weatherData.temp}°</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
