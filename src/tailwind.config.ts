@@ -57,7 +57,7 @@ export default {
     'hover:bg-yellow-800', 'hover:border-yellow-500/80', 'hover:text-yellow-100', 'text-yellow-400',
     'hover:bg-gray-800', 'hover:border-gray-500/80', 'hover:text-gray-100', 'text-gray-400',
     'hover:bg-slate-800', 'hover:border-slate-500/80', 'hover:text-slate-100', 'text-slate-400',
-    'text-emerald-800', 'hover:bg-emerald-800', 'hover:border-emerald-500/80', 'hover:text-emerald-100',
+    'text-emerald-800', 'hover:bg-emerald-800', 'hover:border-emerald-500/80', 'hover:text-emerald-100', 'border-emerald-800'
   ],
   theme: {
     extend: {

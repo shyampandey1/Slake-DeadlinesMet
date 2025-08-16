@@ -131,7 +131,7 @@ export function useTasks() {
 }
 
 // Version for the default routines data structure
-export const ROUTINE_TEMPLATE_VERSION = 20;
+export const ROUTINE_TEMPLATE_VERSION = 21;
 
 const creativeProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -166,25 +166,33 @@ export const defaultRoutines: { version: number, routines: { [key in ProfileType
     routines: {
         "Analyst": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
-            { name: "Review Top KPIs & Dashboards", duration: 20, icon: "ListChecks", category: "Morning Routine" },
-            { name: "Breakfast", duration: 20, icon: "Utensils", category: "Morning Routine" },
-            { name: "Set Daily Analysis Priorities", duration: 15, icon: "Target", category: "Morning Routine" },
-            { name: "Workout/Exercise", duration: 30, icon: "Dumbbell", category: "Morning Routine" },
-            { name: "Focused Data Analysis & Querying", duration: 120, icon: "BrainCircuit", category: "Work & Focus" },
-            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Work & Focus" },
-            { name: "Lunch", duration: 25, icon: "Utensils", category: "Breaks & Meals" },
-            { name: "Short Walk", duration: 5, icon: "Footprints", category: "Breaks & Meals" },
-            { name: "Stakeholder Meetings & Requirement Gathering", duration: 90, icon: "Users", category: "Work & Focus" },
-            { name: "Build Reports & Visualizations", duration: 90, icon: "BarChart", category: "Work & Focus" },
-            { name: "Documentation & Peer Review", duration: 30, icon: "PenSquare", category: "Work & Focus" },
-            { name: "End-of-Day Review & Data Refresh", duration: 15, icon: "Wrench", category: "Evening Wind-down" },
-            { name: "Hobby / Leisure", duration: 60, icon: "Gamepad2", category: "Evening Wind-down" },
-            { name: "Dinner with Family/Friends", duration: 45, icon: "Utensils", category: "Evening Wind-down" },
-            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Wind-down" },
-            { name: "Prepare for the Next Day", duration: 10, icon: "ShoppingBag", category: "Bedtime Routine" },
-            { name: "Read (non-technical)", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
-            { name: "Meditation for Mental Clarity", duration: 10, icon: "Wind", category: "Bedtime Routine" },
-            { name: "Bedtime", duration: 0, icon: "Bed", category: "Bedtime Routine" },
+            { name: "Meditation for Focus", duration: 10, icon: "Wind", category: "Morning Routine" },
+            { name: "Breakfast (no screens)", duration: 20, icon: "Utensils", category: "Morning Routine" },
+            { name: "Commute to Office", duration: 30, icon: "Car", category: "Morning Routine" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Primary Work Session" },
+            { name: "Team Stand-up & Daily Sync", duration: 15, icon: "Users", category: "Primary Work Session" },
+            { name: "Deep Work: Data Querying & Analysis", duration: 120, icon: "BrainCircuit", category: "Primary Work Session" },
+            { name: "Coffee Break & Stretch", duration: 15, icon: "Coffee", category: "Primary Work Session" },
+            { name: "Continue Deep Work or Tackle Priority Tasks", duration: 120, icon: "Target", category: "Primary Work Session" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Lunch Break" },
+            { name: "Lunch with Colleagues or Mindful Meal", duration: 45, icon: "Utensils", category: "Lunch Break" },
+            { name: "Short Walk / Relax away from desk", duration: 15, icon: "Footprints", category: "Lunch Break" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Session" },
+            { name: "Stakeholder Meetings & Presenting Findings", duration: 60, icon: "Presentation", category: "Afternoon Session" },
+            { name: "Building Reports & Visualizations", duration: 60, icon: "BarChart", category: "Afternoon Session" },
+            { name: "Ad-hoc Data Requests & Documentation", duration: 45, icon: "FileCode", category: "Afternoon Session" },
+            { name: "Plan Tomorrow's Priorities & End of Day Wrap-up", duration: 15, icon: "ListChecks", category: "Afternoon Session" },
+            { name: "Commute from Office", duration: 30, icon: "Car", category: "Post-Work Decompression" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Post-Work Decompression" },
+            { name: "Strength Training or Cardio", duration: 45, icon: "Dumbbell", category: "Post-Work Decompression" },
+            { name: "Analog Hobby (puzzles, music, etc.)", duration: 60, icon: "Puzzle", category: "Post-Work Decompression" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Routine" },
+            { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Routine" },
+            { name: "Personal Learning (new analysis technique, tool, etc.)", duration: 45, icon: "Lightbulb", category: "Evening Routine" },
+            { name: "Drink a small glass of water", duration: 1, icon: "Droplets", category: "Bedtime Routine" },
+            { name: "Strict Screen Cutoff (put phone away)", duration: 30, icon: "Smartphone", category: "Bedtime Routine" },
+            { name: "Stretching to relieve desk posture", duration: 10, icon: "StretchHorizontal", category: "Bedtime Routine" },
+            { name: "Read a physical book", duration: 20, icon: "BookOpen", category: "Bedtime Routine" },
         ],
         "Artist": creativeProfessionalRoutine,
         "Consultant": [
@@ -316,19 +324,15 @@ export const defaultRoutines: { version: number, routines: { [key in ProfileType
         ],
         "Day Off": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Recovery" },
-            { name: "Freshen Up & Get Ready", duration: 15, icon: "ShowerHead", category: "Morning Recovery" },
             { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Recovery" },
-            { name: "Enjoy a leisurely breakfast", duration: 30, icon: "Coffee", category: "Morning Recovery" },
-            { name: "Lunch", duration: 25, icon: "Utensils", category: "Afternoon Recharge" },
-            { name: "Short Walk", duration: 5, icon: "Footprints", category: "Afternoon Recharge" },
-            { name: "Run errands & appointments", duration: 90, icon: "ShoppingBag", category: "Afternoon Recharge" },
-            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Afternoon Recharge" },
-            { name: "Dedicate time to a hobby you love", duration: 60, icon: "Gamepad2", category: "Afternoon Recharge" },
-            { name: "Connect with friends or family", duration: 60, icon: "Users", category: "Afternoon Recharge" },
-            { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening Reset" },
-            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening Reset" },
-            { name: "Relaxing entertainment", duration: 60, icon: "Tv", category: "Evening Reset" },
-            { name: "Consistent bedtime routine", duration: 30, icon: "Bed", category: "Evening Reset" },
+            { name: "Leisurely Breakfast", duration: 30, icon: "Coffee", category: "Morning Recovery" },
+            { name: "Run errands, appointments, groceries", duration: 90, icon: "ShoppingCart", category: "Afternoon Life Admin & Recharge" },
+            { name: "Dedicate time to a relaxing hobby", duration: 60, icon: "Gamepad2", category: "Afternoon Life Admin & Recharge" },
+            { name: "Connect with friends or family", duration: 60, icon: "Users", category: "Afternoon Life Admin & Recharge" },
+            { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Evening & Bedtime Reset" },
+            { name: "Mindful Dinner", duration: 30, icon: "Utensils", category: "Evening & Bedtime Reset" },
+            { name: "Relaxing entertainment", duration: 60, icon: "Tv", category: "Evening & Bedtime Reset" },
+            { name: "Consistent bedtime routine to reset body clock", duration: 30, icon: "Bed", category: "Evening & Bedtime Reset" },
         ],
         "IT Professional": [
             { name: "Drink a glass of water", duration: 1, icon: "Droplets", category: "Morning Routine" },
@@ -563,6 +567,11 @@ export const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines.
 
 const categoryConfig: { [key: string]: { color: string, order: number } } = {
     'Morning Routine': { color: 'bg-sky-800 text-sky-100', order: 1 },
+    'Primary Work Session': { color: 'bg-blue-800 text-blue-100', order: 2 },
+    'Lunch Break': { color: 'bg-orange-800 text-orange-100', order: 3 },
+    'Afternoon Session': { color: 'bg-indigo-800 text-indigo-100', order: 4 },
+    'Post-Work Decompression': { color: 'bg-rose-800 text-rose-100', order: 5 },
+    'Evening Routine': { color: 'bg-purple-800 text-purple-100', order: 6 },
     'Work & Focus': { color: 'bg-blue-800 text-blue-100', order: 2 },
     'Breaks & Meals': { color: 'bg-orange-800 text-orange-100', order: 3 },
     'Health & Wellness': { color: 'bg-green-800 text-green-100', order: 4 },
@@ -573,13 +582,15 @@ const categoryConfig: { [key: string]: { color: string, order: number } } = {
     'During Shift': { color: 'bg-blue-800 text-blue-100', order: 2 },
     'Post-Shift Decompression': { color: 'bg-purple-800 text-purple-100', order: 3 },
     'Morning Recovery': { color: 'bg-sky-800 text-sky-100', order: 1 },
+    'Afternoon Life Admin & Recharge': { color: 'bg-green-800 text-green-100', order: 2 },
     'Afternoon Recharge': { color: 'bg-green-800 text-green-100', order: 2 },
+    'Evening & Bedtime Reset': { color: 'bg-amber-800 text-amber-100', order: 3 },
     'Evening Reset': { color: 'bg-amber-800 text-amber-100', order: 3 },
     'Default': { color: 'bg-slate-800 text-slate-100', order: 7 },
 };
 
 export const getAvailableCategories = () => Object.keys(categoryConfig);
-export const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck", "FileCode", "PenSquare", "Puzzle", "Lightbulb"];
+export const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck", "FileCode", "PenSquare", "Puzzle", "Lightbulb", "Presentation", "BarChart", "ShoppingCart"];
 
 
 // Hook for managing preset tasks and routines
