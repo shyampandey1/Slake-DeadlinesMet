@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, CloudSun, LucideIcon, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
 import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
@@ -342,13 +342,17 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 onClick={() => setIsPaused(!isPaused)}
                 size="lg"
                 variant={isPaused ? "default" : "secondary"}
-                className={cn("w-32 text-lg")}
+                className="w-32 text-lg"
             >
-                {isPaused ? <Play className="mr-2 h-6 w-6" /> : <Pause className="mr-2 h-6 w-6" />}
+                {isPaused ? (
+                    <Play className="mr-2 h-6 w-6" />
+                ) : (
+                    <Pause className="mr-2 h-6 w-6" />
+                )}
                 {isPaused ? "Resume" : "Pause"}
             </Button>
             <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
-                <Square className="mr-2 h-5 w-5" />
+                <Square className="mr-2 h-6 w-6" />
                 End
             </Button>
         </div>
