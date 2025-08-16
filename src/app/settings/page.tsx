@@ -6,7 +6,7 @@ import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X, Cloud, CloudOff, Thermometer, MapPin, LocateFixed } from "lucide-react";
+import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X, Cloud, CloudOff, Thermometer, MapPin, LocateFixed, Save } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
@@ -69,12 +69,15 @@ function SettingsPageComponent() {
     };
 
     const handleLocationSave = () => {
-        setLocation(tempLocation);
-        toast({ title: "Location updated", description: `Weather will now be shown for ${tempLocation}.` });
+        if (tempLocation.trim()) {
+            setLocation(tempLocation);
+            toast({ title: "Location updated", description: `Weather will now be shown for ${tempLocation}.` });
+        }
     }
 
     const handleDetectLocation = () => {
         fetchWeatherForCurrentUserLocation();
+        setTempLocation("Current Location");
     }
 
     const handleNotificationToggle = async (enabled: boolean) => {
@@ -142,7 +145,7 @@ function SettingsPageComponent() {
                                         <LocateFixed className="h-4 w-4" />
                                     </Button>
                                     <Button size="icon" onClick={handleLocationSave} disabled={weatherLoading}>
-                                        {weatherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                        {weatherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     </Button>
                                 </div>
                             </div>
