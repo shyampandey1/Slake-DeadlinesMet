@@ -2,13 +2,15 @@
 "use client";
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface CircularProgressProps {
   progress: number;
   children: React.ReactNode;
+  isUIVisible: boolean;
 }
 
-const CircularProgress = ({ progress, children }: CircularProgressProps) => {
+const CircularProgress = ({ progress, children, isUIVisible }: CircularProgressProps) => {
     const radius = 95;
     const stroke = 5;
     const center = radius + stroke;
@@ -64,7 +66,12 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                {children}
+                 <div className={cn(
+                    "flex flex-col items-center justify-center gap-4 transition-transform duration-300 ease-in-out",
+                    isUIVisible ? "-translate-y-5" : "translate-y-0"
+                 )}>
+                    {children}
+                </div>
             </div>
         </div>
     );
