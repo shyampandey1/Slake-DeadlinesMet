@@ -102,7 +102,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 where('userId', '==', uid),
                 where('profession', '==', prof)
             );
-            // We must get docs outside transaction for reads
             const tasksToDeleteSnapshot = await getDocs(tasksToDeleteQuery);
             tasksToDeleteSnapshot.forEach(doc => transaction.delete(doc.ref));
 

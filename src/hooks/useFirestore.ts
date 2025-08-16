@@ -663,7 +663,17 @@ export function usePresetTasks() {
         );
 
         unsubscribe = onSnapshot(q, (snapshot) => {
-            const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
+            const seenTaskIds = new Set<string>();
+            const uniqueTasks = snapshot.docs.filter(doc => {
+                if (seenTaskIds.has(doc.id)) {
+                    return false;
+                } else {
+                    seenTaskIds.add(doc.id);
+                    return true;
+                }
+            });
+
+            const newPreset = uniqueTasks.reduce((acc: Preset, doc) => {
                 const task = { id: doc.id, ...doc.data() } as UserPresetTask;
                 const category = task.category || 'Default';
                 if (!acc[category]) {
