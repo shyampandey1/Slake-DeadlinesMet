@@ -63,11 +63,13 @@ const CircularProgress = ({ progress, children, isUIVisible }: CircularProgressP
                     }}
                 />
             </svg>
-            <div className={cn(
-                "absolute inset-0 flex items-center justify-center transition-transform duration-300 ease-in-out",
-                isUIVisible ? "-translate-y-2" : "translate-y-0"
-            )}>
-                {children}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2">
+                 <div className={cn(
+                    "flex flex-col items-center justify-center transition-transform duration-300 ease-in-out",
+                    isUIVisible ? "-translate-y-1/2" : "translate-y-[calc(-50%_+_24px)]"
+                 )}>
+                    {children}
+                </div>
             </div>
         </div>
     );

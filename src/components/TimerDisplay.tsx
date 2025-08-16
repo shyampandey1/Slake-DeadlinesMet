@@ -316,29 +316,29 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
             
             <CircularProgress progress={progress} isUIVisible={isUIVisible}>
-                <div className="flex flex-col items-center justify-center gap-4">
+                 <div className="flex flex-col items-center justify-center gap-2">
                     <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
                         {formatTime(timeRemaining)}
                     </div>
                     <div className={cn(
-                        "flex items-center justify-center gap-4 transition-opacity duration-300",
+                        "flex items-center justify-center gap-2 transition-opacity duration-300",
                         isUIVisible ? "opacity-100" : "opacity-0"
                     )}>
                         <Button
                             onClick={() => setIsPaused(!isPaused)}
                             size="icon"
                             variant="ghost"
-                            className="w-16 h-16 rounded-full bg-white/10 hover:bg-white/20"
+                            className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
                         >
-                            {isPaused ? <Play className="h-7 w-7 text-white" /> : <Pause className="h-7 w-7 text-white" />}
+                            {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
                         </Button>
                         <Button 
                             onClick={handleEndEarly} 
                             variant="ghost" 
                             size="icon" 
-                            className="w-16 h-16 rounded-full bg-destructive/40 hover:bg-destructive/60"
+                            className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60"
                         >
-                            <Square className="h-7 w-7 text-white" />
+                            <Square className="h-6 w-6 text-white" />
                         </Button>
                     </div>
                 </div>
