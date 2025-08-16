@@ -44,7 +44,7 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     try {
         await signInWithGoogle();
-        router.push("/");
+        // The useEffect hook will handle redirection once the user state is updated.
         toast({
             title: "Logged in Successfully",
             description: "Welcome back!",
