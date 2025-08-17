@@ -9,7 +9,7 @@ export default {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/hooks/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/hooks/*.{js,ts,jsx,tsx,mdx}',
   ],
   safelist: [
     'bg-slate-800', 'text-slate-100', 'text-slate-400', 'border-slate-500/80', 'hover:bg-slate-800', 'hover:text-white',
