@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import TaskForm from '@/components/TaskForm';
-import AuthWrapper from '@/components/AuthWrapper';
 import DynamicHeader from '@/components/DynamicHeader';
 
 function HomeComponent() {
@@ -35,9 +34,5 @@ function HomeComponent() {
 }
 
 export default function Home() {
-    return (
-        <AuthWrapper>
-            <HomeComponent />
-        </AuthWrapper>
-    )
+    return <HomeComponent />;
 }
