@@ -22,9 +22,9 @@ import {
 } from 'firebase/firestore';
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
-import { getDay } from 'date-fns';
+import { getDay, set, subDays } from 'date-fns';
 import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
-import { set, format as formatDate, parse, compareDesc } from 'date-fns';
+import { format as formatDate, parse, compareDesc } from 'date-fns';
 
 // Re-export for easier access in other components
 export const getAvailableCategories = getCats;
@@ -331,6 +331,7 @@ export function usePresetTasks() {
     if (Object.keys(presetTasks).length === 0) return ranges;
 
     const today = new Date();
+    const yesterday = subDays(today, 1);
     
     const timeBlocks = {
         'Morning Routine': { start: 6, end: 9 },
@@ -339,7 +340,7 @@ export function usePresetTasks() {
         'Afternoon Session': { start: 14, end: 17 },
         'Post-Work Decompression': { start: 17, end: 19 },
         'Evening Routine': { start: 19, end: 21 },
-        'Bedtime Routine': { start: 21, end: 24 },
+        'Bedtime Routine': { start: 21, end: 6, crossDay: true }, // Crosses midnight
         'Work & Focus': { start: 9, end: 17 }, 
         'Breaks & Meals': { start: 12, end: 14 }, 
         'Health & Wellness': {start: 17, end: 19 }, 
@@ -348,7 +349,7 @@ export function usePresetTasks() {
         'Morning Prep': { start: 6, end: 9 },
         'On the Road': { start: 9, end: 17 },
         'Post-Work Admin': { start: 17, end: 18 },
-        'Evening & Bedtime': { start: 18, end: 24 },
+        'Evening & Bedtime': { start: 18, end: 6, crossDay: true }, // Crosses midnight
         // Healthcare
         'Pre-Shift Routine': { start: 5, end: 7 },
         'During Shift': { start: 7, end: 19 },
@@ -356,15 +357,16 @@ export function usePresetTasks() {
         // Day Off
         'Morning Recovery': { start: 7, end: 12 },
         'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
-        'Evening & Bedtime Reset': { start: 18, end: 24 },
+        'Evening & Bedtime Reset': { start: 18, end: 6, crossDay: true }, // Crosses midnight
     };
     
     Object.keys(presetTasks).forEach(category => {
         const categoryLookup = category as keyof typeof timeBlocks;
         if (timeBlocks[categoryLookup]) {
             const block = timeBlocks[categoryLookup];
+            const startDate = block.crossDay ? yesterday : today;
             ranges[category] = {
-                start: set(today, { hours: block.start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                start: set(startDate, { hours: block.start, minutes: 0, seconds: 0, milliseconds: 0 }),
                 end: set(today, { hours: block.end, minutes: 0, seconds: 0, milliseconds: 0 }),
             };
         }
@@ -376,8 +378,20 @@ export function usePresetTasks() {
 
   const activeCategory = useMemo(() => {
       const now = new Date();
+      
       const matchingCategories = Object.entries(categoryTimeRanges)
-          .filter(([, range]) => now >= range.start && now < range.end)
+          .filter(([category, range]) => {
+              const categoryLookup = category as keyof typeof categoryConfig;
+              const block = categoryConfig[categoryLookup];
+              const crossesDay = (block && (category === "Bedtime Routine" || category === "Evening & Bedtime" || category === "Evening & Bedtime Reset"));
+
+              if (crossesDay) {
+                  const yesterday_start = set(subDays(now, 1), { hours: range.start.getHours(), minutes: 0, seconds: 0 });
+                  const today_end = set(now, { hours: range.end.getHours(), minutes: 0, seconds: 0 });
+                  return now >= yesterday_start && now < today_end;
+              }
+              return now >= range.start && now < range.end;
+          })
           .map(([category]) => category);
       
       if (matchingCategories.length === 0) return null;
