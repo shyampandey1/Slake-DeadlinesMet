@@ -139,6 +139,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   }, [stopTimer, playSound, showCompletionNotification]);
 
   useEffect(() => {
+    startTimer();
+  }, []);
+
+  useEffect(() => {
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(dateInterval);
   }, []);
