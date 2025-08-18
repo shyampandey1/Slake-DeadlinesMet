@@ -20,7 +20,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import Icon from "@/components/Icon";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -28,6 +27,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info, LogOut, X, Layers, Zap, StickyNote, Users2, Cloud, Palette, Bug, Sun, PieChart } from 'lucide-react';
 
 const changelog = [
   {
@@ -77,6 +77,23 @@ const changelog = [
   },
 ];
 
+const iconMap: { [key: string]: React.ElementType } = {
+  "clipboard-list": ClipboardList,
+  "pie-chart": PieChart,
+  sun: Sun,
+  bug: Bug,
+  layers: Layers,
+  zap: Zap,
+  "sticky-note": StickyNote,
+  "users-2": Users2,
+  cloud: Cloud,
+  palette: Palette,
+  calendar: Calendar,
+  "book-text": BookText,
+  "wand-sparkles": Sparkles,
+};
+
+
 export default function HamburgerMenu() {
   const { user } = useAuth();
   const router = useRouter();
@@ -103,7 +120,7 @@ export default function HamburgerMenu() {
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10">
-                <Icon name="menu" className="h-6 w-6" />
+                <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
             </Button>
         </SheetTrigger>
@@ -112,14 +129,14 @@ export default function HamburgerMenu() {
             <SheetTitle className="font-headline text-2xl">Menu</SheetTitle>
             <SheetClose asChild>
                 <Button variant="ghost" size="icon">
-                    <Icon name="x" className="h-6 w-6" />
+                    <X className="h-6 w-6" />
                 </Button>
             </SheetClose>
           </SheetHeader>
           <div className="py-4">
             {user && (
               <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3" onClick={() => navigateTo('/settings')}>
-                <Icon name="user" className="h-5 w-5 text-muted-foreground" />
+                <User className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground truncate">
                   {user.displayName || user.email}
                 </span>
@@ -129,34 +146,34 @@ export default function HamburgerMenu() {
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4">
                 <Button variant="ghost" onClick={() => navigateTo('/history')} className="w-full justify-start gap-2">
-                    <Icon name="book-text" className="h-5 w-5" />
+                    <BookText className="h-5 w-5" />
                     <span>Task Log Book</span>
                 </Button>
                 <Button variant="ghost" onClick={() => navigateTo('/routine')} className="w-full justify-start gap-2">
-                    <Icon name="clipboard-list" className="h-5 w-5" />
+                    <ClipboardList className="h-5 w-5" />
                     <span>Customize Routine</span>
                 </Button>
                 <Button variant="ghost" onClick={() => navigateTo('/calendar')} className="w-full justify-start gap-2">
-                    <Icon name="calendar" className="h-5 w-5" />
+                    <Calendar className="h-5 w-5" />
                     <span>Event Calendar</span>
                 </Button>
                 <Button variant="ghost" onClick={() => navigateTo('/settings')} className="w-full justify-start gap-2">
-                    <Icon name="settings" className="h-5 w-5" />
+                    <Settings className="h-5 w-5" />
                     <span>Settings</span>
                 </Button>
                 <Button variant="ghost" onClick={openChangelog} className="w-full justify-start gap-2">
-                  <Icon name="sparkles" className="h-5 w-5" />
+                  <Sparkles className="h-5 w-5" />
                   <span>What's New</span>
                 </Button>
                 <Button variant="ghost" onClick={() => navigateTo('/about')} className="w-full justify-start gap-2">
-                    <Icon name="info" className="h-5 w-5" />
+                    <Info className="h-5 w-5" />
                     <span>About</span>
                 </Button>
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto pt-4">
             <Button onClick={handleLogout} variant="outline" className="w-full">
-            <Icon name="log-out" className="mr-2 h-4 w-4" />
+            <LogOut className="mr-2 h-4 w-4" />
             Logout
             </Button>
           </SheetFooter>
@@ -167,7 +184,7 @@ export default function HamburgerMenu() {
         <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl flex items-center gap-2">
-                  <Icon name="sparkles" className="text-primary"/>
+                  <Sparkles className="text-primary"/>
                   What's New
               </DialogTitle>
               <DialogDescription>
@@ -183,15 +200,18 @@ export default function HamburgerMenu() {
                           <p className="text-sm text-muted-foreground">{entry.date}</p>
                       </div>
                       <div className="space-y-3">
-                          {entry.features.map(feature => (
-                              <div key={feature.name} className="flex gap-4 p-3 rounded-lg border bg-card/50">
-                                  <Icon name={feature.icon as any} className="h-5 w-5 text-primary mt-1" />
-                                  <div>
-                                      <p className="font-semibold">{feature.name}</p>
-                                      <p className="text-sm text-muted-foreground">{feature.description}</p>
-                                  </div>
-                              </div>
-                          ))}
+                          {entry.features.map(feature => {
+                              const IconComponent = iconMap[feature.icon];
+                              return (
+                                <div key={feature.name} className="flex gap-4 p-3 rounded-lg border bg-card/50">
+                                    {IconComponent && <IconComponent className="h-5 w-5 text-primary mt-1" />}
+                                    <div>
+                                        <p className="font-semibold">{feature.name}</p>
+                                        <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                    </div>
+                                </div>
+                              )
+                          })}
                       </div>
                   </div>
                 ))}
