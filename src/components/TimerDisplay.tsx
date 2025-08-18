@@ -60,8 +60,7 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 
 export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
   const router = useRouter();
-  const { tasks, addTask } = useTasks();
-  const { presetTasks, findAndSyncPresetTask } = usePresetTasks();
+  const { addTask } = useTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
   const { weatherData } = useWeather();
@@ -192,8 +191,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
     let finalCategory = taskCategory;
-
-    // This block is now the only place that categorizes tasks, and only when necessary.
     if (!finalCategory) {
         try {
             const result = await categorizeTask({
@@ -220,9 +217,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       await addTask(newTask);
-      await findAndSyncPresetTask(taskName, actualDuration);
+      // Removed slow findAndSyncPresetTask call
       
       try {
+        // Fetching required data here, only when needed
+        const { tasks } = useTasks();
+        const { presetTasks } = usePresetTasks();
         const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
         const userRoutine = Object.values(presetTasks).flatMap(category => category.tasks.map(task => ({...task})));
         
@@ -414,3 +414,5 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     </main>
   );
 }
+
+    
