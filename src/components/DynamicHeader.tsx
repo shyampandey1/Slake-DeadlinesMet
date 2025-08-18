@@ -45,13 +45,19 @@ const getWeatherIcon = (code: number, isNight: boolean): React.ComponentProps<ty
 // New component to only re-render the clock
 function LiveClock() {
     const [time, setTime] = useState(new Date());
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
         const timerId = setInterval(() => {
             setTime(new Date());
         }, 1000);
         return () => clearInterval(timerId);
     }, []);
+
+    if (!isClient) {
+        return <p className="font-bold font-headline text-2xl">&nbsp;</p>;
+    }
 
     return <p className="font-bold font-headline text-2xl">{format(time, 'p')}</p>;
 }
