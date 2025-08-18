@@ -44,7 +44,7 @@ function TaskLogBookContent() {
   const { profile, loading: profileLoading } = useProfile();
   const router = useRouter();
   const [filter, setFilter] = useState("today");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -102,16 +102,12 @@ function TaskLogBookContent() {
          label = format(prevYearDate, 'yyyy');
          break;
       case "custom":
-        if (dateRange?.from) {
-          startDate = startOfDay(dateRange.from);
-          endDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-          if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
-             label = `${format(dateRange.from, "LLL d")} - ${format(dateRange.to, "LLL d, y")}`;
-          } else {
-             label = format(dateRange.from, "PPP");
-          }
+        if (date) {
+            startDate = startOfDay(date);
+            endDate = endOfDay(date);
+            label = format(date, "PPP");
         } else {
-          return { filteredTasksByDate: [], dateFilterRange: { start: now, end: now }, dateFilterLabel: "Select Range"};
+            return { filteredTasksByDate: [], dateFilterRange: { start: now, end: now }, dateFilterLabel: "Select Range"};
         }
         break;
       default: // all
@@ -126,7 +122,7 @@ function TaskLogBookContent() {
     });
 
     return { filteredTasksByDate: tasksInRange, dateFilterRange: { start: startDate, end: endDate }, dateFilterLabel: label };
-  }, [tasks, filter, dateRange]);
+  }, [tasks, filter, date]);
 
   const filteredTasks = useMemo(() => {
     if (!selectedCategory) {
@@ -235,19 +231,16 @@ function TaskLogBookContent() {
     if (value === "custom") {
         setIsCalendarOpen(true);
     } else {
-        setDateRange(undefined);
+        setDate(new Date());
         setFilter(value);
     }
   };
 
-  const handleDateSelect = (range: DateRange | undefined) => {
-    setDateRange(range);
-    if (range?.from && range?.to) {
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+        setDate(selectedDate);
         setFilter("custom");
         setIsCalendarOpen(false);
-    } else if (range?.from && !range.to) {
-        // Keep popover open if only start date is selected
-        setFilter("custom");
     }
   };
 
@@ -326,19 +319,11 @@ function TaskLogBookContent() {
                         <Button
                             id="date"
                             variant={"outline"}
-                            className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                            className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
                             onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                         >
                             <Icon name="calendar" className="mr-2 h-4 w-4" />
-                            {dateRange?.from ? (
-                                dateRange.to ? (
-                                    <>
-                                        {format(dateRange.from, "LLL d")} - {format(dateRange.to, "LLL d")}
-                                    </>
-                                ) : (
-                                    format(dateRange.from, "LLL d, y")
-                                )
-                            ) : (
+                            {date && filter === 'custom' ? format(date, "PPP") : (
                                 <span>Custom</span>
                             )}
                         </Button>
@@ -347,11 +332,11 @@ function TaskLogBookContent() {
                  <PopoverContent className="w-auto p-0" align="end">
                     <Calendar
                         initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
+                        mode="single"
+                        selected={date}
                         onSelect={handleDateSelect}
-                        numberOfMonths={1}
+                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                        toMonth={new Date()}
                     />
                     </PopoverContent>
               </Popover>
