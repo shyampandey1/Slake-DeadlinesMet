@@ -19,14 +19,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // Ignore warnings for handlebars
-    config.module.rules.push({
-      test: /node_modules\/handlebars\/lib\/index\.js$/,
-      loader: 'ignore-loader',
-    });
-    return config;
-  },
 };
 
 export default nextConfig;
