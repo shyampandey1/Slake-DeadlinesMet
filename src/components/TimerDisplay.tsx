@@ -193,6 +193,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
     let finalCategory = taskCategory;
 
+    // This block is now the only place that categorizes tasks, and only when necessary.
     if (!finalCategory) {
         try {
             const result = await categorizeTask({
