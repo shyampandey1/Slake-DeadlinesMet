@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
-import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
+import { useTasks, getAvailableCategories } from "@/hooks/useFirestore";
 import type { Task } from "@/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -217,21 +217,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       await addTask(newTask);
-      // Removed slow findAndSyncPresetTask call
       
       try {
-        // Fetching required data here, only when needed
-        const { tasks } = useTasks();
-        const { presetTasks } = usePresetTasks();
-        const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
-        const userRoutine = Object.values(presetTasks).flatMap(category => category.tasks.map(task => ({...task})));
-        
         const result = await generateMotivationalMessage({
           taskName: newTask.name,
           duration: newTask.duration,
           completionStatus: true,
-          pastTasks,
-          userRoutine,
         });
         setMotivationalMessage(result.message);
         setSuggestedTask(result.suggestedNextTask);
@@ -414,5 +405,3 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     </main>
   );
 }
-
-    
