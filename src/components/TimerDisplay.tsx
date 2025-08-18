@@ -74,6 +74,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
+  const [taskCategory, setTaskCategory] = useState(category);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -190,7 +191,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
-    let finalCategory = category;
+    let finalCategory = taskCategory;
 
     if (!finalCategory) {
         try {
@@ -199,6 +200,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 availableCategories: getAvailableCategories(),
             });
             finalCategory = result.category;
+            setTaskCategory(result.category);
         } catch (error) {
             console.error("Failed to categorize task, using default:", error);
             finalCategory = "Work & Focus";
@@ -309,7 +311,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
         <div className="flex flex-col items-center justify-center text-center gap-8">
             <div className="w-full max-w-4xl mx-auto transition-opacity duration-300">
-                <h2 className="mb-1 text-base font-medium tracking-wide text-white/60">{category || 'Focus Session'}</h2>
+                <h2 className="mb-1 text-base font-medium tracking-wide text-white/60">{taskCategory || 'Focus Session'}</h2>
                 <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl font-headline break-words">
                 {taskName}
                 </h1>
