@@ -42,7 +42,7 @@ export default function RootLayout({
                 <TimerUIProvider>
                     <div className="flex flex-col min-h-screen">
                         <ServiceWorkerRegistrar />
-                        <main className="flex-1">{children}</main>
+                        <main className="flex-1 pb-16">{children}</main>
                         <BottomNav />
                     </div>
                 </TimerUIProvider>
@@ -54,5 +54,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-    
