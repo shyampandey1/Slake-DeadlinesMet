@@ -6,7 +6,7 @@ import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X, Cloud, CloudOff, Thermometer, MapPin, LocateFixed, Save } from "lucide-react";
+import Icon from "@/components/Icon";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
@@ -29,7 +29,6 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-
 
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
@@ -117,8 +116,8 @@ function SettingsPageComponent() {
                             <div className="flex items-center justify-between">
                                 <span className="font-medium">Theme</span>
                                 <Button variant="outline" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="relative">
-                                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                    <Icon name="sun" className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                    <Icon name="moon" className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                     <span className="sr-only">Toggle theme</span>
                                 </Button>
                             </div>
@@ -142,10 +141,10 @@ function SettingsPageComponent() {
                                         placeholder="e.g., Delhi, India"
                                     />
                                     <Button size="icon" variant="outline" onClick={handleDetectLocation}>
-                                        <LocateFixed className="h-4 w-4" />
+                                        <Icon name="locate-fixed" className="h-4 w-4" />
                                     </Button>
                                     <Button size="icon" onClick={handleLocationSave} disabled={weatherLoading}>
-                                        {weatherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                        {weatherLoading ? <Icon name="loader-2" className="h-4 w-4 animate-spin" /> : <Icon name="save" className="h-4 w-4" />}
                                     </Button>
                                 </div>
                             </div>
@@ -173,7 +172,7 @@ function SettingsPageComponent() {
                         <CardContent className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <label htmlFor="notifications-switch" className="font-medium flex items-center gap-2">
-                                    <Bell className="h-4 w-4" />
+                                    <Icon name="bell" className="h-4 w-4" />
                                     Push Notifications
                                 </label>
                                 <Switch
@@ -196,7 +195,7 @@ function SettingsPageComponent() {
                         <CardContent className="space-y-6">
                             <div className="flex items-center justify-between">
                                 <label htmlFor="audio-switch" className="font-medium flex items-center gap-2">
-                                    <Bell className="h-4 w-4" />
+                                    <Icon name="bell" className="h-4 w-4" />
                                     Timer Cues
                                 </label>
                                 <Switch
@@ -229,7 +228,7 @@ function SettingsPageComponent() {
                             </div>
                             
                             <Button variant="outline" onClick={testSound}>
-                                <Volume2 className="mr-2 h-4 w-4" />
+                                <Icon name="volume-2" className="mr-2 h-4 w-4" />
                                 Test Sound
                             </Button>
                         </CardContent>
@@ -244,7 +243,7 @@ function SettingsPageComponent() {
                              <div>
                                 <div className="flex items-center justify-between">
                                     <label htmlFor="sync-switch" className="font-medium flex items-center gap-2">
-                                        {isSyncEnabled ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+                                        {isSyncEnabled ? <Icon name="cloud" className="h-4 w-4" /> : <Icon name="cloud-off" className="h-4 w-4" />}
                                         Cloud Sync
                                     </label>
                                     <Switch
@@ -269,17 +268,17 @@ function SettingsPageComponent() {
                                                     className="h-9"
                                                 />
                                                 <Button size="icon" onClick={handleNameSave} disabled={isSavingName} className="h-9 w-9">
-                                                    {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                                    {isSavingName ? <Icon name="loader-2" className="h-4 w-4 animate-spin" /> : <Icon name="check" className="h-4 w-4" />}
                                                 </Button>
                                                 <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)} className="h-9 w-9">
-                                                    <X className="h-4 w-4" />
+                                                    <Icon name="x" className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2 text-muted-foreground">
                                                 <span>{user.displayName || "Guest"}</span>
                                                 <Button size="icon" variant="ghost" onClick={() => setIsEditingName(true)} className="h-8 w-8">
-                                                    <Edit className="h-4 w-4" />
+                                                    <Icon name="edit" className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         )}
@@ -287,7 +286,7 @@ function SettingsPageComponent() {
                                     <div className="flex items-center justify-between">
                                         <span className="font-medium">Email</span>
                                         <div className="flex items-center gap-2 text-muted-foreground">
-                                           <User className="h-4 w-4" />
+                                           <Icon name="user" className="h-4 w-4" />
                                            <span className="truncate max-w-[150px] sm:max-w-xs">{user.email}</span>
                                         </div>
                                     </div>
@@ -305,7 +304,7 @@ function SettingsPageComponent() {
                            <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
                              <AlertDialogTrigger asChild>
                                 <Button variant="destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <Icon name="trash-2" className="mr-2 h-4 w-4" />
                                     Clear Task Log
                                 </Button>
                              </AlertDialogTrigger>
@@ -326,7 +325,6 @@ function SettingsPageComponent() {
                            </AlertDialog>
                         </CardContent>
                     </Card>
-
                 </div>
             </main>
         </div>

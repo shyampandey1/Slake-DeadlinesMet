@@ -3,17 +3,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookText, ClipboardList, Settings } from "lucide-react";
+import Icon from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimerUI } from "@/hooks/useTimerUI";
 
 const navItems = [
-  { href: "/history", label: "Log Book", icon: BookText },
-  { href: "/", label: "Home", icon: Home },
-  { href: "/routine", label: "Routine", icon: ClipboardList },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+  { href: "/history", label: "Log Book", icon: "book-text" },
+  { href: "/", label: "Home", icon: "home" },
+  { href: "/routine", label: "Routine", icon: "clipboard-list" },
+  { href: "/settings", label: "Settings", icon: "settings" },
+] as const;
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -32,7 +32,7 @@ export default function BottomNav() {
         isTimerPage && !isUIVisible && "translate-y-full"
     )}>
         <div className="flex justify-around items-center h-16">
-            {navItems.map(({ href, label, icon: Icon }) => {
+            {navItems.map(({ href, label, icon }) => {
                 const isActive = pathname === href;
 
                 return (
@@ -44,7 +44,7 @@ export default function BottomNav() {
                             isActive && "text-primary"
                         )}
                         >
-                        <Icon className={cn("h-6 w-6")} />
+                        <Icon name={icon} className={cn("h-6 w-6")} />
                         <span className="text-xs">{label}</span>
                     </Link>
                 )

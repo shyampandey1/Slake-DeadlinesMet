@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { BookText, ThumbsUp, PieChart, Play, Calendar as CalendarIcon, CheckCircle, Clock, Droplets, Download, FileDown, ImageDown, X } from "lucide-react";
+import Icon from "@/components/Icon";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,6 @@ import { Badge } from "./ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 import { Separator } from "./ui/separator";
 
-
 function formatDuration(minutes: number): string {
     if (minutes === 0) return "0m";
     if (minutes < 1) return "<1m";
@@ -49,7 +48,6 @@ function TaskLogBookContent() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
 
   const loading = tasksLoading || profileLoading;
 
@@ -137,7 +135,6 @@ function TaskLogBookContent() {
     return filteredTasksByDate.filter(task => getTaskCategoryDetails(task.name, profile as ProfileType).mainCategory === selectedCategory);
   }, [filteredTasksByDate, selectedCategory, profile]);
 
-  
   const categoryData = useMemo(() => {
     const data: { [key: string]: number } = {};
     // Calculate data based on the date-filtered tasks, NOT the category-filtered ones
@@ -157,7 +154,6 @@ function TaskLogBookContent() {
       color: categoryColors[name as keyof typeof categoryColors] || categoryColors.Default
     })).sort((a,b) => b.value - a.value);
   }, [filteredTasksByDate, profile]);
-
 
   const stats = useMemo(() => {
     const sourceTasks = selectedCategory ? filteredTasks : filteredTasksByDate;
@@ -248,7 +244,7 @@ function TaskLogBookContent() {
     }
   };
 
-    const downloadCSV = () => {
+  const downloadCSV = () => {
     const headers = ['Date', 'Task Name', 'Category', 'Time Spent (min)', 'Initial Duration (min)', 'Completed'];
     const rows = filteredTasksByDate.map(task => [
         format(new Date(task.createdAt), 'yyyy-MM-dd HH:mm'),
@@ -283,7 +279,6 @@ function TaskLogBookContent() {
         });
     }
   };
-
 
   const renderSkeleton = () => (
     <div className="space-y-4">
@@ -327,7 +322,7 @@ function TaskLogBookContent() {
                             className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
                             onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                         >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            <Icon name="calendar" className="mr-2 h-4 w-4" />
                             {dateRange?.from ? (
                                 dateRange.to ? (
                                     <>
@@ -356,17 +351,17 @@ function TaskLogBookContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full sm:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
+                    <Icon name="download" className="mr-2 h-4 w-4" />
                     Download
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={downloadCSV}>
-                    <FileDown className="mr-2 h-4 w-4" />
+                    <Icon name="file-down" className="mr-2 h-4 w-4" />
                     Download as CSV
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={downloadImage}>
-                    <ImageDown className="mr-2 h-4 w-4" />
+                    <Icon name="image-down" className="mr-2 h-4 w-4" />
                     Download as Image
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -381,7 +376,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
-                                <BookText className="h-4 w-4 text-muted-foreground" />
+                                <Icon name="book-text" className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.totalTasks}</div>
@@ -391,7 +386,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                                <Icon name="check-circle" className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.completionRate}%</div>
@@ -401,7 +396,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
-                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <Icon name="clock" className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
@@ -411,7 +406,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
-                                <Droplets className="h-4 w-4 text-muted-foreground" />
+                                <Icon name="droplets" className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
@@ -426,7 +421,7 @@ function TaskLogBookContent() {
                                 <span>Category Breakdown</span>
                                 {selectedCategory && (
                                     <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
-                                        <X className="w-3 h-3 mr-1"/>
+                                        <Icon name="x" className="w-3 h-3 mr-1"/>
                                         Clear filter
                                     </Button>
                                 )}
@@ -489,7 +484,7 @@ function TaskLogBookContent() {
                                 </div>
                             ) : (
                             <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                                <BookText className="mx-auto h-12 w-12" />
+                                <Icon name="book-text" className="mx-auto h-12 w-12" />
                                 <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
                                 <p className="mt-1 text-sm">No tasks were logged in this period.</p>
                             </div>
@@ -525,12 +520,12 @@ function TaskLogBookContent() {
                                                     <div className="flex-shrink-0">
                                                         {task.completed ? (
                                                             <div className="flex items-center gap-1.5 text-green-500">
-                                                                <ThumbsUp className="h-4 w-4" />
+                                                                <Icon name="thumbs-up" className="h-4 w-4" />
                                                                 <span className="text-sm font-medium">Done</span>
                                                             </div>
                                                         ) : (
                                                             <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                <Play className="mr-2 h-3 w-3" />
+                                                                <Icon name="play" className="mr-2 h-3 w-3" />
                                                                 Continue
                                                             </Button>
                                                         )}
