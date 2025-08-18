@@ -386,12 +386,8 @@ export function usePresetTasks() {
       const availableMatchingCategories = matchingCategories.filter(category => presetTasks[category]);
       
       if (availableMatchingCategories.length > 0) {
-          const preference = ['Health & Wellness', 'Evening Wind-down', 'Evening Reset', 'Breaks & Meals', 'Work & Focus'];
-          for (const preferred of preference) {
-              if (availableMatchingCategories.includes(preferred)) {
-                  return preferred;
-              }
-          }
+          // Sort by the category order defined in routines.ts to pick the most specific one.
+          availableMatchingCategories.sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
           return availableMatchingCategories[0];
       }
       
@@ -504,5 +500,3 @@ export function useCalendarEvents() {
 
   return { events, loading, addEvent, deleteEvent };
 }
-
-    
