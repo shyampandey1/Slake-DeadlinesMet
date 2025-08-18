@@ -4,7 +4,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import TimerDisplay from './TimerDisplay';
 import { Skeleton } from './ui/skeleton';
-import { TimerUIProvider } from '@/hooks/useTimerUI';
 
 export default function TimerPageContent() {
   const searchParams = useSearchParams();
