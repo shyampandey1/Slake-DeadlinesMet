@@ -10,8 +10,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { UserPresetTask } from '@/types';
-
 
 const GenerateMotivationalMessageInputSchema = z.object({
   taskName: z.string().describe('The name of the completed task.'),
@@ -23,7 +21,7 @@ const GenerateMotivationalMessageInputSchema = z.object({
       duration: z.number(),
       completionStatus: z.boolean(),
     })
-  ).optional().describe('An array of past tasks with their duration and completion status.'),
+  ).optional().describe('An array of the last 5 completed tasks for context.'),
   userRoutine: z.array(z.object({
     name: z.string(),
     duration: z.number(),

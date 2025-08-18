@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
-import { useTasks, getAvailableCategories } from "@/hooks/useFirestore";
-import type { Task } from "@/types";
+import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
+import type { Task, UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -60,7 +60,8 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 
 export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
   const router = useRouter();
-  const { addTask } = useTasks();
+  const { tasks, addTask } = useTasks();
+  const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
   const { weatherData } = useWeather();
@@ -140,16 +141,18 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   useEffect(() => {
     startTimer();
-  }, []);
 
-  useEffect(() => {
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
-    return () => clearInterval(dateInterval);
-  }, []);
-
-  useEffect(() => {
     showStartNotification();
-  }, [showStartNotification]);
+    
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+        stopTimer();
+        clearInterval(dateInterval);
+        document.body.style.overflow = 'auto';
+    };
+  }, [startTimer, stopTimer, showStartNotification]);
 
 
   useEffect(() => {
@@ -162,13 +165,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     }
     return stopTimer;
   }, [isPaused, startTimer, stopTimer]);
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, []);
   
   const handleEndEarly = () => {
     stopTimer();
@@ -223,11 +219,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       
+      const userRoutine = Object.values(presetTasks).flatMap(category => category.tasks);
+      const pastTasks = tasks.slice(0, 5).map(t => ({
+          taskName: t.name,
+          duration: t.duration,
+          completionStatus: t.completed
+      }));
+
       try {
         const result = await generateMotivationalMessage({
           taskName: newTask.name,
           duration: newTask.duration,
           completionStatus: true,
+          userRoutine: userRoutine,
+          pastTasks: pastTasks,
         });
         setMotivationalMessage(result.message);
         setSuggestedTask(result.suggestedNextTask);
