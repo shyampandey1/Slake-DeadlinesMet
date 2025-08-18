@@ -21,4 +21,4 @@ runConfig:
     - variable: NEXT_PUBLIC_FIREBASE_APP_ID
       value: "YOUR_APP_ID"
     - variable: NEXT_PUBLIC_OPENWEATHER_API_KEY
-      value: "YOUR_OPENWEATHER_API_KEY"
+      value: "e4a2724febf68dd96f66bb5c2ff2cafc"
