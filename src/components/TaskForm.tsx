@@ -407,7 +407,7 @@ export default function TaskForm() {
             <h3 className="font-headline text-2xl mb-2">Or Create a Custom Task</h3>
             <p className="text-muted-foreground mb-4">Set a name and duration for a one-off task.</p>
             <Form {...form}>
-            <form id="custom-task-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <Card>
                     <CardContent className="pt-6 grid gap-6">
                         <FormField
