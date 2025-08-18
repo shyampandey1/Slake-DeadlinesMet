@@ -113,6 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if(firebaseUser) {
                 setUser(firebaseUser);
                 setIsOffline(false);
+            } else {
+                setUser(null);
             }
             setLoading(false);
         }, (error) => {
