@@ -88,7 +88,12 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
         return () => {
             if (svgContainerRef.current) {
-                resizeObserver.unobserve(svgContainerRef.current);
+                // Check if svgContainerRef.current is still valid before unobserving
+                try {
+                  resizeObserver.unobserve(svgContainerRef.current);
+                } catch (e) {
+                  // This can happen if the component unmounts before the cleanup function runs
+                }
             }
         };
     }, [isClient]);
@@ -236,7 +241,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                            <div className="flex flex-col items-start mt-2 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                 <LiveClock />
                                 <div className="flex items-center justify-start gap-2">
-                                    <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
+                                    {isClient && <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>}
                                     {weatherData && (
                                         <div className="flex items-center gap-1.5 pl-2 border-l border-white/30">
                                             <Icon name={weatherIconName} className="h-4 w-4" />
@@ -258,5 +263,4 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             `}</style>
         </div>
     );
-
-    
+}
