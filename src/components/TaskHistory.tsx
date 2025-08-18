@@ -184,7 +184,7 @@ function TaskLogBookContent() {
   const groupedTasks = useMemo(() => {
     const groups: { [key: string]: Task[] } = {};
     filteredTasks.forEach(task => {
-        if (task.createdAt) {
+        if (task.createdAt && !isNaN(new Date(task.createdAt).getTime())) {
             const taskDate = new Date(task.createdAt);
             let dayKey: string;
 
@@ -218,9 +218,16 @@ function TaskLogBookContent() {
         if (a === "Yesterday") return -1;
         if (b === "Yesterday") return 1;
         
-        const dateA = parse(a, 'PPP', new Date());
-        const dateB = parse(b, 'PPP', new Date());
-        return compareDesc(dateA, dateB);
+        try {
+            const dateA = parse(a, 'PPP', new Date());
+            const dateB = parse(b, 'PPP', new Date());
+            if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                return compareDesc(dateA, dateB);
+            }
+        } catch (e) {
+            return 0;
+        }
+        return 0;
     });
   }, [groupedTasks]);
 
