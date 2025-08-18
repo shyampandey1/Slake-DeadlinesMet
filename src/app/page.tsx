@@ -10,9 +10,10 @@ function HomeComponent() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
+    // This interval is for updating things that change less frequently, like date or weather visuals
     const timerId = setInterval(() => {
       setCurrentDate(new Date());
-    }, 1000);
+    }, 60000); // Update every minute
 
     return () => clearInterval(timerId);
   }, []);

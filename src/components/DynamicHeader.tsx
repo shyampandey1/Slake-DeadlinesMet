@@ -47,6 +47,14 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [displayTime, setDisplayTime] = useState(new Date());
+
+    useEffect(() => {
+        const timerId = setInterval(() => {
+            setDisplayTime(new Date());
+        }, 1000);
+        return () => clearInterval(timerId);
+    }, []);
 
     useEffect(() => {
         const resizeObserver = new ResizeObserver(entries => {
@@ -204,7 +212,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                            <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
                            <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
                            <div className="flex flex-col items-start mt-2 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                                <p className="font-bold font-headline text-2xl">{format(currentDate, 'p')}</p>
+                                <p className="font-bold font-headline text-2xl">{format(displayTime, 'p')}</p>
                                 <div className="flex items-center justify-start gap-2">
                                     <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>
                                     {weatherData && (
