@@ -213,10 +213,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       category: finalCategory,
     };
     
+    await addTask(newTask);
+
     if (completed) {
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
-      await addTask(newTask);
       
       try {
         const result = await generateMotivationalMessage({
@@ -233,7 +234,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setIsLoadingAI(false);
       }
     } else {
-      await addTask(newTask);
       router.push("/");
     }
   };
