@@ -61,8 +61,14 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const [stars, setStars] = useState<JSX.Element[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
         const resizeObserver = new ResizeObserver(entries => {
             if (entries[0]) {
                 const { width, height } = entries[0].contentRect;
@@ -79,7 +85,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                 resizeObserver.unobserve(svgContainerRef.current);
             }
         };
-    }, []);
+    }, [isClient]);
 
     const hour = currentDate.getHours();
     const minute = currentDate.getMinutes();
@@ -137,7 +143,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     }
     
     useEffect(() => { 
-        if (dimensions.width > 0 && dimensions.height > 0 && isNight) {
+        if (isClient && dimensions.width > 0 && dimensions.height > 0 && isNight) {
             const generatedStars = Array.from({ length: 50 }, (_, i) => {
                 const cx = Math.random() * dimensions.width;
                 const cy = Math.random() * dimensions.height * 0.5;
@@ -156,59 +162,63 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         } else {
             setStars([]);
         }
-    }, [dimensions, isNight]);
+    }, [isClient, dimensions, isNight]);
     
     const weatherIconName = weatherData ? getWeatherIcon(weatherData.code, isNight) : "cloud";
 
     return (
         <div className="relative w-full h-64">
              <div className="absolute inset-0 overflow-hidden border-b border-border/20">
-                 <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>
-                    <div className="absolute inset-0 opacity-100">
-                        <MotionCloud
-                            className="w-96 h-96 opacity-80"
-                            initial={{ x: '-100%', y: '10%' }}
-                            animate={{ x: '100%' }}
-                            transition={{ ease: 'linear', duration: 180, repeat: Infinity, repeatType: 'reverse' }}
-                        />
-                         <MotionCloud
-                            className="w-80 h-80 opacity-70"
-                            initial={{ x: '100%', y: '-10%' }}
-                            animate={{ x: '-100%' }}
-                            transition={{ ease: 'linear', duration: 200, repeat: Infinity, repeatType: 'reverse' }}
-                        />
-                         <MotionCloud
-                            className="w-[30rem] h-[30rem] opacity-75"
-                            initial={{ x: '0%', y: '20%' }}
-                            animate={{ x: '80%' }}
-                            transition={{ ease: 'linear', duration: 190, repeat: Infinity, repeatType: 'reverse' }}
-                        />
-                         <MotionCloud
-                            className="w-72 h-72 opacity-65"
-                            initial={{ x: '50%', y: '-20%' }}
-                            animate={{ x: '-50%' }}
-                            transition={{ ease: 'linear', duration: 160, repeat: Infinity, repeatType: 'reverse' }}
-                        />
-                    </div>
-                    <svg ref={svgContainerRef} width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
-                        <g style={{
-                            transform: `translate(${sunMoonX}%, ${sunMoonY}%)`,
-                            transition: 'transform 3s linear',
-                            opacity: sunMoonOpacity,
-                        }}>
-                            {isNight ? (
-                                <Icon name="moon" className="w-24 h-24 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
-                            ) : (
-                                <Icon name="sun" className="w-32 h-32 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(252, 211, 77, 0.9))' }}/>
-                            )}
-                        </g>
-                        {isNight && (
-                            <g style={{ opacity: 1, transition: 'opacity 3s linear' }}>
-                                {stars}
+                 {isClient ? (
+                    <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>
+                        <div className="absolute inset-0 opacity-100">
+                            <MotionCloud
+                                className="w-96 h-96 opacity-80"
+                                initial={{ x: '-100%', y: '10%' }}
+                                animate={{ x: '100%' }}
+                                transition={{ ease: 'linear', duration: 180, repeat: Infinity, repeatType: 'reverse' }}
+                            />
+                            <MotionCloud
+                                className="w-80 h-80 opacity-70"
+                                initial={{ x: '100%', y: '-10%' }}
+                                animate={{ x: '-100%' }}
+                                transition={{ ease: 'linear', duration: 200, repeat: Infinity, repeatType: 'reverse' }}
+                            />
+                            <MotionCloud
+                                className="w-[30rem] h-[30rem] opacity-75"
+                                initial={{ x: '0%', y: '20%' }}
+                                animate={{ x: '80%' }}
+                                transition={{ ease: 'linear', duration: 190, repeat: Infinity, repeatType: 'reverse' }}
+                            />
+                            <MotionCloud
+                                className="w-72 h-72 opacity-65"
+                                initial={{ x: '50%', y: '-20%' }}
+                                animate={{ x: '-50%' }}
+                                transition={{ ease: 'linear', duration: 160, repeat: Infinity, repeatType: 'reverse' }}
+                            />
+                        </div>
+                        <svg ref={svgContainerRef} width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
+                            <g style={{
+                                transform: `translate(${sunMoonX}%, ${sunMoonY}%)`,
+                                transition: 'transform 3s linear',
+                                opacity: sunMoonOpacity,
+                            }}>
+                                {isNight ? (
+                                    <Icon name="moon" className="w-24 h-24 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
+                                ) : (
+                                    <Icon name="sun" className="w-32 h-32 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(252, 211, 77, 0.9))' }}/>
+                                )}
                             </g>
-                        )}
-                    </svg>
-                </div>
+                            {isNight && (
+                                <g style={{ opacity: 1, transition: 'opacity 3s linear' }}>
+                                    {stars}
+                                </g>
+                            )}
+                        </svg>
+                    </div>
+                 ) : (
+                    <div className="absolute inset-0 bg-slate-900" />
+                 )}
             </div>
 
             <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm">
@@ -242,4 +252,5 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             `}</style>
         </div>
     );
-}
+
+    
