@@ -45,7 +45,7 @@ export default function BottomNav() {
                         )}
                         >
                         <Icon className={cn("h-6 w-6")} />
-                        <span className="text-xs">{label}</span>
+                        {isActive && <span className="text-xs">{label}</span>}
                     </Link>
                 )
             })}
