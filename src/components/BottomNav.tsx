@@ -7,7 +7,6 @@ import { BookText, Home, ClipboardList, Settings, LucideIcon } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimerUI } from "@/hooks/useTimerUI";
-import { motion } from "framer-motion";
 
 const navItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/history", label: "Log Book", icon: BookText },
@@ -27,22 +26,12 @@ export default function BottomNav() {
     return null;
   }
 
-  const activeIndex = navItems.findIndex(item => item.href === pathname);
-
   return (
     <nav className={cn(
         "fixed bottom-0 inset-x-0 z-50 bg-background border-t border-border shadow-lg transition-transform duration-300",
         isTimerPage && !isUIVisible && "translate-y-full"
     )}>
         <div className="relative flex justify-around items-center h-16">
-            {activeIndex !== -1 && (
-                <motion.div
-                    className="absolute top-0 h-0.5 w-1/4 bg-primary"
-                    initial={{ x: `${activeIndex * 100}%` }}
-                    animate={{ x: `${activeIndex * 100}%` }}
-                    transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
-                />
-            )}
             {navItems.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href;
 
@@ -51,10 +40,11 @@ export default function BottomNav() {
                         key={label}
                         href={href}
                         className={cn(
-                            "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors",
+                            "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors relative",
                             isActive ? "text-primary" : "hover:text-foreground"
                         )}
                         >
+                        {isActive && <div className="absolute top-0 h-0.5 w-full bg-primary" />}
                         <Icon className={cn("h-6 w-6")} />
                         {isActive && <span className="text-xs font-medium">{label}</span>}
                     </Link>
