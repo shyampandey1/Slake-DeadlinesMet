@@ -47,7 +47,7 @@ function SettingsPageComponent() {
     const [tempLocation, setTempLocation] = useState(location);
 
     useEffect(() => {
-        if ('Notification' in window) {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
             setNotificationsEnabled(Notification.permission === 'granted');
         }
     }, []);
@@ -87,17 +87,26 @@ function SettingsPageComponent() {
     }
 
     const handleNotificationToggle = async (enabled: boolean) => {
-        if (enabled && Notification.permission !== 'granted') {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
+        if (enabled) {
+            if (Notification.permission === 'granted') {
                 setNotificationsEnabled(true);
-                 toast({ title: "Notifications enabled!" });
+            } else if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    setNotificationsEnabled(true);
+                    toast({ title: "Notifications enabled!" });
+                } else {
+                    setNotificationsEnabled(false);
+                    toast({ title: "Notifications permission denied.", variant: 'destructive' });
+                }
             } else {
-                setNotificationsEnabled(false);
-                toast({ title: "Notifications permission denied.", variant: 'destructive' });
+                // Permission is denied, so we can't enable.
+                // The switch state should already be false.
+                toast({ title: "Notifications are blocked by your browser.", description: "You'll need to change the setting in your browser to enable them." });
             }
         } else {
-            setNotificationsEnabled(enabled);
+            // User is turning the switch off
+            setNotificationsEnabled(false);
         }
     };
 
