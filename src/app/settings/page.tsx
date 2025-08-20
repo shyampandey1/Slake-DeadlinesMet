@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,6 +45,12 @@ function SettingsPageComponent() {
     const { toast } = useToast();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [tempLocation, setTempLocation] = useState(location);
+
+    useEffect(() => {
+        if ('Notification' in window) {
+            setNotificationsEnabled(Notification.permission === 'granted');
+        }
+    }, []);
 
     const handleClearHistory = () => {
         clearTasks();
