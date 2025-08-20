@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import Icon from "@/components/Icon";
+import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, Play, ThumbsUp, X, Calendar as CalendarIcon } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -117,6 +117,9 @@ function TaskLogBookContent() {
     }
 
     const tasksInRange = tasks.filter(task => {
+        if (!task.createdAt || isNaN(new Date(task.createdAt).getTime())) {
+            return false;
+        }
       const taskDate = new Date(task.createdAt);
       return isWithinInterval(taskDate, { start: startDate, end: endDate });
     });
@@ -322,7 +325,7 @@ function TaskLogBookContent() {
                             className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
                             onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                         >
-                            <Icon name="calendar" className="mr-2 h-4 w-4" />
+                            <CalendarIcon className="mr-2 h-4 w-4" />
                             {date && filter === 'custom' ? format(date, "PPP") : (
                                 <span>Custom</span>
                             )}
@@ -343,17 +346,17 @@ function TaskLogBookContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full sm:w-auto">
-                    <Icon name="download" className="mr-2 h-4 w-4" />
+                    <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={downloadCSV}>
-                    <Icon name="file-down" className="mr-2 h-4 w-4" />
+                    <FileDown className="mr-2 h-4 w-4" />
                     Download as CSV
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={downloadImage}>
-                    <Icon name="image-down" className="mr-2 h-4 w-4" />
+                    <ImageDown className="mr-2 h-4 w-4" />
                     Download as Image
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -368,7 +371,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
-                                <Icon name="book-text" className="h-4 w-4 text-muted-foreground" />
+                                <BookText className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.totalTasks}</div>
@@ -378,7 +381,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                                <Icon name="check-circle" className="h-4 w-4 text-muted-foreground" />
+                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.completionRate}%</div>
@@ -388,7 +391,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
-                                <Icon name="clock" className="h-4 w-4 text-muted-foreground" />
+                                <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
@@ -398,7 +401,7 @@ function TaskLogBookContent() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
-                                <Icon name="droplets" className="h-4 w-4 text-muted-foreground" />
+                                <Droplets className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
@@ -413,7 +416,7 @@ function TaskLogBookContent() {
                                 <span>Category Breakdown</span>
                                 {selectedCategory && (
                                     <Button variant="ghost" size="sm" onClick={() => setSelectedCategory(null)} className="h-auto px-2 py-1 text-xs">
-                                        <Icon name="x" className="w-3 h-3 mr-1"/>
+                                        <X className="w-3 h-3 mr-1"/>
                                         Clear filter
                                     </Button>
                                 )}
@@ -476,7 +479,7 @@ function TaskLogBookContent() {
                                 </div>
                             ) : (
                             <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                                <Icon name="book-text" className="mx-auto h-12 w-12" />
+                                <BookText className="mx-auto h-12 w-12" />
                                 <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
                                 <p className="mt-1 text-sm">No tasks were logged in this period.</p>
                             </div>
@@ -512,12 +515,12 @@ function TaskLogBookContent() {
                                                     <div className="flex-shrink-0">
                                                         {task.completed ? (
                                                             <div className="flex items-center gap-1.5 text-green-500">
-                                                                <Icon name="thumbs-up" className="h-4 w-4" />
+                                                                <ThumbsUp className="h-4 w-4" />
                                                                 <span className="text-sm font-medium">Done</span>
                                                             </div>
                                                         ) : (
                                                             <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                <Icon name="play" className="mr-2 h-3 w-3" />
+                                                                <Play className="mr-2 h-3 w-3" />
                                                                 Continue
                                                             </Button>
                                                         )}

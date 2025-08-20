@@ -4,11 +4,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
-import Icon from '@/components/Icon';
+import { useWeather } from '@/hooks/useWeather';
+import { LucideIcon, Sun, Moon, Cloud, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, CloudFog, Cloudy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { useWeather } from '@/hooks/useWeather';
-import { LucideIcon } from 'lucide-react';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -25,21 +24,21 @@ const MotionCloud = ({ initial, animate, transition, className }: any) => (
         transition={transition}
         className={cn("absolute text-white/40", className)}
     >
-        <Icon name="cloud" className="w-full h-full" />
+        <Cloud className="w-full h-full" />
     </motion.div>
 );
 
-const getWeatherIcon = (code: number, isNight: boolean): React.ComponentProps<typeof Icon>['name'] => {
-    if (code >= 200 && code < 300) return "cloud-lightning";
-    if (code >= 300 && code < 400) return "cloud-drizzle";
-    if (code >= 500 && code < 600) return "cloud-rain";
-    if (code >= 600 && code < 700) return "cloud-snow";
-    if (code >= 700 && code < 800) return "cloud-fog";
-    if (code === 800) return isNight ? "moon" : "sun";
-    if (code === 801) return isNight ? "cloud-moon" : "cloud-sun";
-    if (code === 802) return "cloud";
-    if (code > 802) return "cloudy";
-    return "cloud";
+const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
+    if (code >= 200 && code < 300) return CloudLightning;
+    if (code >= 300 && code < 400) return CloudDrizzle;
+    if (code >= 500 && code < 600) return CloudRain;
+    if (code >= 600 && code < 700) return CloudSnow;
+    if (code >= 700 && code < 800) return CloudFog;
+    if (code === 800) return isNight ? Moon : Sun;
+    if (code === 801) return isNight ? CloudMoon : CloudSun;
+    if (code === 802) return Cloud;
+    if (code > 802) return Cloudy;
+    return Cloud;
 };
 
 // New component to only re-render the clock
@@ -175,7 +174,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         }
     }, [isClient, dimensions, isNight]);
     
-    const weatherIconName = weatherData ? getWeatherIcon(weatherData.code, isNight) : "cloud";
+    const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
     return (
         <div className="relative w-full h-64">
@@ -215,9 +214,9 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                 opacity: sunMoonOpacity,
                             }}>
                                 {isNight ? (
-                                    <Icon name="moon" className="w-24 h-24 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
+                                    <Moon className="w-24 h-24 text-white/90" fill="white" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))' }}/>
                                 ) : (
-                                    <Icon name="sun" className="w-32 h-32 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(252, 211, 77, 0.9))' }}/>
+                                    <Sun className="w-32 h-32 text-amber-300" fill="currentColor" style={{ filter: 'drop-shadow(0 0 25px rgba(252, 211, 77, 0.9))' }}/>
                                 )}
                             </g>
                             {isNight && (
@@ -244,7 +243,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                     {isClient && <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>}
                                     {weatherData && (
                                         <div className="flex items-center gap-1.5 pl-2 border-l border-white/30">
-                                            <Icon name={weatherIconName} className="h-4 w-4" />
+                                            <WeatherIcon className="h-4 w-4" />
                                             <span className="text-xs">{weatherData.temp}°</span>
                                         </div>
                                     )}
