@@ -41,10 +41,9 @@ export default function BottomNav() {
                         href={href}
                         className={cn(
                             "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors relative",
-                            isActive ? "text-primary" : "hover:text-foreground"
+                            isActive ? "text-foreground" : "hover:text-foreground"
                         )}
                         >
-                        {isActive && <div className="absolute top-0 h-0.5 w-full bg-primary" />}
                         <Icon className={cn("h-6 w-6")} />
                         {isActive && <span className="text-xs font-medium">{label}</span>}
                     </Link>
