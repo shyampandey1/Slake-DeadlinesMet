@@ -19,7 +19,7 @@ const sounds = [
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(sounds[0].name);
-  const [volume, setVolumeState] = useState(0.5);
+  const [volume, setVolumeState] = useState([0.5]);
   const soundInstances = useRef<{ [key: string]: Howl }>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -38,7 +38,7 @@ export function useAudioSettings() {
       console.warn("Could not access localStorage for audio settings.");
     }
     
-    setVolumeState(initialVolume);
+    setVolumeState([initialVolume]);
     
     sounds.forEach(sound => {
       soundInstances.current[sound.name] = new Howl({
@@ -75,7 +75,7 @@ export function useAudioSettings() {
 
   const setVolumeCallback = useCallback((newVolume: number[]) => {
     const vol = newVolume[0];
-    setVolumeState(vol);
+    setVolumeState([vol]);
     Howler.volume(vol);
     try {
       localStorage.setItem(VOLUME_KEY, JSON.stringify(vol));

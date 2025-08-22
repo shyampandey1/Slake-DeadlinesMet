@@ -100,12 +100,10 @@ function SettingsPageComponent() {
                     toast({ title: "Notifications permission denied.", variant: 'destructive' });
                 }
             } else {
-                // Permission is denied, so we can't enable.
-                // The switch state should already be false.
+                setNotificationsEnabled(false);
                 toast({ title: "Notifications are blocked by your browser.", description: "You'll need to change the setting in your browser to enable them." });
             }
         } else {
-            // User is turning the switch off
             setNotificationsEnabled(false);
         }
     };
@@ -236,7 +234,7 @@ function SettingsPageComponent() {
                              <div className="space-y-2">
                                 <Label>Volume</Label>
                                 <Slider
-                                    value={[volume]}
+                                    value={volume}
                                     onValueChange={setVolume}
                                     max={1}
                                     step={0.1}
