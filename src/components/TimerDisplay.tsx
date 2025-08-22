@@ -123,15 +123,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           return 0;
         }
         
-        if (prev > 10) {
+        // Visual cue logic
+        if (prev > 3) {
             setFlashState('none');
-        } else if (prev > 5) {
-            setFlashState('breathing');
-        } else if (prev > 3) {
-            setFlashState('three-times');
         } else {
             setFlashState('continuous');
-            playSound();
         }
 
         return prev - 1;
