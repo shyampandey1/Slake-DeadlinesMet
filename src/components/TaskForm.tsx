@@ -35,6 +35,14 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "./ui/skeleton";
 import TaskDeletion from "./TaskDeletion";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+
 
 
 const formSchema = z.object({
@@ -122,6 +130,8 @@ export default function TaskForm() {
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const pressTimerRef = useRef<NodeJS.Timeout>();
+  const [contextMenuVisible, setContextMenuVisible] = useState<boolean>(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -250,13 +260,25 @@ export default function TaskForm() {
     setDeletingTaskId(null);
     setIsDialogOpen(false);
   };
-
+  
   function onSubmit(values: z.infer<typeof formSchema>) {
     const params = new URLSearchParams({
       task: values.taskName,
       duration: values.duration.toString(),
     });
     if (values.category) {
+      // Find the category color to pass to the timer page
+      const categoryData = mergedTasks[values.category];
+      if (categoryData && categoryData.color) {
+        // Extract only the color class name (e.g., "bg-blue-500" from a string that might contain other classes)
+        const colorClassMatch = categoryData.color.match(/bg-[a-z]+-\d+/);
+        if (colorClassMatch && colorClassMatch[0]) {
+          params.append("color", colorClassMatch[0]);
+        } else {
+           // Fallback to a default color if the specific pattern is not found
+           params.append("color", "bg-gray-500"); 
+        }
+      }
         params.append("category", values.category);
     }
     router.push(`/timer?${params.toString()}`);
@@ -274,15 +296,36 @@ export default function TaskForm() {
     }
   }
 
-  const hasTasks = Object.keys(mergedTasks).length > 0 && Object.values(mergedTasks).some(cat => cat.tasks.length > 0);
+  const handleTaskContextMenu = (event: React.MouseEvent, task: UserPresetTask) => {
+    if (task.isEvent) return; // Disable context menu for events
+    event.preventDefault();
+    setContextMenuVisible(true);
+    setContextMenuPosition({ x: event.clientX, y: event.clientY });
+    setTaskToEdit({ ...task, category: task.category! }); // Set task for deletion/editing if needed
+  };
+
+  const handleDeleteFromContextMenu = (taskId: string) => {
+    setDeletingTaskId(taskId);
+    setContextMenuVisible(false);
+  };
+
+  const handleStartTaskFromContextMenu = (task: UserPresetTask, category: string) => {
+    selectQuickStartTask(task, category);
+    setContextMenuVisible(false);
+  }
+
+  const hasTasks = useMemo(() => 
+    Object.keys(mergedTasks).length > 0 && Object.values(mergedTasks).some(cat => cat.tasks.length > 0), 
+    [mergedTasks]
+  );
 
   const renderSkeleton = () => (
     <div className="p-1">
       <Card className="flex flex-col rounded-xl h-[280px]">
           <CardHeader className="p-4 flex flex-row items-center justify-between">
               <div className="w-1/2 space-y-2">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
               </div>
               <Skeleton className="h-6 w-20" />
           </CardHeader>
@@ -291,7 +334,7 @@ export default function TaskForm() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
           </CardContent>
-           <CardFooter className="p-3 pt-0 mt-auto">
+          <CardFooter className="p-3 pt-0 mt-auto">
               <Skeleton className="h-10 w-full" />
           </CardFooter>
       </Card>
@@ -307,6 +350,16 @@ export default function TaskForm() {
         clearTimeout(pressTimerRef.current);
     }
   };
+
+  // Close context menu if clicked outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenuVisible(false);
+    if (contextMenuVisible) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [contextMenuVisible]);
+
 
   return (
     <>
@@ -355,38 +408,43 @@ export default function TaskForm() {
                                         return (
                                             <div 
                                                 key={task.id || `${task.name}-${index}`}
-                                                className="relative overflow-hidden rounded-lg"
-                                                onMouseDown={() => onTaskMouseDown(task.id!)}
-                                                onMouseUp={onTaskMouseUp}
-                                                onTouchStart={() => onTaskMouseDown(task.id!)}
-                                                onTouchEnd={onTaskMouseUp}
-                                                onMouseLeave={onTaskMouseUp}
-                                                onClick={() => {
-                                                    if(deletingTaskId) {
-                                                        setDeletingTaskId(null);
-                                                    } else {
-                                                        selectQuickStartTask(task, category)
-                                                    }
-                                                }}
-                                                onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
+                                                className="relative rounded-lg"
                                             >
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
-                                                >
-                                                    <Icon className="w-5 h-5 text-muted-foreground" />
-                                                    <span className="flex-1 text-left font-normal">{task.name}</span>
-                                                    <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
-                                                </Button>
+                                                <ContextMenu>
+                                                    <ContextMenuTrigger className="w-full">
+                                                        <Button
+                                                            variant="outline"
+                                                            className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
+                                                            onContextMenu={(e) => handleTaskContextMenu(e, task)}
+                                                            onClick={() => {
+                                                                if(deletingTaskId) {
+                                                                    setDeletingTaskId(null);
+                                                                } else {
+                                                                    selectQuickStartTask(task, category)
+                                                                }
+                                                                setContextMenuVisible(false); // Close menu on click
+                                                            }}
+                                                            onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
+                                                            >
+                                                            <Icon className="w-5 h-5 text-muted-foreground" />
+                                                            <span className="flex-1 text-left font-normal">{task.name}</span>
+                                                            <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
+                                                        </Button>
+                                                    </ContextMenuTrigger>
+                                                    <ContextMenuContent>
+                                                        <ContextMenuItem>Drag</ContextMenuItem>
+                                                        <ContextMenuItem onClick={() => task.id && handleDeleteFromContextMenu(task.id)}>
+                                                            Delete
+                                                        </ContextMenuItem>
+                                                    </ContextMenuContent>
+                                                </ContextMenu>
                                                 {deletingTaskId === task.id && (
-                                                    <TaskDeletion 
-                                                        isDefault={isDefaultTask(task)}
-                                                        onConfirmDelete={() => handleDeleteTask(task.id!)} 
-                                                    />
+                                                    <TaskDeletion isDefault={isDefaultTask(task)} onConfirmDelete={() => handleDeleteTask(task.id!)} />
                                                 )}
                                             </div>
                                         );
                                     })}
+
                                     </div>
                                 </ScrollArea>
                                 </CardContent>
