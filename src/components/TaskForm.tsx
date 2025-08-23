@@ -34,6 +34,7 @@ import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "./ui/skeleton";
+import TaskDeletion from "./TaskDeletion";
 
 
 const formSchema = z.object({
@@ -110,7 +111,7 @@ function formatDuration(minutes: number): string {
 
 export default function TaskForm() {
   const router = useRouter();
-  const { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory } = usePresetTasks();
+  const { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory, isDefaultTask } = usePresetTasks();
   const { events } = useCalendarEvents();
   const { profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -119,6 +120,9 @@ export default function TaskForm() {
   const [carouselApi, setCarouselApi] = useState<EmblaCarouselType | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const pressTimerRef = useRef<NodeJS.Timeout>();
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -158,7 +162,6 @@ export default function TaskForm() {
         });
     }
     
-    // Create a sorted array of categories, ensuring "Today's Events" is first if it exists
     const sortedCategoryNames = Object.keys(newPresetTasks).sort((a, b) => {
         if (a === "Today's Events") return -1;
         if (b === "Today's Events") return 1;
@@ -212,7 +215,6 @@ export default function TaskForm() {
     if (!carouselApi || Object.keys(mergedTasks).length === 0) return;
     
     const categoryKeys = Object.keys(mergedTasks);
-    // If "Today's Events" exists and it's today, make it active. Otherwise use the time-based active category.
     const activeKey = categoryKeys.includes("Today's Events") ? "Today's Events" : activeCategory;
 
     if (activeKey) {
@@ -221,7 +223,6 @@ export default function TaskForm() {
             scrollTo(activeIndex);
         }
     } else {
-        // Default to the first category if no active one is determined
         scrollTo(0);
     }
   }, [carouselApi, mergedTasks, activeCategory, scrollTo]);
@@ -246,6 +247,7 @@ export default function TaskForm() {
 
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
+    setDeletingTaskId(null);
     setIsDialogOpen(false);
   };
 
@@ -263,6 +265,7 @@ export default function TaskForm() {
   const categoriesWithColors = Object.entries(mergedTasks).map(([name, { color }]) => ({ name, color }));
 
   const selectQuickStartTask = (task: UserPresetTask, category: string) => {
+    if (deletingTaskId) return; // Prevent selection while delete UI is active
     form.setValue("taskName", task.name);
     form.setValue("duration", task.duration);
     form.setValue("category", category);
@@ -294,6 +297,16 @@ export default function TaskForm() {
       </Card>
     </div>
   );
+
+  const onTaskMouseDown = (taskId: string) => {
+    pressTimerRef.current = setTimeout(() => setDeletingTaskId(taskId), 500); // Long press is 500ms
+  };
+
+  const onTaskMouseUp = () => {
+    if (pressTimerRef.current) {
+        clearTimeout(pressTimerRef.current);
+    }
+  };
 
   return (
     <>
@@ -340,17 +353,32 @@ export default function TaskForm() {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
                                         const isEventTask = task.isEvent;
                                         return (
-                                            <Button
+                                            <div 
                                                 key={task.id || `${task.name}-${index}`}
-                                                variant="outline"
-                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
+                                                className="relative overflow-hidden rounded-lg"
+                                                onMouseDown={() => onTaskMouseDown(task.id!)}
+                                                onMouseUp={onTaskMouseUp}
+                                                onTouchStart={() => onTaskMouseDown(task.id!)}
+                                                onTouchEnd={onTaskMouseUp}
+                                                onMouseLeave={onTaskMouseUp}
                                                 onClick={() => selectQuickStartTask(task, category)}
                                                 onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
                                             >
-                                                <Icon className="w-5 h-5 text-muted-foreground" />
-                                                <span className="flex-1 text-left font-normal">{task.name}</span>
-                                                <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
-                                            </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
+                                                >
+                                                    <Icon className="w-5 h-5 text-muted-foreground" />
+                                                    <span className="flex-1 text-left font-normal">{task.name}</span>
+                                                    <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
+                                                </Button>
+                                                {deletingTaskId === task.id && (
+                                                    <TaskDeletion 
+                                                        isDefault={isDefaultTask(task)}
+                                                        onConfirmDelete={() => handleDeleteTask(task.id!)} 
+                                                    />
+                                                )}
+                                            </div>
                                         );
                                     })}
                                     </div>

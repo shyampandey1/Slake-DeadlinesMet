@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import type { UserPresetTask } from '@/types';
 import { Plus } from 'lucide-react';
+import TaskDeletion from '@/components/TaskDeletion';
 
 const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
   const LucideIcon = icons[name as keyof typeof icons];
@@ -27,9 +28,11 @@ const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
 function RoutinePageComponent() {
   const router = useRouter();
   const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading } = useProfile();
-  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask } = usePresetTasks();
+  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  let pressTimer: NodeJS.Timeout;
 
   const handleProfessionSelect = (profession: Profession) => {
     setProfile(profession.name);
@@ -61,7 +64,16 @@ function RoutinePageComponent() {
 
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
+    setDeletingTaskId(null);
     setIsDialogOpen(false);
+  };
+
+  const onTaskMouseDown = (taskId: string) => {
+    pressTimer = setTimeout(() => setDeletingTaskId(taskId), 500); // Long press is 500ms
+  };
+
+  const onTaskMouseUp = () => {
+    clearTimeout(pressTimer);
   };
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
@@ -172,11 +184,19 @@ function RoutinePageComponent() {
                       <AccordionContent className="p-4">
                           <div className="space-y-2">
                               {tasks.map((task, index) => (
+                                <div
+                                  key={task.id || `${task.name}-${index}`}
+                                  className="relative overflow-hidden rounded-lg"
+                                  onMouseDown={() => onTaskMouseDown(task.id!)}
+                                  onMouseUp={onTaskMouseUp}
+                                  onTouchStart={() => onTaskMouseDown(task.id!)}
+                                  onTouchEnd={onTaskMouseUp}
+                                  onMouseLeave={onTaskMouseUp}
+                                >
                                   <Button
-                                      key={task.id || `${task.name}-${index}`}
                                       variant="outline"
                                       className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
-                                      onClick={() => handleOpenDialog(task, category)}
+                                      onClick={() => deletingTaskId === task.id ? setDeletingTaskId(null) : handleOpenDialog(task, category)}
                                     >
                                       <div className="flex items-center gap-3">
                                           <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
@@ -186,6 +206,13 @@ function RoutinePageComponent() {
                                           </div>
                                       </div>
                                   </Button>
+                                  {deletingTaskId === task.id && (
+                                    <TaskDeletion 
+                                      isDefault={isDefaultTask(task)}
+                                      onConfirmDelete={() => handleDeleteTask(task.id!)} 
+                                    />
+                                  )}
+                                </div>
                               ))}
                           </div>
                           <CardFooter className="p-0 pt-4">
@@ -211,7 +238,7 @@ function RoutinePageComponent() {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSaveTask={handleSaveTask}
-        onDeleteTask={handleDeleteTask}
+        onDeleteTask={(id) => handleDeleteTask(id)}
         initialTask={taskToEdit}
         categories={categoriesWithColors}
       />
