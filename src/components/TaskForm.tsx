@@ -361,7 +361,13 @@ export default function TaskForm() {
                                                 onTouchStart={() => onTaskMouseDown(task.id!)}
                                                 onTouchEnd={onTaskMouseUp}
                                                 onMouseLeave={onTaskMouseUp}
-                                                onClick={() => selectQuickStartTask(task, category)}
+                                                onClick={() => {
+                                                    if(deletingTaskId) {
+                                                        setDeletingTaskId(null);
+                                                    } else {
+                                                        selectQuickStartTask(task, category)
+                                                    }
+                                                }}
                                                 onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
                                             >
                                                 <Button

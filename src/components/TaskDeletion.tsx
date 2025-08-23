@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import AnimatedTrashIcon from "./AnimatedTrashIcon";
+import type { UserPresetTask } from "@/types";
 
 interface TaskDeletionProps {
   onConfirmDelete: () => Promise<void>;

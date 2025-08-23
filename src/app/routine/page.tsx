@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,7 +32,8 @@ function RoutinePageComponent() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
-  let pressTimer: NodeJS.Timeout;
+  const pressTimerRef = useRef<NodeJS.Timeout>();
+
 
   const handleProfessionSelect = (profession: Profession) => {
     setProfile(profession.name);
@@ -69,11 +70,13 @@ function RoutinePageComponent() {
   };
 
   const onTaskMouseDown = (taskId: string) => {
-    pressTimer = setTimeout(() => setDeletingTaskId(taskId), 500); // Long press is 500ms
+    pressTimerRef.current = setTimeout(() => setDeletingTaskId(taskId), 500); // Long press is 500ms
   };
 
   const onTaskMouseUp = () => {
-    clearTimeout(pressTimer);
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+    }
   };
   
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
@@ -196,7 +199,13 @@ function RoutinePageComponent() {
                                   <Button
                                       variant="outline"
                                       className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
-                                      onClick={() => deletingTaskId === task.id ? setDeletingTaskId(null) : handleOpenDialog(task, category)}
+                                      onClick={() => {
+                                        if(deletingTaskId === task.id) {
+                                            setDeletingTaskId(null);
+                                        } else {
+                                            handleOpenDialog(task, category);
+                                        }
+                                      }}
                                     >
                                       <div className="flex items-center gap-3">
                                           <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
