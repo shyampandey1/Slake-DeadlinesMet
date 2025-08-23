@@ -302,7 +302,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 </FormItem>
               )}
             />
-            <DialogFooter className="sm:justify-between">
+            <DialogFooter className="sm:justify-between pt-4">
                 {isEditMode && initialTask && !isDefaultTask(initialTask) ? (
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -315,7 +315,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the preset task from your routine.
+                                This will permanently delete the preset task "{initialTask.name}". This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

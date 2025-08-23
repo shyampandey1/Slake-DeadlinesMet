@@ -17,7 +17,7 @@ import HamburgerMenu from '@/components/HamburgerMenu';
 import { format } from 'date-fns';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import type { UserPresetTask } from '@/types';
-import { Plus, RotateCw } from 'lucide-react';
+import { Plus, RotateCw, Trash2 } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -222,7 +222,8 @@ function RoutinePageComponent() {
                       <AccordionContent className="p-4">
                           <div className="space-y-2">
                               {tasks.map((task, index) => (
-                                <ContextMenu key={task.id || `${task.name}-${index}`}>
+                                <AlertDialog key={task.id || `${task.name}-${index}`}>
+                                <ContextMenu>
                                     <ContextMenuTrigger disabled={isDefaultTask(task)}>
                                       <Button
                                           variant="outline"
@@ -239,11 +240,29 @@ function RoutinePageComponent() {
                                       </Button>
                                     </ContextMenuTrigger>
                                     <ContextMenuContent>
-                                        <ContextMenuItem onSelect={() => handleDeleteTask(task.id!)} className="text-destructive focus:text-destructive">
-                                            Delete Task
-                                        </ContextMenuItem>
+                                        <AlertDialogTrigger asChild>
+                                            <ContextMenuItem className="text-destructive focus:text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete Task
+                                            </ContextMenuItem>
+                                        </AlertDialogTrigger>
                                     </ContextMenuContent>
                                 </ContextMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will permanently delete the preset task "{task.name}". This action cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteTask(task.id!)} className="bg-destructive hover:bg-destructive/90">
+                                            Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
                               ))}
                           </div>
                           <CardFooter className="p-0 pt-4">
