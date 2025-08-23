@@ -17,8 +17,26 @@ import HamburgerMenu from '@/components/HamburgerMenu';
 import { format } from 'date-fns';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import type { UserPresetTask } from '@/types';
-import { Plus } from 'lucide-react';
-import TaskDeletion from '@/components/TaskDeletion';
+import { Plus, RotateCw } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { defaultRoutines, profileToRoutineMap } from '@/lib/routines';
+
 
 const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
   const LucideIcon = icons[name as keyof typeof icons];
@@ -28,13 +46,10 @@ const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
 function RoutinePageComponent() {
   const router = useRouter();
   const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading } = useProfile();
-  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask } = usePresetTasks();
+  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, clearAndSetPresetTasks } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
-  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
-  const pressTimerRef = useRef<NodeJS.Timeout>();
-
-
+  
   const handleProfessionSelect = (profession: Profession) => {
     setProfile(profession.name);
   };
@@ -65,20 +80,19 @@ function RoutinePageComponent() {
 
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
-    setDeletingTaskId(null);
     setIsDialogOpen(false);
   };
 
-  const onTaskMouseDown = (taskId: string) => {
-    pressTimerRef.current = setTimeout(() => setDeletingTaskId(taskId), 500); // Long press is 500ms
-  };
+  const handleResetRoutine = async () => {
+    if (!profile) return;
+    const routineKey = profileToRoutineMap[profile];
+    if (!routineKey) return;
+    const defaultTasksForProfile = defaultRoutines.routines[routineKey];
+    if (!defaultTasksForProfile) return;
 
-  const onTaskMouseUp = () => {
-    if (pressTimerRef.current) {
-      clearTimeout(pressTimerRef.current);
-    }
-  };
-  
+    await clearAndSetPresetTasks(profile, defaultTasksForProfile);
+  }
+
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
   const renderSkeleton = () => (
@@ -163,8 +177,29 @@ function RoutinePageComponent() {
 
             <Separator />
             
-            <div>
+            <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline">
+                        <RotateCw className="w-4 h-4 mr-2"/>
+                        Reset Routine
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
+
             </div>
             
             {tasksLoading ? renderSkeleton() : (
@@ -187,41 +222,28 @@ function RoutinePageComponent() {
                       <AccordionContent className="p-4">
                           <div className="space-y-2">
                               {tasks.map((task, index) => (
-                                <div
-                                  key={task.id || `${task.name}-${index}`}
-                                  className="relative overflow-hidden rounded-lg"
-                                  onMouseDown={() => onTaskMouseDown(task.id!)}
-                                  onMouseUp={onTaskMouseUp}
-                                  onTouchStart={() => onTaskMouseDown(task.id!)}
-                                  onTouchEnd={onTaskMouseUp}
-                                  onMouseLeave={onTaskMouseUp}
-                                >
-                                  <Button
-                                      variant="outline"
-                                      className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
-                                      onClick={() => {
-                                        if(deletingTaskId === task.id) {
-                                            setDeletingTaskId(null);
-                                        } else {
-                                            handleOpenDialog(task, category);
-                                        }
-                                      }}
-                                    >
-                                      <div className="flex items-center gap-3">
-                                          <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
-                                          <div className="text-left">
-                                              <p className="font-medium">{task.name}</p>
-                                              <p className="text-xs text-muted-foreground">{task.duration} min</p>
+                                <ContextMenu key={task.id || `${task.name}-${index}`}>
+                                    <ContextMenuTrigger disabled={isDefaultTask(task)}>
+                                      <Button
+                                          variant="outline"
+                                          className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
+                                          onClick={() => handleOpenDialog(task, category)}
+                                        >
+                                          <div className="flex items-center gap-3">
+                                              <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
+                                              <div className="text-left">
+                                                  <p className="font-medium">{task.name}</p>
+                                                  <p className="text-xs text-muted-foreground">{task.duration} min</p>
+                                              </div>
                                           </div>
-                                      </div>
-                                  </Button>
-                                  {deletingTaskId === task.id && (
-                                    <TaskDeletion 
-                                      isDefault={isDefaultTask(task)}
-                                      onConfirmDelete={() => handleDeleteTask(task.id!)} 
-                                    />
-                                  )}
-                                </div>
+                                      </Button>
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
+                                        <ContextMenuItem onSelect={() => handleDeleteTask(task.id!)} className="text-destructive focus:text-destructive">
+                                            Delete Task
+                                        </ContextMenuItem>
+                                    </ContextMenuContent>
+                                </ContextMenu>
                               ))}
                           </div>
                           <CardFooter className="p-0 pt-4">

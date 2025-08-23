@@ -95,29 +95,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             const freshProfileData = freshProfileDoc.data() as UserProfile || { routineVersions: {} };
             const currentVersion = freshProfileData.routineVersions?.[prof] || 0;
 
-            if (currentVersion >= ROUTINE_TEMPLATE_VERSION) {
-                return;
-            }
-
-            const tasksToDeleteQuery = query(
+            const routineKey = profileToRoutineMap[prof];
+            if (!routineKey) return; // No default routine exists for this profile
+            const tasksExistQuery = query(
                 collection(db, 'userPresetTasks'),
                 where('userId', '==', uid),
-                where('profession', '==', prof)
+                where('profession', '==', prof),
             );
-            const tasksToDeleteSnapshot = await getDocs(tasksToDeleteQuery);
-            tasksToDeleteSnapshot.forEach(doc => transaction.delete(doc.ref));
-
-            const routineKey = profileToRoutineMap[prof];
-            const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] : [];
+            const tasksSnapshot = await getDocs(tasksExistQuery);
             
-            let order = 0;
-            defaultTasks.forEach(task => {
-                const newTaskRef = doc(collection(db, "userPresetTasks"));
-                transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
-            });
-            
-            const routineVersions = { ...(freshProfileData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-            transaction.set(profileRef, { routineVersions }, { merge: true });
+            // Only auto-initialize if there are NO tasks and version is outdated.
+            if (tasksSnapshot.empty && currentVersion < ROUTINE_TEMPLATE_VERSION) {
+                const defaultTasks = defaultRoutines.routines[routineKey];
+                
+                let order = 0;
+                defaultTasks.forEach(task => {
+                    const newTaskRef = doc(collection(db, "userPresetTasks"));
+                    transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
+                });
+                
+                const routineVersions = { ...(freshProfileData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
+                transaction.set(profileRef, { routineVersions }, { merge: true });
+            }
         });
     } catch (error) {
         console.error(`Transaction to initialize/update tasks for ${prof} failed: `, error);

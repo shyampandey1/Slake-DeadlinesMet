@@ -39,7 +39,6 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 
@@ -128,11 +127,6 @@ export default function TaskForm() {
   const [carouselApi, setCarouselApi] = useState<EmblaCarouselType | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
-  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
-  const pressTimerRef = useRef<NodeJS.Timeout>();
-  const [contextMenuVisible, setContextMenuVisible] = useState<boolean>(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
-
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -257,8 +251,6 @@ export default function TaskForm() {
 
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
-    setDeletingTaskId(null);
-    setIsDialogOpen(false);
   };
   
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -287,7 +279,6 @@ export default function TaskForm() {
   const categoriesWithColors = Object.entries(mergedTasks).map(([name, { color }]) => ({ name, color }));
 
   const selectQuickStartTask = (task: UserPresetTask, category: string) => {
-    if (deletingTaskId) return; // Prevent selection while delete UI is active
     form.setValue("taskName", task.name);
     form.setValue("duration", task.duration);
     form.setValue("category", category);
@@ -295,25 +286,7 @@ export default function TaskForm() {
         customTaskFormRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }
-
-  const handleTaskContextMenu = (event: React.MouseEvent, task: UserPresetTask) => {
-    if (task.isEvent) return; // Disable context menu for events
-    event.preventDefault();
-    setContextMenuVisible(true);
-    setContextMenuPosition({ x: event.clientX, y: event.clientY });
-    setTaskToEdit({ ...task, category: task.category! }); // Set task for deletion/editing if needed
-  };
-
-  const handleDeleteFromContextMenu = (taskId: string) => {
-    setDeletingTaskId(taskId);
-    setContextMenuVisible(false);
-  };
-
-  const handleStartTaskFromContextMenu = (task: UserPresetTask, category: string) => {
-    selectQuickStartTask(task, category);
-    setContextMenuVisible(false);
-  }
-
+  
   const hasTasks = useMemo(() => 
     Object.keys(mergedTasks).length > 0 && Object.values(mergedTasks).some(cat => cat.tasks.length > 0), 
     [mergedTasks]
@@ -340,26 +313,6 @@ export default function TaskForm() {
       </Card>
     </div>
   );
-
-  const onTaskMouseDown = (taskId: string) => {
-    pressTimerRef.current = setTimeout(() => setDeletingTaskId(taskId), 500); // Long press is 500ms
-  };
-
-  const onTaskMouseUp = () => {
-    if (pressTimerRef.current) {
-        clearTimeout(pressTimerRef.current);
-    }
-  };
-
-  // Close context menu if clicked outside
-  useEffect(() => {
-    const handleClickOutside = () => setContextMenuVisible(false);
-    if (contextMenuVisible) {
-      document.addEventListener('click', handleClickOutside);
-    }
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [contextMenuVisible]);
-
 
   return (
     <>
@@ -406,42 +359,25 @@ export default function TaskForm() {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
                                         const isEventTask = task.isEvent;
                                         return (
-                                            <div 
-                                                key={task.id || `${task.name}-${index}`}
-                                                className="relative rounded-lg"
-                                            >
-                                                <ContextMenu>
-                                                    <ContextMenuTrigger className="w-full">
-                                                        <Button
-                                                            variant="outline"
-                                                            className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
-                                                            onContextMenu={(e) => handleTaskContextMenu(e, task)}
-                                                            onClick={() => {
-                                                                if(deletingTaskId) {
-                                                                    setDeletingTaskId(null);
-                                                                } else {
-                                                                    selectQuickStartTask(task, category)
-                                                                }
-                                                                setContextMenuVisible(false); // Close menu on click
-                                                            }}
-                                                            onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
-                                                            >
-                                                            <Icon className="w-5 h-5 text-muted-foreground" />
-                                                            <span className="flex-1 text-left font-normal">{task.name}</span>
-                                                            <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
-                                                        </Button>
-                                                    </ContextMenuTrigger>
-                                                    <ContextMenuContent>
-                                                        <ContextMenuItem>Drag</ContextMenuItem>
-                                                        <ContextMenuItem onClick={() => task.id && handleDeleteFromContextMenu(task.id)}>
-                                                            Delete
-                                                        </ContextMenuItem>
-                                                    </ContextMenuContent>
-                                                </ContextMenu>
-                                                {deletingTaskId === task.id && (
-                                                    <TaskDeletion isDefault={isDefaultTask(task)} onConfirmDelete={() => handleDeleteTask(task.id!)} />
-                                                )}
-                                            </div>
+                                            <ContextMenu key={task.id || `${task.name}-${index}`}>
+                                                <ContextMenuTrigger disabled={isEventTask || isDefaultTask(task)}>
+                                                    <Button
+                                                        variant="outline"
+                                                        className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
+                                                        onClick={() => selectQuickStartTask(task, category)}
+                                                        onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
+                                                    >
+                                                        <Icon className="w-5 h-5 text-muted-foreground" />
+                                                        <span className="flex-1 text-left font-normal">{task.name}</span>
+                                                        <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
+                                                    </Button>
+                                                </ContextMenuTrigger>
+                                                <ContextMenuContent>
+                                                    <ContextMenuItem onSelect={() => handleDeleteTask(task.id!)} className="text-destructive focus:text-destructive">
+                                                        Delete
+                                                    </ContextMenuItem>
+                                                </ContextMenuContent>
+                                            </ContextMenu>
                                         );
                                     })}
 

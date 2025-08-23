@@ -170,7 +170,7 @@ export function usePresetTasks() {
 
 
   const isDefaultTask = (task: UserPresetTask) => {
-    return !!profileToRoutineMap[task.profession || profile];
+    return !task.id;
   };
 
   useEffect(() => {
@@ -223,37 +223,51 @@ export function usePresetTasks() {
         );
 
         unsubscribe = onSnapshot(q, (snapshot) => {
-            const seenTaskSignatures = new Set<string>();
-            
-            const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
-                const task = { id: doc.id, ...doc.data() } as UserPresetTask;
-                const category = task.category || 'Default';
-                const signature = `${task.name.trim()}-${category}`;
-
-                if (seenTaskSignatures.has(signature)) {
+            if (snapshot.empty) {
+                 const routineKey = profileToRoutineMap[effectiveProfile];
+                 const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
+                 const newPreset = defaultTasks.reduce((acc: Preset, task) => {
+                    const category = task.category || 'Default';
+                    if (!acc[category]) {
+                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                    }
+                    acc[category].tasks.push(task as UserPresetTask);
                     return acc;
-                }
-                seenTaskSignatures.add(signature);
+                }, {});
+                setPresetTasks(newPreset);
+            } else {
+                const seenTaskSignatures = new Set<string>();
                 
-                if (!acc[category]) {
-                    acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
+                    const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+                    const category = task.category || 'Default';
+                    const signature = `${task.name.trim()}-${category}`;
+
+                    if (seenTaskSignatures.has(signature)) {
+                        return acc;
+                    }
+                    seenTaskSignatures.add(signature);
+                    
+                    if (!acc[category]) {
+                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                    }
+                    acc[category].tasks.push(task);
+                    return acc;
+                }, {});
+
+                const sortedPreset: Preset = {};
+                Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                    .forEach(key => { sortedPreset[key] = newPreset[key]; });
+                
+                setPresetTasks(sortedPreset);
+
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
+                } catch (error) {
+                    console.warn("Could not cache preset tasks");
                 }
-                acc[category].tasks.push(task);
-                return acc;
-            }, {});
-
-            const sortedPreset: Preset = {};
-            Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-                .forEach(key => { sortedPreset[key] = newPreset[key]; });
-            
-            setPresetTasks(sortedPreset);
-            setLoading(false);
-
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
-            } catch (error) {
-                console.warn("Could not cache preset tasks");
             }
+            setLoading(false);
 
         }, (error) => {
             console.error("Error fetching preset tasks: ", error);
