@@ -234,7 +234,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setSuggestedTask(result.suggestedNextTask);
       } catch (error) {
         console.error("Failed to generate motivational message:", error);
+        // Fallback for when the AI call fails
         setMotivationalMessage("Great job finishing your task! Keep up the momentum!");
+        setSuggestedTask(undefined);
       } finally {
         setIsLoadingAI(false);
       }
