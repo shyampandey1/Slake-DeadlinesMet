@@ -87,6 +87,7 @@ export type CustomProfession = {
 export type Day = 'Saturday' | 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 
 export type UserProfile = {
+    userId: string;
     profile: ProfileType;
     customProfessions?: CustomProfession[];
     daysOff?: Day[];

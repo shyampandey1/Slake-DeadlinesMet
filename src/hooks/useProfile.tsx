@@ -115,7 +115,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 });
                 
                 const routineVersions = { ...(freshProfileData.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
-                transaction.set(profileRef, { routineVersions }, { merge: true });
+                transaction.set(profileRef, { userId: uid, routineVersions }, { merge: true });
             }
         });
     } catch (error) {
@@ -137,13 +137,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             if (storedProfile) {
                 setProfileData(JSON.parse(storedProfile));
             } else {
-                const defaultProfile = { profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}};
+                const defaultProfile: UserProfile = { userId: user.uid, profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}};
                 setProfileData(defaultProfile);
                 localStorage.setItem('user-profile', JSON.stringify(defaultProfile));
             }
         } catch (e) {
             console.warn("Could not access localStorage for profile");
-            setProfileData({ profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
+            setProfileData({ userId: user.uid, profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
         }
         setLoading(false);
         return;
@@ -160,7 +160,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 dataToSet.routineVersions = {};
             }
         } else {
-            dataToSet = { profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
+            dataToSet = { userId: user.uid, profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
             await setDoc(profileRef, dataToSet);
         }
 
@@ -188,9 +188,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
 
   const setProfile = useCallback(async (newProfile: ProfileType) => {
-    if (profile === newProfile) return;
+    if (!user || profile === newProfile) return;
     
-    const updatedData = { ...(profileData || { daysOff: [], customProfessions: [], routineVersions: {} }), profile: newProfile } as UserProfile;
+    const updatedData: UserProfile = { ...(profileData || { daysOff: [], customProfessions: [], routineVersions: {} }), userId: user.uid, profile: newProfile };
     setProfileData(updatedData);
 
     try {
@@ -200,7 +200,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (user && !isOffline && isSyncEnabled) {
         try {
             const profileRef = doc(db, 'users', user.uid);
-            await setDoc(profileRef, { profile: newProfile }, { merge: true });
+            await setDoc(profileRef, { userId: user.uid, profile: newProfile }, { merge: true });
             await initializeUserTasks(user.uid, newProfile);
         } catch (error) {
             console.error("Failed to set profile: ", error);
@@ -209,7 +209,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled, profile, profileData, initializeUserTasks]);
   
   const setDaysOff = useCallback(async (newDaysOff: Day[]) => {
-    const updatedData = { ...(profileData || { profile: 'General', customProfessions: [], routineVersions: {} }), daysOff: newDaysOff } as UserProfile;
+     if (!user) return;
+    const updatedData: UserProfile = { ...(profileData || { profile: 'General', customProfessions: [], routineVersions: {} }), userId: user.uid, daysOff: newDaysOff };
     setProfileData(updatedData);
 
      try {
@@ -219,7 +220,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (user && !isOffline && isSyncEnabled) {
         try {
             const profileRef = doc(db, 'users', user.uid);
-            await setDoc(profileRef, { daysOff: newDaysOff }, { merge: true });
+            await setDoc(profileRef, { userId: user.uid, daysOff: newDaysOff }, { merge: true });
         } catch (error) {
             console.error("Failed to set day off: ", error);
         }
@@ -272,8 +273,3 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 }
 
 export const useProfile = () => useContext(ProfileContext);
-
-    
-
-    
-
