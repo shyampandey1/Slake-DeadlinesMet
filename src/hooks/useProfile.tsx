@@ -88,7 +88,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (!prof || !isSyncEnabled || isOffline) return;
 
     try {
-        const profileRef = doc(db, 'userProfiles', uid);
+        const profileRef = doc(db, 'users', uid);
         
         await runTransaction(db, async (transaction) => {
             const freshProfileDoc = await transaction.get(profileRef);
@@ -150,7 +150,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    const profileRef = doc(db, 'userProfiles', user.uid);
+    const profileRef = doc(db, 'users', user.uid);
 
     const unsubscribe = onSnapshot(profileRef, async (docSnap) => {
         let dataToSet: UserProfile;
@@ -199,7 +199,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     if (user && !isOffline && isSyncEnabled) {
         try {
-            const profileRef = doc(db, 'userProfiles', user.uid);
+            const profileRef = doc(db, 'users', user.uid);
             await setDoc(profileRef, { profile: newProfile }, { merge: true });
             await initializeUserTasks(user.uid, newProfile);
         } catch (error) {
@@ -218,7 +218,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     if (user && !isOffline && isSyncEnabled) {
         try {
-            const profileRef = doc(db, 'userProfiles', user.uid);
+            const profileRef = doc(db, 'users', user.uid);
             await setDoc(profileRef, { daysOff: newDaysOff }, { merge: true });
         } catch (error) {
             console.error("Failed to set day off: ", error);
@@ -231,7 +231,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     try {
         await runTransaction(db, async (transaction) => {
-            const profileRef = doc(db, 'userProfiles', user.uid);
+            const profileRef = doc(db, 'users', user.uid);
             const profileDoc = await transaction.get(profileRef);
 
             if (profileDoc.exists()) {
@@ -276,3 +276,4 @@ export const useProfile = () => useContext(ProfileContext);
     
 
     
+
