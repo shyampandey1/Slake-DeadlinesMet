@@ -23,4 +23,4 @@ runConfig:
     - variable: NEXT_PUBLIC_OPENWEATHER_API_KEY
       value: "e4a2724febf68dd96f66bb5c2ff2cafc"
     - variable: GEMINI_API_KEY
-      value: "AIzaSyCNzfv7Ff8qqWVGd91fgkLvbpltILaeU8M"
+      value: "YOUR_GEMINI_API_KEY"
