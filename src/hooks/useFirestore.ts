@@ -68,7 +68,6 @@ export function useTasks() {
       const userTasks: Task[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        // Convert timestamp to serializable string
         const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
         userTasks.push({ id: doc.id, ...data, createdAt } as Task);
       });
@@ -91,13 +90,12 @@ export function useTasks() {
     if (!user) return;
     const newTask = {
       ...task,
-      userId: user.uid,
       createdAt: new Date().toISOString(),
     };
 
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
-      const updatedTasks = [...tasks, { ...newTask, id: new Date().toISOString() }];
+      const updatedTasks = [...tasks, { ...newTask, id: new Date().toISOString(), userId: user.uid }];
       setTasks(updatedTasks);
       try {
         localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
@@ -231,18 +229,9 @@ export function usePresetTasks() {
                 }, {});
                 setPresetTasks(newPreset);
             } else {
-                const seenTaskSignatures = new Set<string>();
-                
                 const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
                     const task = { id: doc.id, ...doc.data() } as UserPresetTask;
                     const category = task.category || 'Default';
-                    const signature = `${task.name.trim()}-${category}`;
-
-                    if (seenTaskSignatures.has(signature)) {
-                        return acc;
-                    }
-                    seenTaskSignatures.add(signature);
-                    
                     if (!acc[category]) {
                         acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
                     }
@@ -283,8 +272,19 @@ export function usePresetTasks() {
     if (!user || isOffline || !isSyncEnabled) return;
     
     const { category, ...rest } = taskData;
-    const tasksInCategory = presetTasks[category]?.tasks || [];
-    const newOrder = tasksInCategory.length > 0 ? Math.max(...tasksInCategory.map(t => t.order)) + 1 : 0;
+    
+    // Determine the new order
+    let maxOrder = -1;
+    for (const cat in presetTasks) {
+        if(presetTasks[cat].tasks) {
+            for (const task of presetTasks[cat].tasks) {
+                if (task.order > maxOrder) {
+                    maxOrder = task.order;
+                }
+            }
+        }
+    }
+    const newOrder = maxOrder + 1;
     
     const newTask = {
         ...rest,
@@ -308,9 +308,10 @@ export function usePresetTasks() {
   
   const clearAndSetPresetTasks = async (currentProfile: ProfileType, tasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[]) => {
       if (!user || isOffline || !isSyncEnabled) return;
-
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'userPresetTasks');
+      
       await runTransaction(db, async (transaction) => {
-          const currentTasksQuery = query(collection(db, 'users', user.uid, 'userPresetTasks'), where('profession', '==', currentProfile));
+          const currentTasksQuery = query(tasksCollectionRef, where('profession', '==', currentProfile));
           const currentTasksSnapshot = await getDocs(currentTasksQuery);
           currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
 
@@ -323,7 +324,7 @@ export function usePresetTasks() {
                   profession: currentProfile,
                   order: order++,
               };
-              const newTaskRef = doc(collection(db, 'users', user.uid, 'userPresetTasks'));
+              const newTaskRef = doc(tasksCollectionRef);
               transaction.set(newTaskRef, newTask);
           });
       });
@@ -338,7 +339,6 @@ export function usePresetTasks() {
     if (Object.keys(presetTasks).length === 0) return ranges;
 
     const today = new Date();
-    const yesterday = subDays(today, 1);
     
     const timeBlocks = {
         'Morning Routine': { start: 6, end: 9 },
@@ -347,7 +347,7 @@ export function usePresetTasks() {
         'Afternoon Session': { start: 14, end: 17 },
         'Post-Work Decompression': { start: 17, end: 19 },
         'Evening Routine': { start: 19, end: 21 },
-        'Bedtime Routine': { start: 21, end: 6, crossDay: true }, // Crosses midnight
+        'Bedtime Routine': { start: 21, end: 24 }, 
         'Work & Focus': { start: 9, end: 17 }, 
         'Breaks & Meals': { start: 12, end: 14 }, 
         'Health & Wellness': {start: 17, end: 19 }, 
@@ -356,7 +356,7 @@ export function usePresetTasks() {
         'Morning Prep': { start: 6, end: 9 },
         'On the Road': { start: 9, end: 17 },
         'Post-Work Admin': { start: 17, end: 18 },
-        'Evening & Bedtime': { start: 18, end: 6, crossDay: true }, // Crosses midnight
+        'Evening & Bedtime': { start: 18, end: 24 },
         // Healthcare
         'Pre-Shift Routine': { start: 5, end: 7 },
         'During Shift': { start: 7, end: 19 },
@@ -364,16 +364,15 @@ export function usePresetTasks() {
         // Day Off
         'Morning Recovery': { start: 7, end: 12 },
         'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
-        'Evening & Bedtime Reset': { start: 18, end: 6, crossDay: true }, // Crosses midnight
+        'Evening & Bedtime Reset': { start: 18, end: 24 },
     };
     
     Object.keys(presetTasks).forEach(category => {
         const categoryLookup = category as keyof typeof timeBlocks;
         if (timeBlocks[categoryLookup]) {
             const block = timeBlocks[categoryLookup];
-            const startDate = block.crossDay ? yesterday : today;
             ranges[category] = {
-                start: set(startDate, { hours: block.start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                start: set(today, { hours: block.start, minutes: 0, seconds: 0, milliseconds: 0 }),
                 end: set(today, { hours: block.end, minutes: 0, seconds: 0, milliseconds: 0 }),
             };
         }
@@ -387,18 +386,7 @@ export function usePresetTasks() {
       const now = new Date();
       
       const matchingCategories = Object.entries(categoryTimeRanges)
-          .filter(([category, range]) => {
-              const categoryLookup = category as keyof typeof categoryConfig;
-              const block = categoryConfig[categoryLookup];
-              const crossesDay = (block && (category === "Bedtime Routine" || category === "Evening & Bedtime" || category === "Evening & Bedtime Reset"));
-
-              if (crossesDay) {
-                  const yesterday_start = set(subDays(now, 1), { hours: range.start.getHours(), minutes: 0, seconds: 0 });
-                  const today_end = set(now, { hours: range.end.getHours(), minutes: 0, seconds: 0 });
-                  return now >= yesterday_start && now < today_end;
-              }
-              return now >= range.start && now < range.end;
-          })
+          .filter(([_, range]) => now >= range.start && now < range.end)
           .map(([category]) => category);
       
       if (matchingCategories.length === 0) return null;
@@ -407,7 +395,6 @@ export function usePresetTasks() {
       const availableMatchingCategories = matchingCategories.filter(category => presetTasks[category]);
       
       if (availableMatchingCategories.length > 0) {
-          // Sort by the category order defined in routines.ts to pick the most specific one.
           availableMatchingCategories.sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
           return availableMatchingCategories[0];
       }
@@ -487,8 +474,10 @@ export function useCalendarEvents() {
   const addEvent = async (eventData: Omit<UserEvent, 'id' | 'userId'>) => {
     if (!user) return;
     
+    const newEventData = { ...eventData, userId: user.uid };
+
     if (isOffline || !isSyncEnabled) {
-      const newEvent = { ...eventData, userId: user.uid, id: new Date().toISOString() };
+      const newEvent = { ...newEventData, id: new Date().toISOString() };
       const updatedEvents = [...events, newEvent];
       setEvents(updatedEvents);
        try {
@@ -499,7 +488,7 @@ export function useCalendarEvents() {
       return;
     }
 
-    await addDoc(collection(db, 'users', user.uid, 'userEvents'), eventData);
+    await addDoc(collection(db, 'users', user.uid, 'userEvents'), newEventData);
   };
 
   const deleteEvent = async (eventId: string) => {
