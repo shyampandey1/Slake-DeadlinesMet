@@ -44,9 +44,10 @@ export function useTasks() {
       return;
     }
 
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
       try {
-        const cachedTasks = localStorage.getItem(TASKS_CACHE_KEY);
+        const cachedTasks = localStorage.getItem(cacheKey);
         if (cachedTasks) {
           setTasks(JSON.parse(cachedTasks));
         }
@@ -59,8 +60,7 @@ export function useTasks() {
 
     setLoading(true);
     const q = query(
-      collection(db, 'tasks'), 
-      where('userId', '==', user.uid), 
+      collection(db, 'users', user.uid, 'tasks'), 
       orderBy('createdAt', 'desc')
     );
 
@@ -74,7 +74,7 @@ export function useTasks() {
       });
       setTasks(userTasks);
        try {
-        localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(userTasks));
+        localStorage.setItem(cacheKey, JSON.stringify(userTasks));
       } catch (error) {
         console.warn("Couldn't access localStorage for tasks");
       }
@@ -95,26 +95,28 @@ export function useTasks() {
       createdAt: new Date().toISOString(),
     };
 
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
       const updatedTasks = [...tasks, { ...newTask, id: new Date().toISOString() }];
       setTasks(updatedTasks);
       try {
-        localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(updatedTasks));
+        localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
       } catch (error) {
         console.warn("Couldn't access localStorage for tasks");
       }
       return;
     }
 
-    await addDoc(collection(db, 'tasks'), { ...task, userId: user.uid, createdAt: Timestamp.now()});
+    await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, createdAt: Timestamp.now()});
   };
 
   const clearTasks = async () => {
     if (!user) return;
     
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     setTasks([]);
     try {
-      localStorage.removeItem(TASKS_CACHE_KEY);
+      localStorage.removeItem(cacheKey);
     } catch(e) {
       console.warn("Could not clear tasks from localStorage");
     }
@@ -124,7 +126,7 @@ export function useTasks() {
     }
 
     const batch = writeBatch(db);
-    const q = query(collection(db, 'tasks'), where('userId', '==', user.uid));
+    const q = query(collection(db, 'users', user.uid, 'tasks'));
     const snapshot = await getDocs(q);
     snapshot.forEach(doc => {
       batch.delete(doc.ref);
@@ -174,50 +176,43 @@ export function usePresetTasks() {
   };
 
   useEffect(() => {
-    if (profileLoading) return;
-    
-    if (isOffline || !isSyncEnabled) {
-        const routineKey = profileToRoutineMap[effectiveProfile];
-        const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
-        let order = 0;
-        const tasksWithOrder = defaultTasks.map(task => ({ ...task, profession: effectiveProfile, order: order++ }));
-        
-        const newPreset = tasksWithOrder.reduce((acc: Preset, task) => {
-            const category = task.category || 'Default';
-            if (!acc[category]) {
-                acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-            }
-            acc[category].tasks.push(task as UserPresetTask);
-            return acc;
-        }, {});
-        setPresetTasks(newPreset);
-        setLoading(false);
-        return;
-    }
-    
-    if (!user || !effectiveProfile) {
+    if (profileLoading || !user) {
       setLoading(false);
       return;
+    }
+    
+    const cacheKey = `preset_tasks_${user.uid}_${effectiveProfile}`;
+    if (isOffline || !isSyncEnabled) {
+        try {
+            const cachedData = localStorage.getItem(cacheKey);
+            if (cachedData) {
+                setPresetTasks(JSON.parse(cachedData));
+            } else {
+                 const routineKey = profileToRoutineMap[effectiveProfile];
+                 const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
+                 const newPreset = defaultTasks.reduce((acc: Preset, task) => {
+                    const category = task.category || 'Default';
+                    if (!acc[category]) {
+                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                    }
+                    acc[category].tasks.push(task as UserPresetTask);
+                    return acc;
+                }, {});
+                setPresetTasks(newPreset);
+            }
+        } catch (e) {
+            console.warn("Could not read preset tasks from local storage");
+        }
+        setLoading(false);
+        return;
     }
     
     setLoading(true);
     let unsubscribe: (() => void) | null = null;
     
-    const cacheKey = `preset_tasks_${user.uid}_${effectiveProfile}`;
-    try {
-        const cachedTasks = localStorage.getItem(cacheKey);
-        if (cachedTasks) {
-            setPresetTasks(JSON.parse(cachedTasks));
-            setLoading(false); 
-        }
-    } catch (error) {
-        console.warn("Couldn't access localStorage for preset tasks");
-    }
-
     if (isSyncEnabled) {
         const q = query(
-            collection(db, 'userPresetTasks'),
-            where('userId', '==', user.uid),
+            collection(db, 'users', user.uid, 'userPresetTasks'),
             where('profession', '==', effectiveProfile),
             orderBy('order', 'asc')
         );
@@ -294,29 +289,28 @@ export function usePresetTasks() {
     const newTask = {
         ...rest,
         category,
-        userId: user.uid,
         profession: currentProfile,
         order: newOrder
     };
 
-    await addDoc(collection(db, 'userPresetTasks'), newTask);
+    await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), newTask);
   };
 
   const updatePresetTask = async (taskId: string, taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }) => {
     if (!user || isOffline || !isSyncEnabled) return;
-    await updateDoc(doc(db, 'userPresetTasks', taskId), taskData);
+    await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), taskData);
   };
 
   const deletePresetTask = async (taskId: string) => {
     if (!user || isOffline || !isSyncEnabled) return;
-    await deleteDoc(doc(db, 'userPresetTasks', taskId));
+    await deleteDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId));
   };
   
   const clearAndSetPresetTasks = async (currentProfile: ProfileType, tasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[]) => {
       if (!user || isOffline || !isSyncEnabled) return;
 
       await runTransaction(db, async (transaction) => {
-          const currentTasksQuery = query(collection(db, 'userPresetTasks'), where('userId', '==', user.uid), where('profession', '==', currentProfile));
+          const currentTasksQuery = query(collection(db, 'users', user.uid, 'userPresetTasks'), where('profession', '==', currentProfile));
           const currentTasksSnapshot = await getDocs(currentTasksQuery);
           currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
 
@@ -326,11 +320,10 @@ export function usePresetTasks() {
               const newTask = {
                   ...rest,
                   category,
-                  userId: user.uid,
                   profession: currentProfile,
                   order: order++,
               };
-              const newTaskRef = doc(collection(db, 'userPresetTasks'));
+              const newTaskRef = doc(collection(db, 'users', user.uid, 'userPresetTasks'));
               transaction.set(newTaskRef, newTask);
           });
       });
@@ -450,9 +443,10 @@ export function useCalendarEvents() {
       return;
     }
 
+    const cacheKey = `${EVENTS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
       try {
-        const cachedEvents = localStorage.getItem(EVENTS_CACHE_KEY);
+        const cachedEvents = localStorage.getItem(cacheKey);
         if (cachedEvents) {
           setEvents(JSON.parse(cachedEvents));
         }
@@ -465,8 +459,7 @@ export function useCalendarEvents() {
 
     setLoading(true);
     const q = query(
-      collection(db, 'userEvents'),
-      where('userId', '==', user.uid),
+      collection(db, 'users', user.uid, 'userEvents'),
       orderBy('date', 'asc')
     );
 
@@ -478,7 +471,7 @@ export function useCalendarEvents() {
       });
       setEvents(userEvents);
       try {
-        localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(userEvents));
+        localStorage.setItem(cacheKey, JSON.stringify(userEvents));
       } catch (error) {
         console.warn("Couldn't access localStorage for events");
       }
@@ -493,20 +486,20 @@ export function useCalendarEvents() {
 
   const addEvent = async (eventData: Omit<UserEvent, 'id' | 'userId'>) => {
     if (!user) return;
-    const newEvent = { ...eventData, userId: user.uid };
     
     if (isOffline || !isSyncEnabled) {
-      const updatedEvents = [...events, { ...newEvent, id: new Date().toISOString() }];
+      const newEvent = { ...eventData, userId: user.uid, id: new Date().toISOString() };
+      const updatedEvents = [...events, newEvent];
       setEvents(updatedEvents);
        try {
-        localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(updatedEvents));
+        localStorage.setItem(`${EVENTS_CACHE_KEY}_${user.uid}`, JSON.stringify(updatedEvents));
       } catch (error) {
         console.warn("Couldn't access localStorage for events");
       }
       return;
     }
 
-    await addDoc(collection(db, 'userEvents'), newEvent);
+    await addDoc(collection(db, 'users', user.uid, 'userEvents'), eventData);
   };
 
   const deleteEvent = async (eventId: string) => {
@@ -516,14 +509,14 @@ export function useCalendarEvents() {
         const updatedEvents = events.filter(e => e.id !== eventId);
         setEvents(updatedEvents);
          try {
-            localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(updatedEvents));
+            localStorage.setItem(`${EVENTS_CACHE_KEY}_${user.uid}`, JSON.stringify(updatedEvents));
         } catch (error) {
             console.warn("Couldn't access localStorage for events");
         }
         return;
     }
     
-    await deleteDoc(doc(db, 'userEvents', eventId));
+    await deleteDoc(doc(db, 'users', user.uid, 'userEvents', eventId));
   };
 
   return { events, loading, addEvent, deleteEvent };
