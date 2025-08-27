@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -17,6 +18,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       }
     ],
+  },
+  webpack: (config, { isServer }) => {
+    // Ignore tsconfig.json changes to prevent restart loops
+    config.watchOptions.ignored = ['**/tsconfig.json'];
+    return config;
   },
 };
 
