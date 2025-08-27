@@ -186,8 +186,8 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
   };
 
   const handleDelete = () => {
-    if (isEditMode && onDeleteTask) {
-        onDeleteTask(initialTask.id!);
+    if (isEditMode && onDeleteTask && initialTask?.id) {
+        onDeleteTask(initialTask.id);
     }
     onClose();
   }
@@ -303,7 +303,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
               )}
             />
             <DialogFooter className="sm:justify-between pt-4">
-                {isEditMode && initialTask && !isDefaultTask(initialTask) ? (
+                {isEditMode && initialTask && !isDefaultTask(initialTask) && onDeleteTask ? (
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button type="button" variant="destructive" className="sm:mr-auto">

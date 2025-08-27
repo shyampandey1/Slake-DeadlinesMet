@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import type { EmblaCarouselType } from 'embla-carousel-react'
+import type { UseEmblaCarouselType } from 'embla-carousel-react'
 import { format, isToday, parseISO } from "date-fns";
 import Link from "next/link";
 
@@ -124,7 +124,7 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
-  const [carouselApi, setCarouselApi] = useState<EmblaCarouselType | undefined>()
+  const [carouselApi, setCarouselApi] = useState<UseEmblaCarouselType | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
 
@@ -251,6 +251,7 @@ export default function TaskForm() {
 
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
+    setIsDialogOpen(false);
   };
   
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -359,25 +360,17 @@ export default function TaskForm() {
                                         const Icon = iconMap[task.icon] || BrainCircuit;
                                         const isEventTask = task.isEvent;
                                         return (
-                                            <ContextMenu key={task.id || `${task.name}-${index}`}>
-                                                <ContextMenuTrigger disabled={isEventTask || isDefaultTask(task)}>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
-                                                        onClick={() => selectQuickStartTask(task, category)}
-                                                        onDoubleClick={() => task.id && !isEventTask && handleOpenDialog(task, category)}
-                                                    >
-                                                        <Icon className="w-5 h-5 text-muted-foreground" />
-                                                        <span className="flex-1 text-left font-normal">{task.name}</span>
-                                                        <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
-                                                    </Button>
-                                                </ContextMenuTrigger>
-                                                <ContextMenuContent>
-                                                    <ContextMenuItem onSelect={() => handleDeleteTask(task.id!)} className="text-destructive focus:text-destructive">
-                                                        Delete
-                                                    </ContextMenuItem>
-                                                </ContextMenuContent>
-                                            </ContextMenu>
+                                            <Button
+                                                key={task.id || `${task.name}-${index}`}
+                                                variant="outline"
+                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
+                                                onClick={() => selectQuickStartTask(task, category)}
+                                                onDoubleClick={() => task.id && !isEventTask && !isDefaultTask(task) && handleOpenDialog(task, category)}
+                                            >
+                                                <Icon className="w-5 h-5 text-muted-foreground" />
+                                                <span className="flex-1 text-left font-normal">{task.name}</span>
+                                                <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
+                                            </Button>
                                         );
                                     })}
 
