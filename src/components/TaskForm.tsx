@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +6,8 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import type { UseEmblaCarouselType } from 'embla-carousel-react'
+// 1. Import the correct type for the carousel API object
+import type { EmblaCarouselType } from 'embla-carousel-react';
 import { format, isToday, parseISO } from "date-fns";
 import Link from "next/link";
 
@@ -124,7 +123,8 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
-  const [carouselApi, setCarouselApi] = useState<UseEmblaCarouselType | undefined>()
+  // 2. Use the corrected type for the state
+  const [carouselApi, setCarouselApi] = useState<EmblaCarouselType | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
 
@@ -318,7 +318,7 @@ export default function TaskForm() {
   return (
     <>
     <div className="space-y-4">
-       <div>
+        <div>
             <h2 className="font-headline text-2xl text-white">Quick Start Tasks</h2>
             <p className="text-white/80">Select a preset task or add your own.</p>
         </div>
