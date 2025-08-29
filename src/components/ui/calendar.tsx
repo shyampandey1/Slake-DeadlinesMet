@@ -53,13 +53,8 @@ function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
-      // The entire 'components' prop has been removed.
-      // The icons are now part of the DayPicker component itself.
+      // The incorrect 'components' prop has been removed from here.
       {...props}
-      components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
-      }}
     />
   )
 }
