@@ -1,12 +1,13 @@
-
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+// 1. Import the 'Variants' type from framer-motion
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { ReactNode, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-const variants = {
+// 2. Apply the 'Variants' type to the constant
+const variants: Variants = {
   initial: (direction: number) => ({
     x: direction > 0 ? '100vw' : '-100vw',
     opacity: 0,
