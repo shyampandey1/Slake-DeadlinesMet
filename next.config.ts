@@ -21,7 +21,15 @@ const nextConfig: NextConfig = {
   },
   webpack: (config, { isServer }) => {
     // Ignore tsconfig.json changes to prevent restart loops
-    config.watchOptions.ignored = ['**/tsconfig.json'];
+    if (config.watchOptions) {
+      if (Array.isArray(config.watchOptions.ignored)) {
+        config.watchOptions.ignored.push('**/tsconfig.json');
+      } else {
+        config.watchOptions.ignored = ['**/tsconfig.json'];
+      }
+    } else {
+      config.watchOptions = { ignored: ['**/tsconfig.json'] };
+    }
     return config;
   },
 };
