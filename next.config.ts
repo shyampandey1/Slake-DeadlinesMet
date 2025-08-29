@@ -1,5 +1,4 @@
-
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -16,20 +15,20 @@ const nextConfig: NextConfig = {
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
-      }
+      },
     ],
   },
   webpack: (config, { isServer }) => {
-    // Ignore tsconfig.json changes to prevent restart loops
-    if (config.watchOptions) {
-      if (Array.isArray(config.watchOptions.ignored)) {
-        config.watchOptions.ignored.push('**/tsconfig.json');
-      } else {
-        config.watchOptions.ignored = ['**/tsconfig.json'];
-      }
-    } else {
-      config.watchOptions = { ignored: ['**/tsconfig.json'] };
-    }
+    // This is the corrected section.
+    // We create a new watchOptions object instead of modifying the existing one.
+    config.watchOptions = {
+      ...config.watchOptions, // Keep all existing options
+      ignored: [
+        ...(Array.isArray(config.watchOptions.ignored) ? config.watchOptions.ignored : []),
+        '**/tsconfig.json',
+      ],
+    };
+    
     return config;
   },
 };
