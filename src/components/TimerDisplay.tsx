@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -85,7 +84,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 body: `You've finished your task: ${taskName}`,
                 icon: '/icon.svg',
                 tag: 'task-completion',
-                renotify: true,
+                // The 'renotify' line has been removed here
             });
         });
     }
