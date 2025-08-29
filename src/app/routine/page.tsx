@@ -1,13 +1,13 @@
-
 "use client";
 import { useState, useRef } from 'react';
+import React from 'react'; // Added this import
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useProfile, professions, Profession } from "@/hooks/useProfile";
 import { usePresetTasks } from "@/hooks/useFirestore";
-import * as icons from "lucide-react";
+import { icons } from "lucide-react"; // Changed from * as icons
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,9 +38,15 @@ import {
 import { defaultRoutines, profileToRoutineMap } from '@/lib/routines';
 
 
+// This is the corrected Icon component
 const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
   const LucideIcon = icons[name as keyof typeof icons];
-  return LucideIcon ? <LucideIcon {...props} /> : null;
+
+  if (!LucideIcon) {
+    return null;
+  }
+
+  return React.createElement(LucideIcon, props);
 };
 
 function RoutinePageComponent() {
@@ -168,7 +174,7 @@ function RoutinePageComponent() {
                         <Checkbox id="saturday" checked={daysOff.includes('Saturday')} onCheckedChange={() => handleDayOffToggle('Saturday')} />
                         <label htmlFor="saturday" className="text-sm font-medium leading-none">Saturday</label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className=".flex items-center space-x-2">
                         <Checkbox id="sunday" checked={daysOff.includes('Sunday')} onCheckedChange={() => handleDayOffToggle('Sunday')} />
                         <label htmlFor="sunday" className="text-sm font-medium leading-none">Sunday</label>
                     </div>
@@ -187,16 +193,16 @@ function RoutinePageComponent() {
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
-                    </AlertDialogFooter>
+                  <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
+                  </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
+                  </AlertDialogFooter>
                 </AlertDialogContent>
                 </AlertDialog>
 
@@ -205,62 +211,62 @@ function RoutinePageComponent() {
             {tasksLoading ? renderSkeleton() : (
               <Accordion type="multiple" defaultValue={Object.keys(presetTasks)} className="w-full space-y-4">
                 {Object.entries(presetTasks).map(([category, { color, tasks }]) => {
-                   const timeRange = categoryTimeRanges[category];
-                   return (
+                    const timeRange = categoryTimeRanges[category];
+                    return (
                   <AccordionItem value={category} key={category} className="border-none">
                     <Card className="overflow-hidden">
                       <AccordionTrigger className={cn("p-4 border-b", color)}>
-                           <div className="flex flex-col items-start text-left">
-                                <h3 className="font-headline text-lg">{category}</h3>
-                                {timeRange && (
-                                    <p className="text-xs text-inherit opacity-80">
-                                        {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
-                                    </p>
-                                )}
-                            </div>
+                          <div className="flex flex-col items-start text-left">
+                              <h3 className="font-headline text-lg">{category}</h3>
+                              {timeRange && (
+                                  <p className="text-xs text-inherit opacity-80">
+                                      {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                  </p>
+                              )}
+                          </div>
                       </AccordionTrigger>
                       <AccordionContent className="p-4">
                           <div className="space-y-2">
                               {tasks.map((task, index) => (
                                 <AlertDialog key={task.id || `${task.name}-${index}`}>
                                 <ContextMenu>
-                                    <ContextMenuTrigger disabled={isDefaultTask(task)}>
-                                      <Button
-                                          variant="outline"
-                                          className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
-                                          onClick={() => handleOpenDialog(task, category)}
-                                        >
-                                          <div className="flex items-center gap-3">
-                                              <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
-                                              <div className="text-left">
-                                                  <p className="font-medium">{task.name}</p>
-                                                  <p className="text-xs text-muted-foreground">{task.duration} min</p>
-                                              </div>
+                                  <ContextMenuTrigger disabled={isDefaultTask(task)}>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
+                                        onClick={() => handleOpenDialog(task, category)}
+                                      >
+                                      <div className="flex items-center gap-3">
+                                          <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
+                                          <div className="text-left">
+                                              <p className="font-medium">{task.name}</p>
+                                              <p className="text-xs text-muted-foreground">{task.duration} min</p>
                                           </div>
-                                      </Button>
-                                    </ContextMenuTrigger>
-                                    <ContextMenuContent>
-                                        <AlertDialogTrigger asChild>
-                                            <ContextMenuItem className="text-destructive focus:text-destructive">
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete Task
-                                            </ContextMenuItem>
-                                        </AlertDialogTrigger>
-                                    </ContextMenuContent>
+                                      </div>
+                                  </Button>
+                                  </ContextMenuTrigger>
+                                  <ContextMenuContent>
+                                      <AlertDialogTrigger asChild>
+                                        <ContextMenuItem className="text-destructive focus:text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Task
+                                        </ContextMenuItem>
+                                      </AlertDialogTrigger>
+                                  </ContextMenuContent>
                                 </ContextMenu>
                                 <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will permanently delete the preset task "{task.name}". This action cannot be undone.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteTask(task.id!)} className="bg-destructive hover:bg-destructive/90">
-                                            Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete the preset task "{task.name}". This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteTask(task.id!)} className="bg-destructive hover:bg-destructive/90">
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
                                 </AlertDialogContent>
                                 </AlertDialog>
                               ))}
@@ -273,7 +279,7 @@ function RoutinePageComponent() {
                       </AccordionContent>
                     </Card>
                   </AccordionItem>
-                   )
+                      )
                 })}
               </Accordion>
             )}
