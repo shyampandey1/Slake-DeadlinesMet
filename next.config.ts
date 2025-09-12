@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   /* config options here */
   images: {
     remotePatterns: [
@@ -18,19 +17,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // This is the corrected section.
-    // We create a new watchOptions object instead of modifying the existing one.
-    config.watchOptions = {
-      ...config.watchOptions, // Keep all existing options
-      ignored: [
-        ...(Array.isArray(config.watchOptions.ignored) ? config.watchOptions.ignored : []),
-        '**/tsconfig.json',
-      ],
-    };
-    
-    return config;
-  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
