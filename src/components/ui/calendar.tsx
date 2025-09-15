@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -53,7 +54,6 @@ function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
-      // The incorrect 'components' prop has been removed from here.
       {...props}
     />
   )
