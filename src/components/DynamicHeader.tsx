@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react'; // This line has been added to fix the build error
+import React from 'react'; // This line is required to fix the error
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
@@ -87,7 +87,6 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
         return () => {
             if (svgContainerRef.current) {
-                // Check if svgContainerRef.current is still valid before unobserving
                 try {
                   resizeObserver.unobserve(svgContainerRef.current);
                 } catch (e) {
