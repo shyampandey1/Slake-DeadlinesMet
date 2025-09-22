@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react'; // This line is required to fix the error
+import React from 'react'; // This line is required to fix the build error
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import HamburgerMenu from '@/components/HamburgerMenu';
