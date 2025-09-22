@@ -1,4 +1,4 @@
-name: NodeJS with Grunt
+name: Next.js CI
 
 on:
   push:
@@ -12,17 +12,22 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        # Using a single, current LTS version of Node.js is sufficient for most CI build checks
+        node-version: [20.x]
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Set up Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
+        # Optional: Caching npm dependencies can speed up subsequent runs
+        cache: 'npm'
 
-    - name: Build
+    - name: Install Dependencies and Build
+      # This step installs dependencies and then runs the Next.js production build command
       run: |
         npm install
-        grunt
+        npm run build
