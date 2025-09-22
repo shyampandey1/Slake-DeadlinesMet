@@ -124,7 +124,7 @@ export default function TaskForm() {
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
   // 2. Used the corrected type for the state
-  const [carouselApi, setCarouselApi] = useState<UseEmblaCarouselType[1] | undefined>()
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
 
@@ -497,3 +497,5 @@ export default function TaskForm() {
     </>
   );
 }
+
+    
