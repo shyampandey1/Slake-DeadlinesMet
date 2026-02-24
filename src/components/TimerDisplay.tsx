@@ -59,7 +59,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const stopTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -78,12 +78,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           playSound();
           return 0;
         }
-        
+
         if (prev <= 4) {
           setFlashState('continuous');
           playSound();
         } else if (prev <= 11 && prev > 4) {
-           setFlashState('none');
+          setFlashState('none');
         }
 
         return prev - 1;
@@ -95,9 +95,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     if (!isPaused) {
       startTimer();
     } else {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-        }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     }
     return stopTimer;
   }, [isPaused, startTimer, stopTimer]);
@@ -110,13 +110,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       document.body.style.overflow = 'auto';
     };
   }, []);
-  
+
   const handleEndEarly = () => {
     stopTimer();
     setIsPaused(true);
     setIsFinished(true);
   };
-  
+
   const handleStartSuggestedTask = () => {
     if (!suggestedTask) return;
     const params = new URLSearchParams({
@@ -126,7 +126,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     // Use window.location.href to force a full page reload with the new params
     window.location.href = `/timer?${params.toString()}`;
   }
-  
+
   const handleInteraction = () => {
     showUI();
   };
@@ -148,7 +148,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       try {
-        const pastTasks = tasks.slice(0, 5).map(t => ({taskName: t.name, duration: t.duration, completionStatus: t.completed}));
+        const pastTasks = tasks.slice(0, 5).map(t => ({ taskName: t.name, duration: t.duration, completionStatus: t.completed }));
         const result = await generateMotivationalMessage({
           taskName: newTask.name,
           duration: newTask.duration,
@@ -173,7 +173,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
-  
+
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
 
   // Extract HSL values from the color prop
@@ -200,13 +200,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       } as React.CSSProperties}
     >
       <div className={cn(
-        "absolute top-4 transition-opacity duration-300",
+        "absolute top-6 transition-opacity duration-300",
         !isUIVisible && "opacity-30"
       )}>
         <InfoDisplay />
       </div>
-      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
+      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center translate-y-8">
+        <h2 className="mb-6 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
         <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
           {taskName}
         </h1>
@@ -246,18 +246,18 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           </AlertDialogHeader>
           <AlertDialogFooter>
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
-                <AlertDialogAction
+              <AlertDialogAction
                 className="bg-red-600 hover:bg-red-700"
                 onClick={() => handleSaveTask(false)}
-                >
+              >
                 No
-                </AlertDialogAction>
-                <AlertDialogAction
+              </AlertDialogAction>
+              <AlertDialogAction
                 className="bg-green-600 hover:bg-green-700"
                 onClick={() => handleSaveTask(true)}
-                >
+              >
                 Yes!
-                </AlertDialogAction>
+              </AlertDialogAction>
             </div>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -271,12 +271,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               Task Completed!
             </DialogTitle>
             <DialogDescription asChild>
-                <div className="pt-4">
+              <div className="pt-4">
                 {isLoadingAI ? (
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <p>Generating your motivational message...</p>
-                    </div>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <p>Generating your motivational message...</p>
+                  </div>
                 ) : (
                   <>
                     <p className="text-lg text-foreground">{motivationalMessage}</p>
@@ -288,7 +288,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     )}
                   </>
                 )}
-                </div>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
