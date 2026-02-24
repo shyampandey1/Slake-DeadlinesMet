@@ -26,19 +26,9 @@
         {
           "fieldPath": "profession",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "userEvents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
         },
         {
-          "fieldPath": "date",
+          "fieldPath": "order",
           "order": "ASCENDING"
         }
       ]

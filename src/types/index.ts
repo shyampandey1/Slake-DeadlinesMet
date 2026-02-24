@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 import { LucideIcon } from 'lucide-react';
 
@@ -10,6 +11,7 @@ export type Task = {
   initialDuration: number; // in minutes, original planned duration
   completed: boolean;
   createdAt: any; // Can be a server timestamp
+  category?: string;
 };
 
 export type MockUser = {
@@ -32,12 +34,14 @@ export type PresetTask = {
     icon: string;
     order: number;
     recurring?: boolean;
+    profession?: ProfileType;
 };
 
 // Represents a task stored in Firestore, which will have an ID.
 export type UserPresetTask = PresetTask & {
   id?: string; // Default tasks won't have an ID
   isEvent?: boolean; // Flag to identify calendar events
+  category: string;
 };
 
 
@@ -48,12 +52,47 @@ export type Preset = {
     };
 };
 
-export type ProfileType = "Artist" | "Consultant" | "Content Creator" | "Designer" | "Educator" | "Entrepreneur" | "Freelancer" | "General" | "Healthcare Professional" | "IT Professional" | "Manager" | "Marketer" | "Researcher" | "Sales" | "Software Engineer" | "Student" | "Writer" | string;
+export type ProfileType = 
+    | "Artist" 
+    | "Consultant" 
+    | "Content Creator" 
+    | "Designer" 
+    | "Educator" 
+    | "Entrepreneur" 
+    | "Freelancer" 
+    | "General" 
+    | "Healthcare Professional" 
+    | "Day Off"
+    | "Day Off - Analyst"
+    | "Day Off - Healthcare"
+    | "Admin Day - On The Go"
+    | "IT Professional" 
+    | "Manager" 
+    | "Marketer" 
+    | "Researcher" 
+    | "Sales" 
+    | "Software Engineer" 
+    | "Student" 
+    | "Writer" 
+    | "Medical Representative" 
+    | "Delivery Agent" 
+    | "Analyst" 
+    | string;
 
 export type CustomProfession = {
     name: string;
     categoryGroup: string;
 }
+
+export type Day = 'Saturday' | 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+
+export type UserProfile = {
+    userId: string;
+    profile: ProfileType;
+    customProfessions?: CustomProfession[];
+    daysOff?: Day[];
+    routineVersions?: { [key: string]: number };
+};
 
 export type UserEvent = {
     id: string;

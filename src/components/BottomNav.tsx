@@ -3,12 +3,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookText, ClipboardList, Settings } from "lucide-react";
+import { BookText, Home, ClipboardList, Settings, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimerUI } from "@/hooks/useTimerUI";
 
-const navItems = [
+const navItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/history", label: "Log Book", icon: BookText },
   { href: "/", label: "Home", icon: Home },
   { href: "/routine", label: "Routine", icon: ClipboardList },
@@ -25,13 +25,13 @@ export default function BottomNav() {
   if (!user) {
     return null;
   }
-  
+
   return (
     <nav className={cn(
         "fixed bottom-0 inset-x-0 z-50 bg-background border-t border-border shadow-lg transition-transform duration-300",
         isTimerPage && !isUIVisible && "translate-y-full"
     )}>
-        <div className="flex justify-around items-center h-16">
+        <div className="relative flex justify-around items-center h-16">
             {navItems.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href;
 
@@ -40,12 +40,12 @@ export default function BottomNav() {
                         key={label}
                         href={href}
                         className={cn(
-                            "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full",
-                            isActive && "text-primary"
+                            "flex flex-col items-center justify-center gap-1 text-muted-foreground w-full h-full transition-colors relative",
+                            isActive ? "text-foreground" : "hover:text-foreground"
                         )}
                         >
                         <Icon className={cn("h-6 w-6")} />
-                        <span className="text-xs">{label}</span>
+                        <span className="text-xs font-medium">{label}</span>
                     </Link>
                 )
             })}

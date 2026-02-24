@@ -20,33 +20,79 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Menu, LogOut, User, X, BookText, Sun, Moon, ClipboardList, Calendar, Sparkles, WandSparkles, Palette, StickyNote, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "./ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
+import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info, LogOut, X, Layers, Zap, StickyNote, Users2, Cloud, Palette, Bug, Sun, PieChart } from 'lucide-react';
 
 const changelog = [
+  {
+      version: "v1.4",
+      date: "Day 5",
+      features: [
+        { name: "Expert-Tuned Routines", description: "Completely overhauled all professional routines based on extensive research for maximum effectiveness.", icon: "clipboard-list" },
+        { name: "Dashboard Redesign", description: "The Log Book dashboard now features a cleaner side-by-side layout for stats and charts.", icon: "pie-chart" },
+        { name: "Brighter Days Ahead", description: "The home page header is now bigger, brighter, and sunnier on clear-weather days.", icon: "sun" },
+        { name: "Final Bug Squash", description: "Implemented a definitive fix to permanently eliminate the task duplication bug.", icon: "bug" },
+      ]
+  },
+    {
+      version: "v1.3",
+      date: "Day 4",
+      features: [
+        { name: "Modern Header Redesign", description: "The home page header now seamlessly blends with the content for a more modern, stacked appearance.", icon: "layers" },
+        { name: "Enhanced Visuals", description: "Increased the visibility and animation speed of the clouds in the header for a more dynamic feel.", icon: "zap" },
+        { name: "Core Stability Fix", description: "Resolved a persistent and critical bug that could cause task duplication, ensuring a stable and reliable routine.", icon: "sticky-note" },
+      ]
+  },
+  {
+      version: "v1.2",
+      date: "Day 3",
+      features: [
+        { name: "Google Sign-In", description: "Users can now sign in using their Google accounts for a faster and more secure login experience.", icon: "users-2" },
+        { name: "Cloud Sync Control", description: "Added a 'Cloud Sync' toggle in settings to give users control over their data synchronization.", icon: "cloud" },
+        { name: "Mobile UX Overhaul", description: "Disabled text selection and fixed horizontal scrolling to provide a more native app-like feel on mobile devices.", icon: "palette" },
+      ]
+  },
   {
       version: "v1.1",
       date: "Day 2",
       features: [
-        { name: "Calendar Scheduling", description: "Added an event calendar to schedule tasks for specific days, which sync with the daily routine.", icon: Calendar },
-        { name: "Bug Fixes & Stability", description: "Resolved several Firestore indexing errors and improved guest mode fallback.", icon: StickyNote },
+        { name: "Calendar Scheduling", description: "Added an event calendar to schedule tasks for specific days, which sync with the daily routine.", icon: "calendar" },
+        { name: "Bug Fixes & Stability", description: "Resolved several Firestore indexing errors and improved guest mode fallback.", icon: "sticky-note" },
       ]
   },
   {
     version: "v1.0",
     date: "Day 1",
     features: [
-        { name: "Log Book", description: "Renamed 'History' to 'Log Book' and added task completion time and duration.", icon: BookText },
-        { name: "AI Routine Generation", description: "Generate personalized task routines based on your profession.", icon: WandSparkles },
-        { name: "UI/UX Enhancements", description: "Improved visual feedback for AI generation and added scroll indicators.", icon: Palette },
+        { name: "Log Book", description: "Renamed 'History' to 'Log Book' and added task completion time and duration.", icon: "book-text" },
+        { name: "AI Routine Generation", description: "Generate personalized task routines based on your profession.", icon: "wand-sparkles" },
+        { name: "UI/UX Enhancements", description: "Improved visual feedback for AI generation and added scroll indicators.", icon: "palette" },
     ]
   },
 ];
+
+const iconMap: { [key: string]: React.ElementType } = {
+  "clipboard-list": ClipboardList,
+  "pie-chart": PieChart,
+  sun: Sun,
+  bug: Bug,
+  layers: Layers,
+  zap: Zap,
+  "sticky-note": StickyNote,
+  "users-2": Users2,
+  cloud: Cloud,
+  palette: Palette,
+  calendar: Calendar,
+  "book-text": BookText,
+  "wand-sparkles": Sparkles,
+};
+
 
 export default function HamburgerMenu() {
   const { user } = useAuth();
@@ -73,7 +119,7 @@ export default function HamburgerMenu() {
     <>
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
             </Button>
@@ -92,7 +138,7 @@ export default function HamburgerMenu() {
               <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3" onClick={() => navigateTo('/settings')}>
                 <User className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-medium text-foreground truncate">
-                  {user.email}
+                  {user.displayName || user.email}
                 </span>
               </Button>
             )}
@@ -115,12 +161,14 @@ export default function HamburgerMenu() {
                     <Settings className="h-5 w-5" />
                     <span>Settings</span>
                 </Button>
-                
                 <Button variant="ghost" onClick={openChangelog} className="w-full justify-start gap-2">
                   <Sparkles className="h-5 w-5" />
                   <span>What's New</span>
                 </Button>
-
+                <Button variant="ghost" onClick={() => navigateTo('/about')} className="w-full justify-start gap-2">
+                    <Info className="h-5 w-5" />
+                    <span>About</span>
+                </Button>
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto pt-4">
@@ -153,15 +201,15 @@ export default function HamburgerMenu() {
                       </div>
                       <div className="space-y-3">
                           {entry.features.map(feature => {
-                              const Icon = feature.icon;
+                              const IconComponent = iconMap[feature.icon];
                               return (
-                              <div key={feature.name} className="flex gap-4 p-3 rounded-lg border bg-card/50">
-                                  <Icon className="h-5 w-5 text-primary mt-1" />
-                                  <div>
-                                      <p className="font-semibold">{feature.name}</p>
-                                      <p className="text-sm text-muted-foreground">{feature.description}</p>
-                                  </div>
-                              </div>
+                                <div key={feature.name} className="flex gap-4 p-3 rounded-lg border bg-card/50">
+                                    {IconComponent && <IconComponent className="h-5 w-5 text-primary mt-1" />}
+                                    <div>
+                                        <p className="font-semibold">{feature.name}</p>
+                                        <p className="text-sm text-muted-foreground">{feature.description}</p>
+                                    </div>
+                                </div>
                               )
                           })}
                       </div>

@@ -5,3 +5,22 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+  # You can specify environment variables for your backend.
+  # https://firebase.google.com/docs/app-hosting/configure#environment-variables
+  environment:
+    - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+      value: "YOUR_API_KEY"
+    - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      value: "YOUR_AUTH_DOMAIN"
+    - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      value: "YOUR_PROJECT_ID"
+    - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+      value: "YOUR_STORAGE_BUCKET"
+    - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+      value: "YOUR_MESSAGING_SENDER_ID"
+    - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+      value: "YOUR_APP_ID"
+    - variable: NEXT_PUBLIC_OPENWEATHER_API_KEY
+      value: "e4a2724febf68dd96f66bb5c2ff2cafc"
+    - variable: GEMINI_API_KEY
+      value: "AIzaSyCnZ6kFaZ-2_Obpx6QZOy8eui2qgW8wV3w"

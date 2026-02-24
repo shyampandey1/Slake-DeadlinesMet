@@ -1,13 +1,14 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
-import { useTasks, usePresetTasks } from "@/hooks/useFirestore";
-import type { Task } from "@/types";
+import { categorizeTask } from "@/ai/flows/categorize-task";
+import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
+import type { Task, UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +29,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import CircularProgress from "./CircularProgress";
-import InfoDisplay from "./InfoDisplay";
 import { useTimerUI } from "@/hooks/useTimerUI";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
+import { useWeather } from "@/hooks/useWeather";
 
 
 interface TimerDisplayProps {
@@ -40,15 +41,31 @@ interface TimerDisplayProps {
   color?: string;
 }
 
-type FlashState = 'none' | 'three-times' | 'continuous';
+type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
+
+const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
+  if (code >= 200 && code < 300) return CloudLightning;
+  if (code >= 300 && code < 400) return CloudDrizzle;
+  if (code >= 500 && code < 600) return CloudRain;
+  if (code >= 600 && code < 700) return CloudSnow;
+  if (code >= 700 && code < 800) return CloudFog;
+  if (code === 800) return isNight ? Moon : Sun;
+  if (code === 801) return isNight ? CloudMoon : CloudSun;
+  if (code === 802) return Cloud;
+  if (code > 802) return Cloudy;
+  return Cloud;
+};
+
 
 export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
-  const { findAndSyncPresetTask } = usePresetTasks();
+  const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
+  const { weatherData } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
@@ -56,7 +73,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
-
+  const [taskCategory, setTaskCategory] = useState(category);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -76,6 +93,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           setIsFinished(true);
           setFlashState('none');
           playSound();
+          showCompletionNotification();
           return 0;
         }
 
@@ -89,7 +107,23 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         return prev - 1;
       });
     }, 1000);
-  }, [stopTimer, playSound]);
+  }, [stopTimer, playSound, showCompletionNotification]);
+
+  useEffect(() => {
+    startTimer();
+
+    const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
+    showStartNotification();
+
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      stopTimer();
+      clearInterval(dateInterval);
+      document.body.style.overflow = 'auto';
+    };
+  }, [startTimer, stopTimer, showStartNotification]);
+
 
   useEffect(() => {
     if (!isPaused) {
@@ -123,7 +157,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       task: suggestedTask,
       duration: "25",
     });
-    // Use window.location.href to force a full page reload with the new params
     window.location.href = `/timer?${params.toString()}`;
   }
 
@@ -132,19 +165,36 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   };
 
   const handleSaveTask = async (completed: boolean) => {
+    setIsFinished(false);
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
+
+    let finalCategory = taskCategory;
+    if (!finalCategory) {
+      try {
+        const result = await categorizeTask({
+          taskName: taskName,
+          availableCategories: getAvailableCategories(),
+        });
+        finalCategory = result.category;
+        setTaskCategory(result.category);
+      } catch (error) {
+        console.error("Failed to categorize task, using default:", error);
+        finalCategory = "Work & Focus";
+      }
+    }
 
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
       duration: actualDuration,
       initialDuration: initialDuration,
       completed,
+      category: finalCategory,
     };
+
     await addTask(newTask);
 
     if (completed) {
-      await findAndSyncPresetTask(taskName, actualDuration);
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
       try {
@@ -153,13 +203,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           taskName: newTask.name,
           duration: newTask.duration,
           completionStatus: true,
-          pastTasks,
+          userRoutine: userRoutine,
+          pastTasks: pastTasks,
         });
         setMotivationalMessage(result.message);
         setSuggestedTask(result.suggestedNextTask);
       } catch (error) {
         console.error("Failed to generate motivational message:", error);
+        // Fallback for when the AI call fails
         setMotivationalMessage("Great job finishing your task! Keep up the momentum!");
+        setSuggestedTask(undefined);
       } finally {
         setIsLoadingAI(false);
       }
@@ -168,16 +221,30 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  const handleMotivationalDialogChange = (open: boolean) => {
+    setShowMotivationalDialog(open);
+    if (!open) {
+      router.push('/');
+    }
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
+  const timerColor = 'hsl(var(--primary))';
 
-  // Extract HSL values from the color prop
-  const timerColor = color ? `hsl(var(--${color.replace('bg-', '')}))` : 'hsl(var(--primary))';
+  const hour = currentDate.getHours();
+  const isNight = hour < 6 || hour > 19;
+  const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
 
   return (
@@ -185,28 +252,28 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 transition-colors duration-500 text-white",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8 transition-colors duration-500 text-white",
         {
+          'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
           'animate-flash-continuous': flashState === 'continuous',
-        },
-        color ? `timer-theme-${color.replace('bg-', '')}` : ''
+        }
       )}
       style={{
-        backgroundColor: '#0a0a0a',
-        '--timer-primary-color': 'lightgray',
-        '--timer-background-color': '#0a0a0a',
-        '--flash-color': 'hsl(0 0% 100% / 0.1)',
+        backgroundColor: 'hsl(20 14% 4%)',
+        '--timer-primary-color': timerColor,
+        '--timer-background-color': 'hsl(20 14% 4%)',
+        '--flash-color': 'hsl(0 0% 100% / 0.9)',
       } as React.CSSProperties}
     >
       <div className={cn(
-        "absolute top-6 transition-opacity duration-300",
+        "absolute top-4 transition-opacity duration-300",
         !isUIVisible && "opacity-30"
       )}>
         <InfoDisplay />
       </div>
-      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center translate-y-8">
-        <h2 className="mb-6 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
+      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
+        <h2 className="mb-2 text-xl font-medium tracking-wide text-white/80">{category || 'Focus Session'}</h2>
         <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl font-headline">
           {taskName}
         </h1>
@@ -217,87 +284,100 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             >
               {formatTime(timeRemaining)}
             </div>
-          </CircularProgress>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={() => setIsPaused(!isPaused)}
-            size="lg"
-            variant={isPaused ? "default" : "secondary"}
-            className={cn("w-32 text-lg")}
-          >
-            {isPaused ? <Play className="mr-2 h-6 w-6" /> : <Pause className="mr-2 h-6 w-6" />}
-            {isPaused ? "Resume" : "Pause"}
-          </Button>
-          <Button onClick={handleEndEarly} variant="destructive" size="lg" className="w-32 text-lg">
-            <Square className="mr-2 h-5 w-5" />
-            End
-          </Button>
-        </div>
-      </div>
 
-      <AlertDialog open={isFinished} onOpenChange={setIsFinished}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Did you complete your task, "{taskName}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
-              <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
-                onClick={() => handleSaveTask(false)}
-              >
-                No
-              </AlertDialogAction>
-              <AlertDialogAction
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => handleSaveTask(true)}
-              >
-                Yes!
-              </AlertDialogAction>
-            </div>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={showMotivationalDialog} onOpenChange={setShowMotivationalDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
-              <PartyPopper className="text-primary" />
-              Task Completed!
-            </DialogTitle>
-            <DialogDescription asChild>
-              <div className="pt-4">
-                {isLoadingAI ? (
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <p>Generating your motivational message...</p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-lg text-foreground">{motivationalMessage}</p>
-                    {suggestedTask && (
-                      <Button onClick={handleStartSuggestedTask} className="mt-4 w-full">
-                        Start: {suggestedTask}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    )}
-                  </>
-                )}
+            <CircularProgress progress={progress} isUIVisible={isUIVisible}>
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
+                  {formatTime(timeRemaining)}
+                </div>
+                <div className={cn(
+                  "flex items-center justify-center gap-2 transition-opacity duration-300",
+                  isUIVisible ? "opacity-100" : "opacity-0"
+                )}>
+                  <Button
+                    onClick={() => setIsPaused(!isPaused)}
+                    size="icon"
+                    variant="ghost"
+                    className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
+                  >
+                    {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
+                  </Button>
+                  <Button
+                    onClick={handleEndEarly}
+                    variant="ghost"
+                    size="icon"
+                    className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60"
+                  >
+                    <Square className="h-6 w-6 text-white" />
+                  </Button>
+                </div>
               </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => router.push('/')} className="w-full mt-2">
-              Back to Home
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CircularProgress>
+        </div>
+
+
+        <AlertDialog open={isFinished}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
+              <AlertDialogDescription>
+                Did you complete your task, "{taskName}"?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => handleSaveTask(false)}
+                >
+                  No
+                </AlertDialogAction>
+                <AlertDialogAction
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => handleSaveTask(true)}
+                >
+                  Yes!
+                </AlertDialogAction>
+              </div>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
+          <DialogContent onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
+                <PartyPopper className="text-primary" />
+                Task Completed!
+              </DialogTitle>
+              <DialogDescription asChild>
+                <div className="pt-4">
+                  {isLoadingAI ? (
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <p>Generating your motivational message...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-lg text-foreground">{motivationalMessage}</p>
+                      {suggestedTask && (
+                        <Button onClick={handleStartSuggestedTask} className="mt-4 w-full">
+                          Start: {suggestedTask}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => handleMotivationalDialogChange(false)} className="w-full mt-2">
+                Back to Home
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </main>
   );
 }

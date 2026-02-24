@@ -2,13 +2,15 @@
 "use client";
 
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface CircularProgressProps {
   progress: number;
   children: React.ReactNode;
+  isUIVisible: boolean;
 }
 
-const CircularProgress = ({ progress, children }: CircularProgressProps) => {
+const CircularProgress = ({ progress, children, isUIVisible }: CircularProgressProps) => {
     const radius = 95;
     const stroke = 5;
     const center = radius + stroke;
@@ -16,7 +18,6 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
     const circumference = normalizedRadius * 2 * Math.PI;
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-    // Calculate the position for the moving dot
     const progressAngle = (progress / 100) * 360;
     const angleInRadians = ((progressAngle - 90) * Math.PI) / 180;
     const dotX = center + normalizedRadius * Math.cos(angleInRadians);
@@ -52,7 +53,6 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                     cx={center}
                     cy={center}
                 />
-                {/* The moving dot */}
                 <circle
                     fill="var(--timer-primary-color, hsl(var(--primary)))"
                     r="8"
@@ -63,8 +63,13 @@ const CircularProgress = ({ progress, children }: CircularProgressProps) => {
                     }}
                 />
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-                {children}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2">
+                 <div className={cn(
+                    "flex flex-col items-center justify-center transition-transform duration-300 ease-in-out",
+                    isUIVisible ? "-translate-y-1/2" : "translate-y-[calc(-50%_+_24px)]"
+                 )}>
+                    {children}
+                </div>
             </div>
         </div>
     );

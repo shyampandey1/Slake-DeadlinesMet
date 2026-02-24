@@ -19,18 +19,20 @@ const sounds = [
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(sounds[0].name);
-  const [volume, setVolumeState] = useState(0.5);
+  const [volume, setVolumeState] = useState([0.5]);
   const soundInstances = useRef<{ [key: string]: Howl }>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     let initialVolume = 0.5;
+    let initialSound = sounds[0].name;
+
     try {
       const storedEnabled = localStorage.getItem(AUDIO_ENABLED_KEY);
       if (storedEnabled !== null) setIsAudioEnabled(JSON.parse(storedEnabled));
       
       const storedSound = localStorage.getItem(SELECTED_SOUND_KEY);
-      if (storedSound && sounds.some(s => s.name === storedSound)) setSelectedSound(storedSound);
+      if (storedSound && sounds.some(s => s.name === storedSound)) initialSound = storedSound;
 
       const storedVolume = localStorage.getItem(VOLUME_KEY);
       if (storedVolume !== null) initialVolume = parseFloat(storedVolume);
@@ -38,13 +40,15 @@ export function useAudioSettings() {
       console.warn("Could not access localStorage for audio settings.");
     }
     
-    setVolumeState(initialVolume);
+    setSelectedSound(initialSound);
+    setVolumeState([initialVolume]);
     
     sounds.forEach(sound => {
       soundInstances.current[sound.name] = new Howl({
         src: [sound.src],
         html5: true,
         volume: initialVolume,
+        preload: true,
       });
     });
 
@@ -75,8 +79,8 @@ export function useAudioSettings() {
 
   const setVolumeCallback = useCallback((newVolume: number[]) => {
     const vol = newVolume[0];
-    setVolumeState(vol);
-    Howler.volume(vol);
+    setVolumeState([vol]);
+    Object.values(soundInstances.current).forEach(howl => howl.volume(vol));
     try {
       localStorage.setItem(VOLUME_KEY, JSON.stringify(vol));
     } catch (error) {
@@ -96,6 +100,7 @@ export function useAudioSettings() {
     if (!isInitialized) return;
     const sound = soundInstances.current[selectedSound];
     if (sound) {
+      sound.stop();
       sound.play();
     }
   }, [selectedSound, isInitialized]);

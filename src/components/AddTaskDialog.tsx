@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -43,7 +44,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2, Wand2 } from "lucide-react";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2, Wand2, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from "lucide-react";
 import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,38 @@ const icons: {name: string, icon: LucideIcon}[] = [
     { name: "Target", icon: Target },
     { name: "Wrench", icon: Wrench },
     { name: "ShoppingBag", icon: ShoppingBag },
+    { name: "Gamepad2", icon: Gamepad2 },
+    { name: "Eye", icon: Eye },
+    { name: "PenTool", icon: PenTool },
+    { name: "Smartphone", icon: Smartphone },
+    { name: "Car", icon: Car },
+    { name: "Tv", icon: Tv },
+    { name: "Apple", icon: Apple },
+    { name: "ShowerHead", icon: ShowerHead },
+    { name: "Truck", icon: Truck },
+    { name: "FileCode", icon: FileCode },
+    { name: "PenSquare", icon: PenSquare },
+    { name: "Puzzle", icon: Puzzle },
+    { name: "Lightbulb", icon: Lightbulb },
+    { name: "Presentation", icon: Presentation },
+    { name: "BarChart", icon: BarChart },
+    { name: "ShoppingCart", icon: ShoppingCart },
+    { name: "Headphones", icon: Headphones },
+    { name: "Power", icon: Power },
+    { name: "Map", icon: Map },
+    { name: "Wand2", icon: Wand2 },
+    { name: "Camera", icon: Camera },
+    { name: "Briefcase", icon: Briefcase },
+    { name: "Megaphone", icon: Megaphone },
+    { name: "Stethoscope", icon: Stethoscope },
+    { name: "Laptop", icon: Laptop },
+    { name: "Code", icon: Code },
+    { name: "FlaskConical", icon: FlaskConical },
+    { name: "School", icon: School },
+    { name: "Network", icon: Network },
+    { name: "GraduationCap", icon: GraduationCap },
+    { name: "TrendingUp", icon: TrendingUp },
+    { name: "Package", icon: Package },
 ];
 const iconNames = icons.map(i => i.name);
 
@@ -153,8 +186,8 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
   };
 
   const handleDelete = () => {
-    if (isEditMode && onDeleteTask) {
-        onDeleteTask(initialTask.id!);
+    if (isEditMode && onDeleteTask && initialTask?.id) {
+        onDeleteTask(initialTask.id);
     }
     onClose();
   }
@@ -269,8 +302,8 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 </FormItem>
               )}
             />
-            <DialogFooter className="sm:justify-between">
-                {isEditMode && initialTask && !isDefaultTask(initialTask) ? (
+            <DialogFooter className="sm:justify-between pt-4">
+                {isEditMode && initialTask && !isDefaultTask(initialTask) && onDeleteTask ? (
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button type="button" variant="destructive" className="sm:mr-auto">
@@ -282,7 +315,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the preset task from your routine.
+                                This will permanently delete the preset task "{initialTask.name}". This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

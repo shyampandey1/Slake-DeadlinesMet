@@ -1,28 +1,29 @@
-
 "use client";
-
-import { useState, useEffect, useMemo } from "react";
-import { usePresetTasks } from "@/hooks/useFirestore";
+import { useState, useRef } from 'react';
+import React from 'react'; // Added this import
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, BrainCircuit, LucideIcon, ListChecks, Bed, StretchHorizontal, Dumbbell, Mail, Users, Coffee, Footprints, Wind, Droplets, BookOpen, Utensils, Target, Wrench, ShoppingBag, WandSparkles, Loader2, ArrowUp, ArrowDown, Paintbrush, Briefcase, Camera, PenTool, BookUser, Lightbulb, Laptop, User, Stethoscope, Server, Megaphone, FlaskConical, TrendingUp, Code, GraduationCap, Feather, Clock4, ChevronDown, ChevronRight, ChevronsUpDown, BookCopy, X, Trash2 } from "lucide-react";
-import AddTaskDialog from "@/components/AddTaskDialog";
-import type { UserPresetTask } from "@/types";
-import AuthWrapper from "@/components/AuthWrapper";
-import { Skeleton } from "@/components/ui/skeleton";
-import HamburgerMenu from "@/components/HamburgerMenu";
-import { generateRoutineByProfession } from "@/ai/flows/generate-routine-by-profession";
-import { organizeRoutine } from "@/ai/flows/organize-routine";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { useProfile } from "@/hooks/useProfile";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
+import { useProfile, professions, Profession } from "@/hooks/useProfile";
+import { usePresetTasks } from "@/hooks/useFirestore";
+import { icons } from "lucide-react"; // Changed from * as icons
+import { cn } from '@/lib/utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
+import AuthWrapper from '@/components/AuthWrapper';
+import HamburgerMenu from '@/components/HamburgerMenu';
+import { format } from 'date-fns';
+import AddTaskDialog from '@/components/AddTaskDialog';
+import type { UserPresetTask } from '@/types';
+import { Plus, RotateCw, Trash2 } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,146 +34,45 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
+import { defaultRoutines, profileToRoutineMap } from '@/lib/routines';
 
 
-const initialIconMap: { [key: string]: LucideIcon } = {
-    ListChecks: ListChecks,
-    Bed: Bed,
-    StretchHorizontal: StretchHorizontal,
-    Dumbbell: Dumbbell,
-    BrainCircuit: BrainCircuit,
-    Mail: Mail,
-    Users: Users,
-    Coffee: Coffee,
-    Footprints: Footprints,
-    Utensils: Utensils,
-    Wind: Wind,
-    Droplets: Droplets,
-    BookOpen: BookOpen,
-    Plus: Plus,
-    Wrench: Wrench,
-    Target: Target,
-    ShoppingBag: ShoppingBag,
+// This is the corrected Icon component
+const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
+  const LucideIcon = icons[name as keyof typeof icons];
+
+  if (!LucideIcon) {
+    return null;
+  }
+
+  return React.createElement(LucideIcon, props);
 };
 
-const iconNames = Object.keys(initialIconMap);
-
-const initialProfessionConfig: { [key: string]: { icon: LucideIcon, color: string } } = {
-    "Artist": { icon: Paintbrush, color: "border-red-500/80 text-red-400" },
-    "Consultant": { icon: Briefcase, color: "border-blue-500/80 text-blue-400" },
-    "Content Creator": { icon: Camera, color: "border-orange-500/80 text-orange-400" },
-    "Designer": { icon: PenTool, color: "border-purple-500/80 text-purple-400" },
-    "Educator": { icon: BookUser, color: "border-cyan-500/80 text-cyan-400" },
-    "Entrepreneur": { icon: Lightbulb, color: "border-amber-500/80 text-amber-400" },
-    "Freelancer": { icon: Laptop, color: "border-lime-500/80 text-lime-400" },
-    "General": { icon: User, color: "border-gray-500/80 text-gray-400" },
-    "Healthcare Professional": { icon: Stethoscope, color: "border-emerald-500/80 text-emerald-400" },
-    "IT Professional": { icon: Server, color: "border-sky-500/80 text-sky-400" },
-    "Manager": { icon: Users, color: "border-indigo-500/80 text-indigo-400" },
-    "Marketer": { icon: Megaphone, color: "border-rose-500/80 text-rose-400" },
-    "Researcher": { icon: FlaskConical, color: "border-teal-500/80 text-teal-400" },
-    "Sales": { icon: TrendingUp, color: "border-green-500/80 text-green-400" },
-    "Software Engineer": { icon: Code, color: "border-fuchsia-500/80 text-fuchsia-400" },
-    "Student": { icon: GraduationCap, color: "border-yellow-500/80 text-yellow-400" },
-    "Writer": { icon: Feather, color: "border-stone-500/80 text-stone-400" },
-};
-
-const initialProfileCategories: { [key: string]: string[] } = {
-    "Creative & Media": ["Artist", "Content Creator", "Designer", "Writer"],
-    "Business & Management": ["Consultant", "Entrepreneur", "Manager", "Marketer", "Sales"],
-    "Technical & Health": ["Healthcare Professional", "IT Professional", "Software Engineer", "Researcher"],
-    "General & Freelance": ["Educator", "Freelancer", "Student", "General"],
-};
-
-type GeneratingStatus = "idle" | "generating" | "saving" | "done";
-
-const examplePrompts = [
-    "Add a 30 min workout in the morning.",
-    "Read for 20 mins at night.",
-    "Schedule 'Team Sync' for 45 minutes in the afternoon.",
-    "Plan my day for 15 mins",
-    "Work on presentation for 1 hour"
-];
-
-function DeleteProfessionButton({ professionName, onDelete }: { professionName: string, onDelete: (name: string) => void }) {
-    return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 text-destructive-foreground hover:bg-destructive z-10 opacity-0 group-hover/chip:opacity-100 transition-opacity">
-                    <X className="h-3 w-3" />
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will permanently delete the "{professionName}" routine and all of its tasks. This action cannot be undone.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDelete(professionName)} className="bg-destructive hover:bg-destructive/90">
-                        Yes, delete it
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
-}
-
-function RoutineCustomizationPage() {
-  const { presetTasks, addPresetTask, updatePresetTask, deletePresetTask, reorderPresetTask, loading: presetTasksLoading, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons } = usePresetTasks();
-  const { profile, setProfile, loading: profileLoading, customProfessions, addCustomProfession, deleteCustomProfession } = useProfile();
-  
+function RoutinePageComponent() {
+  const router = useRouter();
+  const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading } = useProfile();
+  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, clearAndSetPresetTasks } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
-  const [generatingStatus, setGeneratingStatus] = useState<GeneratingStatus>("idle");
-  const { toast } = useToast();
-  const [routineDescription, setRoutineDescription] = useState("");
-
-  const [professionConfig, setProfessionConfig] = useState(initialProfessionConfig);
-  const [profileCategories, setProfileCategories] = useState(initialProfileCategories);
-  const [iconMap, setIconMap] = useState(initialIconMap);
   
-  const isGenerating = generatingStatus === 'generating' || generatingStatus === 'saving';
-
-  const generateButtonText: { [key in GeneratingStatus]: string } = {
-      idle: "Enhance",
-      generating: "Enhancing...",
-      saving: "Saving tasks...",
-      done: "Done!",
+  const handleProfessionSelect = (profession: Profession) => {
+    setProfile(profession.name);
   };
 
-  useEffect(() => {
-    const newConfig = { ...initialProfessionConfig };
-    const newCats = JSON.parse(JSON.stringify(initialProfileCategories));
-    const newIcons = { ...initialIconMap, BookCopy: BookCopy };
-
-    customProfessions.forEach(prof => {
-        newConfig[prof.name] = { icon: BookCopy, color: "border-slate-500/80 text-slate-400" };
-        if (newCats[prof.categoryGroup]) {
-            if (!newCats[prof.categoryGroup].includes(prof.name)) {
-                newCats[prof.categoryGroup].push(prof.name);
-            }
-        } else {
-            newCats[prof.categoryGroup] = [prof.name];
-        }
-    });
-
-    setProfessionConfig(newConfig);
-    setProfileCategories(newCats);
-    setIconMap(newIcons);
-
-  }, [customProfessions]);
-
+  const handleDayOffToggle = (day: 'Saturday' | 'Sunday') => {
+    const newDaysOff = daysOff.includes(day)
+      ? daysOff.filter(d => d !== day)
+      : [...daysOff, day];
+    setDaysOff(newDaysOff);
+  };
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
     setTaskToEdit(initialTask);
     setIsDialogOpen(true);
   };
-
+  
   const handleSaveTask = async (
     taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string },
     taskId?: string
@@ -180,7 +80,7 @@ function RoutineCustomizationPage() {
     if (taskId) {
       await updatePresetTask(taskId, taskData);
     } else {
-      await addPresetTask(taskData);
+      await addPresetTask(taskData, profile);
     }
   };
 
@@ -188,236 +88,224 @@ function RoutineCustomizationPage() {
     await deletePresetTask(taskId);
     setIsDialogOpen(false);
   };
-  
+
+  const handleResetRoutine = async () => {
+    if (!profile) return;
+    const routineKey = profileToRoutineMap[profile];
+    if (!routineKey) return;
+    const defaultTasksForProfile = defaultRoutines.routines[routineKey];
+    if (!defaultTasksForProfile) return;
+
+    await clearAndSetPresetTasks(profile, defaultTasksForProfile);
+  }
+
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
-  const handleEnhanceSchedule = async () => {
-    const description = routineDescription.trim();
-    if (!description) {
-        toast({ title: "Please describe the tasks you want to add.", variant: "destructive" });
-        return;
-    }
-    setGeneratingStatus("generating");
-
-    try {
-        const result = await organizeRoutine({
-            description,
-            availableIcons: getAvailableIcons(),
-            availableCategories: getAvailableCategories(profile),
-        });
-        
-        if (result.tasks && result.tasks.length > 0) {
-            setGeneratingStatus("saving");
-            await addTasksToCurrentProfile(result.tasks);
-            setRoutineDescription("");
-            toast({
-                title: `Routine Enhanced!`,
-                description: `${result.tasks.length} new tasks have been added to your schedule.`,
-            });
-        } else {
-            toast({
-                title: "No tasks were generated.",
-                description: "The AI couldn't understand the description. Please try rephrasing.",
-                variant: "destructive"
-            });
-        }
-    } catch (error) {
-        console.error("Failed to enhance routine:", error);
-        toast({
-            title: "Enhancement Failed",
-            description: "An error occurred while adding tasks.",
-            variant: "destructive"
-        });
-    } finally {
-        setGeneratingStatus("idle");
-    }
-  };
-
-
   const renderSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[...Array(4)].map((_, i) => (
-            <Card key={i} className="rounded-xl overflow-hidden">
-                <CardHeader className="p-3">
-                    <Skeleton className="h-5 w-1/2" />
-                </CardHeader>
-                <CardContent className="p-3 space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                </CardContent>
-            </Card>
-        ))}
+    <div className="space-y-6">
+      {[...Array(3)].map((_, i) => (
+        <Card key={i}>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/3" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 
   return (
-    <div className="flex flex-col">
-        <header className="sticky top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
-          <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
+    <>
+    <div className="flex flex-col h-screen">
+      <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
+        <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
             <div className="flex flex-col gap-2">
-              <h1 className="text-xl font-bold font-headline text-foreground/80">Customize Routine</h1>
-              <p className="text-sm text-muted-foreground">Tailor your daily tasks from morning to night.</p>
+                <h1 className="text-xl font-bold font-headline text-foreground/80">Sync Routine</h1>
+                <p className="text-sm text-muted-foreground">Select a profession to see the recommended routine.</p>
             </div>
             <HamburgerMenu />
-          </div>
-        </header>
-
-        <main className="flex-1 pb-20">
-            <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
-                 <Collapsible defaultOpen={true}>
-                    <CollapsibleTrigger className="flex items-center gap-2 text-2xl font-headline w-full">
-                        <ChevronDown className="h-6 w-6 transition-transform [&[data-state=open]]:-rotate-180" />
-                        1. Choose Your Base Routine
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-6 pt-4">
-                        <div className="space-y-4">
-                            {Object.entries(profileCategories).map(([category, professions]) => (
-                                <div key={category}>
-                                    <h3 className="font-headline text-lg mb-3">{category}</h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {professions.map(prof => {
-                                            const config = professionConfig[prof];
-                                            if (!config) return null;
-                                            const { icon: Icon, color } = config;
-                                            const isCustom = customProfessions.some(p => p.name === prof);
-
-                                            return (
-                                                <div key={prof} className="relative group/chip">
-                                                    <Button 
-                                                        variant="outline"
-                                                        onClick={() => setProfile(prof as any)}
-                                                        className={cn(
-                                                            "flex items-center gap-2 rounded-full p-2 h-auto text-xs font-medium cursor-pointer transition-all bg-card hover:bg-muted/50",
-                                                            profile === prof ? `shadow-lg ${color}` : 'border-transparent text-muted-foreground',
-                                                            color.replace('border', 'hover:border')
-                                                        )}
-                                                    >
-                                                        <Icon className="w-5 h-5" />
-                                                        <span>{prof}</span>
-                                                    </Button>
-                                                    {isCustom && <DeleteProfessionButton professionName={prof} onDelete={deleteCustomProfession} />}
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible>
-
-                <Separator />
-                
-                 <Card>
+        </div>
+      </header>
+       <main className="flex-1 overflow-y-auto pt-24 pb-20">
+        <div className="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl space-y-8">
+            {Object.entries(professions).map(([group, professionList]) => (
+                <Card key={group} className="overflow-hidden">
                     <CardHeader>
-                        <CardTitle className="font-headline text-base flex items-center gap-2">
-                            <WandSparkles className="text-primary"/>
-                            Enhance my schedule
-                        </CardTitle>
-                        <CardDescription>Describe tasks you want to add and AI will organize them into your routine.</CardDescription>
+                        <CardTitle className="font-headline text-lg">{group}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex flex-col gap-2">
-                            <Textarea 
-                                placeholder="Type here..." 
-                                value={routineDescription}
-                                onChange={(e) => setRoutineDescription(e.target.value)}
-                                disabled={isGenerating}
-                                rows={3}
-                            />
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {examplePrompts.map((prompt, index) => (
-                                    <Badge 
-                                        key={index}
-                                        variant="outline" 
-                                        className="cursor-pointer hover:bg-muted"
-                                        onClick={() => setRoutineDescription(prompt)}
-                                    >
-                                        {prompt}
-                                    </Badge>
-                                ))}
-                            </div>
-                            <Button onClick={handleEnhanceSchedule} disabled={isGenerating || !routineDescription.trim()} className="w-full sm:w-48 self-end mt-2">
-                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                {generateButtonText[generatingStatus]}
-                            </Button>
+                        <div className="flex flex-wrap gap-4">
+                            {professionList.map((p) => {
+                                const colorName = p.color.split('-')[1];
+                                const isSelected = profile === p.name;
+                                
+                                return (
+                                <Button
+                                    key={p.name}
+                                    variant="outline"
+                                    onClick={() => handleProfessionSelect(p)}
+                                    className={cn(
+                                        "flex items-center gap-2 transition-colors duration-200 border-2 bg-transparent",
+                                        isSelected 
+                                            ? `bg-${colorName}-800 text-${colorName}-100 border-${colorName}-500/80`
+                                            : `text-${colorName}-400 border-${colorName}-500/80 hover:bg-${colorName}-800 hover:border-${colorName}-500/80 hover:text-white`
+                                    )}
+                                >
+                                    <Icon name={p.icon} className="h-4 w-4" />
+                                    {p.name}
+                                </Button>
+                            )})}
                         </div>
                     </CardContent>
                 </Card>
-                
-                <Separator />
-                
-                <Collapsible defaultOpen={true}>
-                     <CollapsibleTrigger className="flex items-center gap-2 text-2xl font-headline w-full">
-                        <ChevronDown className="h-6 w-6 transition-transform [&[data-state=open]]:-rotate-180" />
-                        2. Customize Your Tasks
-                    </CollapsibleTrigger>
-                     <CollapsibleContent className="space-y-6 pt-4">
-                        {presetTasksLoading ? renderSkeleton() : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {Object.entries(presetTasks).map(([category, { tasks, color }]) => (
-                                <Card key={category} className="overflow-hidden flex flex-col rounded-xl">
-                                    <CardHeader className={`${color} p-3`}>
-                                        <CardTitle className="font-headline text-base">{category}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-3 pt-3 space-y-2 flex-grow">
-                                        {tasks.map((task, index) => {
-                                        const Icon = iconMap[task.icon] || BrainCircuit;
-                                        return (
-                                            <div key={task.id || `${task.name}-${index}`} className="flex items-center gap-1">
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full justify-start gap-3 h-10 px-3 flex-grow"
-                                                    onClick={() => handleOpenDialog(task, category)}
-                                                    >
-                                                    <Icon className="w-5 h-5 text-muted-foreground" />
-                                                    <span className="flex-1 text-left">{task.name}</span>
-                                                    <span className="text-sm text-muted-foreground">{task.duration}m</span>
-                                                </Button>
-                                                {task.id && (
-                                                    <div className="flex flex-col">
-                                                        <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'up')} disabled={index === 0}>
-                                                            <ArrowUp className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => reorderPresetTask(task.id!, 'down')} disabled={index === tasks.length - 1}>
-                                                            <ArrowDown className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                        })}
-                                    </CardContent>
-                                    <div className="p-3 pt-0 mt-auto">
-                                        <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
-                                            <Plus className="w-4 h-4 mr-2" /> Add Task
-                                        </Button>
-                                    </div>
-                                </Card>
-                            ))}
-                            </div>
-                        )}
-                     </CollapsibleContent>
-                </Collapsible>
+            ))}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-lg">Day Off Schedule</CardTitle>
+                    <CardDescription>Select your days off to switch to a recovery-focused routine automatically.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="saturday" checked={daysOff.includes('Saturday')} onCheckedChange={() => handleDayOffToggle('Saturday')} />
+                        <label htmlFor="saturday" className="text-sm font-medium leading-none">Saturday</label>
+                    </div>
+                    <div className=".flex items-center space-x-2">
+                        <Checkbox id="sunday" checked={daysOff.includes('Sunday')} onCheckedChange={() => handleDayOffToggle('Sunday')} />
+                        <label htmlFor="sunday" className="text-sm font-medium leading-none">Sunday</label>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Separator />
+            
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline">
+                        <RotateCw className="w-4 h-4 mr-2"/>
+                        Reset Routine
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
+                  </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
+
             </div>
-        </main>
-        <AddTaskDialog
-            isOpen={isDialogOpen}
-            onClose={() => setIsDialogOpen(false)}
-            onSaveTask={handleSaveTask}
-            onDeleteTask={handleDeleteTask}
-            initialTask={taskToEdit}
-            categories={categoriesWithColors}
-        />
+            
+            {tasksLoading ? renderSkeleton() : (
+              <Accordion type="multiple" defaultValue={Object.keys(presetTasks)} className="w-full space-y-4">
+                {Object.entries(presetTasks).map(([category, { color, tasks }]) => {
+                    const timeRange = categoryTimeRanges[category];
+                    return (
+                  <AccordionItem value={category} key={category} className="border-none">
+                    <Card className="overflow-hidden">
+                      <AccordionTrigger className={cn("p-4 border-b", color)}>
+                          <div className="flex flex-col items-start text-left">
+                              <h3 className="font-headline text-lg">{category}</h3>
+                              {timeRange && (
+                                  <p className="text-xs text-inherit opacity-80">
+                                      {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                  </p>
+                              )}
+                          </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="p-4">
+                          <div className="space-y-2">
+                              {tasks.map((task, index) => (
+                                <AlertDialog key={task.id || `${task.name}-${index}`}>
+                                <ContextMenu>
+                                  <ContextMenuTrigger disabled={isDefaultTask(task)}>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
+                                        onClick={() => handleOpenDialog(task, category)}
+                                      >
+                                      <div className="flex items-center gap-3">
+                                          <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
+                                          <div className="text-left">
+                                              <p className="font-medium">{task.name}</p>
+                                              <p className="text-xs text-muted-foreground">{task.duration} min</p>
+                                          </div>
+                                      </div>
+                                  </Button>
+                                  </ContextMenuTrigger>
+                                  <ContextMenuContent>
+                                      <AlertDialogTrigger asChild>
+                                        <ContextMenuItem className="text-destructive focus:text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Task
+                                        </ContextMenuItem>
+                                      </AlertDialogTrigger>
+                                  </ContextMenuContent>
+                                </ContextMenu>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete the preset task "{task.name}". This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteTask(task.id!)} className="bg-destructive hover:bg-destructive/90">
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
+                              ))}
+                          </div>
+                          <CardFooter className="p-0 pt-4">
+                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                                <Plus className="w-4 h-4 mr-2" /> Add Task
+                            </Button>
+                          </CardFooter>
+                      </AccordionContent>
+                    </Card>
+                  </AccordionItem>
+                      )
+                })}
+              </Accordion>
+            )}
+
+            <div className="mt-6 flex justify-end">
+                <Button size="lg" onClick={() => router.push('/')}>Done</Button>
+            </div>
+        </div>
+      </main>
     </div>
+     <AddTaskDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSaveTask={handleSaveTask}
+        onDeleteTask={(id) => handleDeleteTask(id)}
+        initialTask={taskToEdit}
+        categories={categoriesWithColors}
+      />
+    </>
   );
 }
 
-
-export default function WrappedRoutinePage() {
+export default function RoutinePage() {
     return (
         <AuthWrapper>
-            <RoutineCustomizationPage />
+            <RoutinePageComponent />
         </AuthWrapper>
     )
 }

@@ -21,7 +21,14 @@ const GenerateMotivationalMessageInputSchema = z.object({
       duration: z.number(),
       completionStatus: z.boolean(),
     })
-  ).optional().describe('An array of past tasks with their duration and completion status.'),
+  ).optional().describe('An array of the last 5 completed tasks for context.'),
+  userRoutine: z.array(z.object({
+    name: z.string(),
+    duration: z.number(),
+    icon: z.string(),
+    category: z.string(),
+    order: z.number().optional(),
+  })).optional().describe('The user\'s full routine for the day, sorted in order.'),
 });
 export type GenerateMotivationalMessageInput = z.infer<typeof GenerateMotivationalMessageInputSchema>;
 
@@ -53,6 +60,13 @@ const prompt = ai.definePrompt({
   {{/each}}
   {{/if}}
 
+  {{#if userRoutine}}
+  **User's Daily Routine (for suggestion context):**
+  {{#each userRoutine}}
+  - ({{category}}) {{{name}}}
+  {{/each}}
+  {{/if}}
+
   **Your Task:**
 
   1.  **Generate a Motivational Message:**
@@ -62,18 +76,19 @@ const prompt = ai.definePrompt({
       - Your tone should be positive and empowering, making the user feel good about their progress.
 
   2.  **Suggest a Next Task:**
-      - Based on the completed task and the user's recent history, suggest a single, logical next action.
-      - The suggestion should flow naturally. For example:
+      - **Primary Goal:** Check if the completed task ("{{{taskName}}}") exists in the user's provided routine.
+      - **If it exists in the routine:** Suggest the *very next* task from the list. This is the top priority.
+      - **If it does NOT exist in the routine OR if it's the last task:** Suggest a logical next action based on the completed task's name and the time of day. For example:
         - After 'Plan Day', suggest 'Focus Session' or 'Check Emails'.
         - After a long 'Focus Session', suggest 'Short Break' or 'Go for a walk'.
         - After 'Workout', suggest 'Hydrate' or 'Healthy Meal'.
         - After 'Read a Book', suggest 'Journal' or 'Wind down'.
       - If no logical task comes to mind, you can suggest a generic but useful task like 'Quick 5-min Stretch' or 'Review Today\'s Goals'.
       
-  **Example Output (for a completed "Plan Day" task):**
+  **Example Output (for a completed "Plan Day" task that is in the user's routine):**
   {
     "message": "Excellent work planning out your day! Setting a clear path is the first step to a huge success. You're setting yourself up for a win!",
-    "suggestedNextTask": "Focus Session"
+    "suggestedNextTask": "Deep Work" 
   }
   
   Now, generate the response for the user's task.`,

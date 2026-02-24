@@ -11,58 +11,171 @@ import {
 } from "react";
 import { useAuth } from "./useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, collection, query, where, getDocs, writeBatch, runTransaction, addDoc, serverTimestamp } from "firebase/firestore";
-import type { ProfileType, CustomProfession, PresetTask } from "@/types";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, writeBatch, runTransaction } from "firebase/firestore";
+import type { ProfileType, CustomProfession, UserProfile, Day } from "@/types";
+import { ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, defaultRoutines } from '@/lib/routines';
+
+
+export type Profession = {
+    name: ProfileType;
+    icon: string;
+    color: string;
+}
+
+export const professions: { [group: string]: Profession[] } = {
+    "Creative": [
+        { name: "Artist", icon: "Palette", color: "text-rose-400 border-rose-500/80 hover:bg-rose-800 hover:text-white" },
+        { name: "Content Creator", icon: "Camera", color: "text-orange-400 border-orange-500/80 hover:bg-orange-800 hover:text-white" },
+        { name: "Designer", icon: "PenTool", color: "text-purple-400 border-purple-500/80 hover:bg-purple-800 hover:text-white" },
+        { name: "Writer", icon: "PenSquare", color: "text-blue-400 border-blue-500/80 hover:bg-blue-800 hover:text-white" },
+    ],
+    "Business & Management": [
+        { name: "Consultant", icon: "Briefcase", color: "text-cyan-400 border-cyan-500/80 hover:bg-cyan-800 hover:text-white" },
+        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-400 border-amber-500/80 hover:bg-amber-800 hover:text-white" },
+        { name: "Manager", icon: "Users", color: "text-lime-400 border-lime-500/80 hover:bg-lime-800 hover:text-white" },
+        { name: "Marketer", icon: "Megaphone", color: "text-red-400 border-red-500/80 hover:bg-red-800 hover:text-white" },
+    ],
+    "Technical & Health": [
+        { name: "Analyst", icon: "BarChart", color: "text-emerald-400 border-emerald-500/80 hover:bg-emerald-800 hover:text-white" },
+        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-400 border-teal-500/80 hover:bg-teal-800 hover:text-white" },
+        { name: "IT Professional", icon: "Laptop", color: "text-indigo-400 border-indigo-500/80 hover:bg-indigo-800 hover:text-white" },
+        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-400 border-fuchsia-500/80 hover:bg-fuchsia-800 hover:text-white" },
+        { name: "Researcher", icon: "FlaskConical", color: "text-sky-400 border-sky-500/80 hover:bg-sky-800 hover:text-white" },
+    ],
+    "General & Freelance": [
+        { name: "Educator", icon: "School", color: "text-yellow-400 border-yellow-500/80 hover:bg-yellow-800 hover:text-white" },
+        { name: "Freelancer", icon: "Network", color: "text-pink-400 border-pink-500/80 hover:bg-pink-800 hover:text-white" },
+        { name: "Student", icon: "GraduationCap", color: "text-stone-400 border-stone-500/80 hover:bg-stone-800 hover:text-white" },
+        { name: "Sales", icon: "TrendingUp", color: "text-green-400 border-green-500/80 hover:bg-green-800 hover:text-white" },
+        { name: "Medical Representative", icon: "Truck", color: "text-slate-400 border-slate-500/80 hover:bg-slate-800 hover:text-white" },
+        { name: "Delivery Agent", icon: "Package", color: "text-gray-400 border-gray-500/80 hover:bg-gray-800 hover:text-white" },
+    ]
+};
+
 
 interface ProfileContextType {
   profile: ProfileType;
   setProfile: (profile: ProfileType) => void;
+  daysOff: Day[];
+  setDaysOff: (daysOff: Day[]) => void;
   customProfessions: CustomProfession[];
-  addCustomProfession: (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => Promise<void>;
   deleteCustomProfession: (professionName: string) => Promise<void>;
-  addTasksToCurrentProfile: (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => Promise<void>;
   loading: boolean;
+  profileData: UserProfile | null;
 }
 
 const ProfileContext = createContext<ProfileContextType>({
   profile: "General",
   setProfile: () => {},
+  daysOff: [],
+  setDaysOff: () => {},
   customProfessions: [],
-  addCustomProfession: async () => {},
   deleteCustomProfession: async () => {},
-  addTasksToCurrentProfile: async () => {},
   loading: true,
+  profileData: null,
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { user, isOffline } = useAuth();
-  const [profile, setProfileState] = useState<ProfileType>("General");
-  const [customProfessions, setCustomProfessionsState] = useState<CustomProfession[]>([]);
+  const { user, isOffline, isSyncEnabled } = useAuth();
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const profile = profileData?.profile || "General";
+  const daysOff = profileData?.daysOff || [];
+  const customProfessions = profileData?.customProfessions || [];
+  
+  const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
+    if (!prof || !isSyncEnabled || isOffline) return;
+
+    try {
+        const userRef = doc(db, 'users', uid);
+        
+        await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            let userData = userDoc.data() as UserProfile | undefined;
+
+            if (!userData) {
+                // If the user document itself doesn't exist, create it.
+                userData = { userId: uid, profile: prof, routineVersions: {} };
+                transaction.set(userRef, userData);
+            }
+
+            const currentVersion = userData.routineVersions?.[prof] || 0;
+            const routineKey = profileToRoutineMap[prof];
+            if (!routineKey) return; 
+
+            const tasksCollectionRef = collection(db, 'users', uid, 'userPresetTasks');
+            const tasksQuery = query(tasksCollectionRef, where('profession', '==', prof));
+            const tasksSnapshot = await getDocs(tasksQuery);
+
+            if (tasksSnapshot.empty && currentVersion < ROUTINE_TEMPLATE_VERSION) {
+                const defaultTasks = defaultRoutines.routines[routineKey] || [];
+                let order = 0;
+                defaultTasks.forEach(task => {
+                    const newTaskRef = doc(collection(db, 'users', uid, 'userPresetTasks'));
+                    transaction.set(newTaskRef, { ...task, userId: uid, profession: prof, order: order++ });
+                });
+                
+                const updatedVersions = { ...(userData?.routineVersions || {}), [prof]: ROUTINE_TEMPLATE_VERSION };
+                transaction.set(userRef, { routineVersions: updatedVersions }, { merge: true });
+            }
+        });
+    } catch (error) {
+        console.error(`Transaction to initialize/update tasks for ${prof} failed: `, error);
+    }
+  }, [isSyncEnabled, isOffline]);
+
+
   useEffect(() => {
-    if (!user || isOffline) {
-        setProfileState("General");
-        setCustomProfessionsState([]);
+    if (!user) {
+        setLoading(false);
+        return;
+    }
+
+    if (isOffline || !isSyncEnabled) {
+        setLoading(true);
+        try {
+            const storedProfile = localStorage.getItem(`user-profile_${user.uid}`);
+            if (storedProfile) {
+                setProfileData(JSON.parse(storedProfile));
+            } else {
+                const defaultProfile: UserProfile = { userId: user.uid, profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}};
+                setProfileData(defaultProfile);
+                localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(defaultProfile));
+            }
+        } catch (e) {
+            console.warn("Could not access localStorage for profile");
+            setProfileData({ userId: user.uid, profile: 'General', daysOff: [], customProfessions: [], routineVersions: {}});
+        }
         setLoading(false);
         return;
     }
 
     setLoading(true);
-    const profileRef = doc(db, 'userProfiles', user.uid);
+    const profileRef = doc(db, 'users', user.uid);
 
-    const unsubscribe = onSnapshot(profileRef, (docSnap) => {
+    const unsubscribe = onSnapshot(profileRef, async (docSnap) => {
+        let dataToSet: UserProfile;
         if (docSnap.exists()) {
-            const data = docSnap.data();
-            setProfileState(data.profile || "General");
-            setCustomProfessionsState(data.customProfessions || []);
+            dataToSet = docSnap.data() as UserProfile;
         } else {
-            // If no profile, set default "General"
-            setDoc(profileRef, { profile: "General", customProfessions: [] });
-            setProfileState("General");
-            setCustomProfessionsState([]);
+            dataToSet = { userId: user.uid, profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
+            await setDoc(profileRef, dataToSet); // This creates the user doc if it doesn't exist
+        }
+
+        setProfileData(dataToSet);
+
+        try {
+            localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(dataToSet));
+        } catch (e) {
+            console.warn("Could not write profile to localStorage");
+        }
+        
+        if (dataToSet.profile) {
+            await initializeUserTasks(user.uid, dataToSet.profile);
         }
         setLoading(false);
+
     }, (error) => {
         console.error("Error fetching profile:", error);
         setLoading(false);
@@ -70,108 +183,74 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     
     return () => unsubscribe();
 
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled, initializeUserTasks]);
+
 
   const setProfile = useCallback(async (newProfile: ProfileType) => {
-    setProfileState(newProfile);
-    if (user && !isOffline) {
+    if (!user || profile === newProfile) return;
+    
+    const updatedData: UserProfile = { ...(profileData || { userId: user.uid, daysOff: [], customProfessions: [], routineVersions: {} }), profile: newProfile };
+    setProfileData(updatedData);
+
+    try {
+        localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updatedData));
+    } catch(e) { console.warn("Could not access localStorage for profile"); }
+
+    if (user && !isOffline && isSyncEnabled) {
         try {
-            const profileRef = doc(db, 'userProfiles', user.uid);
-            await setDoc(profileRef, { profile: newProfile }, { merge: true });
+            const profileRef = doc(db, 'users', user.uid);
+            await updateDoc(profileRef, { profile: newProfile });
+            await initializeUserTasks(user.uid, newProfile);
         } catch (error) {
             console.error("Failed to set profile: ", error);
         }
     }
-  }, [user, isOffline]);
-
-  const addCustomProfession = useCallback(async (profession: CustomProfession, tasks: (PresetTask & { category: string })[]) => {
-    if (!user || isOffline) return;
-
-    const profileRef = doc(db, 'userProfiles', user.uid);
-    const tasksCollectionRef = collection(db, 'userPresetTasks');
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const profileDoc = await transaction.get(profileRef);
-            let currentCustomProfessions: CustomProfession[] = [];
-
-            if (profileDoc.exists()) {
-                currentCustomProfessions = profileDoc.data().customProfessions || [];
-            }
-            
-            if (!currentCustomProfessions.some(p => p.name === profession.name)) {
-                currentCustomProfessions.push(profession);
-            }
-
-            transaction.set(profileRef, {
-                profile: profession.name,
-                customProfessions: currentCustomProfessions
-            }, { merge: true });
-            
-            const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profession.name));
-            const oldTasksSnapshot = await getDocs(q); 
-            oldTasksSnapshot.forEach(doc => {
-                transaction.delete(doc.ref);
-            });
-
-            const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
-            tasks.forEach(task => {
-                if (!tasksByCategory[task.category]) {
-                    tasksByCategory[task.category] = [];
-                }
-                tasksByCategory[task.category].push(task);
-            });
-
-            Object.values(tasksByCategory).forEach(categoryTasks => {
-                categoryTasks.forEach((task, index) => {
-                    const newDocRef = doc(tasksCollectionRef);
-                    transaction.set(newDocRef, {
-                        name: task.name,
-                        duration: task.duration,
-                        icon: task.icon,
-                        category: task.category,
-                        order: index,
-                        userId: user.uid,
-                        profession: profession.name,
-                    });
-                });
-            });
-        });
-
-        setProfileState(profession.name);
-
-    } catch (error) {
-        console.error("Failed to add custom profession and tasks: ", error);
-        throw error;
-    }
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled, profile, profileData, initializeUserTasks]);
   
+  const setDaysOff = useCallback(async (newDaysOff: Day[]) => {
+     if (!user) return;
+    const updatedData: UserProfile = { ...(profileData || { userId: user.uid, profile: 'General', customProfessions: [], routineVersions: {} }), daysOff: newDaysOff };
+    setProfileData(updatedData);
+
+     try {
+        localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updatedData));
+    } catch(e) { console.warn("Could not access localStorage for profile"); }
+
+    if (user && !isOffline && isSyncEnabled) {
+        try {
+            const profileRef = doc(db, 'users', user.uid);
+            await updateDoc(profileRef, { daysOff: newDaysOff });
+        } catch (error) {
+            console.error("Failed to set day off: ", error);
+        }
+    }
+  }, [user, isOffline, isSyncEnabled, profileData]);
+
   const deleteCustomProfession = useCallback(async (professionName: string) => {
-    if (!user || isOffline) return;
+    if (!user || isOffline || !isSyncEnabled) return;
 
     try {
+        const profileRef = doc(db, 'users', user.uid);
+        const tasksCollectionRef = collection(db, 'users', user.uid, 'userPresetTasks');
+        
         await runTransaction(db, async (transaction) => {
-            const profileRef = doc(db, 'userProfiles', user.uid);
             const profileDoc = await transaction.get(profileRef);
 
             if (profileDoc.exists()) {
-                const currentCustomProfessions = (profileDoc.data().customProfessions || []).filter(
+                const currentData = profileDoc.data() as UserProfile;
+                const newCustomProfessions = (currentData.customProfessions || []).filter(
                     (p: CustomProfession) => p.name !== professionName
                 );
                 
-                transaction.update(profileRef, { customProfessions: currentCustomProfessions });
-
-                if (profile === professionName) {
-                    transaction.update(profileRef, { profile: "General" });
-                    setProfileState("General");
+                const updatePayload: Partial<UserProfile> = { customProfessions: newCustomProfessions };
+                if (currentData.profile === professionName) {
+                    updatePayload.profile = "General";
+                    setProfileData(prev => ({...prev!, profile: 'General'}));
                 }
+                transaction.update(profileRef, updatePayload);
             }
             
-            const tasksQuery = query(
-                collection(db, 'userPresetTasks'),
-                where('userId', '==', user.uid),
-                where('profession', '==', professionName)
-            );
+            const tasksQuery = query(tasksCollectionRef, where('profession', '==', professionName));
             const tasksSnapshot = await getDocs(tasksQuery);
             tasksSnapshot.forEach(doc => transaction.delete(doc.ref));
         });
@@ -180,39 +259,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         throw error;
     }
 
-  }, [user, isOffline, profile]);
-
-  const addTasksToCurrentProfile = useCallback(async (tasks: (Omit<PresetTask, 'order'> & { category: string })[]) => {
-    if (!user || isOffline) return;
-
-    try {
-        const batch = writeBatch(db);
-        const tasksCollectionRef = collection(db, 'userPresetTasks');
-
-        for (const task of tasks) {
-            const q = query(tasksCollectionRef, where('userId', '==', user.uid), where('profession', '==', profile), where('category', '==', task.category));
-            const snapshot = await getDocs(q);
-            const maxOrder = snapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order), -1);
-
-            const newDocRef = doc(tasksCollectionRef);
-            batch.set(newDocRef, {
-                ...task,
-                order: maxOrder + 1,
-                userId: user.uid,
-                profession: profile,
-            });
-        }
-        await batch.commit();
-
-    } catch(error) {
-        console.error("Failed to add tasks to current profile", error);
-        throw error;
-    }
-  }, [user, profile, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
 
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, loading, customProfessions, addCustomProfession, deleteCustomProfession, addTasksToCurrentProfile }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData }}>
       {children}
     </ProfileContext.Provider>
   );

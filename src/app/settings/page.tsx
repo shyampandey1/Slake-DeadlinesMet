@@ -1,16 +1,18 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthWrapper from "@/components/AuthWrapper";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Trash2, User, Volume2, Bell, Loader2, Check, Edit, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
+import { useWeather } from "@/hooks/useWeather";
+import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,18 +31,26 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
-
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
-    const { user, updateUserDisplayName } = useAuth();
+    const { user, updateUserDisplayName, isSyncEnabled, setIsSyncEnabled } = useAuth();
     const { clearTasks } = useTasks();
     const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
-    const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+    const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForCurrentUserLocation } = useWeather();
     
+    const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [displayName, setDisplayName] = useState(user?.displayName || "");
     const [isSavingName, setIsSavingName] = useState(false);
     const { toast } = useToast();
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [tempLocation, setTempLocation] = useState(location);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationsEnabled(Notification.permission === 'granted');
+        }
+    }, []);
 
     const handleClearHistory = () => {
         clearTasks();
@@ -61,6 +71,40 @@ function SettingsPageComponent() {
             toast({ title: "Failed to update name.", description: error.message, variant: "destructive" });
         } finally {
             setIsSavingName(false);
+        }
+    };
+
+    const handleLocationSave = () => {
+        if (tempLocation.trim()) {
+            setLocation(tempLocation);
+            toast({ title: "Location updated", description: `Weather will now be shown for ${tempLocation}.` });
+        }
+    }
+
+    const handleDetectLocation = () => {
+        fetchWeatherForCurrentUserLocation();
+        setTempLocation("Current Location");
+    }
+
+    const handleNotificationToggle = async (enabled: boolean) => {
+        if (enabled) {
+            if (Notification.permission === 'granted') {
+                setNotificationsEnabled(true);
+            } else if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    setNotificationsEnabled(true);
+                    toast({ title: "Notifications enabled!" });
+                } else {
+                    setNotificationsEnabled(false);
+                    toast({ title: "Notifications permission denied.", variant: 'destructive' });
+                }
+            } else {
+                setNotificationsEnabled(false);
+                toast({ title: "Notifications are blocked by your browser.", description: "You'll need to change the setting in your browser to enable them." });
+            }
+        } else {
+            setNotificationsEnabled(false);
         }
     };
 
@@ -91,6 +135,69 @@ function SettingsPageComponent() {
                                     <span className="sr-only">Toggle theme</span>
                                 </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg">Weather</CardTitle>
+                            <CardDescription>Manage location and units for the home screen.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="location-input">Location</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input 
+                                        id="location-input"
+                                        value={tempLocation}
+                                        onChange={(e) => setTempLocation(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleLocationSave()}
+                                        placeholder="e.g., Delhi, India"
+                                    />
+                                    <Button size="icon" variant="outline" onClick={handleDetectLocation}>
+                                        <LocateFixed className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="icon" onClick={handleLocationSave} disabled={weatherLoading}>
+                                        {weatherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Unit</Label>
+                                <RadioGroup value={unit} onValueChange={(value) => setUnit(value as 'C' | 'F')} className="flex items-center gap-4">
+                                    <Label htmlFor="celsius" className="flex items-center gap-2 rounded-md border p-2 px-3 cursor-pointer hover:bg-accent data-[state=checked]:border-primary">
+                                        <RadioGroupItem value="C" id="celsius"/>
+                                        Celsius (°C)
+                                    </Label>
+                                    <Label htmlFor="fahrenheit" className="flex items-center gap-2 rounded-md border p-2 px-3 cursor-pointer hover:bg-accent data-[state=checked]:border-primary">
+                                        <RadioGroupItem value="F" id="fahrenheit"/>
+                                        Fahrenheit (°F)
+                                    </Label>
+                                </RadioGroup>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg">Notifications</CardTitle>
+                            <CardDescription>Manage how you receive alerts for tasks.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <label htmlFor="notifications-switch" className="font-medium flex items-center gap-2">
+                                    <Bell className="h-4 w-4" />
+                                    Push Notifications
+                                </label>
+                                <Switch
+                                    id="notifications-switch"
+                                    checked={notificationsEnabled}
+                                    onCheckedChange={handleNotificationToggle}
+                                />
+                            </div>
+                             <p className="text-sm text-muted-foreground -mt-2">
+                                Stay updated with task reminders and motivational messages.
+                            </p>
                         </CardContent>
                     </Card>
 
@@ -127,7 +234,7 @@ function SettingsPageComponent() {
                              <div className="space-y-2">
                                 <Label>Volume</Label>
                                 <Slider
-                                    value={[volume]}
+                                    value={volume}
                                     onValueChange={setVolume}
                                     max={1}
                                     step={0.1}
@@ -144,9 +251,25 @@ function SettingsPageComponent() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline text-lg">Account</CardTitle>
-                            <CardDescription>Manage your account information.</CardDescription>
+                            <CardDescription>Manage your account information and data sync.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                             <div>
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="sync-switch" className="font-medium flex items-center gap-2">
+                                        {isSyncEnabled ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+                                        Cloud Sync
+                                    </label>
+                                    <Switch
+                                        id="sync-switch"
+                                        checked={isSyncEnabled}
+                                        onCheckedChange={setIsSyncEnabled}
+                                    />
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    When enabled, your data is securely stored and encrypted in the cloud, ensuring your privacy and safety.
+                                </p>
+                             </div>
                             {user && (
                                 <>
                                     <div className="flex items-center justify-between">
@@ -216,7 +339,6 @@ function SettingsPageComponent() {
                            </AlertDialog>
                         </CardContent>
                     </Card>
-
                 </div>
             </main>
         </div>

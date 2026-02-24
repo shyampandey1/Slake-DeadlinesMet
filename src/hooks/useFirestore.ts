@@ -3,817 +3,510 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc, Timestamp, writeBatch, getDocs, updateDoc, limit, runTransaction } from 'firebase/firestore';
 import { useAuth } from './useAuth';
-import { Task, Preset, PresetTask, UserPresetTask, CustomProfession, UserEvent, ProfileType } from '@/types';
+import { db } from '@/lib/firebase';
+import { 
+    collection, 
+    addDoc, 
+    query, 
+    where, 
+    orderBy, 
+    onSnapshot, 
+    Timestamp, 
+    writeBatch,
+    doc,
+    deleteDoc,
+    updateDoc,
+    getDocs,
+    runTransaction
+} from 'firebase/firestore';
+import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
-import { startOfDay, endOfDay, isBefore, isAfter, add, set } from 'date-fns';
+import { getDay, set, subDays } from 'date-fns';
+import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
+import { format as formatDate, parse, compareDesc } from 'date-fns';
 
-const iconMap = {
-    ListChecks: "ListChecks",
-    Bed: "Bed",
-    StretchHorizontal: "StretchHorizontal",
-    Dumbbell: "Dumbbell",
-    BrainCircuit: "BrainCircuit",
-    Mail: "Mail",
-    Users: "Users",
-    Coffee: "Coffee",
-    Footprints: "Footprints",
-    Utensils: "Utensils",
-    Wind: "Wind",
-    Droplets: "Droplets",
-    BookOpen: "BookOpen",
-    Wrench: "Wrench",
-    Target: "Target",
-    ShoppingBag: "ShoppingBag",
-};
-const iconNames = Object.keys(iconMap);
-
-const creativeRoutine: Preset = {
-    'Morning': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Mindfulness', duration: 15, icon: 'Wind', order: 1 },
-            { name: 'Light Movement', duration: 20, icon: 'StretchHorizontal', order: 2 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
-        ]
-    },
-    'Deep Creative Session': {
-        color: "bg-purple-800 text-purple-100",
-        tasks: [
-            { name: 'Deep Work on Project', duration: 180, icon: 'BrainCircuit', order: 0 },
-        ]
-    },
-    'Lunch & Recharge': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Mindful Meal', duration: 45, icon: 'Utensils', order: 0 },
-            { name: 'Short Walk', duration: 15, icon: 'Footprints', order: 1 },
-        ]
-    },
-    'Afternoon Tasks': {
-        color: "bg-amber-800 text-amber-100",
-        tasks: [
-            { name: 'Admin & Emails', duration: 90, icon: 'Mail', order: 0 },
-            { name: 'Inspiration Time', duration: 90, icon: 'ShoppingBag', order: 1 },
-        ]
-    },
-    'Evening': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Exercise/Workout', duration: 45, icon: 'Dumbbell', order: 0 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
-            { name: 'Leisure Time', duration: 90, icon: 'Users', order: 2},
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Plan Tomorrow', duration: 5, icon: 'ListChecks', order: 0 },
-            { name: 'Screen-free Wind-down', duration: 30, icon: 'BookOpen', order: 1 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
-        ]
-    }
-};
-
-const businessRoutine: Preset = {
-    'Morning Power-Up': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Focus Breathing', duration: 5, icon: 'Wind', order: 1 },
-            { name: 'Workout', duration: 30, icon: 'Dumbbell', order: 2 },
-            { name: 'Plan Priorities', duration: 10, icon: 'ListChecks', order: 3 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 4 },
-        ]
-    },
-    'Strategic Work': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Tackle Top Task', duration: 180, icon: 'BrainCircuit', order: 0 },
-        ]
-    },
-    'Lunch': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Power Lunch', duration: 60, icon: 'Utensils', order: 0 },
-        ]
-    },
-    'Meetings & Comms': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Meetings & Calls', duration: 120, icon: 'Users', order: 0 },
-            { name: 'Email & Messages', duration: 120, icon: 'Mail', order: 1 },
-        ]
-    },
-    'Decompression': {
-        color: "bg-purple-800 text-purple-100",
-        tasks: [
-            { name: 'Work Transition', duration: 30, icon: 'Wind', order: 0 },
-            { name: 'Leisure/Hobby', duration: 60, icon: 'ShoppingBag', order: 1 },
-        ]
-    },
-    'Evening': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Dinner', duration: 45, icon: 'Utensils', order: 0 },
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Light Reading', duration: 30, icon: 'BookOpen', order: 0 },
-            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
-        ]
-    }
-};
-
-const technicalRoutine: Preset = {
-    'Morning': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Meditation', duration: 10, icon: 'Wind', order: 1 },
-            { name: 'Light Exercise', duration: 20, icon: 'StretchHorizontal', order: 2 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 3 },
-        ]
-    },
-    'Deep Focus Block': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Coding/Problem-Solving', duration: 240, icon: 'BrainCircuit', order: 0 },
-        ]
-    },
-    'Lunch': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'Screen-Free Lunch & Walk', duration: 60, icon: 'Utensils', order: 0 },
-        ]
-    },
-    'Afternoon Tasks': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Code Reviews, Meetings, Docs', duration: 180, icon: 'ListChecks', order: 0 },
-        ]
-    },
-    'Evening': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Workout', duration: 45, icon: 'Dumbbell', order: 0 },
-            { name: 'Leisure/Personal Project', duration: 90, icon: 'ShoppingBag', order: 1 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 2},
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Plan Tomorrow', duration: 5, icon: 'Target', order: 0 },
-            { name: 'Read a Book', duration: 30, icon: 'BookOpen', order: 1 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 2 },
-        ]
-    }
-};
-
-const onTheGoRoutine: Preset = {
-    'Morning Prep': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Quick Workout', duration: 20, icon: 'Dumbbell', order: 1 },
-            { name: 'Breakfast', duration: 20, icon: 'Utensils', order: 2 },
-            { name: 'Review Day', duration: 15, icon: 'ListChecks', order: 3 },
-        ]
-    },
-    'On The Road': {
-        color: "bg-blue-800 text-blue-100",
-        tasks: [
-            { name: 'Travel Time', duration: 60, icon: 'Footprints', order: 0 },
-            { name: 'Reset Break', duration: 5, icon: 'Wind', order: 1 },
-        ]
-    },
-    'Afternoon Appointments': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Client Meetings', duration: 180, icon: 'Users', order: 0 },
-            { name: 'Lunch', duration: 20, icon: 'Utensils', order: 1 },
-        ]
-    },
-    'Wrap Up': {
-        color: "bg-amber-800 text-amber-100",
-        tasks: [
-            { name: 'Log Reports', duration: 30, icon: 'Mail', order: 0 },
-        ]
-    },
-    'Evening Wind-down': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 0 },
-            { name: 'Relax', duration: 60, icon: 'ShoppingBag', order: 1 },
-            { name: 'Stretching', duration: 15, icon: 'StretchHorizontal', order: 2},
-        ]
-    },
-    'Night Routine': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Prepare for Next Day', duration: 15, icon: 'Wrench', order: 0 },
-            { name: 'Go to Bed', duration: 5, icon: 'Bed', order: 1 },
-        ]
-    }
-};
-
-const healthcareRoutine: Preset = {
-    'Pre-Shift': {
-        color: "bg-sky-800 text-sky-100",
-        tasks: [
-            { name: 'Wake up & Hydrate', duration: 1, icon: 'Droplets', order: 0 },
-            { name: 'Energy Snack', duration: 10, icon: 'Utensils', order: 1 },
-            { name: 'Deep Breathing', duration: 5, icon: 'Wind', order: 2 },
-        ]
-    },
-    'Shift AM': {
-        color: "bg-indigo-800 text-indigo-100",
-        tasks: [
-            { name: 'Patient Care', duration: 240, icon: 'Users', order: 0 },
-        ]
-    },
-    'Mid-Shift Break': {
-        color: "bg-green-800 text-green-100",
-        tasks: [
-            { name: 'High-Energy Meal', duration: 30, icon: 'Utensils', order: 0 },
-        ]
-    },
-    'Shift PM': {
-        color: "bg-purple-800 text-purple-100",
-        tasks: [
-            { name: 'Patient Care & Charting', duration: 240, icon: 'ListChecks', order: 0 },
-        ]
-    },
-    'Post-Shift': {
-        color: "bg-orange-800 text-orange-100",
-        tasks: [
-            { name: 'Decompression Commute', duration: 30, icon: 'Footprints', order: 0 },
-            { name: 'Dinner', duration: 30, icon: 'Utensils', order: 1 },
-        ]
-    },
-    'Evening Recovery': {
-        color: "bg-slate-800 text-slate-100",
-        tasks: [
-            { name: 'Gentle Stretching', duration: 15, icon: 'StretchHorizontal', order: 0 },
-            { name: 'Connect', duration: 45, icon: 'Users', order: 1 },
-            { name: 'Relaxing Hobby', duration: 30, icon: 'BookOpen', order: 2 },
-            { name: 'Bedtime', duration: 15, icon: 'Bed', order: 3 },
-        ]
-    }
-};
+// Re-export for easier access in other components
+export const getAvailableCategories = getCats;
+export const getAvailableIcons = getIcons;
 
 
-const profilePresets: { [key: string]: Preset } = {
-    // Creative
-    "Artist": creativeRoutine,
-    "Content Creator": creativeRoutine,
-    "Designer": creativeRoutine,
-    "Writer": creativeRoutine,
-    // Business
-    "Consultant": businessRoutine,
-    "Manager": businessRoutine,
-    "Marketer": businessRoutine,
-    "Entrepreneur": businessRoutine,
-    "Sales": businessRoutine,
-    // Technical
-    "Software Engineer": technicalRoutine,
-    "IT Professional": technicalRoutine,
-    "Researcher": technicalRoutine,
-    "Student": technicalRoutine,
-    // On-The-Go
-    "Freelancer": onTheGoRoutine,
-    // Healthcare
-    "Healthcare Professional": healthcareRoutine,
-    // General
-    "General": businessRoutine,
-    "Educator": creativeRoutine,
-};
-
-const routineStartTimes: { [key: string]: { hours: number, minutes: number } } = {
-    // Creative
-    "Artist": { hours: 8, minutes: 0 },
-    "Content Creator": { hours: 8, minutes: 0 },
-    "Designer": { hours: 8, minutes: 0 },
-    "Writer": { hours: 8, minutes: 0 },
-    "Educator": { hours: 8, minutes: 0 },
-    // Business
-    "Consultant": { hours: 6, minutes: 0 },
-    "Manager": { hours: 6, minutes: 0 },
-    "Marketer": { hours: 6, minutes: 0 },
-    "Entrepreneur": { hours: 6, minutes: 0 },
-    "Sales": { hours: 6, minutes: 30 },
-    // Technical
-    "Software Engineer": { hours: 7, minutes: 0 },
-    "IT Professional": { hours: 7, minutes: 0 },
-    "Researcher": { hours: 7, minutes: 0 },
-    "Student": { hours: 7, minutes: 0 },
-    // On-The-Go
-    "Freelancer": { hours: 6, minutes: 30 },
-    // Healthcare
-    "Healthcare Professional": { hours: 5, minutes: 30 },
-    // General
-    "General": { hours: 7, minutes: 0 },
-};
-
-
+// Hook for managing user's task history
 export function useTasks() {
-  const { user, isOffline } = useAuth();
+  const { user, isOffline, isSyncEnabled } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const TASKS_CACHE_KEY = 'user_tasks';
 
   useEffect(() => {
-    if (!user || isOffline) {
-      setTasks(isOffline ? [
-        { id: 'mock-1', userId: 'mock-user-01', name: 'Finish project proposal (mock)', duration: 60, initialDuration: 60, completed: true, createdAt: new Date().toISOString() },
-        { id: 'mock-2', userId: 'mock-user-01', name: 'Review design mockups (mock)', duration: 20, initialDuration: 45, completed: false, createdAt: new Date(Date.now() - 86400000).toISOString() },
-      ] : []);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
+    if (isOffline || !isSyncEnabled) {
+      try {
+        const cachedTasks = localStorage.getItem(cacheKey);
+        if (cachedTasks) {
+          setTasks(JSON.parse(cachedTasks));
+        }
+      } catch (error) {
+        console.warn("Couldn't access localStorage for tasks");
+      }
       setLoading(false);
       return;
     }
 
     setLoading(true);
     const q = query(
-      collection(db, 'tasks'),
-      where('userId', '==', user.uid)
+      collection(db, 'users', user.uid, 'tasks'), 
+      orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const userTasks = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
-            initialDuration: data.initialDuration || data.duration, // Backwards compatibility
-          } as Task
+      const userTasks: Task[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
+        userTasks.push({ id: doc.id, ...data, createdAt } as Task);
       });
-      // Sort tasks by creation date descending
-      userTasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setTasks(userTasks);
+       try {
+        localStorage.setItem(cacheKey, JSON.stringify(userTasks));
+      } catch (error) {
+        console.warn("Couldn't access localStorage for tasks");
+      }
       setLoading(false);
     }, (error) => {
-        console.error("Error fetching tasks:", error);
-        setTasks([]);
-        setLoading(false);
+      console.error("Error fetching tasks: ", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user, isOffline]);
+  }, [user, isOffline, isSyncEnabled]);
 
-  const addTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
-    if (!user) throw new Error("User not authenticated");
-
-    if (isOffline) {
-        const newTask: Task = {
-            id: `mock-${Date.now()}`,
-            userId: user.uid,
-            createdAt: new Date().toISOString(),
-            ...task
-        };
-        setTasks(prev => [newTask, ...prev]);
-        console.log("Mock task added:", newTask);
-        return;
-    }
-
-    await addDoc(collection(db, 'tasks'), {
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
+    if (!user) return;
+    const newTask = {
       ...task,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-    });
-  }, [user, isOffline]);
-  
-  const clearTasks = useCallback(async () => {
-    if (!user) throw new Error("User not authenticated");
+      createdAt: new Date().toISOString(),
+    };
 
-    if (isOffline) {
-        setTasks([]);
-        console.log("Mock tasks cleared");
-        return;
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
+    if (isOffline || !isSyncEnabled) {
+      const updatedTasks = [...tasks, { ...newTask, id: new Date().toISOString(), userId: user.uid }];
+      setTasks(updatedTasks);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
+      } catch (error) {
+        console.warn("Couldn't access localStorage for tasks");
+      }
+      return;
     }
+
+    await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, createdAt: Timestamp.now()});
+  };
+
+  const clearTasks = async () => {
+    if (!user) return;
     
-    const q = query(collection(db, 'tasks'), where('userId', '==', user.uid));
-    const snapshot = await getDocs(q);
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
+    setTasks([]);
+    try {
+      localStorage.removeItem(cacheKey);
+    } catch(e) {
+      console.warn("Could not clear tasks from localStorage");
+    }
+
+    if (isOffline || !isSyncEnabled) {
+      return;
+    }
+
     const batch = writeBatch(db);
+    const q = query(collection(db, 'users', user.uid, 'tasks'));
+    const snapshot = await getDocs(q);
     snapshot.forEach(doc => {
-        batch.delete(doc.ref);
+      batch.delete(doc.ref);
     });
     await batch.commit();
-
-  }, [user, isOffline]);
+  };
 
 
   return { tasks, loading, addTask, clearTasks };
 }
 
+// Hook for managing preset tasks and routines
 export function usePresetTasks() {
-    const { user, isOffline } = useAuth();
-    const { profile, customProfessions } = useProfile();
-    const [presetTasks, setPresetTasks] = useState<Preset>({});
-    const [todaysEvents, setTodaysEvents] = useState<UserEvent[]>([]);
-    const [loading, setLoading] = useState(true);
+  const { user, isOffline, isSyncEnabled } = useAuth();
+  const { profile, loading: profileLoading, daysOff } = useProfile();
+  const [presetTasks, setPresetTasks] = useState<Preset>({});
+  const [loading, setLoading] = useState(true);
 
-    const isDefaultTask = (task: UserPresetTask) => {
-        return !task.id;
+  const dayMap: { [key: string]: number } = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
+  
+  const isDayOff = useCallback(() => {
+    const today = getDay(new Date());
+    for (const dayOff of daysOff) {
+        if (dayMap[dayOff] === today) {
+            return true;
+        }
+    }
+    return false;
+  }, [daysOff, dayMap]);
+  
+  const effectiveProfile = useMemo(() => {
+    if (isDayOff()) {
+        if (profile === 'Analyst') return 'Day Off - Analyst';
+        if (profile === 'Healthcare Professional') return 'Day Off - Healthcare';
+        return 'Day Off';
+    }
+    const onTheGoProfiles = ["Sales", "Medical Representative", "Delivery Agent"];
+    if (onTheGoProfiles.includes(profile) && getDay(new Date()) === 3) { // Wednesday
+        return 'Admin Day - On The Go';
+    }
+    return profile;
+  }, [profile, isDayOff]);
+
+
+  const isDefaultTask = (task: UserPresetTask) => {
+    return !task.id;
+  };
+
+  useEffect(() => {
+    if (profileLoading || !user) {
+      setLoading(false);
+      return;
+    }
+    
+    const cacheKey = `preset_tasks_${user.uid}_${effectiveProfile}`;
+    if (isOffline || !isSyncEnabled) {
+        try {
+            const cachedData = localStorage.getItem(cacheKey);
+            if (cachedData) {
+                setPresetTasks(JSON.parse(cachedData));
+            } else {
+                 const routineKey = profileToRoutineMap[effectiveProfile];
+                 const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
+                 const newPreset = defaultTasks.reduce((acc: Preset, task) => {
+                    const category = task.category || 'Default';
+                    if (!acc[category]) {
+                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                    }
+                    acc[category].tasks.push(task as UserPresetTask);
+                    return acc;
+                }, {});
+                setPresetTasks(newPreset);
+            }
+        } catch (e) {
+            console.warn("Could not read preset tasks from local storage");
+        }
+        setLoading(false);
+        return;
+    }
+    
+    setLoading(true);
+    let unsubscribe: (() => void) | null = null;
+    
+    if (isSyncEnabled) {
+        const q = query(
+            collection(db, 'users', user.uid, 'userPresetTasks'),
+            where('profession', '==', effectiveProfile),
+            orderBy('order', 'asc')
+        );
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                 const routineKey = profileToRoutineMap[effectiveProfile];
+                 const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
+                 const newPreset = defaultTasks.reduce((acc: Preset, task) => {
+                    const category = task.category || 'Default';
+                    if (!acc[category]) {
+                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                    }
+                    acc[category].tasks.push(task as UserPresetTask);
+                    return acc;
+                }, {});
+                setPresetTasks(newPreset);
+            } else {
+                const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
+                    const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+                    const category = task.category || 'Default';
+                    if (!acc[category]) {
+                        acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+                    }
+                    acc[category].tasks.push(task);
+                    return acc;
+                }, {});
+
+                const sortedPreset: Preset = {};
+                Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                    .forEach(key => { sortedPreset[key] = newPreset[key]; });
+                
+                setPresetTasks(sortedPreset);
+
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
+                } catch (error) {
+                    console.warn("Could not cache preset tasks");
+                }
+            }
+            setLoading(false);
+
+        }, (error) => {
+            console.error("Error fetching preset tasks: ", error);
+            setLoading(false);
+        });
+    } else {
+        setLoading(false);
     }
 
-    const getAvailableIcons = () => iconNames;
+    return () => {
+        if (unsubscribe) {
+            unsubscribe();
+        }
+    };
+  }, [user, effectiveProfile, isOffline, profileLoading, isSyncEnabled]);
+  
+  const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
+    if (!user || isOffline || !isSyncEnabled) return;
     
-    const getAvailableCategories = useCallback((prof: string) => {
-        const preset = profilePresets[prof] || businessRoutine;
-        return Object.keys(preset);
-    }, []);
-
-    const processedTasks = useMemo(() => {
-        const newPresetTasks = JSON.parse(JSON.stringify(presetTasks));
-
-        if (todaysEvents.length > 0) {
-            let cumulativeTime = set(new Date(), { hours: 7, minutes: 0, seconds: 0, milliseconds: 0 });
-            let injected = false;
-            
-            Object.keys(newPresetTasks).forEach(category => {
-                const categoryTasks = newPresetTasks[category].tasks.map((task: UserPresetTask) => {
-                    const startTime = cumulativeTime;
-                    const endTime = add(startTime, { minutes: task.duration });
-                    cumulativeTime = endTime;
-                    return { ...task, startTime, endTime };
-                });
-                newPresetTasks[category].tasks = categoryTasks;
-            });
-
-            const now = new Date();
-            for (const category of Object.keys(newPresetTasks)) {
-                const lastTask = newPresetTasks[category].tasks[newPresetTasks[category].tasks.length - 1];
-                if (lastTask && isBefore(now, lastTask.endTime) && !injected) {
-                    todaysEvents.forEach((event, index) => {
-                         newPresetTasks[category].tasks.push({
-                            name: event.name,
-                            duration: event.duration,
-                            icon: event.icon || 'ListChecks',
-                            order: newPresetTasks[category].tasks.length,
-                            id: `event-${event.id}-${index}`,
-                            isEvent: true,
-                        });
-                    });
-                    injected = true;
+    const { category, ...rest } = taskData;
+    
+    // Determine the new order
+    let maxOrder = -1;
+    for (const cat in presetTasks) {
+        if(presetTasks[cat].tasks) {
+            for (const task of presetTasks[cat].tasks) {
+                if (task.order > maxOrder) {
+                    maxOrder = task.order;
                 }
             }
-            if (!injected && newPresetTasks['Work Session 1']) {
-                 todaysEvents.forEach((event, index) => {
-                    newPresetTasks['Work Session 1'].tasks.push({
-                        name: event.name,
-                        duration: event.duration,
-                        icon: event.icon || 'ListChecks',
-                        order: newPresetTasks['Work Session 1'].tasks.length,
-                        id: `event-${event.id}-${index}`,
-                        isEvent: true,
-                    });
-                });
-            }
         }
-        return newPresetTasks;
-
-    }, [presetTasks, todaysEvents]);
+    }
+    const newOrder = maxOrder + 1;
     
-    const { categoryTimeRanges, activeCategory } = useMemo(() => {
-        const ranges: { [category: string]: { start: Date, end: Date } } = {};
-        if (Object.keys(processedTasks).length === 0) {
-            return { categoryTimeRanges: ranges, activeCategory: null };
+    const newTask = {
+        ...rest,
+        category,
+        profession: currentProfile,
+        order: newOrder
+    };
+
+    await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), newTask);
+  };
+
+  const updatePresetTask = async (taskId: string, taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }) => {
+    if (!user || isOffline || !isSyncEnabled) return;
+    await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), taskData);
+  };
+
+  const deletePresetTask = async (taskId: string) => {
+    if (!user || isOffline || !isSyncEnabled) return;
+    await deleteDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId));
+  };
+  
+  const clearAndSetPresetTasks = async (currentProfile: ProfileType, tasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[]) => {
+      if (!user || isOffline || !isSyncEnabled) return;
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'userPresetTasks');
+      
+      await runTransaction(db, async (transaction) => {
+          const currentTasksQuery = query(tasksCollectionRef, where('profession', '==', currentProfile));
+          const currentTasksSnapshot = await getDocs(currentTasksQuery);
+          currentTasksSnapshot.forEach(doc => transaction.delete(doc.ref));
+
+          let order = 0;
+          tasks.forEach(task => {
+              const { category, ...rest } = task;
+              const newTask = {
+                  ...rest,
+                  category,
+                  profession: currentProfile,
+                  order: order++,
+              };
+              const newTaskRef = doc(tasksCollectionRef);
+              transaction.set(newTaskRef, newTask);
+          });
+      });
+  };
+
+  const findAndSyncPresetTask = async (taskName: string, actualDuration: number) => {
+     return;
+  };
+
+  const categoryTimeRanges = useMemo(() => {
+    const ranges: { [category: string]: { start: Date, end: Date } } = {};
+    if (Object.keys(presetTasks).length === 0) return ranges;
+
+    const today = new Date();
+    
+    const timeBlocks = {
+        'Morning Routine': { start: 6, end: 9 },
+        'Primary Work Session': { start: 9, end: 13 },
+        'Lunch Break': { start: 13, end: 14 },
+        'Afternoon Session': { start: 14, end: 17 },
+        'Post-Work Decompression': { start: 17, end: 19 },
+        'Evening Routine': { start: 19, end: 21 },
+        'Bedtime Routine': { start: 21, end: 24 }, 
+        'Work & Focus': { start: 9, end: 17 }, 
+        'Breaks & Meals': { start: 12, end: 14 }, 
+        'Health & Wellness': {start: 17, end: 19 }, 
+        'Evening Wind-down': { start: 19, end: 21 },
+        // On-The-Go
+        'Morning Prep': { start: 6, end: 9 },
+        'On the Road': { start: 9, end: 17 },
+        'Post-Work Admin': { start: 17, end: 18 },
+        'Evening & Bedtime': { start: 18, end: 24 },
+        // Healthcare
+        'Pre-Shift Routine': { start: 5, end: 7 },
+        'During Shift': { start: 7, end: 19 },
+        'Post-Shift Decompression': { start: 19, end: 21 },
+        // Day Off
+        'Morning Recovery': { start: 7, end: 12 },
+        'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
+        'Evening & Bedtime Reset': { start: 18, end: 24 },
+    };
+    
+    Object.keys(presetTasks).forEach(category => {
+        const categoryLookup = category as keyof typeof timeBlocks;
+        if (timeBlocks[categoryLookup]) {
+            const block = timeBlocks[categoryLookup];
+            ranges[category] = {
+                start: set(today, { hours: block.start, minutes: 0, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: block.end, minutes: 0, seconds: 0, milliseconds: 0 }),
+            };
         }
-    
-        const now = new Date();
-        const startTimeConfig = routineStartTimes[profile] || { hours: 7, minutes: 0 };
-        let cumulativeTime = set(now, startTimeConfig);
-        
-        let currentActiveCategory: string | null = null;
-        let nextUpcomingCategory: string | null = null;
-    
-        const categories = Object.keys(processedTasks);
-    
-        for (const category of categories) {
-            const { tasks } = processedTasks[category];
-            const totalDuration = tasks.reduce((acc, task) => acc + task.duration, 0);
-    
-            if (totalDuration > 0) {
-                const startTime = cumulativeTime;
-                const endTime = add(startTime, { minutes: totalDuration });
-    
-                ranges[category] = { start: startTime, end: endTime };
-    
-                if (isAfter(now, startTime) && isBefore(now, endTime)) {
-                    currentActiveCategory = category;
-                }
-    
-                if (isAfter(endTime, now) && !nextUpcomingCategory) {
-                    if (isAfter(startTime, now)) {
-                         nextUpcomingCategory = category;
-                    }
-                }
-    
-                cumulativeTime = endTime;
-            }
-        }
-    
-        return { 
-            categoryTimeRanges: ranges, 
-            activeCategory: currentActiveCategory || nextUpcomingCategory || categories[0] 
-        };
-    }, [processedTasks, profile]);
+    });
 
-    useEffect(() => {
-        if (!user || isOffline) {
-            const initialTasks = profilePresets[profile] || profilePresets["General"];
-            setPresetTasks(initialTasks);
-            setTodaysEvents([]);
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-
-        const q = query(
-            collection(db, 'userPresetTasks'),
-            where('userId', '==', user.uid)
-        );
-        const unsubscribePresets = onSnapshot(q, (snapshot) => {
-            const userTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as (UserPresetTask & {category: string, profession: string})[];
-            
-            let newPresets: Preset = {};
-            const isCustomProfile = !Object.keys(profilePresets).includes(profile);
-
-            if (isCustomProfile) {
-                const customPreset: Preset = {};
-                const profileTasks = userTasks.filter(t => t.profession === profile);
-                profileTasks.forEach(task => {
-                    if (!customPreset[task.category]) {
-                        // Creating a default category structure if it doesn't exist.
-                        customPreset[task.category] = {
-                            color: "bg-slate-800 text-slate-100",
-                            tasks: []
-                        };
-                    }
-                    customPreset[task.category].tasks.push(task);
-                });
-                newPresets = customPreset;
-            } else {
-                const basePreset = profilePresets[profile] || profilePresets["General"];
-                newPresets = JSON.parse(JSON.stringify(basePreset));
-                
-                const userTasksForProfile = userTasks.filter(t => t.profession === profile);
-
-                const categoriesWithUserTasks = new Set(userTasksForProfile.map(t => t.category));
-                categoriesWithUserTasks.forEach(category => {
-                    if (newPresets[category]) {
-                        newPresets[category].tasks = [];
-                    }
-                });
-
-                userTasksForProfile.forEach(task => {
-                    if (newPresets[task.category]) {
-                        newPresets[task.category].tasks.push(task);
-                    } else {
-                        newPresets[task.category] = {
-                            color: "bg-gray-800 text-gray-100",
-                            tasks: [task]
-                        };
-                    }
-                });
-            }
-            
-            Object.keys(newPresets).forEach(category => {
-                newPresets[category].tasks.sort((a, b) => a.order - b.order);
-            });
-
-            setPresetTasks(newPresets);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching preset tasks:", error);
-            const initialTasks = profilePresets[profile] || profilePresets["General"];
-            setPresetTasks(initialTasks);
-            setLoading(false);
-        });
-
-        const todayStart = startOfDay(new Date());
-        const todayEnd = endOfDay(new Date());
-        const eventsQuery = query(
-            collection(db, 'userEvents'),
-            where('userId', '==', user.uid),
-            where('date', '>=', todayStart.toISOString()),
-            where('date', '<=', todayEnd.toISOString())
-        );
-
-        const unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
-            const events = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as UserEvent[];
-            setTodaysEvents(events);
-        }, (error) => {
-            console.error("Error fetching today's events:", error);
-        });
+    return ranges;
+  }, [presetTasks]);
 
 
-        return () => {
-            unsubscribePresets();
-            unsubscribeEvents();
-        };
-    }, [user, profile, customProfessions, isOffline]);
+  const activeCategory = useMemo(() => {
+      const now = new Date();
+      
+      const matchingCategories = Object.entries(categoryTimeRanges)
+          .filter(([_, range]) => now >= range.start && now < range.end)
+          .map(([category]) => category);
+      
+      if (matchingCategories.length === 0) return null;
+      if (matchingCategories.length === 1) return matchingCategories[0];
+      
+      const availableMatchingCategories = matchingCategories.filter(category => presetTasks[category]);
+      
+      if (availableMatchingCategories.length > 0) {
+          availableMatchingCategories.sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
+          return availableMatchingCategories[0];
+      }
+      
+      return matchingCategories[0];
+  }, [categoryTimeRanges, presetTasks]);
 
-    const addPresetTask = useCallback(async (task: Omit<PresetTask, 'order'> & { category: string }, taskProfile: ProfileType) => {
-        if (!user || isOffline) return;
-    
-        const categoryTasks = presetTasks[task.category]?.tasks || [];
-        const maxOrder = categoryTasks.reduce((max, t) => Math.max(max, t.order), -1);
-    
-        await addDoc(collection(db, 'userPresetTasks'), {
-            ...task,
-            profession: taskProfile,
-            order: maxOrder + 1,
-            userId: user.uid
-        });
-    }, [user, presetTasks, isOffline]);
-    
-    const updatePresetTask = useCallback(async (taskId: string, task: Omit<UserPresetTask, 'id' | 'userId' | 'order'>) => {
-        if (!user || isOffline) return;
-        const taskRef = doc(db, 'userPresetTasks', taskId);
-        await updateDoc(taskRef, task);
-    }, [user, isOffline]);
-
-    const deletePresetTask = useCallback(async (taskId: string) => {
-        if (!user || isOffline) return;
-        
-        await deleteDoc(doc(db, 'userPresetTasks', taskId));
-
-    }, [user, isOffline]);
-
-    const findAndSyncPresetTask = useCallback(async (taskName: string, newDuration: number) => {
-        if (!user || isOffline) return;
-
-        const q = query(
-            collection(db, 'userPresetTasks'),
-            where('userId', '==', user.uid),
-            where('name', '==', taskName),
-            where('profession', '==', profile),
-            limit(1)
-        );
-
-        try {
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                const taskDoc = snapshot.docs[0];
-                const taskRef = doc(db, 'userPresetTasks', taskDoc.id);
-                await updateDoc(taskRef, { duration: newDuration });
-                console.log(`Synced preset task '${taskName}' to duration ${newDuration}.`);
-            }
-        } catch (error) {
-            console.error(`Failed to sync preset task '${taskName}':`, error);
-        }
-
-    }, [user, profile, isOffline]);
-
-    const reorderPresetTask = useCallback(async (taskId: string, direction: 'up' | 'down') => {
-        if (!user || isOffline) return;
-        
-        try {
-            await runTransaction(db, async (transaction) => {
-                const taskRef = doc(db, 'userPresetTasks', taskId);
-                const taskDoc = await transaction.get(taskRef);
-
-                if (!taskDoc.exists()) {
-                    throw "Task does not exist!";
-                }
-
-                const taskData = taskDoc.data() as UserPresetTask & { category: string; profession: string };
-                const { category, order, profession } = taskData;
-                
-                const q = query(
-                    collection(db, 'userPresetTasks'),
-                    where('userId', '==', user.uid),
-                    where('profession', '==', profession)
-                );
-                
-                const allTasksSnapshot = await getDocs(q);
-                const allTasks = allTasksSnapshot.docs.map(d => ({...d.data(), id: d.id} as UserPresetTask & {id: string, category: string}));
-
-                const categoryTasks = allTasks.filter(t => t.category === category).sort((a,b) => a.order - b.order);
-
-                const taskIndex = categoryTasks.findIndex(t => t.id === taskId);
-
-                if (direction === 'up' && taskIndex > 0) {
-                    const otherTask = categoryTasks[taskIndex - 1];
-                    const otherTaskRef = doc(db, 'userPresetTasks', otherTask.id);
-                    transaction.update(taskRef, { order: otherTask.order });
-                    transaction.update(otherTaskRef, { order: order });
-                } else if (direction === 'down' && taskIndex < categoryTasks.length - 1) {
-                    const otherTask = categoryTasks[taskIndex + 1];
-                    const otherTaskRef = doc(db, 'userPresetTasks', otherTask.id);
-                    transaction.update(taskRef, { order: otherTask.order });
-                    transaction.update(otherTaskRef, { order: order });
-                }
-            });
-        } catch (error) {
-            console.error("Failed to reorder task:", error);
-        }
-
-    }, [user, isOffline]);
-
-    const clearAndSetPresetTasks = useCallback(async (professionName: string, tasks: (PresetTask & { category: string })[]) => {
-        if (!user || isOffline) return;
-    
-        const batch = writeBatch(db);
-    
-        const q = query(
-            collection(db, 'userPresetTasks'), 
-            where('userId', '==', user.uid),
-            where('profession', '==', professionName)
-        );
-        const snapshot = await getDocs(q);
-        snapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-    
-        const tasksByCategory: { [key: string]: (PresetTask & { category: string })[] } = {};
-        tasks.forEach(task => {
-            if (!tasksByCategory[task.category]) {
-                tasksByCategory[task.category] = [];
-            }
-            tasksByCategory[task.category].push(task);
-        });
-        
-        Object.values(tasksByCategory).forEach(categoryTasks => {
-            categoryTasks.forEach((task, index) => {
-                const newDocRef = doc(collection(db, 'userPresetTasks'));
-                batch.set(newDocRef, {
-                    ...task,
-                    order: index,
-                    userId: user.uid,
-                    profession: professionName,
-                });
-            });
-        });
-    
-        await batch.commit();
-
-    }, [user, isOffline]);
-
-    return { presetTasks: processedTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, findAndSyncPresetTask, reorderPresetTask, clearAndSetPresetTasks, getAvailableCategories, getAvailableIcons, todaysEvents, categoryTimeRanges, activeCategory };
+  return { 
+    presetTasks, 
+    loading, 
+    addPresetTask, 
+    updatePresetTask,
+    deletePresetTask,
+    clearAndSetPresetTasks,
+    findAndSyncPresetTask,
+    isDefaultTask,
+    categoryTimeRanges,
+    activeCategory
+  };
 }
 
+
+// Hook for managing calendar events
 export function useCalendarEvents() {
-    const { user, isOffline } = useAuth();
-    const [events, setEvents] = useState<UserEvent[]>([]);
-    const [loading, setLoading] = useState(true);
+  const { user, isOffline, isSyncEnabled } = useAuth();
+  const [events, setEvents] = useState<UserEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const EVENTS_CACHE_KEY = 'user_events';
 
-    useEffect(() => {
-        if (!user || isOffline) {
-            setEvents([]);
-            setLoading(false);
-            return;
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = `${EVENTS_CACHE_KEY}_${user.uid}`;
+    if (isOffline || !isSyncEnabled) {
+      try {
+        const cachedEvents = localStorage.getItem(cacheKey);
+        if (cachedEvents) {
+          setEvents(JSON.parse(cachedEvents));
         }
+      } catch (error) {
+        console.warn("Couldn't access localStorage for events");
+      }
+      setLoading(false);
+      return;
+    }
 
-        setLoading(true);
-        const q = query(
-            collection(db, 'userEvents'), 
-            where('userId', '==', user.uid),
-            orderBy('date', 'asc')
-        );
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const userEvents = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    ...data,
-                    date: data.date, 
-                } as UserEvent;
-            });
-            setEvents(userEvents);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching calendar events:", error);
-            setLoading(false);
-        });
+    setLoading(true);
+    const q = query(
+      collection(db, 'users', user.uid, 'userEvents'),
+      orderBy('date', 'asc')
+    );
 
-        return () => unsubscribe();
-    }, [user, isOffline]);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const userEvents = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const eventDate = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
+        return { id: doc.id, ...data, date: eventDate } as UserEvent
+      });
+      setEvents(userEvents);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(userEvents));
+      } catch (error) {
+        console.warn("Couldn't access localStorage for events");
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching events:", error);
+      setLoading(false);
+    });
 
-    const addEvent = useCallback(async (event: Omit<UserEvent, 'id' | 'userId'>) => {
-        if (!user || isOffline) return;
-        await addDoc(collection(db, 'userEvents'), {
-            ...event,
-            userId: user.uid,
-        });
-    }, [user, isOffline]);
+    return () => unsubscribe();
+  }, [user, isOffline, isSyncEnabled]);
 
-    const deleteEvent = useCallback(async (eventId: string) => {
-        if (!user || isOffline) return;
-        await deleteDoc(doc(db, 'userEvents', eventId));
-    }, [user, isOffline]);
+  const addEvent = async (eventData: Omit<UserEvent, 'id' | 'userId'>) => {
+    if (!user) return;
+    
+    const newEventData = { ...eventData, userId: user.uid };
 
-    return { events, loading, addEvent, deleteEvent };
+    if (isOffline || !isSyncEnabled) {
+      const newEvent = { ...newEventData, id: new Date().toISOString() };
+      const updatedEvents = [...events, newEvent];
+      setEvents(updatedEvents);
+       try {
+        localStorage.setItem(`${EVENTS_CACHE_KEY}_${user.uid}`, JSON.stringify(updatedEvents));
+      } catch (error) {
+        console.warn("Couldn't access localStorage for events");
+      }
+      return;
+    }
+
+    await addDoc(collection(db, 'users', user.uid, 'userEvents'), newEventData);
+  };
+
+  const deleteEvent = async (eventId: string) => {
+    if (!user) return;
+    
+    if (isOffline || !isSyncEnabled) {
+        const updatedEvents = events.filter(e => e.id !== eventId);
+        setEvents(updatedEvents);
+         try {
+            localStorage.setItem(`${EVENTS_CACHE_KEY}_${user.uid}`, JSON.stringify(updatedEvents));
+        } catch (error) {
+            console.warn("Couldn't access localStorage for events");
+        }
+        return;
+    }
+    
+    await deleteDoc(doc(db, 'users', user.uid, 'userEvents', eventId));
+  };
+
+  return { events, loading, addEvent, deleteEvent };
 }

@@ -19,7 +19,7 @@ type AuthView = "initial" | "login" | "signup";
 export default function AuthPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading, setMockUser, signInWithGoogle, mockLogin } = useAuth();
+  const { user, loading, setMockUser, signInWithGoogle, mockLogin, setIsOffline } = useAuth();
   const [view, setView] = useState<AuthView>("initial");
 
   useEffect(() => {
@@ -32,6 +32,7 @@ export default function AuthPage() {
     const mockUser = mockLogin("user@test.com", "password123");
     if (mockUser) {
         setMockUser(mockUser);
+        setIsOffline(true);
         router.push("/");
         toast({
             title: "Logged in as Guest",
@@ -43,12 +44,16 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     try {
         await signInWithGoogle();
-        router.push("/");
+        // The useEffect hook will handle redirection once the user state is updated.
         toast({
             title: "Logged in Successfully",
             description: "Welcome back!",
         });
     } catch(error: any) {
+        // Don't show an error if the user closes the popup
+        if (error.code === 'auth/popup-closed-by-user') {
+            return;
+        }
         toast({
             title: "Google Login Failed",
             description: error.message,
@@ -58,7 +63,20 @@ export default function AuthPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <div className="w-16 h-16 text-primary">
+                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="256" cy="256" r="240" stroke="currentColor" strokeWidth="20" />
+                    <path d="M256 40V120" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M256 472V392" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M472 256H392" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M120 256H40" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M256 256L358 154" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                </svg>
+            </div>
+        </div>
+    );
   }
   
   if (user) {
@@ -69,7 +87,16 @@ export default function AuthPage() {
     <>
         <CardHeader>
           <div className="flex justify-center items-center mb-4 text-primary">
-            <Clock className="w-16 h-16" />
+            <div className="w-16 h-16">
+                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="256" cy="256" r="240" stroke="currentColor" strokeWidth="20" />
+                    <path d="M256 40V120" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M256 472V392" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M472 256H392" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M120 256H40" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M256 256L358 154" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
+                </svg>
+            </div>
           </div>
           <CardTitle className="font-headline text-3xl">DeadlinesMet</CardTitle>
           <CardDescription>Your personal space to conquer tasks and achieve goals.</CardDescription>
@@ -77,7 +104,7 @@ export default function AuthPage() {
         <CardContent className="flex flex-col space-y-4">
             <Button onClick={handleGoogleLogin} size="lg" variant="outline">
                 <GoogleIcon className="mr-2 h-5 w-5" />
-                Google
+                Login with Google
             </Button>
             
             <div className="flex items-center gap-2">
