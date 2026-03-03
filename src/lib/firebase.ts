@@ -8,7 +8,7 @@ const firebaseConfig = {
   "projectId": "deadlinesmet",
   "appId": "1:248085678271:web:b39ac7355a636cfe91de0a",
   "storageBucket": "deadlinesmet.firebasestorage.app",
-  "apiKey": "AIzaSyARe1wX5bw7-zbpFAq77HKNJ3vyG_Jsiew",
+  "apiKey": "AIzaSyDMvEatVgJI1DBino-Yvv-gq8ZKUK0eEGw",
   "authDomain": "deadlinesmet.firebaseapp.com",
   "messagingSenderId": "248085678271",
   "measurementId": "G-W18284JYFB"
