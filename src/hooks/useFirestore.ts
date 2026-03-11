@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -179,7 +180,7 @@ export function usePresetTasks() {
       return;
     }
     
-    const cacheKey = `preset_tasks_${user.uid}_${effectiveProfile}`;
+    const cacheKey = `preset_tasks_${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
     if (isOffline || !isSyncEnabled) {
         try {
             const cachedData = localStorage.getItem(cacheKey);
@@ -193,13 +194,19 @@ export function usePresetTasks() {
                     if (!acc[category]) {
                         acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
                     }
-                    acc[category].tasks.push(task as UserPresetTask);
+                    acc[category].tasks.push({ ...task, id: `local_def_${Math.random().toString(36).substr(2, 9)}` } as UserPresetTask);
                     return acc;
                 }, {});
-                setPresetTasks(newPreset);
+
+                const sortedPreset: Preset = {};
+                Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                    .forEach(key => { sortedPreset[key] = newPreset[key]; });
+
+                setPresetTasks(sortedPreset);
+                localStorage.setItem(cacheKey, JSON.stringify(sortedPreset));
             }
         } catch (e) {
-            console.warn("Could not read preset tasks from local storage");
+            console.warn("Could not handle local preset tasks", e);
         }
         setLoading(false);
         return;
@@ -224,10 +231,15 @@ export function usePresetTasks() {
                     if (!acc[category]) {
                         acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
                     }
-                    acc[category].tasks.push(task as UserPresetTask);
+                    acc[category].tasks.push({ ...task, id: `local_def_${Math.random().toString(36).substr(2, 9)}` } as UserPresetTask);
                     return acc;
                 }, {});
-                setPresetTasks(newPreset);
+
+                const sortedPreset: Preset = {};
+                Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                    .forEach(key => { sortedPreset[key] = newPreset[key]; });
+                
+                setPresetTasks(sortedPreset);
             } else {
                 const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
                     const task = { id: doc.id, ...doc.data() } as UserPresetTask;
@@ -269,7 +281,7 @@ export function usePresetTasks() {
   }, [user, effectiveProfile, isOffline, profileLoading, isSyncEnabled]);
   
   const addPresetTask = async (taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string }, currentProfile: ProfileType) => {
-    if (!user || isOffline || !isSyncEnabled) return;
+    if (!user) return;
     
     const { category, ...rest } = taskData;
     
@@ -290,24 +302,143 @@ export function usePresetTasks() {
         ...rest,
         category,
         profession: currentProfile,
-        order: newOrder
+        order: newOrder,
+        id: (isOffline || !isSyncEnabled) ? `local_${Date.now()}` : undefined
     };
+
+    if (isOffline || !isSyncEnabled) {
+        setPresetTasks(prev => {
+            const newPreset = { ...prev };
+            if (!newPreset[category]) {
+                newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+            }
+            newPreset[category].tasks.push(newTask as UserPresetTask);
+            
+            const sortedPreset: Preset = {};
+            Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                .forEach(key => { sortedPreset[key] = newPreset[key]; });
+            
+            try {
+                localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(sortedPreset));
+            } catch (e) {
+                console.warn("Could not cache preset tasks");
+            }
+            return sortedPreset;
+        });
+        return;
+    }
 
     await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), newTask);
   };
 
   const updatePresetTask = async (taskId: string, taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }) => {
-    if (!user || isOffline || !isSyncEnabled) return;
+    if (!user) return;
+
+    if (isOffline || !isSyncEnabled) {
+        setPresetTasks(prev => {
+            const newPreset = { ...prev };
+            let found = false;
+            for (const cat in newPreset) {
+                const taskIndex = newPreset[cat].tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    const task = newPreset[cat].tasks[taskIndex];
+                    const updatedTask = { ...task, ...taskData };
+                    
+                    if (taskData.category && taskData.category !== cat) {
+                        newPreset[cat].tasks.splice(taskIndex, 1);
+                        if (newPreset[cat].tasks.length === 0) delete newPreset[cat];
+                        
+                        const newCat = taskData.category;
+                        if (!newPreset[newCat]) {
+                            newPreset[newCat] = { color: categoryConfig[newCat]?.color || categoryConfig['Default'].color, tasks: [] };
+                        }
+                        newPreset[newCat].tasks.push(updatedTask as UserPresetTask);
+                    } else {
+                        newPreset[cat].tasks[taskIndex] = updatedTask as UserPresetTask;
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (found) {
+                const sortedPreset: Preset = {};
+                Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                    .forEach(key => { sortedPreset[key] = newPreset[key]; });
+                
+                try {
+                    localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(sortedPreset));
+                } catch (e) {
+                    console.warn("Could not cache preset tasks");
+                }
+                return sortedPreset;
+            }
+            return prev;
+        });
+        return;
+    }
+
     await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), taskData);
   };
 
   const deletePresetTask = async (taskId: string) => {
-    if (!user || isOffline || !isSyncEnabled) return;
+    if (!user) return;
+
+    if (isOffline || !isSyncEnabled) {
+        setPresetTasks(prev => {
+            const newPreset = { ...prev };
+            let found = false;
+            for (const cat in newPreset) {
+                const taskIndex = newPreset[cat].tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    newPreset[cat].tasks.splice(taskIndex, 1);
+                    if (newPreset[cat].tasks.length === 0) delete newPreset[cat];
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                try {
+                    localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(newPreset));
+                } catch (e) {
+                    console.warn("Could not cache preset tasks");
+                }
+                return newPreset;
+            }
+            return prev;
+        });
+        return;
+    }
+
     await deleteDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId));
   };
   
   const clearAndSetPresetTasks = async (currentProfile: ProfileType, tasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[]) => {
-      if (!user || isOffline || !isSyncEnabled) return;
+      if (!user) return;
+
+      if (isOffline || !isSyncEnabled) {
+          const newPreset = tasks.reduce((acc: Preset, task, index) => {
+              const category = task.category || 'Default';
+              if (!acc[category]) {
+                  acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+              }
+              acc[category].tasks.push({ ...task, id: `local_${Date.now()}_${index}`, order: index, profession: currentProfile } as UserPresetTask);
+              return acc;
+          }, {});
+
+          const sortedPreset: Preset = {};
+          Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+              .forEach(key => { sortedPreset[key] = newPreset[key]; });
+
+          setPresetTasks(sortedPreset);
+          try {
+              localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(sortedPreset));
+          } catch (e) {
+              console.warn("Could not cache preset tasks");
+          }
+          return;
+      }
+
       const tasksCollectionRef = collection(db, 'users', user.uid, 'userPresetTasks');
       
       await runTransaction(db, async (transaction) => {
@@ -352,6 +483,32 @@ export function usePresetTasks() {
         'Breaks & Meals': { start: 12, end: 14 }, 
         'Health & Wellness': {start: 17, end: 19 }, 
         'Evening Wind-down': { start: 19, end: 21 },
+        // Content Creator / Creative
+        'Morning Kickstart': { start: 7, end: 8.5 },
+        'Pre-Production': { start: 8.5, end: 10.5 },
+        'Production Block': { start: 10.5, end: 13 },
+        'Post-Production': { start: 14, end: 17 },
+        'Evening & Close': { start: 17, end: 22 },
+        // Software Engineer / Tech
+        'System Initialization': { start: 8.5, end: 10 },
+        'Sync & Sprint': { start: 10, end: 13 },
+        'Architecture & Logic': { start: 13, end: 16 },
+        'Deployment & Decompression': { start: 16, end: 22 },
+        // Entrepreneur / Business
+        'Visionary Morning': { start: 6, end: 8 },
+        'Strategic Execution': { start: 8, end: 13 },
+        'Operations': { start: 13, end: 18 },
+        'Networking & Rest': { start: 18, end: 22.5 },
+        // Medical Rep
+        'Field Prep': { start: 7.5, end: 9 },
+        'Clinic Visits': { start: 9, end: 13 },
+        'Product Demos & Reporting': { start: 14, end: 17 },
+        'Inventory & Relax': { start: 18, end: 22 },
+        // Student
+        'Learning Ready': { start: 7.5, end: 9 },
+        'Academics I': { start: 9, end: 13 },
+        'Academics II': { start: 14, end: 17 },
+        'Review & Rest': { start: 18, end: 23 },
         // On-The-Go
         'Morning Prep': { start: 6, end: 9 },
         'On the Road': { start: 9, end: 17 },
@@ -371,9 +528,14 @@ export function usePresetTasks() {
         const categoryLookup = category as keyof typeof timeBlocks;
         if (timeBlocks[categoryLookup]) {
             const block = timeBlocks[categoryLookup];
+            const startHour = Math.floor(block.start);
+            const startMin = Math.round((block.start % 1) * 60);
+            const endHour = Math.floor(block.end);
+            const endMin = Math.round((block.end % 1) * 60);
+
             ranges[category] = {
-                start: set(today, { hours: block.start, minutes: 0, seconds: 0, milliseconds: 0 }),
-                end: set(today, { hours: block.end, minutes: 0, seconds: 0, milliseconds: 0 }),
+                start: set(today, { hours: startHour, minutes: startMin, seconds: 0, milliseconds: 0 }),
+                end: set(today, { hours: endHour, minutes: endMin, seconds: 0, milliseconds: 0 }),
             };
         }
     });

@@ -17,7 +17,8 @@ import HamburgerMenu from '@/components/HamburgerMenu';
 import { format } from 'date-fns';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import type { UserPresetTask } from '@/types';
-import { Plus, RotateCw, Trash2 } from 'lucide-react';
+import { Plus, RotateCw, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { generateAIRoutine } from '@/ai/flows/generate-routine';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -55,9 +56,25 @@ function RoutinePageComponent() {
   const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, clearAndSetPresetTasks } = usePresetTasks();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   
-  const handleProfessionSelect = (profession: Profession) => {
-    setProfile(profession.name);
+  const routineRef = useRef<HTMLDivElement>(null);
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
+  
+  // Update open categories when presetTasks changes (e.g., profession switch or reset)
+  React.useEffect(() => {
+    const categories = Object.keys(presetTasks);
+    if (categories.length > 0) {
+      setOpenCategories(categories);
+    }
+  }, [presetTasks]);
+
+  const handleProfessionSelect = (p: Profession & { activeColor?: string }) => {
+    setProfile(p.name);
+    // Smooth scroll to routine section
+    setTimeout(() => {
+        routineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
   };
 
   const handleDayOffToggle = (day: 'Saturday' | 'Sunday') => {
@@ -98,6 +115,29 @@ function RoutinePageComponent() {
 
     await clearAndSetPresetTasks(profile, defaultTasksForProfile);
   }
+
+  const handleGenerateAIRoutine = async () => {
+    if (!profile) return;
+    setIsGeneratingAI(true);
+    try {
+      const aiRoutine = await generateAIRoutine({ profession: profile, daysOff });
+      
+      const flatTasks = Object.entries(aiRoutine.routines).flatMap(([category, { tasks }]) => 
+        tasks.map(task => ({ 
+          name: task.name,
+          duration: Number(task.duration),
+          icon: task.icon,
+          category: category // Use the key from the record as the category
+        }))
+      );
+      
+      await clearAndSetPresetTasks(profile, flatTasks);
+    } catch (error) {
+      console.error("Failed to generate AI routine:", error);
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
 
@@ -140,7 +180,6 @@ function RoutinePageComponent() {
                     <CardContent>
                         <div className="flex flex-wrap gap-4">
                             {professionList.map((p) => {
-                                const colorName = p.color.split('-')[1];
                                 const isSelected = profile === p.name;
                                 
                                 return (
@@ -151,8 +190,8 @@ function RoutinePageComponent() {
                                     className={cn(
                                         "flex items-center gap-2 transition-colors duration-200 border-2 bg-transparent",
                                         isSelected 
-                                            ? `bg-${colorName}-800 text-${colorName}-100 border-${colorName}-500/80`
-                                            : `text-${colorName}-400 border-${colorName}-500/80 hover:bg-${colorName}-800 hover:border-${colorName}-500/80 hover:text-white`
+                                            ? p.activeColor
+                                            : p.color
                                     )}
                                 >
                                     <Icon name={p.icon} className="h-4 w-4" />
@@ -181,10 +220,9 @@ function RoutinePageComponent() {
                 </CardContent>
             </Card>
 
-            <Separator />
-            
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
+            <div ref={routineRef} className="pt-4 scroll-mt-24">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="outline">
@@ -204,12 +242,26 @@ function RoutinePageComponent() {
                   <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-                </AlertDialog>
+              </AlertDialog>
 
+              <Button 
+                variant="outline" 
+                onClick={handleGenerateAIRoutine} 
+                disabled={isGeneratingAI}
+                className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2"
+              >
+                {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {isGeneratingAI ? "Generating..." : "AI Routine"}
+              </Button>
             </div>
             
             {tasksLoading ? renderSkeleton() : (
-              <Accordion type="multiple" defaultValue={Object.keys(presetTasks)} className="w-full space-y-4">
+              <Accordion 
+                type="multiple" 
+                value={openCategories} 
+                onValueChange={setOpenCategories} 
+                className="w-full space-y-4"
+              >
                 {Object.entries(presetTasks).map(([category, { color, tasks }]) => {
                     const timeRange = categoryTimeRanges[category];
                     return (
@@ -281,8 +333,9 @@ function RoutinePageComponent() {
                   </AccordionItem>
                       )
                 })}
-              </Accordion>
-            )}
+                </Accordion>
+              )}
+            </div>
 
             <div className="mt-6 flex justify-end">
                 <Button size="lg" onClick={() => router.push('/')}>Done</Button>

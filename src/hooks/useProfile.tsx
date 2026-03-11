@@ -22,33 +22,33 @@ export type Profession = {
     color: string;
 }
 
-export const professions: { [group: string]: Profession[] } = {
+export const professions: { [group: string]: (Profession & { activeColor: string })[] } = {
     "Creative": [
-        { name: "Artist", icon: "Palette", color: "text-rose-400 border-rose-500/80 hover:bg-rose-800 hover:text-white" },
-        { name: "Content Creator", icon: "Camera", color: "text-orange-400 border-orange-500/80 hover:bg-orange-800 hover:text-white" },
-        { name: "Designer", icon: "PenTool", color: "text-purple-400 border-purple-500/80 hover:bg-purple-800 hover:text-white" },
-        { name: "Writer", icon: "PenSquare", color: "text-blue-400 border-blue-500/80 hover:bg-blue-800 hover:text-white" },
+        { name: "Artist", icon: "Palette", color: "text-rose-400 border-rose-500/80 hover:bg-rose-800 hover:text-white", activeColor: "bg-rose-800 text-rose-100 border-rose-500/80" },
+        { name: "Content Creator", icon: "Camera", color: "text-orange-400 border-orange-500/80 hover:bg-orange-800 hover:text-white", activeColor: "bg-orange-800 text-orange-100 border-orange-500/80" },
+        { name: "Designer", icon: "PenTool", color: "text-purple-400 border-purple-500/80 hover:bg-purple-800 hover:text-white", activeColor: "bg-purple-800 text-purple-100 border-purple-500/80" },
+        { name: "Writer", icon: "PenSquare", color: "text-blue-400 border-blue-500/80 hover:bg-blue-800 hover:text-white", activeColor: "bg-blue-800 text-blue-100 border-blue-500/80" },
     ],
     "Business & Management": [
-        { name: "Consultant", icon: "Briefcase", color: "text-cyan-400 border-cyan-500/80 hover:bg-cyan-800 hover:text-white" },
-        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-400 border-amber-500/80 hover:bg-amber-800 hover:text-white" },
-        { name: "Manager", icon: "Users", color: "text-lime-400 border-lime-500/80 hover:bg-lime-800 hover:text-white" },
-        { name: "Marketer", icon: "Megaphone", color: "text-red-400 border-red-500/80 hover:bg-red-800 hover:text-white" },
+        { name: "Consultant", icon: "Briefcase", color: "text-cyan-400 border-cyan-500/80 hover:bg-cyan-800 hover:text-white", activeColor: "bg-cyan-800 text-cyan-100 border-cyan-500/80" },
+        { name: "Entrepreneur", icon: "Lightbulb", color: "text-amber-400 border-amber-500/80 hover:bg-amber-800 hover:text-white", activeColor: "bg-amber-800 text-amber-100 border-amber-500/80" },
+        { name: "Manager", icon: "Users", color: "text-lime-400 border-lime-500/80 hover:bg-lime-800 hover:text-white", activeColor: "bg-lime-800 text-lime-100 border-lime-500/80" },
+        { name: "Marketer", icon: "Megaphone", color: "text-red-400 border-red-500/80 hover:bg-red-800 hover:text-white", activeColor: "bg-red-800 text-red-100 border-red-500/80" },
     ],
     "Technical & Health": [
-        { name: "Analyst", icon: "BarChart", color: "text-emerald-400 border-emerald-500/80 hover:bg-emerald-800 hover:text-white" },
-        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-400 border-teal-500/80 hover:bg-teal-800 hover:text-white" },
-        { name: "IT Professional", icon: "Laptop", color: "text-indigo-400 border-indigo-500/80 hover:bg-indigo-800 hover:text-white" },
-        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-400 border-fuchsia-500/80 hover:bg-fuchsia-800 hover:text-white" },
-        { name: "Researcher", icon: "FlaskConical", color: "text-sky-400 border-sky-500/80 hover:bg-sky-800 hover:text-white" },
+        { name: "Analyst", icon: "BarChart", color: "text-emerald-400 border-emerald-500/80 hover:bg-emerald-800 hover:text-white", activeColor: "bg-emerald-800 text-emerald-100 border-emerald-500/80" },
+        { name: "Healthcare Professional", icon: "Stethoscope", color: "text-teal-400 border-teal-500/80 hover:bg-teal-800 hover:text-white", activeColor: "bg-teal-800 text-teal-100 border-teal-500/80" },
+        { name: "IT Professional", icon: "Laptop", color: "text-indigo-400 border-indigo-500/80 hover:bg-indigo-800 hover:text-white", activeColor: "bg-indigo-800 text-indigo-100 border-indigo-500/80" },
+        { name: "Software Engineer", icon: "Code", color: "text-fuchsia-400 border-fuchsia-500/80 hover:bg-fuchsia-800 hover:text-white", activeColor: "bg-fuchsia-800 text-fuchsia-100 border-fuchsia-500/80" },
+        { name: "Researcher", icon: "FlaskConical", color: "text-sky-400 border-sky-500/80 hover:bg-sky-800 hover:text-white", activeColor: "bg-sky-800 text-sky-100 border-sky-500/80" },
     ],
     "General & Freelance": [
-        { name: "Educator", icon: "School", color: "text-yellow-400 border-yellow-500/80 hover:bg-yellow-800 hover:text-white" },
-        { name: "Freelancer", icon: "Network", color: "text-pink-400 border-pink-500/80 hover:bg-pink-800 hover:text-white" },
-        { name: "Student", icon: "GraduationCap", color: "text-stone-400 border-stone-500/80 hover:bg-stone-800 hover:text-white" },
-        { name: "Sales", icon: "TrendingUp", color: "text-green-400 border-green-500/80 hover:bg-green-800 hover:text-white" },
-        { name: "Medical Representative", icon: "Truck", color: "text-slate-400 border-slate-500/80 hover:bg-slate-800 hover:text-white" },
-        { name: "Delivery Agent", icon: "Package", color: "text-gray-400 border-gray-500/80 hover:bg-gray-800 hover:text-white" },
+        { name: "Educator", icon: "School", color: "text-yellow-400 border-yellow-500/80 hover:bg-yellow-800 hover:text-white", activeColor: "bg-yellow-800 text-yellow-100 border-yellow-500/80" },
+        { name: "Freelancer", icon: "Network", color: "text-pink-400 border-pink-500/80 hover:bg-pink-800 hover:text-white", activeColor: "bg-pink-800 text-pink-100 border-pink-500/80" },
+        { name: "Student", icon: "GraduationCap", color: "text-stone-400 border-stone-500/80 hover:bg-stone-800 hover:text-white", activeColor: "bg-stone-800 text-stone-100 border-stone-500/80" },
+        { name: "Sales", icon: "TrendingUp", color: "text-green-400 border-green-500/80 hover:bg-green-800 hover:text-white", activeColor: "bg-green-800 text-green-100 border-green-500/80" },
+        { name: "Medical Representative", icon: "Truck", color: "text-slate-400 border-slate-500/80 hover:bg-slate-800 hover:text-white", activeColor: "bg-slate-800 text-slate-100 border-slate-500/80" },
+        { name: "Delivery Agent", icon: "Package", color: "text-gray-400 border-gray-500/80 hover:bg-gray-800 hover:text-white", activeColor: "bg-gray-800 text-gray-100 border-gray-500/80" },
     ]
 };
 
@@ -186,15 +186,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled, initializeUserTasks]);
 
 
-  const setProfile = useCallback(async (newProfile: ProfileType) => {
-    if (!user || profile === newProfile) return;
+    const setProfile = useCallback(async (newProfile: ProfileType) => {
+    if (!user) return;
+    if (profile === newProfile) return;
     
-    const updatedData: UserProfile = { ...(profileData || { userId: user.uid, daysOff: [], customProfessions: [], routineVersions: {} }), profile: newProfile };
-    setProfileData(updatedData);
-
-    try {
-        localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updatedData));
-    } catch(e) { console.warn("Could not access localStorage for profile"); }
+    // Immediate local state update for UI responsiveness
+    setProfileData(prev => {
+        const base = prev || { userId: user.uid, daysOff: [], customProfessions: [], routineVersions: {} };
+        const updated = { ...base, profile: newProfile };
+        
+        try {
+            localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updated));
+        } catch(e) { console.warn("Could not access localStorage for profile"); }
+        
+        return updated;
+    });
 
     if (user && !isOffline && isSyncEnabled) {
         try {

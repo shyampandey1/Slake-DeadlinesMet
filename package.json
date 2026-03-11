@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "powershell -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\""
+    "postinstall": "rm -rf .next"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.29.0",

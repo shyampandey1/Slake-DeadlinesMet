@@ -1,68 +1,77 @@
 'use client';
 
-// 1. Import the 'Variants' type from framer-motion
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { ReactNode, useRef } from 'react';
+import { ReactNode, useRef, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-// 2. Apply the 'Variants' type to the constant
 const variants: Variants = {
-  initial: (direction: number) => ({
-    x: direction > 0 ? '100vw' : '-100vw',
+  enter: (direction: number) => ({
+    x: direction > 0 ? '100%' : '-100%',
     opacity: 0,
-    transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 }
+    zIndex: 1
   }),
-  animate: {
+  center: {
     x: 0,
     opacity: 1,
-    transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 }
+    zIndex: 2,
+    transition: {
+      x: { type: "spring", stiffness: 300, damping: 30 },
+      opacity: { duration: 0.2 }
+    }
   },
   exit: (direction: number) => ({
-    x: direction < 0 ? '100vw' : '-100vw',
+    x: direction < 0 ? '100%' : '-100%',
     opacity: 0,
-    transition: { type: 'tween', ease: 'easeInOut', duration: 0.3 }
+    zIndex: 0,
+    transition: {
+        x: { type: "spring", stiffness: 300, damping: 30 },
+        opacity: { duration: 0.2 }
+      }
   }),
 };
 
+// Define the logical order of routes for swipe direction
 const routeOrder = ['/history', '/', '/routine', '/settings', '/calendar', '/about'];
 
 export default function PageTransitionWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const directionRef = useRef(0);
+  const [direction, setDirection] = useState(0);
+  const prevPathname = useRef(pathname);
 
-  const newIndex = routeOrder.findIndex((path) => pathname.startsWith(path));
-  
-  let oldIndex = 0;
-  if(typeof window !== 'undefined'){
-    const storedIndex = sessionStorage.getItem('routeIndex');
-    oldIndex = storedIndex ? Number(storedIndex) : routeOrder.findIndex(path => path === '/');
-  }
-  
-  if (newIndex !== oldIndex) {
-    directionRef.current = newIndex > oldIndex ? 1 : -1;
-  }
-  
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem('routeIndex', String(newIndex));
-  }
+  useEffect(() => {
+    const getIndex = (path: string) => {
+        // Find exact match first
+        const exact = routeOrder.indexOf(path);
+        if (exact !== -1) return exact;
+        // Fallback to startsWith for nested routes
+        return routeOrder.findIndex(route => path.startsWith(route) && route !== '/');
+    };
 
+    const prevIndex = getIndex(prevPathname.current);
+    const currentIndex = getIndex(pathname);
+
+    if (currentIndex !== prevIndex) {
+        setDirection(currentIndex > prevIndex ? -1 : 1);
+    }
+    prevPathname.current = pathname;
+  }, [pathname]);
 
   return (
-    <AnimatePresence initial={false} custom={directionRef.current} mode="wait">
-        <motion.div
-            key={pathname}
-            custom={directionRef.current}
-            variants={variants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className={cn(
-                'absolute top-0 left-0 w-full'
-            )}
-        >
-            {children}
-        </motion.div>
-    </AnimatePresence>
+    <div className="relative w-full overflow-hidden min-h-screen">
+        <AnimatePresence initial={false} custom={direction} mode="popLayout">
+            <motion.div
+                key={pathname}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className={cn('w-full min-h-screen bg-background')}
+            >
+                {children}
+            </motion.div>
+        </AnimatePresence>
+    </div>
   );
 }

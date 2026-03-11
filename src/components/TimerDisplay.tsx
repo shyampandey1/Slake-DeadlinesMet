@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
@@ -63,7 +63,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playSound } = useAudioSettings();
-  const { weatherData } = useWeather();
+  const { weatherData, location } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
@@ -74,6 +74,28 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
   const [taskCategory, setTaskCategory] = useState(category);
+
+  const showStartNotification = useCallback(() => {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Timer Started", { body: `Focusing on: ${taskName}` });
+    }
+  }, [taskName]);
+
+  const showCompletionNotification = useCallback(() => {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
+    }
+  }, [taskName]);
+
+  const userRoutine = useMemo(() => {
+    const routine: any[] = [];
+    Object.keys(presetTasks).forEach(cat => {
+      presetTasks[cat].tasks.forEach(t => {
+        routine.push({ ...t, category: cat });
+      });
+    });
+    return routine.sort((a,b) => (a.order || 0) - (b.order || 0));
+  }, [presetTasks]);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -246,6 +268,24 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const isNight = hour < 6 || hour > 19;
   const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
+  const InfoDisplay = () => (
+    <div className="flex items-center gap-6 text-white/90">
+      <div className="flex flex-col items-center">
+        <span className="text-3xl font-bold font-headline">{format(currentDate, 'p')}</span>
+        <span className="text-xs uppercase tracking-widest opacity-60">{format(currentDate, 'EEEE, MMM d')}</span>
+      </div>
+      {weatherData && (
+        <div className="flex items-center gap-2 pl-6 border-l border-white/20">
+          <WeatherIcon className="h-8 w-8 text-primary" />
+          <div className="flex flex-col">
+            <span className="text-xl font-bold">{weatherData.temp}°</span>
+            <span className="text-[10px] uppercase opacity-60 tracking-tighter">{location}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
 
   return (
     <main
@@ -278,44 +318,36 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           {taskName}
         </h1>
         <div className="mb-12">
-          <CircularProgress progress={progress}>
-            <div
-              className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white"
-            >
-              {formatTime(timeRemaining)}
-            </div>
-
-            <CircularProgress progress={progress} isUIVisible={isUIVisible}>
-              <div className="flex flex-col items-center justify-center gap-2">
-                <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
-                  {formatTime(timeRemaining)}
-                </div>
-                <div className={cn(
-                  "flex items-center justify-center gap-2 transition-opacity duration-300",
-                  isUIVisible ? "opacity-100" : "opacity-0"
-                )}>
-                  <Button
-                    onClick={() => setIsPaused(!isPaused)}
-                    size="icon"
-                    variant="ghost"
-                    className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
-                  >
-                    {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
-                  </Button>
-                  <Button
-                    onClick={handleEndEarly}
-                    variant="ghost"
-                    size="icon"
-                    className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60"
-                  >
-                    <Square className="h-6 w-6 text-white" />
-                  </Button>
-                </div>
+          <CircularProgress progress={progress} isUIVisible={isUIVisible}>
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
+                {formatTime(timeRemaining)}
               </div>
-            </CircularProgress>
+              <div className={cn(
+                "flex items-center justify-center gap-2 transition-opacity duration-300",
+                isUIVisible ? "opacity-100" : "opacity-0"
+              )}>
+                <Button
+                  onClick={() => setIsPaused(!isPaused)}
+                  size="icon"
+                  variant="ghost"
+                  className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
+                >
+                  {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
+                </Button>
+                <Button
+                  onClick={handleEndEarly}
+                  variant="ghost"
+                  size="icon"
+                  className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60"
+                >
+                  <Square className="h-6 w-6 text-white" />
+                </Button>
+              </div>
+            </div>
+          </CircularProgress>
         </div>
-
-
+      </div>
         <AlertDialog open={isFinished}>
           <AlertDialogContent>
             <AlertDialogHeader>

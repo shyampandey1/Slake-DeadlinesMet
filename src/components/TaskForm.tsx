@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 // 1. Corrected the type name here
-import type { UseEmblaCarouselType, CarouselApi } from 'embla-carousel-react';
+import type { UseEmblaCarouselType } from 'embla-carousel-react';
+type CarouselApi = any; // Fallback to resolve build error
 import { format, isToday, parseISO } from "date-fns";
 import Link from "next/link";
 
@@ -317,10 +318,10 @@ export default function TaskForm() {
 
   return (
     <>
-    <div className="space-y-4">
-        <div>
-            <h2 className="font-headline text-2xl text-white">Quick Start Tasks</h2>
-            <p className="text-white/80">Select a preset task or add your own.</p>
+    <div className="space-y-6 sm:space-y-8">
+        <div className="px-2">
+            <h2 className="font-headline text-2xl sm:text-3xl text-white drop-shadow-md">Quick Start Tasks</h2>
+            <p className="text-white/70 text-sm sm:text-base font-medium">Select a preset task or add your own.</p>
         </div>
         
         {loading ? renderSkeleton() : hasTasks ? (
@@ -394,11 +395,15 @@ export default function TaskForm() {
                 <CarouselNext />
             </Carousel>
         ) : (
-            <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-lg flex flex-col items-center justify-center h-[280px]">
-                <FolderSearch className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <h3 className="mt-4 text-lg font-semibold">No Tasks Found</h3>
-                <p className="mt-1 text-sm max-w-xs mx-auto">This routine is empty. Go to the 'Routine' page to add tasks.</p>
-                <Button variant="secondary" className="mt-4" asChild>
+            <div className="bg-card/50 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl flex flex-col items-center justify-center h-[300px] p-8 text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                    <FolderSearch className="h-8 w-8 text-primary opacity-80" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">No Tasks Found</h3>
+                <p className="text-white/60 text-sm max-w-sm mb-6 leading-relaxed">
+                    This routine is currently empty. Start by adding tasks in the routine section to organize your day.
+                </p>
+                <Button variant="default" size="lg" className="px-8 shadow-lg shadow-primary/20" asChild>
                    <Link href="/routine">Customize Routine</Link>
                 </Button>
             </div>

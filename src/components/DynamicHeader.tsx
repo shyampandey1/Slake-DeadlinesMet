@@ -63,7 +63,7 @@ function LiveClock() {
 
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const { weatherData } = useWeather();
-    const [stars, setStars] = useState<JSX.Element[]>([]);
+    const [stars, setStars] = useState<React.ReactElement[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [isClient, setIsClient] = useState(false);
@@ -176,34 +176,23 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
     return (
-        <div className="relative w-full h-64">
+        <div className="relative w-full h-72 sm:h-80 lg:h-96 min-h-[300px]">
              <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  {isClient ? (
                      <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>
+                         {/* Stars and Clouds ... */}
                          <div className="absolute inset-0 opacity-100">
                              <MotionCloud
-                                 className="w-96 h-96 opacity-80"
+                                 className="w-96 h-96 opacity-60"
                                  initial={{ x: '-100%', y: '10%' }}
                                  animate={{ x: '100%' }}
                                  transition={{ ease: 'linear', duration: 180, repeat: Infinity, repeatType: 'reverse' }}
                              />
                              <MotionCloud
-                                 className="w-80 h-80 opacity-70"
+                                 className="w-80 h-80 opacity-50"
                                  initial={{ x: '100%', y: '-10%' }}
                                  animate={{ x: '-100%' }}
                                  transition={{ ease: 'linear', duration: 200, repeat: Infinity, repeatType: 'reverse' }}
-                             />
-                             <MotionCloud
-                                 className="w-[30rem] h-[30rem] opacity-75"
-                                 initial={{ x: '0%', y: '20%' }}
-                                 animate={{ x: '80%' }}
-                                 transition={{ ease: 'linear', duration: 190, repeat: Infinity, repeatType: 'reverse' }}
-                             />
-                             <MotionCloud
-                                 className="w-72 h-72 opacity-65"
-                                 initial={{ x: '50%', y: '-20%' }}
-                                 animate={{ x: '-50%' }}
-                                 transition={{ ease: 'linear', duration: 160, repeat: Infinity, repeatType: 'reverse' }}
                              />
                          </div>
                          <svg ref={svgContainerRef} width="100%" height="100%" preserveAspectRatio="none" className="absolute inset-0">
@@ -230,26 +219,30 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                  )}
             </div>
 
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm">
-                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-between p-4 sm:p-6 md:p-8 pb-16">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]">
+                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-start gap-y-6 sm:gap-y-8 p-8 sm:p-10 md:p-12 pb-16">
                      <div className="flex justify-between items-start text-white">
-                         <div>
-                            <h1 className="text-xl font-bold font-headline text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>DeadlinesMet</h1>
-                            <p className="text-sm text-white/90 hidden sm:block max-w-xs" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>Focus on one task at a time. Set your goal and go.</p>
-                             <div className="flex flex-col items-start mt-2 text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                                 <LiveClock />
-                                 <div className="flex items-center justify-start gap-2">
-                                     {isClient && <p className="text-xs opacity-90">{format(currentDate, 'EEEE, LLLL d')}</p>}
-                                     {weatherData && (
-                                         <div className="flex items-center gap-1.5 pl-2 border-l border-white/30">
-                                             <WeatherIcon className="h-4 w-4" />
-                                             <span className="text-xs">{weatherData.temp}°</span>
-                                         </div>
-                                     )}
-                                 </div>
-                             </div>
+                         <div className="space-y-1">
+                            <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
+                            <p className="text-sm text-white/80 hidden sm:block max-w-xs leading-relaxed" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>Focus on one task at a time. Set your goal and go.</p>
                          </div>
                          <HamburgerMenu />
+                    </div>
+
+                    <div className="flex flex-col items-start text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                        <div className="flex items-baseline gap-3">
+                            <LiveClock />
+                            {weatherData && (
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 group hover:bg-white/20 transition-all duration-300">
+                                    <WeatherIcon className="h-4 w-4 text-white/90" />
+                                    <div className="flex flex-col items-start leading-none gap-0.5">
+                                        <span className="text-sm font-bold">{weatherData.temp}°</span>
+                                        {weatherData.name && <span className="text-[10px] font-medium opacity-70 uppercase tracking-tighter">{weatherData.name}</span>}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {isClient && <p className="text-sm opacity-90 font-medium tracking-wide mt-1">{format(currentDate, 'EEEE, LLLL d')}</p>}
                     </div>
                 </div>
             </div>

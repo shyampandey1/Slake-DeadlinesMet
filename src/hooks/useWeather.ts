@@ -5,14 +5,14 @@ import { useState, useEffect, useCallback } from 'react';
 
 const WEATHER_LOCATION_KEY = 'weather_location';
 const WEATHER_UNIT_KEY = 'weather_unit';
-const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHERMAP_API_KEY;
 
 type Unit = 'C' | 'F';
 
 export function useWeather() {
-  const [location, setLocationState] = useState('Delhi, India');
+  const [location, setLocationState] = useState<string>('');
   const [unit, setUnitState] = useState<Unit>('C');
-  const [weatherData, setWeatherData] = useState<{ temp: number; code: number; } | null>(null);
+  const [weatherData, setWeatherData] = useState<{ temp: number; code: number; name?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load from localStorage on initial render
@@ -20,11 +20,13 @@ export function useWeather() {
     try {
         const storedLocation = localStorage.getItem(WEATHER_LOCATION_KEY);
         if (storedLocation) setLocationState(storedLocation);
+        else setLocationState('Auto'); // Marker for first-time auto-detection
 
         const storedUnit = localStorage.getItem(WEATHER_UNIT_KEY) as Unit;
         if (storedUnit) setUnitState(storedUnit);
     } catch (e) {
         console.warn("Could not access localStorage for weather settings.");
+        setLocationState('Delhi, India'); // Fallback
     }
   }, []);
   
@@ -46,7 +48,7 @@ export function useWeather() {
     }
   }, []);
 
-  const fetchWeather = useCallback(async (lat: number, lon: number) => {
+  const fetchWeather = useCallback(async (lat: number, lon: number, cityName?: string) => {
     if (!API_KEY) {
         console.error("OpenWeatherMap API key is missing.");
         setLoading(false);
@@ -63,7 +65,12 @@ export function useWeather() {
         setWeatherData({
           temp: Math.round(data.main.temp),
           code: data.weather[0].id,
+          name: cityName || data.name
         });
+        if (!cityName && data.name) {
+            // If we didn't have a name and the weather API gave us one, use it
+            // but don't overwrite if we're in "Auto" mode to avoid loops
+        }
       } else {
         console.error("Failed to fetch weather data:", data.message);
       }
@@ -75,9 +82,8 @@ export function useWeather() {
   }, [unit]);
 
   const fetchCoordinates = useCallback(async (loc: string) => {
-    if (!API_KEY) {
-        console.error("OpenWeatherMap API key is missing.");
-        setLoading(false);
+    if (!API_KEY || !loc || loc === 'Auto') {
+        if (!loc || loc === 'Auto') setLoading(false);
         return;
     }
     setLoading(true);
@@ -85,8 +91,8 @@ export function useWeather() {
       const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(loc)}&limit=1&appid=${API_KEY}`);
       const data = await response.json();
       if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        fetchWeather(lat, lon);
+        const { lat, lon, name } = data[0];
+        fetchWeather(lat, lon, name);
       } else {
           setLoading(false);
           console.error("Location not found");
@@ -97,27 +103,53 @@ export function useWeather() {
     }
   }, [fetchWeather]);
 
+  const fetchWeatherByCoords = useCallback(async (lat: number, lon: number) => {
+    try {
+        // Try reverse geocoding to get city name
+        const geoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`;
+        const geoRes = await fetch(geoUrl);
+        const geoData = await geoRes.json();
+        const cityName = (geoData && geoData.length > 0) ? geoData[0].name : undefined;
+        
+        if (cityName && location === 'Auto') {
+            setLocation(cityName);
+        }
+        
+        await fetchWeather(lat, lon, cityName);
+    } catch (e) {
+        await fetchWeather(lat, lon);
+    }
+  }, [fetchWeather, location, setLocation]);
+
   const fetchWeatherForCurrentUserLocation = useCallback(() => {
-    if (navigator.geolocation) {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      setLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setLocation('Current Location');
-          fetchWeather(latitude, longitude);
+          fetchWeatherByCoords(latitude, longitude);
         },
         (error) => {
           console.error("Geolocation error:", error);
-          // Fallback to default location if permission is denied
-          fetchCoordinates(location);
-        }
+          // Fallback to default location if permission is denied or Auto mode fails
+          if (location === 'Auto' || !location) {
+              setLocation('Delhi, India');
+          } else {
+              fetchCoordinates(location);
+          }
+        },
+        { timeout: 10000 }
       );
     } else {
-        fetchCoordinates(location);
+        if (location === 'Auto' || !location) setLocation('Delhi, India');
+        else fetchCoordinates(location);
     }
-  }, [fetchWeather, fetchCoordinates, location]);
+  }, [fetchWeatherByCoords, fetchCoordinates, location, setLocation]);
 
   useEffect(() => {
-    if (location && location !== 'Current Location') {
+    if (location === 'Auto') {
+        fetchWeatherForCurrentUserLocation();
+    } else if (location && location !== 'Current Location') {
       fetchCoordinates(location);
     } else if (location === 'Current Location') {
       fetchWeatherForCurrentUserLocation();

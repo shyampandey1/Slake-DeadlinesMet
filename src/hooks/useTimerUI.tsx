@@ -21,7 +21,7 @@ export const TimerUIProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isTimerPage = pathname === '/timer';
+  const isTimerPage = pathname?.startsWith('/timer');
 
   const hideUI = useCallback(() => {
     if (isTimerPage) {
@@ -42,18 +42,31 @@ export const TimerUIProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isTimerPage) {
         showUI();
+        
+        const handleActivity = () => showUI();
+        
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('mousedown', handleActivity);
+        window.addEventListener('scroll', handleActivity);
+        window.addEventListener('touchstart', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+        
+        return () => {
+          window.removeEventListener('mousemove', handleActivity);
+          window.removeEventListener('mousedown', handleActivity);
+          window.removeEventListener('scroll', handleActivity);
+          window.removeEventListener('touchstart', handleActivity);
+          window.removeEventListener('keydown', handleActivity);
+          if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+          }
+        };
     } else {
         setIsUIVisible(true);
         if (hideTimeoutRef.current) {
             clearTimeout(hideTimeoutRef.current);
         }
     }
-
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
   }, [isTimerPage, showUI]);
 
   return (

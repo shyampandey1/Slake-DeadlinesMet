@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, Play, ThumbsUp, X, Calendar as CalendarIcon } from "lucide-react";
+import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, Play, ThumbsUp, X, Calendar as CalendarIcon, Wand2, Loader2, Sparkles, TrendingUp, Lightbulb, Target as TargetIcon } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 import { Separator } from "./ui/separator";
+import { getProductivityInsights, type ProductivityInsightsOutput } from "@/ai/flows/get-productivity-insights";
 
 function formatDuration(minutes: number): string {
     if (minutes === 0) return "0m";
@@ -48,6 +49,8 @@ function TaskLogBookContent() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [insights, setInsights] = useState<ProductivityInsightsOutput | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const loading = tasksLoading || profileLoading;
 
@@ -247,6 +250,28 @@ function TaskLogBookContent() {
     }
   };
 
+  const generateInsights = async () => {
+    if (filteredTasksByDate.length === 0) return;
+    setInsightsLoading(true);
+    try {
+      const result = await getProductivityInsights({
+        tasks: filteredTasksByDate.map(t => ({
+          name: t.name,
+          duration: t.duration,
+          completed: t.completed,
+          category: getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory,
+          createdAt: t.createdAt
+        })),
+        profile
+      });
+      setInsights(result);
+    } catch (e) {
+      console.error("Failed to generate insights:", e);
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
   const downloadCSV = () => {
     const headers = ['Date', 'Task Name', 'Category', 'Time Spent (min)', 'Initial Duration (min)', 'Completed'];
     const rows = filteredTasksByDate.map(task => [
@@ -408,6 +433,104 @@ function TaskLogBookContent() {
                                 <p className="text-xs text-muted-foreground">{stats.glassesDrunk} of {stats.hydrationGoal} glasses</p>
                             </CardContent>
                         </Card>
+                    </div>
+
+                    <div className="mt-4">
+                        {!insights && !insightsLoading ? (
+                            <Button 
+                                onClick={generateInsights} 
+                                disabled={filteredTasksByDate.length === 0}
+                                className="w-full h-16 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-blue-100 flex items-center justify-center gap-2 group"
+                            >
+                                <Sparkles className="w-5 h-5 text-blue-400 group-hover:animate-pulse" />
+                                <span className="font-headline text-lg italic">Generate AI Productivity Insights</span>
+                            </Button>
+                        ) : (
+                            <Card className="border-blue-500/30 bg-blue-900/10 overflow-hidden">
+                                <CardHeader className="flex flex-row items-center justify-between pb-2 bg-blue-500/5">
+                                    <div>
+                                        <CardTitle className="text-lg font-headline flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-blue-400" />
+                                            AI Productivity Coach
+                                        </CardTitle>
+                                        <CardDescription>Based on your {dateFilterLabel} log</CardDescription>
+                                    </div>
+                                    <Button variant="ghost" size="sm" onClick={() => setInsights(null)} disabled={insightsLoading}>
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                </CardHeader>
+                                <CardContent className="pt-4 space-y-4">
+                                    {insightsLoading ? (
+                                        <div className="py-8 flex flex-col items-center justify-center gap-4">
+                                            <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+                                            <p className="text-sm italic animate-pulse">Analyzing your performance patterns...</p>
+                                        </div>
+                                    ) : insights ? (
+                                        <div className="grid gap-4 md:grid-cols-3">
+                                            <div className="md:col-span-2 space-y-4">
+                                                <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/20">
+                                                    <p className="text-sm leading-relaxed italic text-blue-100">"{insights.summary}"</p>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                                                            <TrendingUp className="w-3.5 h-3.5" />
+                                                            Strengths
+                                                        </h4>
+                                                        <ul className="space-y-1.5">
+                                                            {insights.strengths.map((s, i) => (
+                                                                <li key={i} className="text-sm flex items-start gap-2 text-foreground/80">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                                                                    {s}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                                                            <Lightbulb className="w-3.5 h-3.5" />
+                                                            Suggestions
+                                                        </h4>
+                                                        <ul className="space-y-1.5">
+                                                            {insights.suggestions.map((s, i) => (
+                                                                <li key={i} className="text-sm flex items-start gap-2 text-foreground/80">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
+                                                                    {s}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-500/5 to-purple-500/5 rounded-xl border border-white/5">
+                                                <div className="relative w-24 h-24 mb-3">
+                                                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                                                        <circle className="text-white/10 stroke-current" strokeWidth="8" fill="transparent" r="40" cx="50" cy="50" />
+                                                        <circle 
+                                                            className="text-blue-500 stroke-current" 
+                                                            strokeWidth="8" 
+                                                            strokeDasharray={251.2} 
+                                                            strokeDashoffset={251.2 - (251.2 * insights.focusScore) / 100} 
+                                                            strokeLinecap="round" 
+                                                            fill="transparent" 
+                                                            r="40" 
+                                                            cx="50" 
+                                                            cy="50" 
+                                                            transform="rotate(-90 50 50)"
+                                                        />
+                                                    </svg>
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                        <span className="text-2xl font-bold">{insights.focusScore}</span>
+                                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Focus</span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-center font-medium text-muted-foreground leading-tight">Focus Score based on consistency and output</p>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                     
                     <Card className="mt-4">

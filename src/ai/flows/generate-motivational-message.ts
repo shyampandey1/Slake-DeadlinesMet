@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {gemini15Flash} from '@genkit-ai/googleai';
 
 const GenerateMotivationalMessageInputSchema = z.object({
   taskName: z.string().describe('The name of the completed task.'),
@@ -39,69 +40,33 @@ const GenerateMotivationalMessageOutputSchema = z.object({
 export type GenerateMotivationalMessageOutput = z.infer<typeof GenerateMotivationalMessageOutputSchema>;
 
 export async function generateMotivationalMessage(input: GenerateMotivationalMessageInput): Promise<GenerateMotivationalMessageOutput> {
-  return generateMotivationalMessageFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'generateMotivationalMessagePrompt',
-  input: {schema: GenerateMotivationalMessageInputSchema},
-  output: {schema: GenerateMotivationalMessageOutputSchema},
-  prompt: `You are an enthusiastic and personal motivational assistant. Your primary role is to provide uplifting and encouraging messages to users after they complete a task. You should also suggest a relevant and logical next task to help them maintain momentum.
-
-  **User's Task Information:**
-  - **Task Name:** {{{taskName}}}
-  - **Duration:** {{{duration}}} minutes
-  - **Completion Status:** {{#if completionStatus}}Successfully Completed! Fantastic effort!{{else}}Not completed. That's completely okay, what matters is the effort.{{/if}}
-
-  {{#if pastTasks}}
-  **User's Recent Activity (for context):**
-  {{#each pastTasks}}
-  - **Task:** {{{taskName}}}, **Duration:** {{{duration}}} minutes, **Status:** {{#if completionStatus}}Completed{{else}}Not Completed{{/if}}
-  {{/each}}
-  {{/if}}
-
-  {{#if userRoutine}}
-  **User's Daily Routine (for suggestion context):**
-  {{#each userRoutine}}
-  - ({{category}}) {{{name}}}
-  {{/each}}
-  {{/if}}
-
-  **Your Task:**
-
-  1.  **Generate a Motivational Message:**
-      - Write a short (2-3 sentences), personalized, and genuinely uplifting message.
-      - If the task was completed, celebrate their achievement and acknowledge their hard work.
-      - If the task was not completed, be gentle and encouraging. Frame it as a learning opportunity and praise their dedication for the time they did put in. Avoid sounding disappointed.
-      - Your tone should be positive and empowering, making the user feel good about their progress.
-
-  2.  **Suggest a Next Task:**
-      - **Primary Goal:** Check if the completed task ("{{{taskName}}}") exists in the user's provided routine.
-      - **If it exists in the routine:** Suggest the *very next* task from the list. This is the top priority.
-      - **If it does NOT exist in the routine OR if it's the last task:** Suggest a logical next action based on the completed task's name and the time of day. For example:
-        - After 'Plan Day', suggest 'Focus Session' or 'Check Emails'.
-        - After a long 'Focus Session', suggest 'Short Break' or 'Go for a walk'.
-        - After 'Workout', suggest 'Hydrate' or 'Healthy Meal'.
-        - After 'Read a Book', suggest 'Journal' or 'Wind down'.
-      - If no logical task comes to mind, you can suggest a generic but useful task like 'Quick 5-min Stretch' or 'Review Today\'s Goals'.
-      
-  **Example Output (for a completed "Plan Day" task that is in the user's routine):**
-  {
-    "message": "Excellent work planning out your day! Setting a clear path is the first step to a huge success. You're setting yourself up for a win!",
-    "suggestedNextTask": "Deep Work" 
+  if (!process.env.GEMINI_API_KEY) {
+    return {
+      message: "AI Error: GEMINI_API_KEY is missing in environment. Please check .env.local.",
+      suggestedNextTask: undefined
+    };
   }
-  
-  Now, generate the response for the user's task.`,
-});
 
-const generateMotivationalMessageFlow = ai.defineFlow(
-  {
-    name: 'generateMotivationalMessageFlow',
-    inputSchema: GenerateMotivationalMessageInputSchema,
-    outputSchema: GenerateMotivationalMessageOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
+  try {
+    const { output } = await ai.generate({
+      model: 'googleai/gemini-2.5-flash',
+      prompt: `You are an enthusiastic motivational assistant. Let's celebrate. 
+      Task: ${input.taskName} 
+      Duration: ${input.duration} mins. 
+      Generate a short, personal message (2 sentences) and suggest a next task based on their routine or the completed task name.
+      User Routine: ${JSON.stringify(input.userRoutine || [])}
+      Past Tasks: ${JSON.stringify(input.pastTasks || [])}`,
+      output: {
+        schema: GenerateMotivationalMessageOutputSchema
+      }
+    });
+
     return output!;
+  } catch (error: any) {
+    console.error("AI Generation Detailed Error:", error);
+    return {
+      message: `AI Connection Error: ${error.message || 'fetch failed'}. Please ensure you have internet access and the API key is active.`,
+      suggestedNextTask: undefined
+    };
   }
-);
+}

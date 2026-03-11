@@ -20,7 +20,7 @@ export default function BottomNav() {
   const { user } = useAuth();
   const { isUIVisible } = useTimerUI();
 
-  const isTimerPage = pathname === '/timer';
+  const isTimerPage = pathname?.startsWith('/timer');
 
   if (!user) {
     return null;
