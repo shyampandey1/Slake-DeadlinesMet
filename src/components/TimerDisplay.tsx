@@ -79,53 +79,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [showExitWarning, setShowExitWarning] = useState(false);
 
   const showStartNotification = useCallback(() => {
-    try {
-      if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
-      if (!("Notification" in window)) return;
-      
-      let perm: string = 'default';
-      try { perm = Notification.permission; } catch (e) {}
-
-      if (perm === "granted") {
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.getRegistration().then(reg => {
-            if (reg && typeof reg.showNotification === 'function') {
-              const p = reg.showNotification("Timer Started", { body: `Focusing on: ${taskName}` });
-              if (p && typeof p.catch === 'function') p.catch(() => {});
-            } else {
-              try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(e) {}
-            }
-          }).catch(() => {});
-        } else {
-          try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(e) {}
-        }
-      }
-    } catch (e) {}
+    // Intentionally left empty to prevent PWA crashes on Android during Timer mount
   }, [taskName]);
 
   const showCompletionNotification = useCallback(() => {
-    try {
-      if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
-      if (!("Notification" in window)) return;
-
-      let perm: string = 'default';
-      try { perm = Notification.permission; } catch (e) {}
-
-      if (perm === "granted") {
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.getRegistration().then(reg => {
-            if (reg && typeof reg.showNotification === 'function') {
-              const p = reg.showNotification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
-              if (p && typeof p.catch === 'function') p.catch(() => {});
-            } else {
-              try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch(e) {}
-            }
-          }).catch(() => {});
-        } else {
-          try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch(e) {}
-        }
-      }
-    } catch (e) {}
+    // Intentionally left empty to prevent PWA crashes on Android during Timer unmount
   }, [taskName]);
 
   const userRoutine = useMemo(() => {
@@ -508,7 +466,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl">End task early?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to leave? Your timer will be stopped and progress won't be saved.
+              Are you sure you want to leave? Your timer will be stopped. Would you like to save your progress so far?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -518,9 +476,15 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               </AlertDialogCancel>
               <AlertDialogAction
                 className="bg-red-600 hover:bg-red-700"
-                onClick={() => router.push("/")}
+                onClick={() => { setShowExitWarning(false); router.push("/"); }}
               >
-                End task
+                Exit without saving
+              </AlertDialogAction>
+              <AlertDialogAction
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => { setShowExitWarning(false); handleSaveTask(false); }}
+              >
+                Save progress & Exit
               </AlertDialogAction>
             </div>
           </AlertDialogFooter>
