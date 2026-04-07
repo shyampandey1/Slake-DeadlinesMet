@@ -64,7 +64,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { tasks, addTask } = useTasks();
   const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
-  const { playSound } = useAudioSettings();
+  const { playFinish, playTick } = useAudioSettings();
   const { weatherData, location } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
@@ -213,18 +213,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       if (difference <= 0) {
         setIsFinished(true);
         setFlashState('none');
-        playSound();
+        playFinish();
         showCompletionNotification();
-      } else if (difference <= 4) {
-        setFlashState('continuous');
-        playSound();
+      } else if (difference <= 10 && difference > 0) {
+        // Activate continuous tense flashing in the last 4 seconds
+        if (difference <= 4) setFlashState('continuous');
+        // Tick each second for the final countdown
+        playTick();
       } else if (difference <= 11 && difference > 4) {
         setFlashState('none');
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isPaused, isFinished, playSound, showCompletionNotification]);
+  }, [isPaused, isFinished, playFinish, playTick, showCompletionNotification]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -235,14 +237,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         if (difference <= 0) {
           setIsFinished(true);
           setFlashState('none');
-          playSound();
+          playFinish();
           showCompletionNotification();
         }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isPaused, isFinished, playSound, showCompletionNotification]);
+  }, [isPaused, isFinished, playFinish, showCompletionNotification]);
 
   useEffect(() => {
     // Disable scrolling on the body when the timer is active
