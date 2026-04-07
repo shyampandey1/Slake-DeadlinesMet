@@ -221,6 +221,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Main stable timer engine resilient to background throttling
   useEffect(() => {
+    if (!syncComplete) return;
+
     if (isPaused || isFinished) {
       expectedEndTimeRef.current = null;
       return;
@@ -256,7 +258,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isPaused, isFinished, playFinish, playTick, showCompletionNotification]);
+  }, [isPaused, isFinished, playFinish, playTick, showCompletionNotification, syncComplete, clearTimer]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
