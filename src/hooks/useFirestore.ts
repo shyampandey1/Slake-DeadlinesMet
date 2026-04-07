@@ -40,7 +40,7 @@ export function useTasks() {
   const TASKS_CACHE_KEY = 'user_tasks';
 
   useEffect(() => {
-    if (!user) {
+    if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) {
       setLoading(false);
       return;
     }
@@ -96,7 +96,7 @@ export function useTasks() {
 
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
-      const updatedTasks = [...tasks, { ...newTask, id: new Date().toISOString(), userId: user.uid }];
+      const updatedTasks = [...tasks, { ...newTask, id: `local_${new Date().getTime()}_${Math.random().toString(36).substr(2, 5)}`, userId: user.uid }];
       setTasks(updatedTasks);
       try {
         localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
@@ -110,7 +110,7 @@ export function useTasks() {
   };
 
   const clearTasks = async () => {
-    if (!user) return;
+    if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) return; // Added signout check
     
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     setTasks([]);
@@ -134,6 +134,46 @@ export function useTasks() {
   };
 
 
+  useEffect(() => {
+    const syncOfflineTasks = async () => {
+      if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS') || !isSyncEnabled || isOffline) return;
+      
+      const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
+      try {
+        const cachedTasksStr = localStorage.getItem(cacheKey);
+        if (cachedTasksStr) {
+          const cachedTasks = JSON.parse(cachedTasksStr) as Task[];
+          const tasksToSync = cachedTasks.filter(t => t.id.startsWith('local_'));
+          
+          if (tasksToSync.length > 0) {
+            const batch = writeBatch(db);
+            const ref = collection(db, 'users', user.uid, 'tasks');
+            
+            tasksToSync.forEach(task => {
+              const docRef = doc(ref);
+              const { id, createdAt, ...data } = task as any; 
+              batch.set(docRef, { ...data, createdAt: Timestamp.now() });
+            });
+            
+            await batch.commit();
+            
+            const cleanTasks = cachedTasks.filter(t => !t.id.startsWith('local_'));
+            localStorage.setItem(cacheKey, JSON.stringify(cleanTasks));
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to sync offline tasks", e);
+      }
+    };
+
+    window.addEventListener('app-online-sync', syncOfflineTasks);
+    if (!isOffline) {
+       syncOfflineTasks();
+    }
+    
+    return () => window.removeEventListener('app-online-sync', syncOfflineTasks);
+  }, [user, isOffline, isSyncEnabled]);
+
   return { tasks, loading, addTask, clearTasks };
 }
 
@@ -143,6 +183,10 @@ export function usePresetTasks() {
   const { profile, loading: profileLoading, daysOff } = useProfile();
   const [presetTasks, setPresetTasks] = useState<Preset>({});
   const [loading, setLoading] = useState(true);
+
+  const getPresetCacheKey = useCallback((profileName: string) => {
+    return `preset_tasks_${user?.uid}_${profileName}_v${ROUTINE_TEMPLATE_VERSION}`;
+  }, [user]);
 
   const dayMap: { [key: string]: number } = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
   
@@ -171,21 +215,46 @@ export function usePresetTasks() {
 
 
   const isDefaultTask = (task: UserPresetTask) => {
-    return !task.id;
+    return !task.id || task.id.startsWith('local_def_');
   };
 
   useEffect(() => {
-    if (profileLoading || !user) {
+    if (profileLoading || !user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) {
       setLoading(false);
       return;
     }
     
-    const cacheKey = `preset_tasks_${user.uid}_${effectiveProfile}_v${ROUTINE_TEMPLATE_VERSION}`;
+    const cacheKey = getPresetCacheKey(effectiveProfile);
     if (isOffline || !isSyncEnabled) {
         try {
             const cachedData = localStorage.getItem(cacheKey);
             if (cachedData) {
-                setPresetTasks(JSON.parse(cachedData));
+                const parsedData = JSON.parse(cachedData) as Preset;
+                // Deduplicate tasks by ID just in case the cache is corrupted
+                for (const cat in parsedData) {
+                    const uniqueTasks: UserPresetTask[] = [];
+                    const seenIds = new Set<string>();
+                    for (const task of parsedData[cat].tasks) {
+                        if (task.name.startsWith("Drink a glass of water") && (task.duration !== 1 || task.name !== "Drink a glass of water")) {
+                            task.duration = 1;
+                            task.name = "Drink a glass of water";
+                        }
+                        if (task.name === "Eye strain exercise" && task.duration !== 2) {
+                            task.duration = 2;
+                        }
+
+                        if (task.id && !seenIds.has(task.id)) {
+                            uniqueTasks.push(task);
+                            seenIds.add(task.id);
+                        } else if (!task.id) {
+                            // Fallback for tasks with no ID
+                            const newId = `local_gen_${Math.random().toString(36).substr(2, 5)}`;
+                            uniqueTasks.push({ ...task, id: newId });
+                        }
+                    }
+                    parsedData[cat].tasks = uniqueTasks;
+                }
+                setPresetTasks(parsedData);
             } else {
                  const routineKey = profileToRoutineMap[effectiveProfile];
                  const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
@@ -241,12 +310,24 @@ export function usePresetTasks() {
                 
                 setPresetTasks(sortedPreset);
             } else {
-                const newPreset = snapshot.docs.reduce((acc: Preset, doc) => {
-                    const task = { id: doc.id, ...doc.data() } as UserPresetTask;
+                const newPreset = snapshot.docs.reduce((acc: Preset, docSnapshot) => {
+                    const task = { id: docSnapshot.id, ...docSnapshot.data() } as UserPresetTask;
                     const category = task.category || 'Default';
                     if (!acc[category]) {
                         acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
                     }
+
+                    // Automatic migration for legacy water/eye tasks
+                    if (task.name.startsWith("Drink a glass of water") && (task.duration !== 1 || task.name !== "Drink a glass of water")) {
+                        task.duration = 1;
+                        task.name = "Drink a glass of water";
+                        updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', task.id!), { duration: 1, name: "Drink a glass of water" }).catch(console.error);
+                    }
+                    if (task.name === "Eye strain exercise" && task.duration !== 2) {
+                        task.duration = 2;
+                        updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', task.id!), { duration: 2 }).catch(console.error);
+                    }
+
                     acc[category].tasks.push(task);
                     return acc;
                 }, {});
@@ -298,83 +379,119 @@ export function usePresetTasks() {
     }
     const newOrder = maxOrder + 1;
     
-    const newTask = {
+    const tempId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newTask: any = {
         ...rest,
         category,
-        profession: currentProfile,
+        profession: effectiveProfile,
         order: newOrder,
-        id: (isOffline || !isSyncEnabled) ? `local_${Date.now()}` : undefined
+        id: tempId
     };
 
+    // Optimistically update the UI so it appears immediately!
+    setPresetTasks(prev => {
+        const newPreset = { ...prev };
+        if (!newPreset[category]) {
+            newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
+        } else {
+            // Prevent shallow mutation array issue (React StrictMode calls this twice)
+            newPreset[category] = { ...newPreset[category], tasks: [...newPreset[category].tasks] };
+        }
+        newPreset[category].tasks.push(newTask as UserPresetTask);
+        
+        const sortedPreset: Preset = {};
+        Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+            .forEach(key => { sortedPreset[key] = newPreset[key]; });
+        
+        try {
+            localStorage.setItem(getPresetCacheKey(effectiveProfile), JSON.stringify(sortedPreset));
+        } catch (e) {
+            console.warn("Could not cache preset tasks");
+        }
+        return sortedPreset;
+    });
+
     if (isOffline || !isSyncEnabled) {
-        setPresetTasks(prev => {
-            const newPreset = { ...prev };
-            if (!newPreset[category]) {
-                newPreset[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
-            }
-            newPreset[category].tasks.push(newTask as UserPresetTask);
-            
-            const sortedPreset: Preset = {};
-            Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-                .forEach(key => { sortedPreset[key] = newPreset[key]; });
-            
-            try {
-                localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(sortedPreset));
-            } catch (e) {
-                console.warn("Could not cache preset tasks");
-            }
-            return sortedPreset;
-        });
         return;
     }
 
-    await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), newTask);
+    let isUsingDefaults = false;
+    const flatExistingTasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[] = [];
+    
+    for (const cat in presetTasks) {
+        if (presetTasks[cat].tasks) {
+            for (const task of presetTasks[cat].tasks) {
+                if (task.id?.startsWith('local_def_')) {
+                    isUsingDefaults = true;
+                }
+                const { id, order, profession: prof, ...restTask } = task as any;
+                flatExistingTasks.push({ ...restTask, category: cat });
+            }
+        }
+    }
+
+    if (isUsingDefaults) {
+        const { id, order, profession: prof, ...newRestTask } = newTask;
+        flatExistingTasks.push({ ...newRestTask, category } as any);
+        await clearAndSetPresetTasks(effectiveProfile, flatExistingTasks);
+        return;
+    }
+
+    // Strip temp ID before sending to Firebase
+    const { id, ...firebaseTask } = newTask;
+    await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), firebaseTask);
   };
 
   const updatePresetTask = async (taskId: string, taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }) => {
     if (!user) return;
 
-    if (isOffline || !isSyncEnabled) {
-        setPresetTasks(prev => {
-            const newPreset = { ...prev };
-            let found = false;
-            for (const cat in newPreset) {
-                const taskIndex = newPreset[cat].tasks.findIndex(t => t.id === taskId);
-                if (taskIndex !== -1) {
-                    const task = newPreset[cat].tasks[taskIndex];
-                    const updatedTask = { ...task, ...taskData };
-                    
-                    if (taskData.category && taskData.category !== cat) {
-                        newPreset[cat].tasks.splice(taskIndex, 1);
-                        if (newPreset[cat].tasks.length === 0) delete newPreset[cat];
-                        
-                        const newCat = taskData.category;
-                        if (!newPreset[newCat]) {
-                            newPreset[newCat] = { color: categoryConfig[newCat]?.color || categoryConfig['Default'].color, tasks: [] };
-                        }
-                        newPreset[newCat].tasks.push(updatedTask as UserPresetTask);
-                    } else {
-                        newPreset[cat].tasks[taskIndex] = updatedTask as UserPresetTask;
-                    }
-                    found = true;
-                    break;
-                }
-            }
-            
-            if (found) {
-                const sortedPreset: Preset = {};
-                Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
-                    .forEach(key => { sortedPreset[key] = newPreset[key]; });
+    // Optimistic UI update
+    setPresetTasks(prev => {
+        const newPreset = { ...prev };
+        let found = false;
+        for (const cat in newPreset) {
+            const taskIndex = newPreset[cat].tasks.findIndex(t => t.id === taskId);
+            if (taskIndex !== -1) {
+                // Defensive copy to prevent mutating prev state directly
+                newPreset[cat] = { ...newPreset[cat], tasks: [...newPreset[cat].tasks] };
+                const task = newPreset[cat].tasks[taskIndex];
+                const updatedTask = { ...task, ...taskData };
                 
-                try {
-                    localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(sortedPreset));
-                } catch (e) {
-                    console.warn("Could not cache preset tasks");
+                if (taskData.category && taskData.category !== cat) {
+                    newPreset[cat].tasks.splice(taskIndex, 1);
+                    if (newPreset[cat].tasks.length === 0) delete newPreset[cat];
+                    
+                    const newCat = taskData.category;
+                    if (!newPreset[newCat]) {
+                        newPreset[newCat] = { color: categoryConfig[newCat]?.color || categoryConfig['Default'].color, tasks: [] };
+                    } else {
+                        newPreset[newCat] = { ...newPreset[newCat], tasks: [...newPreset[newCat].tasks] };
+                    }
+                    newPreset[newCat].tasks.push(updatedTask as UserPresetTask);
+                } else {
+                    newPreset[cat].tasks[taskIndex] = updatedTask as UserPresetTask;
                 }
-                return sortedPreset;
+                found = true;
+                break;
             }
-            return prev;
-        });
+        }
+        
+        if (found) {
+            const sortedPreset: Preset = {};
+            Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                .forEach(key => { sortedPreset[key] = newPreset[key]; });
+            
+            try {
+                localStorage.setItem(getPresetCacheKey(effectiveProfile), JSON.stringify(sortedPreset));
+            } catch (e) {
+                console.warn("Could not cache preset tasks");
+            }
+            return sortedPreset;
+        }
+        return prev;
+    });
+
+    if (isOffline || !isSyncEnabled) {
         return;
     }
 
@@ -384,29 +501,32 @@ export function usePresetTasks() {
   const deletePresetTask = async (taskId: string) => {
     if (!user) return;
 
+    // Optimistic UI update
+    setPresetTasks(prev => {
+        const newPreset = { ...prev };
+        let found = false;
+        for (const cat in newPreset) {
+            const taskIndex = newPreset[cat].tasks.findIndex(t => t.id === taskId);
+            if (taskIndex !== -1) {
+                newPreset[cat] = { ...newPreset[cat], tasks: [...newPreset[cat].tasks] };
+                newPreset[cat].tasks.splice(taskIndex, 1);
+                if (newPreset[cat].tasks.length === 0) delete newPreset[cat];
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            try {
+                localStorage.setItem(getPresetCacheKey(effectiveProfile), JSON.stringify(newPreset));
+            } catch (e) {
+                console.warn("Could not cache preset tasks");
+            }
+            return newPreset;
+        }
+        return prev;
+    });
+
     if (isOffline || !isSyncEnabled) {
-        setPresetTasks(prev => {
-            const newPreset = { ...prev };
-            let found = false;
-            for (const cat in newPreset) {
-                const taskIndex = newPreset[cat].tasks.findIndex(t => t.id === taskId);
-                if (taskIndex !== -1) {
-                    newPreset[cat].tasks.splice(taskIndex, 1);
-                    if (newPreset[cat].tasks.length === 0) delete newPreset[cat];
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                try {
-                    localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(newPreset));
-                } catch (e) {
-                    console.warn("Could not cache preset tasks");
-                }
-                return newPreset;
-            }
-            return prev;
-        });
         return;
     }
 
@@ -422,7 +542,7 @@ export function usePresetTasks() {
               if (!acc[category]) {
                   acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
               }
-              acc[category].tasks.push({ ...task, id: `local_${Date.now()}_${index}`, order: index, profession: currentProfile } as UserPresetTask);
+              acc[category].tasks.push({ ...task, id: `local_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 4)}`, order: index, profession: currentProfile } as UserPresetTask);
               return acc;
           }, {});
 
@@ -432,7 +552,7 @@ export function usePresetTasks() {
 
           setPresetTasks(sortedPreset);
           try {
-              localStorage.setItem(`preset_tasks_${user.uid}_${effectiveProfile}`, JSON.stringify(sortedPreset));
+              localStorage.setItem(getPresetCacheKey(effectiveProfile), JSON.stringify(sortedPreset));
           } catch (e) {
               console.warn("Could not cache preset tasks");
           }
@@ -564,6 +684,52 @@ export function usePresetTasks() {
       return matchingCategories[0];
   }, [categoryTimeRanges, presetTasks]);
 
+  useEffect(() => {
+    const syncOfflinePresets = async () => {
+      if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS') || !isSyncEnabled || isOffline) return;
+      try {
+        const cacheKey = getPresetCacheKey(effectiveProfile);
+        const cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+          const parsedData = JSON.parse(cachedData) as Preset;
+          const tasksToSync: any[] = [];
+          
+          Object.keys(parsedData).forEach(cat => {
+            parsedData[cat].tasks.forEach(task => {
+              if (task.id && task.id.startsWith('local_')) {
+                tasksToSync.push({ ...task, category: cat, profession: effectiveProfile });
+              }
+            });
+          });
+
+          if (tasksToSync.length > 0) {
+            const batch = writeBatch(db);
+            const ref = collection(db, 'users', user.uid, 'userPresetTasks');
+            tasksToSync.forEach(task => {
+              const docRef = doc(ref);
+              const { id, ...data } = task;
+              batch.set(docRef, data);
+            });
+            await batch.commit();
+
+            // Clean local IDs from storage
+            const newPreset = { ...parsedData };
+            Object.keys(newPreset).forEach(cat => {
+              newPreset[cat].tasks = newPreset[cat].tasks.filter(t => !t.id || !t.id.startsWith('local_'));
+              if(newPreset[cat].tasks.length === 0) delete newPreset[cat];
+            });
+            localStorage.setItem(cacheKey, JSON.stringify(newPreset));
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to sync offline presets", e);
+      }
+    };
+    window.addEventListener('app-online-sync', syncOfflinePresets);
+    if (!isOffline) syncOfflinePresets();
+    return () => window.removeEventListener('app-online-sync', syncOfflinePresets);
+  }, [user, isOffline, isSyncEnabled, effectiveProfile, getPresetCacheKey]);
+
   return { 
     presetTasks, 
     loading, 
@@ -587,7 +753,7 @@ export function useCalendarEvents() {
   const EVENTS_CACHE_KEY = 'user_events';
 
   useEffect(() => {
-    if (!user) {
+    if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) {
       setLoading(false);
       return;
     }
@@ -639,7 +805,7 @@ export function useCalendarEvents() {
     const newEventData = { ...eventData, userId: user.uid };
 
     if (isOffline || !isSyncEnabled) {
-      const newEvent = { ...newEventData, id: new Date().toISOString() };
+      const newEvent = { ...newEventData, id: `local_ev_${new Date().getTime()}_${Math.random().toString(36).substr(2, 5)}` };
       const updatedEvents = [...events, newEvent];
       setEvents(updatedEvents);
        try {
@@ -669,6 +835,39 @@ export function useCalendarEvents() {
     
     await deleteDoc(doc(db, 'users', user.uid, 'userEvents', eventId));
   };
+
+  useEffect(() => {
+    const syncOfflineEvents = async () => {
+      if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS') || !isSyncEnabled || isOffline) return;
+      try {
+        const cacheKey = `${EVENTS_CACHE_KEY}_${user.uid}`;
+        const cachedStr = localStorage.getItem(cacheKey);
+        if (cachedStr) {
+          const cachedEvents = JSON.parse(cachedStr) as UserEvent[];
+          const eventsToSync = cachedEvents.filter(e => e.id.startsWith('local_'));
+          
+          if (eventsToSync.length > 0) {
+            const batch = writeBatch(db);
+            const ref = collection(db, 'users', user.uid, 'userEvents');
+            eventsToSync.forEach(ev => {
+              const docRef = doc(ref);
+              const { id, ...data } = ev as any;
+              batch.set(docRef, data);
+            });
+            await batch.commit();
+            
+            const cleanEvents = cachedEvents.filter(e => !e.id.startsWith('local_'));
+            localStorage.setItem(cacheKey, JSON.stringify(cleanEvents));
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to sync offline events", e);
+      }
+    };
+    window.addEventListener('app-online-sync', syncOfflineEvents);
+    if (!isOffline) syncOfflineEvents();
+    return () => window.removeEventListener('app-online-sync', syncOfflineEvents);
+  }, [user, isOffline, isSyncEnabled]);
 
   return { events, loading, addEvent, deleteEvent };
 }

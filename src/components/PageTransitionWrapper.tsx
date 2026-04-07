@@ -59,7 +59,7 @@ export default function PageTransitionWrapper({ children }: { children: ReactNod
 
   return (
     <div className="relative w-full overflow-hidden min-h-screen">
-        <AnimatePresence initial={false} custom={direction} mode="popLayout">
+        <AnimatePresence initial={false} custom={direction} mode="wait">
             <motion.div
                 key={pathname}
                 custom={direction}

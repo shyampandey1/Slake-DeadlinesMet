@@ -1,5 +1,7 @@
 
 'use server';
+
+
 /**
  * @fileOverview Generates a motivational message upon task completion using AI, incorporating task history and completion status.
  *
@@ -63,9 +65,9 @@ export async function generateMotivationalMessage(input: GenerateMotivationalMes
 
     return output!;
   } catch (error: any) {
-    console.error("AI Generation Detailed Error:", error);
+    console.warn("AI Generation fallback triggered (likely quota/connection):", error.message);
     return {
-      message: `AI Connection Error: ${error.message || 'fetch failed'}. Please ensure you have internet access and the API key is active.`,
+      message: "Great job finishing your task! Keep up the momentum!",
       suggestedNextTask: undefined
     };
   }

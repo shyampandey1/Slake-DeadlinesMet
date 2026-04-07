@@ -39,28 +39,32 @@ export const metadata: Metadata = {
   description: "Your personal space to conquer tasks and achieve goals.",
 };
 
+import { ThemeProvider } from "@/hooks/useTheme";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${nunito.variable} ${spaceGrotesk.variable} ${orbitron.variable} antialiased selection:bg-primary/30 min-h-screen overflow-x-hidden`}
       >
-        <AuthProvider>
-            <ProfileProvider>
-                <TimerUIProvider>
-                    <PageTransitionWrapper>
-                        {children}
-                    </PageTransitionWrapper>
-                    <BottomNav />
-                </TimerUIProvider>
-                <Toaster />
-                <ServiceWorkerRegistrar />
-            </ProfileProvider>
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+            <AuthProvider>
+                <ProfileProvider>
+                    <TimerUIProvider>
+                        <PageTransitionWrapper>
+                            {children}
+                        </PageTransitionWrapper>
+                        <BottomNav />
+                    </TimerUIProvider>
+                    <Toaster />
+                    <ServiceWorkerRegistrar />
+                </ProfileProvider>
+            </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

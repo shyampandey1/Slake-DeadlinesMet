@@ -94,15 +94,20 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 
-export default function HamburgerMenu() {
-  const { user } = useAuth();
+export default function HamburgerMenu({ white = false }: { white?: boolean }) {
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    await auth.signOut();
-    router.push('/auth');
+    try {
+      await signOut();
+      router.push('/auth');
+    } catch (error) {
+      console.error("Logout failed:", error);
+      router.push('/auth');
+    }
   };
   
   const navigateTo = (path: string) => {
@@ -119,7 +124,16 @@ export default function HamburgerMenu() {
     <>
       <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                    "transition-colors",
+                    white 
+                        ? "text-white/80 hover:text-white hover:bg-white/10" 
+                        : "text-foreground/80 hover:text-foreground hover:bg-accent"
+                )}
+            >
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
             </Button>

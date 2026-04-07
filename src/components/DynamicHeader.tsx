@@ -226,7 +226,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
                             <p className="text-sm text-white/80 hidden sm:block max-w-xs leading-relaxed" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>Focus on one task at a time. Set your goal and go.</p>
                          </div>
-                         <HamburgerMenu />
+                         <HamburgerMenu white />
                     </div>
 
                     <div className="flex flex-col items-start text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>

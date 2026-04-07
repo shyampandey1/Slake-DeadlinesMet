@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -65,7 +67,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { playSound } = useAudioSettings();
   const { weatherData, location } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
@@ -74,16 +76,94 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
   const [taskCategory, setTaskCategory] = useState(category);
+  const [showExitWarning, setShowExitWarning] = useState(false);
 
   const showStartNotification = useCallback(() => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Timer Started", { body: `Focusing on: ${taskName}` });
+    try {
+      // Check if we are totally in client to prevent any weird SSR referencing issues
+      if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+      if (!("Notification" in window)) return;
+      
+      // Some iOS PWA environments might throw just by checking permission
+      let perm: string = 'default';
+      try {
+        perm = Notification.permission;
+      } catch (e) {
+        console.warn("Failed to check notification permission", e);
+      }
+
+      if (perm === "granted") {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            try {
+               const promise = registration.showNotification("Timer Started", { body: `Focusing on: ${taskName}` });
+               if (promise && typeof promise.catch === 'function') {
+                 promise.catch(err => {
+                   console.warn("showNotification rejected:", err);
+                   // Fallback for desktop browsers, Android will throw "Illegal Constructor" here
+                   try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(err2) { }
+                 });
+               }
+            } catch (e) {
+               try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(err2) { }
+            }
+          }).catch(e => {
+            console.warn("ServiceWorker notification failed:", e);
+             try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(err2) { }
+          });
+        } else {
+          try {
+            new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` });
+          } catch(e) {
+            console.warn("Fallback Notification API failed", e);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Notification error:", e);
     }
   }, [taskName]);
 
   const showCompletionNotification = useCallback(() => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
+    try {
+      if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+      if (!("Notification" in window)) return;
+
+      let perm: string = 'default';
+      try {
+        perm = Notification.permission;
+      } catch (e) {
+        console.warn("Failed to check notification permission", e);
+      }
+
+      if (perm === "granted") {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+             try {
+                const promise = registration.showNotification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
+                if (promise && typeof promise.catch === 'function') {
+                  promise.catch(err => {
+                    console.warn("showNotification rejected:", err);
+                    try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch (err2) {}
+                  });
+                }
+             } catch (e) {
+                 try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch (err2) {}
+             }
+          }).catch(e => {
+            console.warn("ServiceWorker notification failed:", e);
+            try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch (err2) {}
+          });
+        } else {
+          try {
+            new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
+          } catch(e) {
+            console.warn("Fallback Notification API failed", e);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Notification error:", e);
     }
   }, [taskName]);
 
@@ -94,81 +174,190 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         routine.push({ ...t, category: cat });
       });
     });
-    return routine.sort((a,b) => (a.order || 0) - (b.order || 0));
+    return routine.sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [presetTasks]);
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Handle initialization and global side effects once
+  useEffect(() => {
+    setCurrentDate(new Date());
+    const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
+    showStartNotification();
+    if (document.body) document.body.style.overflow = 'hidden';
 
-  const stopTimer = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    let wakeLock: any = null;
+    let fallbackVideo: HTMLVideoElement | null = null;
+    
+    const requestWakeLock = async () => {
+      try {
+        if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn('Wake Lock error:', err);
+      }
+    };
+
+    requestWakeLock();
+
+    // Universal Fallback: A silent tiny mp4 video loops constantly to prevent sleep (mimics NoSleep.js)
+    try {
+      if (typeof document !== 'undefined') {
+        fallbackVideo = document.createElement('video');
+        fallbackVideo.setAttribute('playsinline', '');
+        fallbackVideo.setAttribute('muted', '');
+        fallbackVideo.muted = true;
+        fallbackVideo.loop = true;
+        fallbackVideo.src = "data:video/mp4;base64,AAAAHGZ0eXBpc29tAAACAGlzb21pc28yYXZjMQAAAAhmcmVlAAAGp21kYXQAAAKzBgX//5xwFf//eAwwAAAAHAAA/xAAAAAAAP8QAAAAAAAx3QAAAAAx3QAAAAEAAABCAAEA4AAAAIIfgIggFBAgIQQB//8ABgAAAAIAAIAAAAAAGgP/LAAAAAABAAAAbEAAAACCA4CEICQgJCEEAf//AAYAAAACAAACAAAAABoD/ywAAAAAAQAAAGxAAAAAggOAhCAkICQhBAH//wAGAAAAAgAAAwAAAAAaA/8sAAAAAAEAAABsQAAAAIIDgIQgJCAkIQQB//8ABgAAAAIAAAQAAAAAGgP/LAAAAAABAAAAbEAAAACCA4CEICQgJCEEAf//AAYAAAACAAAFAAAAABoD/ywAAAAAAQAAAGxAAAAAggOAhCAkICQhBAH//wAGAAAAAgAABgAAAAAaA/8sAAAAAAEAAABsQAAAAIIDgIQgJCAkIQQB//8ABgAAAAIAAAcAAAAAGgP/LAAAAAABAAAAbEAAAACCA4CEICQgJCEEAf//AAYAAAACAAAIAAAAABoD/ywAAAAAAQAAAGxAAAAAggOAhCAkICQhBAH//wAGAAAAAgAACQAAAAAaA/8sAAAAAAEAAABsQAAAAIIDgIQgJCAkIQQB//8ABgAAAAIAAAoAAAAAGgP/LAAAAAABAAAAbEAAAACCA4CEICQgJCEEAf//AAYAAAACAAALAAAAABoD/ywAAAAAAQAAAGxAAAAAggOAhCAkICQhBAH//wAGAAAAAgAADDkAAAAAGgP/LAAAAAABAAAAbEAAAACCA4CEICQgJCEEAf//AAYAAAACAAANAAAAABoD/ywAAAAAAQAAAGxAAAAAggOAhCAkICQhBAH//wAGAAAAAgAADgAAAAAaA/8sAAAAAAEAAABsQAAAAIIDgIQgJCAkIQQB//8ABgAAAAIAAA8AAAAAGgP/LAAAAAABAAAAbEAAAABAAG1vb3YAAABsbXZoZAAAAAD2O+m99jvpvQAAA+gAAAAZAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAABidHJhawAAAFx0a2hkAAAAAfY76b32O+m9AAAAAQAAAAAAAABsAAAAAAAAAAAAAAAAAQAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAeZWR0cwAAABxlbHN0AAAAAAAAAAEAAAAsAAAAAQABAAAAAABsbWRpYQAAACBtZGhkAAAAAPY76b32O+m9AAAAHAAAAAAAABcQAAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAASeG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAALZzdGJsAAAAr3N0c2QAAAAAAAAAAQAAAJ9hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAEAAQASAAAAASBBAP7/gAAAAAAAAAAAAAAAB2F2Y0MBAMAg/++ECAgIAABABAAAOAAAAAAAR+PMAAH2oQAAAAAhzdHRzAAAAAAAAAAEAAAANAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAANAAAAAQAAADRzdHN6AAAAAAAAAAAAAAANAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAEAAAABQHN0Y28AAAAAAAAAAQAAACg=";
+        
+        const playFallback = () => {
+          if (fallbackVideo && fallbackVideo.paused) {
+            fallbackVideo.play().catch(e => console.warn('Silent video wake lock blocked:', e));
+          }
+        };
+
+        playFallback();
+        // Bind to interactions to ensure it plays if autoplay was blocked
+        document.addEventListener('touchstart', playFallback, { once: true });
+        document.addEventListener('click', playFallback, { once: true });
+        document.addEventListener('mousemove', playFallback, { once: true });
+      }
+    } catch(e) {
+      console.warn("Fallback video setup failed", e);
     }
-  }, []);
 
-  const startTimer = useCallback(() => {
-    stopTimer();
-    intervalRef.current = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          stopTimer();
+    const handleVisibilityChangeForWakeLock = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+        if (fallbackVideo && fallbackVideo.paused) {
+          fallbackVideo.play().catch(e => console.warn('Silent video wake lock play failed visually:', e));
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChangeForWakeLock);
+
+    return () => {
+      clearInterval(dateInterval);
+      if (document.body) document.body.style.overflow = 'auto';
+      if (wakeLock !== null && typeof wakeLock.release === 'function') {
+        wakeLock.release().catch(() => { });
+      }
+      if (fallbackVideo) {
+        fallbackVideo.pause();
+        fallbackVideo.src = '';
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChangeForWakeLock);
+    };
+  }, [showStartNotification]);
+
+  // Handle reset when props change
+  useEffect(() => {
+    setTimeRemaining(initialDuration * 60);
+    setIsPaused(false);
+    setIsFinished(false);
+    setShowMotivationalDialog(false);
+    setFlashState('none');
+    setTaskCategory(category);
+  }, [taskName, initialDuration, category]);
+
+  const expectedEndTimeRef = useRef<number | null>(null);
+  const timeRemainingRef = useRef(timeRemaining);
+  const isFinishedRef = useRef(isFinished);
+  const showMotivationalDialogRef = useRef(showMotivationalDialog);
+
+  useEffect(() => {
+    timeRemainingRef.current = timeRemaining;
+  }, [timeRemaining]);
+
+  useEffect(() => {
+    isFinishedRef.current = isFinished;
+    showMotivationalDialogRef.current = showMotivationalDialog;
+  }, [isFinished, showMotivationalDialog]);
+
+  // Main stable timer engine resilient to background throttling
+  useEffect(() => {
+    if (isPaused || isFinished) {
+      expectedEndTimeRef.current = null;
+      return;
+    }
+
+    if (!expectedEndTimeRef.current) {
+      expectedEndTimeRef.current = Date.now() + timeRemainingRef.current * 1000;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const difference = Math.max(0, Math.round((expectedEndTimeRef.current! - now) / 1000));
+
+      setTimeRemaining(difference);
+
+      if (difference <= 0) {
+        setIsFinished(true);
+        setFlashState('none');
+        playSound();
+        showCompletionNotification();
+      } else if (difference <= 4) {
+        setFlashState('continuous');
+        playSound();
+      } else if (difference <= 11 && difference > 4) {
+        setFlashState('none');
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isPaused, isFinished, playSound, showCompletionNotification]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isPaused && !isFinished && expectedEndTimeRef.current) {
+        const now = Date.now();
+        const difference = Math.max(0, Math.round((expectedEndTimeRef.current - now) / 1000));
+        setTimeRemaining(difference);
+        if (difference <= 0) {
           setIsFinished(true);
           setFlashState('none');
           playSound();
           showCompletionNotification();
-          return 0;
         }
-
-        if (prev <= 4) {
-          setFlashState('continuous');
-          playSound();
-        } else if (prev <= 11 && prev > 4) {
-          setFlashState('none');
-        }
-
-        return prev - 1;
-      });
-    }, 1000);
-  }, [stopTimer, playSound, showCompletionNotification]);
-
-  useEffect(() => {
-    startTimer();
-
-    const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
-    showStartNotification();
-
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      stopTimer();
-      clearInterval(dateInterval);
-      document.body.style.overflow = 'auto';
-    };
-  }, [startTimer, stopTimer, showStartNotification]);
-
-
-  useEffect(() => {
-    if (!isPaused) {
-      startTimer();
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
       }
-    }
-    return stopTimer;
-  }, [isPaused, startTimer, stopTimer]);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [isPaused, isFinished, playSound, showCompletionNotification]);
 
   useEffect(() => {
     // Disable scrolling on the body when the timer is active
-    document.body.style.overflow = 'hidden';
+    if (document.body) document.body.style.overflow = 'hidden';
+
+    // Push a state so we can intercept the Android back button
+    try {
+      window.history.pushState(null, '', window.location.href);
+    } catch (e) {
+      console.warn('Failed to push initial history state (throttled?):', e);
+    }
+
+    const handlePopState = () => {
+      if (!isFinishedRef.current && !showMotivationalDialogRef.current) {
+        // Prevent going back by pushing state again
+        try {
+          window.history.pushState(null, '', window.location.href);
+        } catch (e) {
+          console.warn('Failed to push history state in popstate:', e);
+        }
+        setShowExitWarning(true);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
     // Re-enable scrolling when the component unmounts
     return () => {
-      document.body.style.overflow = 'auto';
+      if (document.body) document.body.style.overflow = 'auto';
+      window.removeEventListener("popstate", handlePopState);
     };
   }, []);
 
   const handleEndEarly = () => {
-    stopTimer();
     setIsPaused(true);
     setIsFinished(true);
   };
@@ -179,7 +368,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       task: suggestedTask,
       duration: "25",
     });
-    window.location.href = `/timer?${params.toString()}`;
+    // Explicitly hide the dialog and ensure no more home redirect happens.
+    // By setting this to false here, we prevent handleMotivationalDialogChange 
+    // from potentially being called by Radix with the home redirect side effect.
+    setShowMotivationalDialog(false);
+    router.push(`/timer?${params.toString()}`);
   }
 
   const handleInteraction = () => {
@@ -230,9 +423,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         });
         setMotivationalMessage(result.message);
         setSuggestedTask(result.suggestedNextTask);
-      } catch (error) {
-        console.error("Failed to generate motivational message:", error);
-        // Fallback for when the AI call fails
+      } catch (error: any) {
+        console.warn("AI generation error (likely quota limit):", error.message);
+        // Silently fallback to a simple success state
         setMotivationalMessage("Great job finishing your task! Keep up the momentum!");
         setSuggestedTask(undefined);
       } finally {
@@ -264,15 +457,15 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const progress = (timeRemaining / (initialDuration * 60)) * 100;
   const timerColor = 'hsl(var(--primary))';
 
-  const hour = currentDate.getHours();
+  const hour = currentDate ? currentDate.getHours() : 12;
   const isNight = hour < 6 || hour > 19;
   const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
   const InfoDisplay = () => (
     <div className="flex items-center gap-6 text-white/90">
       <div className="flex flex-col items-center">
-        <span className="text-3xl font-bold font-headline">{format(currentDate, 'p')}</span>
-        <span className="text-xs uppercase tracking-widest opacity-60">{format(currentDate, 'EEEE, MMM d')}</span>
+        <span className="text-3xl font-bold font-headline">{currentDate ? format(currentDate, 'p') : '--:--'}</span>
+        <span className="text-xs uppercase tracking-widest opacity-60">{currentDate ? format(currentDate, 'EEEE, MMM d') : '---'}</span>
       </div>
       {weatherData && (
         <div className="flex items-center gap-2 pl-6 border-l border-white/20">
@@ -348,68 +541,100 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           </CircularProgress>
         </div>
       </div>
-        <AlertDialog open={isFinished}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
-              <AlertDialogDescription>
-                Did you complete your task, "{taskName}"?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
-                <AlertDialogAction
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={() => handleSaveTask(false)}
-                >
-                  No
-                </AlertDialogAction>
-                <AlertDialogAction
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() => handleSaveTask(true)}
-                >
-                  Yes!
-                </AlertDialogAction>
-              </div>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
-        <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
-          <DialogContent onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }}>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
-                <PartyPopper className="text-primary" />
-                Task Completed!
-              </DialogTitle>
-              <DialogDescription asChild>
-                <div className="pt-4">
-                  {isLoadingAI ? (
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <p>Generating your motivational message...</p>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-lg text-foreground">{motivationalMessage}</p>
-                      {suggestedTask && (
-                        <Button onClick={handleStartSuggestedTask} className="mt-4 w-full">
-                          Start: {suggestedTask}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      )}
-                    </>
-                  )}
+      <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline text-2xl">End task early?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave? Your timer will be stopped and progress won't be saved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+              <AlertDialogCancel onClick={() => setShowExitWarning(false)}>
+                Keep going
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => router.push("/")}
+              >
+                End task
+              </AlertDialogAction>
+            </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isFinished}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Did you complete your task, "{taskName}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => handleSaveTask(false)}
+              >
+                No
+              </AlertDialogAction>
+              <AlertDialogAction
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => handleSaveTask(true)}
+              >
+                Yes!
+              </AlertDialogAction>
+            </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
+        <DialogContent onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }} className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
+              <PartyPopper className="text-primary" />
+              Task Completed!
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 min-h-[100px] flex flex-col justify-center">
+            {isLoadingAI ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-4 text-muted-foreground animate-pulse">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <p className="font-medium">Updating Log Book</p>
                 </div>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button onClick={() => handleMotivationalDialogChange(false)} className="w-full mt-2">
-                Back to Home
+                <p className="text-xs opacity-70">Synthesizing your achievement...</p>
+              </div>
+            ) : (
+              <p className="text-lg text-foreground leading-relaxed">
+                {motivationalMessage || "Great job finishing your task! Keep up the momentum!"}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="flex flex-col gap-3 sm:flex-col sm:justify-start">
+            {!isLoadingAI && suggestedTask && (
+              <Button onClick={handleStartSuggestedTask} className="w-full h-12 text-md shadow-lg transition-all active:scale-95">
+                Start: {suggestedTask}
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            )}
+            <Button
+              variant="outline"
+              asChild
+              className="w-full h-12 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+            >
+              <Link href="/">Back to Home</Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

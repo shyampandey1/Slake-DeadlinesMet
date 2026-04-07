@@ -5,7 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import type { UserProfile } from "@/types";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +24,7 @@ import { CardHeader, CardTitle, CardDescription, CardContent } from "@/component
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
@@ -37,6 +41,7 @@ export default function SignupForm({ onBack }: SignupFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
@@ -44,7 +49,24 @@ export default function SignupForm({ onBack }: SignupFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Update Auth Profile
+      await updateProfile(user, { displayName: values.name });
+
+      // Initialize Firestore User Document securely
+      await setDoc(doc(db, "users", user.uid), {
+        userId: user.uid,
+        profile: "General",
+        daysOff: [],
+        customProfessions: [],
+        routineVersions: {},
+        displayName: values.name,
+        email: values.email,
+        createdAt: new Date().toISOString()
+      });
+
       router.push("/");
     } catch (error: any) {
       toast({
@@ -64,6 +86,19 @@ export default function SignupForm({ onBack }: SignupFormProps) {
       <CardContent className="w-full">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="email"

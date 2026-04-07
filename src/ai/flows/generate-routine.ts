@@ -1,6 +1,8 @@
 
 'use server';
 
+
+
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { gemini15Flash } from '@genkit-ai/googleai';
@@ -35,12 +37,18 @@ const prompt = ai.definePrompt({
   prompt: `You are a productivity architect. Generate a high-performance daily routine for a {{{profession}}}. 
   The user has these days off: {{{daysOff}}}.
   
-  The routine should be divided into logical categories like "Morning Kickstart", "Deep Work", "Recovery", etc.
+  The routine should be divided into logical categories like "Morning Kickstart", "Strategic Work", "Professional Growth", "Recovery", etc.
+  
+  CRITICAL RULES:
+  1. NEVER include the task "Drink a glass of water" as a standalone 1-minute task. Hydration should be incorporated into broader tasks like "Morning Hydration & Intentions" or "Quick Stretch & Rehydrate".
+  2. EVERY task name in the entire 24-hour routine MUST be unique. Do not repeat names like "Short Break" or "Email Check".
+  3. Avoid minor 1-minute or 2-minute tasks that clutter the schedule unless they are essential transitions.
+  4. Ensure a balance between deep focus work, administrative tasks, and rest.
   
   For each task, provide:
-  - name: Descriptive title.
-  - duration: Minutes (sensible for the task).
-  - icon: A valid Lucide icon name (e.g., Coffee, Laptop, BookOpen, BrainCircuit, Dumbbell, Utensils).
+  - name: A unique, descriptive, and professional title.
+  - duration: Minutes (realistic for the profession).
+  - icon: A valid Lucide icon name (e.g., Coffee, Laptop, BookOpen, BrainCircuit, Dumbbell, Utensils, Zap, Users, Shield, Rocket).
   - category: The category it belongs to.
 
   Categories should have a 'color' field which is a Tailwind CSS class for the background (e.g., 'bg-blue-600/20', 'bg-orange-600/20').
@@ -51,17 +59,7 @@ const prompt = ai.definePrompt({
 
 export async function generateAIRoutine(input: GenerateRoutineInput): Promise<GenerateRoutineOutput> {
   try {
-    const { output } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash',
-      prompt: `You are a productivity architect. Generate a high-performance daily routine for a ${input.profession}.
-      Days off: ${JSON.stringify(input.daysOff)}
-      
-      Generate structured categories and tasks with icons and durations.`,
-      output: {
-        schema: GenerateRoutineOutputSchema
-      }
-    });
-
+    const { output } = await prompt(input);
     return output!;
   } catch (error: any) {
     console.error("AI Routine Generation Error:", error.name, error.message);

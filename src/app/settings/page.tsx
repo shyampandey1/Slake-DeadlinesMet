@@ -45,8 +45,10 @@ function SettingsPageComponent() {
     const { toast } = useToast();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [tempLocation, setTempLocation] = useState(location);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         if (typeof window !== 'undefined' && 'Notification' in window) {
             setNotificationsEnabled(Notification.permission === 'granted');
         }
@@ -129,9 +131,18 @@ function SettingsPageComponent() {
                         <CardContent>
                             <div className="flex items-center justify-between">
                                 <span className="font-medium">Theme</span>
-                                <Button variant="outline" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="relative">
-                                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
+                                    className="relative flex items-center justify-center border-primary/20 hover:bg-primary/5"
+                                >
+                                    {mounted && (
+                                        <>
+                                            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-500" />
+                                            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-blue-400" />
+                                        </>
+                                    )}
                                     <span className="sr-only">Toggle theme</span>
                                 </Button>
                             </div>

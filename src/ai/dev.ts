@@ -1,5 +1,7 @@
 
 'use server';
+
+export const maxDuration = 60;
 import { config } from 'dotenv';
 config();
 

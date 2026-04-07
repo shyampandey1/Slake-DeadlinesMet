@@ -13,7 +13,7 @@ const categorizationMap = {
     'Creative Professional': {
         'Productivity': ["Uninterrupted Deep Creative Work", "Inspiration & Research Block", "Skill Practice / Tutorial", "Admin & Client Communication", "Scripting & Content Planning", "Filming / Recording Session", "Editing & Post-Production", "Thumbnail Design & Uploads"],
         'Health': ["Light Stretching or Mobility", "Mindful Breakfast", "Mindful Meal", "Short Walk", "Main Exercise / Workout", "Mindful Dinner", "Workout / Physical Activity"],
-        'Hydration': ["Drink a glass of water", "Drink a small glass of water"],
+        'Hydration': ["Mindful Hydration", "Quick Water Break & Stretch"],
         'Mindfulness & Meditation': ["Morning Idea Dump / Journaling", "Final Idea Capture (on paper)", "Journal / Unwind"],
         'Entertainment & Hobbies': ["Relaxing Hobby", "Relax & Consume Content"],
         'Well-being & Social': ["Social Time with Family/Friends", "Digital Detox (no screens)", "Read Fiction or Listen to Calming Music", "Community Engagement", "Tidy Up Workspace", "Read / Disconnect"]
@@ -21,7 +21,7 @@ const categorizationMap = {
     'Business Professional': {
         'Productivity': ["Review Day's Top 3 Priorities", "Tackle Most Important Task", "Strategic Thinking / 'No-Meeting' Block", "Meetings & Collaborative Tasks", "Scan & Reply to Emails", "End-of-Day Review & Shutdown Ritual", "Prepare for the Next Day", "Networking & Outreach", "Financial Review", "Pipeline Management", "Follow-ups & Nurturing", "Client Demos & Meetings"],
         'Health': ["Workout/Exercise", "Breakfast & Scan News", "Power Lunch / Quick Walk", "Dinner with Family/Friends", "High-Intensity Workout", "Short Break", "Mindful Rest"],
-        'Hydration': ["Drink a glass of water", "Quick Water Break"],
+        'Hydration': ["Mindful Hydration", "Quick Water Break"],
         'Mindfulness & Meditation': ["Meditation for Stress Release"],
         'Entertainment & Hobbies': ["Hobby / Leisure"],
         'Well-being & Social': ["Light Reading (non-work related)", "Walk to Decompress"]
@@ -45,7 +45,7 @@ const categorizationMap = {
      'Healthcare Professional': { // For shift days
         'Productivity': ["Stay vigilant and support team", "Patient Rounds & Care", "Charting & Patient Notes"],
         'Health': ["High-Energy Meal", "Eat small, healthy snacks", "Recovery Meal & Connect with Family", "Warm shower to signal 'end of day'", "Gentle Movement & Mental Prep"],
-        'Hydration': ["Drink a glass of water", "Drink water & have a snack"],
+        'Hydration': ["Quick Rehydration", "Hydrate & Healthy Snack"],
         'Mindfulness & Meditation': ["Pre-Shift Mental Preparation", "During-Shift Micro-Reset", "Mindful Commute (calming music)"],
         'Well-being & Social': ["Connect with friends or family"]
     },
@@ -99,7 +99,7 @@ export function getTaskCategoryDetails(taskName: string, profile: ProfileType): 
     }
 
     // A special check for hydration as it's a common task
-    if (taskName.toLowerCase().includes('drink a glass of water')) {
+    if (taskName.toLowerCase().includes('hydration') || taskName.toLowerCase().includes('rehydrate') || taskName.toLowerCase().includes('water')) {
         return { mainCategory: 'Hydration', subCategory: taskName };
     }
     

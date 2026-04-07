@@ -105,10 +105,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             if (!routineKey) return; 
 
             const tasksCollectionRef = collection(db, 'users', uid, 'userPresetTasks');
-            const tasksQuery = query(tasksCollectionRef, where('profession', '==', prof));
-            const tasksSnapshot = await getDocs(tasksQuery);
+            
+            // If the version is outdated, we clear existing tasks and reset to the new template
+            if (Number(currentVersion) < ROUTINE_TEMPLATE_VERSION) {
+                console.log(`Updating ${prof} routine from v${currentVersion} to v${ROUTINE_TEMPLATE_VERSION}`);
+                
+                const tasksQuery = query(tasksCollectionRef, where('profession', '==', prof));
+                const tasksSnapshot = await getDocs(tasksQuery);
+                
+                // Delete existing tasks for this profession
+                tasksSnapshot.forEach(doc => transaction.delete(doc.ref));
 
-            if (tasksSnapshot.empty && currentVersion < ROUTINE_TEMPLATE_VERSION) {
+                // Add new tasks from the template
                 const defaultTasks = defaultRoutines.routines[routineKey] || [];
                 let order = 0;
                 defaultTasks.forEach(task => {
@@ -127,7 +135,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    if (!user) {
+    if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) {
         setLoading(false);
         return;
     }
@@ -159,7 +167,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         if (docSnap.exists()) {
             dataToSet = docSnap.data() as UserProfile;
         } else {
-            dataToSet = { userId: user.uid, profile: "General", daysOff: [] as Day[], customProfessions: [], routineVersions: {} };
+            dataToSet = { 
+                userId: user.uid, 
+                profile: "General", 
+                daysOff: [] as Day[], 
+                customProfessions: [], 
+                routineVersions: {},
+                displayName: user.displayName || undefined,
+                email: user.email || undefined
+            };
             await setDoc(profileRef, dataToSet); // This creates the user doc if it doesn't exist
         }
 
