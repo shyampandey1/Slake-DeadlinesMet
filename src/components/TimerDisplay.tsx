@@ -80,48 +80,27 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   const showStartNotification = useCallback(() => {
     try {
-      // Check if we are totally in client to prevent any weird SSR referencing issues
       if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
       if (!("Notification" in window)) return;
       
-      // Some iOS PWA environments might throw just by checking permission
       let perm: string = 'default';
-      try {
-        perm = Notification.permission;
-      } catch (e) {
-        console.warn("Failed to check notification permission", e);
-      }
+      try { perm = Notification.permission; } catch (e) {}
 
       if (perm === "granted") {
         if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.ready.then(registration => {
-            try {
-               const promise = registration.showNotification("Timer Started", { body: `Focusing on: ${taskName}` });
-               if (promise && typeof promise.catch === 'function') {
-                 promise.catch(err => {
-                   console.warn("showNotification rejected:", err);
-                   // Fallback for desktop browsers, Android will throw "Illegal Constructor" here
-                   try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(err2) { }
-                 });
-               }
-            } catch (e) {
-               try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(err2) { }
+          navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg && typeof reg.showNotification === 'function') {
+              const p = reg.showNotification("Timer Started", { body: `Focusing on: ${taskName}` });
+              if (p && typeof p.catch === 'function') p.catch(() => {});
+            } else {
+              try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(e) {}
             }
-          }).catch(e => {
-            console.warn("ServiceWorker notification failed:", e);
-             try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(err2) { }
-          });
+          }).catch(() => {});
         } else {
-          try {
-            new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` });
-          } catch(e) {
-            console.warn("Fallback Notification API failed", e);
-          }
+          try { new (window as any).Notification("Timer Started", { body: `Focusing on: ${taskName}` }); } catch(e) {}
         }
       }
-    } catch (e) {
-      console.warn("Notification error:", e);
-    }
+    } catch (e) {}
   }, [taskName]);
 
   const showCompletionNotification = useCallback(() => {
@@ -130,41 +109,23 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       if (!("Notification" in window)) return;
 
       let perm: string = 'default';
-      try {
-        perm = Notification.permission;
-      } catch (e) {
-        console.warn("Failed to check notification permission", e);
-      }
+      try { perm = Notification.permission; } catch (e) {}
 
       if (perm === "granted") {
         if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.ready.then(registration => {
-             try {
-                const promise = registration.showNotification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
-                if (promise && typeof promise.catch === 'function') {
-                  promise.catch(err => {
-                    console.warn("showNotification rejected:", err);
-                    try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch (err2) {}
-                  });
-                }
-             } catch (e) {
-                 try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch (err2) {}
-             }
-          }).catch(e => {
-            console.warn("ServiceWorker notification failed:", e);
-            try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch (err2) {}
-          });
+          navigator.serviceWorker.getRegistration().then(reg => {
+            if (reg && typeof reg.showNotification === 'function') {
+              const p = reg.showNotification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
+              if (p && typeof p.catch === 'function') p.catch(() => {});
+            } else {
+              try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch(e) {}
+            }
+          }).catch(() => {});
         } else {
-          try {
-            new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` });
-          } catch(e) {
-            console.warn("Fallback Notification API failed", e);
-          }
+          try { new (window as any).Notification("Task Completed!", { body: `Well done on finishing: ${taskName}` }); } catch(e) {}
         }
       }
-    } catch (e) {
-      console.warn("Notification error:", e);
-    }
+    } catch (e) {}
   }, [taskName]);
 
   const userRoutine = useMemo(() => {
