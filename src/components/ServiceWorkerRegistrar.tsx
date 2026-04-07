@@ -40,12 +40,12 @@ export default function ServiceWorkerRegistrar() {
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
   }, []);
 
-  // Auto hide after 4 seconds
+  // Auto hide after 8 seconds (longer for better visibility)
   useEffect(() => {
     if (isVisible && (showInstall || (permissionState !== "granted" && permissionState !== "denied"))) {
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 4000);
+      }, 8000);
       return () => clearTimeout(timer);
     }
   }, [isVisible, showInstall, permissionState]);
