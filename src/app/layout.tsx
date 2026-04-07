@@ -8,6 +8,8 @@ import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import { ProfileProvider } from "@/hooks/useProfile";
 import PageTransitionWrapper from "@/components/PageTransitionWrapper";
 import { TimerUIProvider } from "@/hooks/useTimerUI";
+import { TimerProvider } from "@/hooks/useActiveTimer";
+import HardwareBackHandler from "@/components/HardwareBackHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,10 +66,13 @@ export default function RootLayout({
             <AuthProvider>
                 <ProfileProvider>
                     <TimerUIProvider>
-                        <PageTransitionWrapper>
-                            {children}
-                        </PageTransitionWrapper>
-                        <BottomNav />
+                        <TimerProvider>
+                            <HardwareBackHandler />
+                            <PageTransitionWrapper>
+                                {children}
+                            </PageTransitionWrapper>
+                            <BottomNav />
+                        </TimerProvider>
                     </TimerUIProvider>
                     <Toaster />
                     <ServiceWorkerRegistrar />

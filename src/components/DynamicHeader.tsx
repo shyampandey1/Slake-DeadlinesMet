@@ -8,6 +8,9 @@ import { useWeather } from '@/hooks/useWeather';
 import { LucideIcon, Sun, Moon, Cloud, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, CloudFog, Cloudy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useActiveTimer } from '@/hooks/useActiveTimer';
+import Link from 'next/link';
+import { Play, Pause } from 'lucide-react';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -63,6 +66,7 @@ function LiveClock() {
 
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const { weatherData } = useWeather();
+    const { activeTimer } = useActiveTimer();
     const [stars, setStars] = useState<React.ReactElement[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -177,6 +181,22 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
     return (
         <div className="relative w-full h-72 sm:h-80 lg:h-96 min-h-[300px]">
+             {activeTimer && (
+                <Link 
+                    href={`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}`} 
+                    className="absolute top-0 left-0 right-0 z-50 bg-primary/20 backdrop-blur-xl border-b border-primary/30 p-2 flex items-center justify-between animate-in slide-in-from-top duration-500"
+                >
+                    <div className="flex items-center gap-3 pl-4">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <span className="text-xs font-bold text-white/90 truncate max-w-[150px]">Running: {activeTimer.taskName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 pr-4">
+                        <span className="text-xs font-code text-primary font-bold">
+                            {activeTimer.isPaused ? 'PAUSED' : 'ACTIVE'}
+                        </span>
+                    </div>
+                </Link>
+             )}
              <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  {isClient ? (
                      <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>

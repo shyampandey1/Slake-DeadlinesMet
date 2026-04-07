@@ -34,6 +34,7 @@ import CircularProgress from "./CircularProgress";
 import { useTimerUI } from "@/hooks/useTimerUI";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
+import { useActiveTimer } from "@/hooks/useActiveTimer";
 
 
 interface TimerDisplayProps {
@@ -65,6 +66,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playFinish, playTick } = useAudioSettings();
+  const { startTimer, clearTimer, updateTimer, activeTimer } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
@@ -171,13 +173,31 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Handle reset when props change
   useEffect(() => {
-    setTimeRemaining(initialDuration * 60);
-    setIsPaused(false);
-    setIsFinished(false);
-    setShowMotivationalDialog(false);
     setFlashState('none');
     setTaskCategory(category);
-  }, [taskName, initialDuration, category]);
+    
+    // START our persistent global background timer when the page mounts!
+    // But ONLY if one isn't already running for this task
+    if (!activeTimer || activeTimer.taskName !== taskName) {
+      startTimer({
+        taskName,
+        initialDuration,
+        category,
+        color,
+      });
+      setTimeRemaining(initialDuration * 60);
+      setIsPaused(false);
+    } else {
+      // RESTORE from active timer
+      setIsPaused(activeTimer.isPaused);
+      if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused) {
+        setTimeRemaining(activeTimer.timeLeftWhenPaused);
+      } else {
+        const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
+        setTimeRemaining(diff);
+      }
+    }
+  }, [taskName, initialDuration, category, color, startTimer, activeTimer]);
 
   const expectedEndTimeRef = useRef<number | null>(null);
   const timeRemainingRef = useRef(timeRemaining);
@@ -216,6 +236,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setFlashState('none');
         playFinish();
         showCompletionNotification();
+        clearTimer(); // End background tracking
       } else if (difference <= 10 && difference > 0) {
         // Activate continuous tense flashing in the last 4 seconds
         if (difference <= 4) setFlashState('continuous');
@@ -243,42 +264,21 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           setFlashState('none');
           playFinish();
           showCompletionNotification();
+          clearTimer();
         }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isPaused, isFinished, playFinish, showCompletionNotification]);
+  }, [isPaused, isFinished, playFinish, showCompletionNotification, clearTimer]);
 
   useEffect(() => {
     // Disable scrolling on the body when the timer is active
     if (document.body) document.body.style.overflow = 'hidden';
 
-    // Push a state so we can intercept the Android back button
-    try {
-      window.history.pushState(null, '', window.location.href);
-    } catch (e) {
-      console.warn('Failed to push initial history state (throttled?):', e);
-    }
-
-    const handlePopState = () => {
-      if (!isFinishedRef.current && !showMotivationalDialogRef.current) {
-        // Prevent going back by pushing state again
-        try {
-          window.history.pushState(null, '', window.location.href);
-        } catch (e) {
-          console.warn('Failed to push history state in popstate:', e);
-        }
-        setShowExitWarning(true);
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
     // Re-enable scrolling when the component unmounts
     return () => {
       if (document.body) document.body.style.overflow = 'auto';
-      window.removeEventListener("popstate", handlePopState);
     };
   }, []);
 
@@ -357,6 +357,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setIsLoadingAI(false);
       }
     } else {
+      clearTimer();
       router.push("/");
     }
   };
@@ -446,7 +447,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 isUIVisible ? "opacity-100" : "opacity-0"
               )}>
                 <Button
-                  onClick={() => setIsPaused(!isPaused)}
+                  onClick={() => {
+                    const newPaused = !isPaused;
+                    setIsPaused(newPaused);
+                    updateTimer({ isPaused: newPaused }, timeRemaining);
+                  }}
                   size="icon"
                   variant="ghost"
                   className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
