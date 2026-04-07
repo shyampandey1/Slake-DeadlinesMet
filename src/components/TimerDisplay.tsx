@@ -66,7 +66,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
   const { playFinish, playTick } = useAudioSettings();
-  const { startTimer, clearTimer, updateTimer, activeTimer } = useActiveTimer();
+  const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
@@ -79,6 +79,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [flashState, setFlashState] = useState<FlashState>('none');
   const [taskCategory, setTaskCategory] = useState(category);
   const [showExitWarning, setShowExitWarning] = useState(false);
+  const [syncComplete, setSyncComplete] = useState(false);
 
   const showStartNotification = useCallback(() => {
     // Intentionally left empty to prevent PWA crashes on Android during Timer mount
@@ -176,6 +177,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     setFlashState('none');
     setTaskCategory(category);
     
+    // WAIT until the global context is initialized from localStorage before deciding
+    if (!isInitialized) return;
+
     // START our persistent global background timer when the page mounts!
     // But ONLY if one isn't already running for this task
     if (!activeTimer || activeTimer.taskName !== taskName) {
@@ -197,7 +201,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setTimeRemaining(diff);
       }
     }
-  }, [taskName, initialDuration, category, color, startTimer, activeTimer]);
+    setSyncComplete(true);
+  }, [taskName, initialDuration, category, color, startTimer, activeTimer, isInitialized]);
 
   const expectedEndTimeRef = useRef<number | null>(null);
   const timeRemainingRef = useRef(timeRemaining);
@@ -437,7 +442,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           {taskName}
         </h1>
         <div className="mb-12">
-          <CircularProgress progress={progress} isUIVisible={isUIVisible}>
+          {!syncComplete ? (
+            <div className="flex flex-col items-center justify-center p-12">
+                <Loader2 className="h-12 w-12 animate-spin text-primary opacity-50" />
+                <p className="text-xs mt-4 opacity-50 font-code tracking-widest">SYNCING SESSION...</p>
+            </div>
+          ) : (
+            <CircularProgress progress={progress} isUIVisible={isUIVisible}>
             <div className="flex flex-col items-center justify-center gap-2">
               <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
                 {formatTime(timeRemaining)}
@@ -469,6 +480,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               </div>
             </div>
           </CircularProgress>
+          )}
         </div>
       </div>
 

@@ -15,6 +15,7 @@ interface ActiveTimer {
 
 interface TimerContextType {
     activeTimer: ActiveTimer | null;
+    isInitialized: boolean;
     startTimer: (timer: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'>) => void;
     clearTimer: () => void;
     updateTimer: (updates: Partial<ActiveTimer>, remainingSeconds?: number) => void;
@@ -26,6 +27,7 @@ const STORAGE_KEY = 'deadlinesmet_active_timer';
 
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Initial load from storage
     useEffect(() => {
@@ -43,6 +45,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 console.error("Failed to parse stored timer", e);
             }
         }
+        setIsInitialized(true);
     }, []);
 
     const saveTimer = (timer: ActiveTimer | null) => {
@@ -86,7 +89,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <TimerContext.Provider value={{ activeTimer, startTimer, clearTimer, updateTimer }}>
+        <TimerContext.Provider value={{ activeTimer, isInitialized, startTimer, clearTimer, updateTimer }}>
             {children}
         </TimerContext.Provider>
     );
