@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Slake DeadlinesMet',
-    short_name: 'Slake Focus',
+    name: 'DeadlinesMet',
+    short_name: 'DeadlinesMet',
     description: 'Crush deadlines effortlessly with AI-powered focus routines',
     start_url: '/',
     display: 'standalone',
