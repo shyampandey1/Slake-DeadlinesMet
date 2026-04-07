@@ -183,6 +183,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const timeRemainingRef = useRef(timeRemaining);
   const isFinishedRef = useRef(isFinished);
   const showMotivationalDialogRef = useRef(showMotivationalDialog);
+  const lastTickRef = useRef<number | null>(null);
 
   useEffect(() => {
     timeRemainingRef.current = timeRemaining;
@@ -218,8 +219,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       } else if (difference <= 10 && difference > 0) {
         // Activate continuous tense flashing in the last 4 seconds
         if (difference <= 4) setFlashState('continuous');
-        // Tick each second for the final countdown
-        playTick();
+        // Tick each second for the final countdown - ensure it only plays once per second
+        if (lastTickRef.current !== difference) {
+            lastTickRef.current = difference;
+            playTick();
+        }
       } else if (difference <= 11 && difference > 4) {
         setFlashState('none');
       }

@@ -9,24 +9,89 @@ const SELECTED_SOUND_KEY = 'timerSelectedSound';
 const VOLUME_KEY = 'timerVolume';
 
 const finishSounds = [
+    { name: 'Premium Chime', src: 'synthesized' },
     { name: 'Vintage Bell', src: 'https://actions.google.com/sounds/v1/alarms/dinner_bell_triangle.ogg' },
     { name: 'Digital Alarm', src: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg' },
     { name: 'Bugle Chime', src: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg' },
-    { name: 'Beep', src: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg' }
 ];
-
-const TICK_SOUND_URL = 'https://actions.google.com/sounds/v1/tools/ratchet_turn.ogg';
 
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(finishSounds[0].name);
-  const [volume, setVolumeState] = useState([0.6]); // slightly higher default
+  const [volume, setVolumeState] = useState([0.7]); // higher default for "loud" chime
   const soundInstances = useRef<{ [key: string]: Howl }>({});
-  const tickInstance = useRef<Howl | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Define synthesis functions outside of the return to keep them stable
+  const playSynthesizedChime = useCallback((vol: number) => {
+    try {
+      const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(vol, ctx.currentTime);
+      masterGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 4);
+      masterGain.connect(ctx.destination);
+
+      // Create a rich "tin" sound with harmonics
+      const frequencies = [880, 1320, 1760, 2200];
+      frequencies.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, ctx.currentTime);
+        // Add slight frequency drop for a more natural bell sound
+        osc.frequency.exponentialRampToValueAtTime(f * 0.99, ctx.currentTime + 4);
+        
+        g.gain.setValueAtTime(0.3 / (i + 1), ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 4);
+        
+        osc.connect(g);
+        g.connect(masterGain);
+        osc.start();
+        osc.stop(ctx.currentTime + 4);
+      });
+      
+      setTimeout(() => ctx.close(), 5000);
+    } catch (e) {
+      console.warn("Chime synthesis failed", e);
+    }
+  }, []);
+
+  const playSynthesizedTick = useCallback((vol: number) => {
+    try {
+      const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      const playClick = (time: number) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2000, time);
+        osc.frequency.exponentialRampToValueAtTime(500, time + 0.03);
+        
+        g.gain.setValueAtTime(vol * 0.4, time);
+        g.gain.exponentialRampToValueAtTime(0.0001, time + 0.03);
+        
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.03);
+      };
+
+      // "tik-tik" sound (double click)
+      playClick(ctx.currentTime);
+      playClick(ctx.currentTime + 0.08);
+      
+      setTimeout(() => ctx.close(), 200);
+    } catch (e) {
+      console.warn("Tick synthesis failed", e);
+    }
+  }, []);
+
   useEffect(() => {
-    let initialVolume = 0.6;
+    let initialVolume = 0.7;
     let initialSound = finishSounds[0].name;
 
     try {
@@ -34,7 +99,9 @@ export function useAudioSettings() {
       if (storedEnabled !== null) setIsAudioEnabled(JSON.parse(storedEnabled));
       
       const storedSound = localStorage.getItem(SELECTED_SOUND_KEY);
-      if (storedSound && finishSounds.some(s => s.name === storedSound)) initialSound = storedSound;
+      if (storedSound && finishSounds.some(s => s.name === storedSound)) {
+          initialSound = storedSound;
+      }
 
       const storedVolume = localStorage.getItem(VOLUME_KEY);
       if (storedVolume !== null) initialVolume = parseFloat(storedVolume);
@@ -45,29 +112,22 @@ export function useAudioSettings() {
     setSelectedSound(initialSound);
     setVolumeState([initialVolume]);
     
-    // Initialize Finish Sounds
+    // Initialize Finish Sounds (only those that are URLs)
     finishSounds.forEach(sound => {
-      soundInstances.current[sound.name] = new Howl({
-        src: [sound.src],
-        html5: true,
-        volume: initialVolume,
-        preload: true,
-      });
-    });
-
-    // Initialize Tick Sound
-    tickInstance.current = new Howl({
-        src: [TICK_SOUND_URL],
-        html5: true, 
-        volume: initialVolume * 0.4, // Make the tick quieter
-        preload: true,
+      if (sound.src !== 'synthesized') {
+        soundInstances.current[sound.name] = new Howl({
+          src: [sound.src],
+          html5: true,
+          volume: initialVolume,
+          preload: true,
+        });
+      }
     });
 
     setIsInitialized(true);
     
     return () => {
       Object.values(soundInstances.current).forEach(howl => howl.unload());
-      if (tickInstance.current) tickInstance.current.unload();
     };
   }, []);
 
@@ -93,7 +153,6 @@ export function useAudioSettings() {
     const vol = newVolume[0];
     setVolumeState([vol]);
     Object.values(soundInstances.current).forEach(howl => howl.volume(vol));
-    if (tickInstance.current) tickInstance.current.volume(vol * 0.4);
     try {
       localStorage.setItem(VOLUME_KEY, JSON.stringify(vol));
     } catch (error) {
@@ -103,28 +162,33 @@ export function useAudioSettings() {
   
   const playFinish = useCallback(() => {
     if (!isAudioEnabled || !isInitialized) return;
-    const sound = soundInstances.current[selectedSound];
-    if (sound) {
-      sound.play();
+    if (selectedSound === 'Premium Chime') {
+      playSynthesizedChime(volume[0]);
+    } else {
+      const sound = soundInstances.current[selectedSound];
+      if (sound) {
+        sound.play();
+      }
     }
-  }, [isAudioEnabled, selectedSound, isInitialized]);
+  }, [isAudioEnabled, selectedSound, isInitialized, volume, playSynthesizedChime]);
 
   const playTick = useCallback(() => {
-    if (!isAudioEnabled || !isInitialized || !tickInstance.current) return;
-    // Don't overlap ticks heavily
-    if (!tickInstance.current.playing()) {
-        tickInstance.current.play();
-    }
-  }, [isAudioEnabled, isInitialized]);
+    if (!isAudioEnabled || !isInitialized) return;
+    playSynthesizedTick(volume[0]);
+  }, [isAudioEnabled, isInitialized, volume, playSynthesizedTick]);
 
   const testSound = useCallback(() => {
     if (!isInitialized) return;
-    const sound = soundInstances.current[selectedSound];
-    if (sound) {
-      sound.stop();
-      sound.play();
+    if (selectedSound === 'Premium Chime') {
+      playSynthesizedChime(volume[0]);
+    } else {
+      const sound = soundInstances.current[selectedSound];
+      if (sound) {
+        sound.stop();
+        sound.play();
+      }
     }
-  }, [selectedSound, isInitialized]);
+  }, [selectedSound, isInitialized, volume, playSynthesizedChime]);
 
   return { 
     isAudioEnabled, 

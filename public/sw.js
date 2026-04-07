@@ -24,11 +24,11 @@ self.addEventListener("push", (event) => {
     try {
       const payload = event.data.json();
       
-      const title = payload.title || "Slake Notifications";
+      const title = payload.title || "DeadlinesMet Notifications";
       const options = {
         body: payload.body || "Time to focus!",
-        icon: "/globe.svg", // Using the robust vector SVG
-        badge: "/globe.svg",
+        icon: "/icon", // Using the new clock icon
+        badge: "/icon",
         data: {
           // If the payload contains a 'url', we store it entirely here to navigate the client on click
           url: payload.url || "/",

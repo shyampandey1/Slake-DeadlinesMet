@@ -102,7 +102,7 @@ export default function ServiceWorkerRegistrar() {
             {showInstall && (
               <div className="flex items-center justify-between pb-2 border-b border-white/5">
                 <div className="flex flex-col">
-                  <span className="font-headline font-semibold text-white">Install Slake</span>
+                  <span className="font-headline font-semibold text-white">Install DeadlinesMet</span>
                   <span className="text-xs text-zinc-400">Launch cleanly from your home screen</span>
                 </div>
                 <Button onClick={handleInstallClick} size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-white font-semibold shadow-lg">

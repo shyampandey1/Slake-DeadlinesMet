@@ -37,6 +37,15 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "DeadlinesMet",
   description: "Your personal space to conquer tasks and achieve goals.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'DeadlinesMet',
+  },
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  }
 };
 
 import { ThemeProvider } from "@/hooks/useTheme";
