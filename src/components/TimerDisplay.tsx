@@ -172,37 +172,43 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     };
   }, [showStartNotification]);
 
-  // Handle reset when props change
-  useEffect(() => {
-    setFlashState('none');
-    setTaskCategory(category);
-    
-    // WAIT until the global context is initialized from localStorage before deciding
-    if (!isInitialized) return;
+    const hasInitializedRef = useRef(false);
 
-    // START our persistent global background timer when the page mounts!
-    // But ONLY if one isn't already running for this task
-    if (!activeTimer || activeTimer.taskName !== taskName) {
-      startTimer({
-        taskName,
-        initialDuration,
-        category,
-        color,
-      });
-      setTimeRemaining(initialDuration * 60);
-      setIsPaused(false);
-    } else {
-      // RESTORE from active timer
-      setIsPaused(activeTimer.isPaused);
-      if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused) {
-        setTimeRemaining(activeTimer.timeLeftWhenPaused);
-      } else {
-        const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
-        setTimeRemaining(diff);
-      }
-    }
-    setSyncComplete(true);
-  }, [taskName, initialDuration, category, color, startTimer, activeTimer, isInitialized]);
+    // Handle initialization and sync with global state
+    useEffect(() => {
+        // WAIT until the global context is initialized from localStorage before deciding
+        if (!isInitialized) return;
+
+        // Reset state when task params change
+        if (hasInitializedRef.current && (activeTimer?.taskName === taskName)) return;
+
+        setFlashState('none');
+        setTaskCategory(category);
+        
+        // START our persistent global background timer when the page mounts!
+        // But ONLY if one isn't already running for this task or if the task changed
+        if (!activeTimer || activeTimer.taskName !== taskName) {
+          startTimer({
+            taskName,
+            initialDuration,
+            category,
+            color,
+          });
+          setTimeRemaining(initialDuration * 60);
+          setIsPaused(false);
+        } else {
+          // RESTORE from active timer
+          setIsPaused(activeTimer.isPaused);
+          if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused) {
+            setTimeRemaining(activeTimer.timeLeftWhenPaused);
+          } else {
+            const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
+            setTimeRemaining(diff);
+          }
+        }
+        hasInitializedRef.current = true;
+        setSyncComplete(true);
+    }, [taskName, initialDuration, category, color, startTimer, isInitialized]); // Removed activeTimer from deps to prevent re-init loop
 
   const expectedEndTimeRef = useRef<number | null>(null);
   const timeRemainingRef = useRef(timeRemaining);
@@ -313,6 +319,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   const handleSaveTask = async (completed: boolean) => {
     setIsFinished(false);
+    clearTimer();
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
@@ -364,7 +371,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setIsLoadingAI(false);
       }
     } else {
-      clearTimer();
       router.push("/");
     }
   };
@@ -501,7 +507,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               </AlertDialogCancel>
               <AlertDialogAction
                 className="bg-red-600 hover:bg-red-700"
-                onClick={() => { setShowExitWarning(false); router.push("/"); }}
+                onClick={() => { setShowExitWarning(false); clearTimer(); router.push("/"); }}
               >
                 Exit without saving
               </AlertDialogAction>

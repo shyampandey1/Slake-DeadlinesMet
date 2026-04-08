@@ -184,13 +184,13 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
              {activeTimer && (
                 <Link 
                     href={`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}`} 
-                    className="absolute top-0 left-0 right-0 z-50 bg-primary/20 backdrop-blur-xl border-b border-primary/30 p-2 flex items-center justify-between animate-in slide-in-from-top duration-500"
+                    className="absolute top-0 left-0 right-0 z-50 bg-primary/20 backdrop-blur-xl border-b border-primary/30 p-2 flex items-center justify-between animate-in slide-in-from-top duration-500 overflow-hidden"
                 >
-                    <div className="flex items-center gap-3 pl-4">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-xs font-bold text-white/90 truncate max-w-[150px]">Running: {activeTimer.taskName}</span>
+                    <div className="flex items-center gap-3 pl-4 flex-1 min-w-0 mr-4">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+                        <span className="text-xs font-bold text-white/90 truncate">Running: {activeTimer.taskName}</span>
                     </div>
-                    <div className="flex items-center gap-2 pr-4">
+                    <div className="flex items-center gap-2 pr-4 shrink-0">
                         <span className="text-xs font-code text-primary font-bold">
                             {activeTimer.isPaused ? 'PAUSED' : 'ACTIVE'}
                         </span>
