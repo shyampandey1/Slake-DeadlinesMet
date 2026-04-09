@@ -44,6 +44,7 @@ function SettingsPageComponent() {
     const [isSavingName, setIsSavingName] = useState(false);
     const { toast } = useToast();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [offlineNotificationsEnabled, setOfflineNotificationsEnabled] = useState(false);
     const [tempLocation, setTempLocation] = useState(location);
     const [mounted, setMounted] = useState(false);
 
@@ -51,6 +52,11 @@ function SettingsPageComponent() {
         setMounted(true);
         if (typeof window !== 'undefined' && 'Notification' in window) {
             setNotificationsEnabled(Notification.permission === 'granted');
+        }
+        
+        const savedOffline = localStorage.getItem('deadlinesmet_offline_notifications');
+        if (savedOffline) {
+            setOfflineNotificationsEnabled(savedOffline === 'true');
         }
     }, []);
 
@@ -107,6 +113,27 @@ function SettingsPageComponent() {
             }
         } else {
             setNotificationsEnabled(false);
+            setOfflineNotificationsEnabled(false);
+            localStorage.setItem('deadlinesmet_offline_notifications', 'false');
+        }
+    };
+
+    const handleOfflineNotificationToggle = (enabled: boolean) => {
+        if (enabled && !notificationsEnabled) {
+            toast({ 
+                title: "Enable Push Notifications first", 
+                description: "Offline reminders require notification permissions.",
+                variant: "destructive" 
+            });
+            return;
+        }
+        setOfflineNotificationsEnabled(enabled);
+        localStorage.setItem('deadlinesmet_offline_notifications', enabled.toString());
+        if (enabled) {
+            toast({ 
+                title: "Offline Reminders Enabled", 
+                description: "You'll receive alerts even if you're offline or the app is closed." 
+            });
         }
     };
 
@@ -209,6 +236,25 @@ function SettingsPageComponent() {
                              <p className="text-sm text-muted-foreground -mt-2">
                                 Stay updated with task reminders and motivational messages.
                             </p>
+
+                            <div className="pt-4 border-t border-border/50">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <label htmlFor="offline-notifications-switch" className="font-medium flex items-center gap-2">
+                                            <CloudOff className="h-4 w-4 text-amber-500" />
+                                            Offline Reminders
+                                        </label>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Get notified exactly when tasks end, even without internet.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="offline-notifications-switch"
+                                        checked={offlineNotificationsEnabled}
+                                        onCheckedChange={handleOfflineNotificationToggle}
+                                    />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 

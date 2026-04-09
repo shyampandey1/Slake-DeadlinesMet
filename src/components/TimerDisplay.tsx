@@ -80,14 +80,61 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [taskCategory, setTaskCategory] = useState(category);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [syncComplete, setSyncComplete] = useState(false);
+  const [offlineNotificationsEnabled, setOfflineNotificationsEnabled] = useState(false);
 
-  const showStartNotification = useCallback(() => {
-    // Intentionally left empty to prevent PWA crashes on Android during Timer mount
+  useEffect(() => {
+    const saved = localStorage.getItem('deadlinesmet_offline_notifications');
+    setOfflineNotificationsEnabled(saved === 'true');
+  }, []);
+
+  const cancelScheduledNotification = useCallback(async () => {
+    if (!('serviceWorker' in navigator)) return;
+    const registration = await navigator.serviceWorker.ready;
+    const notifications = await registration.getNotifications({ tag: 'timer-done' });
+    notifications.forEach(n => n.close());
+  }, []);
+
+  const showStartNotification = useCallback(async () => {
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    
+    const registration = await navigator.serviceWorker.ready;
+    registration.showNotification("Timer Started", {
+      body: `Focusing on: ${taskName}`,
+      icon: "/icon.svg",
+      tag: "timer-start",
+      silent: true
+    });
   }, [taskName]);
 
-  const showCompletionNotification = useCallback(() => {
-    // Intentionally left empty to prevent PWA crashes on Android during Timer unmount
-  }, [taskName]);
+  const showCompletionNotification = useCallback(async (isScheduled = false) => {
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const registration = await navigator.serviceWorker.ready;
+    
+    const notificationOptions: any = {
+      body: `Time's up! You've finished: ${taskName}`,
+      icon: "/icon.svg",
+      badge: "/icon.svg",
+      tag: "timer-done",
+      vibrate: [200, 100, 200],
+      data: {
+        url: window.location.href,
+      },
+      requireInteraction: true,
+    };
+
+    if (isScheduled && offlineNotificationsEnabled && 'showTrigger' in Notification.prototype) {
+      const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
+      // @ts-ignore
+      notificationOptions.showTrigger = new TimestampTrigger(triggerTime);
+    }
+
+    try {
+      await registration.showNotification("Session Complete!", notificationOptions);
+    } catch (e) {
+      console.warn("Failed to show/schedule notification", e);
+    }
+  }, [taskName, offlineNotificationsEnabled]);
 
   const userRoutine = useMemo(() => {
     const routine: any[] = [];
@@ -196,6 +243,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           });
           setTimeRemaining(initialDuration * 60);
           setIsPaused(false);
+          showCompletionNotification(true); // Schedule it!
         } else {
           // RESTORE from active timer
           setIsPaused(activeTimer.isPaused);
@@ -204,6 +252,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           } else {
             const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
             setTimeRemaining(diff);
+            if (!activeTimer.isPaused) showCompletionNotification(true); // Re-schedule it!
           }
         }
         hasInitializedRef.current = true;
@@ -248,7 +297,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setIsFinished(true);
         setFlashState('none');
         playFinish();
-        showCompletionNotification();
+        showCompletionNotification(false); // Immediate one
         clearTimer(); // End background tracking
       } else if (difference <= 10 && difference > 0) {
         // Activate continuous tense flashing in the last 4 seconds
@@ -276,7 +325,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           setIsFinished(true);
           setFlashState('none');
           playFinish();
-          showCompletionNotification();
+          showCompletionNotification(false);
           clearTimer();
         }
       }
@@ -470,6 +519,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     const newPaused = !isPaused;
                     setIsPaused(newPaused);
                     updateTimer({ isPaused: newPaused }, timeRemaining);
+                    if (newPaused) {
+                      cancelScheduledNotification();
+                    } else {
+                      showCompletionNotification(true); // Re-schedule for new end time
+                    }
                   }}
                   size="icon"
                   variant="ghost"

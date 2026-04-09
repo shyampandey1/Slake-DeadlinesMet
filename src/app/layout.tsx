@@ -10,6 +10,7 @@ import PageTransitionWrapper from "@/components/PageTransitionWrapper";
 import { TimerUIProvider } from "@/hooks/useTimerUI";
 import { TimerProvider } from "@/hooks/useActiveTimer";
 import HardwareBackHandler from "@/components/HardwareBackHandler";
+import NotificationScheduler from "@/components/NotificationScheduler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({
                                 {children}
                             </PageTransitionWrapper>
                             <BottomNav />
+                            <NotificationScheduler />
                         </TimerProvider>
                     </TimerUIProvider>
                     <Toaster />
