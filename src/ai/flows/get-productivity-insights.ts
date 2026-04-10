@@ -5,7 +5,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { gemini15Flash } from '@genkit-ai/googleai';
+// import { gemini15Flash } from '@genkit-ai/googleai';
 
 const ProductivityInsightsInputSchema = z.object({
   tasks: z.array(z.object({
@@ -63,7 +63,7 @@ export async function getProductivityInsights(input: ProductivityInsightsInput):
 
   try {
     const { output } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash',
+      model: 'googleai/gemini-3-flash-preview',
       prompt: `You are a world-class productivity coach. Analyze the user task log:
       
       Task Log: ${JSON.stringify(input.tasks)}

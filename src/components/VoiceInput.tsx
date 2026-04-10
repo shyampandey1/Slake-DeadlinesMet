@@ -108,7 +108,7 @@ export default function VoiceInput({ className }: { className?: string }) {
         setSuggestedTasks(result.tasks);
         setIsConfirmDialogOpen(true);
       } else {
-        setError("No tasks could be identified. Try speaking more clearly.");
+        setError(`No tasks found in: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}". Try speaking more clearly.`);
       }
     } catch (error) {
       console.error(error);
