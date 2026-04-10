@@ -41,6 +41,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import VoiceInput from "./VoiceInput";
 
 
 
@@ -319,9 +320,12 @@ export default function TaskForm() {
   return (
     <>
     <div className="space-y-6 sm:space-y-8">
-        <div className="px-2">
-            <h2 className="font-headline text-2xl sm:text-3xl text-white drop-shadow-md">Quick Start Tasks</h2>
-            <p className="text-white/70 text-sm sm:text-base font-medium">Select a preset task or add your own.</p>
+        <div className="px-2 flex justify-between items-center">
+            <div>
+                <h2 className="font-headline text-2xl sm:text-3xl text-white drop-shadow-md">Quick Start Tasks</h2>
+                <p className="text-white/70 text-sm sm:text-base font-medium">Select a preset task or add your own.</p>
+            </div>
+            <VoiceInput />
         </div>
         
         {loading ? renderSkeleton() : hasTasks ? (
@@ -459,7 +463,7 @@ export default function TaskForm() {
                                         <Input
                                             type="number"
                                             min={1}
-                                            max={120}
+                                            max={180}
                                             className="w-20 text-center font-bold"
                                             value={field.value}
                                             onChange={(e) => {
@@ -473,7 +477,7 @@ export default function TaskForm() {
                                             value={[field.value]}
                                             onValueChange={(value) => field.onChange(value[0])}
                                             min={1}
-                                            max={120}
+                                            max={180}
                                             step={1}
                                         />
                                     </FormControl>

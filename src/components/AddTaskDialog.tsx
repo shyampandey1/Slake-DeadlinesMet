@@ -269,7 +269,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 <FormItem>
                   <FormLabel>Duration (minutes)</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="number" max={180} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
