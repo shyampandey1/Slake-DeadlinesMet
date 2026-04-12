@@ -132,6 +132,7 @@ export type UserProfile = {
     };
     currentTaskStatus?: string;
     isOnline?: boolean;
+    isPrivateProfile?: boolean;
 };
 
 export type UserEvent = {
