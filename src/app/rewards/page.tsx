@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Cell } from "recharts";
-import { Award, Zap, Trophy, TrendingUp, Medal, Flame, Star, Crown, Gift, Share2, Download, Droplet, Mail, Coffee, Dumbbell, Wind, Eye } from "lucide-react";
+import { Award, Zap, Trophy, TrendingUp, Medal, Flame, Star, Crown, Gift, Share2, Download, Droplet, Mail, Coffee, Dumbbell, Wind, Eye, Heart } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
