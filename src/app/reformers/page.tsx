@@ -29,7 +29,7 @@ export default function ReformersPage() {
   const [metaSync, setMetaSync] = useState(profileData?.googleSyncPermissions?.meta || false);
   const [linkedinSync, setLinkedinSync] = useState(profileData?.googleSyncPermissions?.linkedin || false);
 
-  const [liveMembers, setLiveMembers] = useState<{ id: string; name: string; location: string; status: string; online: boolean; avatar: string }[]>([]);
+  const [liveMembers, setLiveMembers] = useState<{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number }[]>([]);
 
   useEffect(() => {
      if (!isEnrolled) return;
@@ -44,30 +44,35 @@ export default function ReformersPage() {
                      id: data.userId,
                      name: data.displayName || "Anonymous Reformer",
                      location: data.region || "Global",
-                     status: data.currentTaskStatus || "Reviewing metrics...",
+                     status: data.currentTaskStatus || "Idle",
                      online: !!data.isOnline,
                      avatar: data.displayPicture || "https://i.pravatar.cc/150",
+                     streak: data.streak?.currentStreak || 0,
                  });
              }
          });
-         // Sort online first
-         members.sort((a, b) => (a.online === b.online ? 0 : a.online ? -1 : 1));
+         // Sort online first, then by highest streak
+         members.sort((a, b) => {
+             if (a.online !== b.online) return a.online ? -1 : 1;
+             return b.streak - a.streak;
+         });
          setLiveMembers(members);
      });
      
      return () => unsubscribe();
   }, [isEnrolled, profileData?.userId]);
 
-  const handleEnroll = async () => {
-    setEnrolling(true);
-    // Mock save delay
-    setTimeout(() => {
-       setEnrolling(false);
-       setPermissionsModalOpen(true);
-    }, 1500);
-  };
-
   const handleSavePermissions = () => {
+     updateUserProfileData({
+        isReformersEnrolled: true,
+        googleSyncPermissions: {
+            whatsapp: whatsappSync,
+            meta: metaSync,
+            linkedin: linkedinSync
+        }
+     });
+     setPermissionsModalOpen(false);
+  };
      updateUserProfileData({
         googleSyncPermissions: {
             whatsapp: whatsappSync,
@@ -146,22 +151,22 @@ export default function ReformersPage() {
                 <div className="space-y-6 py-4">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-[#262626]/30 border border-[#262626]">
                     <div>
-                      <p className="font-medium text-sm">WhatsApp Push API (Twilio)</p>
-                      <p className="text-xs text-gray-500 max-w-[200px]">Send automated template alerts to your accountability partner.</p>
+                      <p className="font-medium text-sm">WhatsApp Reminders</p>
+                      <p className="text-xs text-gray-500 max-w-[200px]">Send automated alerts to your accountability partner.</p>
                     </div>
                     <Switch checked={whatsappSync} onCheckedChange={setWhatsappSync} className="data-[state=checked]:bg-[#10b981]" />
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-[#262626]/30 border border-[#262626]">
                     <div>
-                      <p className="font-medium text-sm">Meta Instagram Graph API</p>
-                      <p className="text-xs text-gray-500 max-w-[200px]">Seamlessly push 'Reward Cards' to your linked IG Profile.</p>
+                      <p className="font-medium text-sm">Instagram Share</p>
+                      <p className="text-xs text-gray-500 max-w-[200px]">Post your completion cards to your stories.</p>
                     </div>
                     <Switch checked={metaSync} onCheckedChange={setMetaSync} className="data-[state=checked]:bg-[#10b981]" />
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-[#262626]/30 border border-[#262626]">
                     <div>
-                      <p className="font-medium text-sm">LinkedIn v2 Integration</p>
-                      <p className="text-xs text-gray-500 max-w-[200px]">Publish continuous productivity logs to validate discipline.</p>
+                      <p className="font-medium text-sm">LinkedIn Career Sync</p>
+                      <p className="text-xs text-gray-500 max-w-[200px]">Publish productivity milestones to validate your discipline.</p>
                     </div>
                     <Switch checked={linkedinSync} onCheckedChange={setLinkedinSync} className="data-[state=checked]:bg-[#10b981]" />
                   </div>
@@ -210,28 +215,45 @@ export default function ReformersPage() {
 
         {/* Live Members Panel */}
         <div className="space-y-4 pt-4">
-          <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center gap-2"><Activity className="w-4 h-4" /> Live Network Feed</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
+             <span className="flex items-center gap-2"><Activity className="w-4 h-4" /> Live Network Feed</span>
+             <span className="text-[10px] text-[#10b981]">LEADERBOARD</span>
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
              {liveMembers.map(member => (
-                <div key={member.id} className="bg-[#1a1a1a] border border-[#262626] p-4 rounded-2xl flex items-center gap-4 hover:border-[#10b981] transition-all duration-300 shadow-md">
-                    <div className="relative shrink-0">
-                        <Avatar className="w-12 h-12 border-2 border-[#10b981]/50">
-                            <AvatarImage src={member.avatar} />
-                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        {member.online && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#10b981] border-2 border-[#1a1a1a] rounded-full flex" style={{boxShadow: "0 0 8px rgba(16,185,129,0.8)"}}></span>}
+                <div key={member.id} className="bg-[#1a1a1a] border border-[#262626] p-4 rounded-xl flex items-center justify-between hover:border-[#10b981] transition-all duration-300 shadow-md group">
+                    <div className="flex items-center gap-4">
+                        <div className="relative shrink-0">
+                            <Avatar className="w-12 h-12 border-2 border-[#10b981]/10 group-hover:border-[#10b981]/50 transition-colors">
+                                <AvatarImage src={member.avatar} />
+                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {member.online && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#10b981] border-2 border-[#1a1a1a] rounded-full flex" style={{boxShadow: "0 0 8px rgba(16,185,129,0.8)"}}></span>}
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                           <h4 className="font-bold text-sm truncate text-white">{member.name}</h4>
+                           <p className="text-xs text-[#10b981] font-medium truncate mt-0.5 tracking-wide">{member.status}</p>
+                           <div className="flex items-center gap-2 mt-1.5 text-gray-400">
+                               <div className="flex items-center gap-1 opacity-60">
+                                   <MapPin className="w-3 h-3" />
+                                   <span className="text-[10px] uppercase font-semibold">{member.location}</span>
+                               </div>
+                           </div>
+                        </div>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                       <h4 className="font-bold text-sm truncate text-white">{member.name}</h4>
-                       <p className="text-xs text-[#10b981] font-medium truncate mt-0.5 tracking-wide">{member.status}</p>
-                       <div className="flex items-center gap-1 mt-1.5 opacity-60 text-gray-400">
-                           <MapPin className="w-3 h-3" />
-                           <span className="text-[10px] uppercase font-semibold">{member.location}</span>
-                       </div>
+                    
+                    <div className="flex items-center gap-4 shrink-0">
+                        <div className="text-center pr-4 border-r border-[#262626]">
+                            <p className="text-xs font-bold text-white">{member.streak}</p>
+                            <p className="text-[10px] uppercase tracking-widest text-[#10b981]">Days</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="hidden sm:flex text-xs font-bold hover:text-black hover:bg-[#10b981] rounded-lg bg-[#262626]/50 border border-[#262626] h-8 px-4">
+                           Follow
+                        </Button>
+                        <Button variant="ghost" size="icon" className="sm:hidden hover:text-black hover:bg-[#10b981] h-8 w-8 rounded-lg bg-[#262626]/50 border border-[#262626]">
+                           <Users className="w-3.5 h-3.5 text-gray-300" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="hover:text-black hover:bg-[#10b981] h-10 w-10 shrink-0 rounded-xl bg-[#262626]/50 border border-[#262626]">
-                       <MessageSquare className="w-4 h-4 text-gray-300" />
-                    </Button>
                 </div>
              ))}
           </div>
