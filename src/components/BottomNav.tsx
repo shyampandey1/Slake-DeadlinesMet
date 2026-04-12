@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookText, Home, ClipboardList, Settings, LucideIcon } from "lucide-react";
+import { BookText, Home, ClipboardList, Settings, Trophy, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimerUI } from "@/hooks/useTimerUI";
@@ -11,6 +11,7 @@ import { useTimerUI } from "@/hooks/useTimerUI";
 const navItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/history", label: "Log Book", icon: BookText },
   { href: "/", label: "Home", icon: Home },
+  { href: "/rewards", label: "Rewards", icon: Trophy },
   { href: "/routine", label: "Routine", icon: ClipboardList },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

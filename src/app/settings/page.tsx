@@ -11,7 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
-import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save, Award } from "lucide-react";
 
 import {
   AlertDialog,
@@ -34,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
     const { user, updateUserDisplayName, isSyncEnabled, setIsSyncEnabled } = useAuth();
+    const { profileData, updateUserProfileData } = useProfile();
     const { clearTasks } = useTasks();
     const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
     const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForCurrentUserLocation } = useWeather();
@@ -47,6 +49,18 @@ function SettingsPageComponent() {
     const [offlineNotificationsEnabled, setOfflineNotificationsEnabled] = useState(false);
     const [tempLocation, setTempLocation] = useState(location);
     const [mounted, setMounted] = useState(false);
+    
+    // Elite Streak State
+    const [elitePhone, setElitePhone] = useState(profileData?.phone || "");
+    const [eliteInsta, setEliteInsta] = useState(profileData?.instagramLink || "");
+    const [isSavingElite, setIsSavingElite] = useState(false);
+
+    useEffect(() => {
+        if (profileData) {
+            setElitePhone(profileData.phone || "");
+            setEliteInsta(profileData.instagramLink || "");
+        }
+    }, [profileData]);
 
     useEffect(() => {
         setMounted(true);
@@ -98,11 +112,17 @@ function SettingsPageComponent() {
         if (enabled) {
             if (Notification.permission === 'granted') {
                 setNotificationsEnabled(true);
+                import('@/lib/fcm').then(({ requestFirebaseNotificationPermission }) => {
+                     if(user && !('isMockUser' in user)) requestFirebaseNotificationPermission(user.uid);
+                });
             } else if (Notification.permission !== 'denied') {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     setNotificationsEnabled(true);
                     toast({ title: "Notifications enabled!" });
+                    import('@/lib/fcm').then(({ requestFirebaseNotificationPermission }) => {
+                         if(user && !('isMockUser' in user)) requestFirebaseNotificationPermission(user.uid);
+                    });
                 } else {
                     setNotificationsEnabled(false);
                     toast({ title: "Notifications permission denied.", variant: 'destructive' });
@@ -136,6 +156,18 @@ function SettingsPageComponent() {
             });
         }
     };
+
+    const handleSaveEliteData = async () => {
+        setIsSavingElite(true);
+        try {
+            await updateUserProfileData({ phone: elitePhone, instagramLink: eliteInsta });
+            toast({ title: "Elite Data Saved!", description: "You are now fully participating in the Elite Streak." });
+        } catch(e: any) {
+            toast({ title: "Error Saving", description: e.message, variant: "destructive" });
+        } finally {
+            setIsSavingElite(false);
+        }
+    }
 
     return (
         <div className="flex flex-col h-screen">
@@ -301,6 +333,40 @@ function SettingsPageComponent() {
                             <Button variant="outline" onClick={testSound}>
                                 <Volume2 className="mr-2 h-4 w-4" />
                                 Test Sound
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-amber-500/50 shadow-amber-500/10">
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg flex items-center gap-2">
+                                <Award className="h-5 w-5 text-amber-500" />
+                                Elite Streak Program
+                            </CardTitle>
+                            <CardDescription>Enroll with your details to receive streak rescues and social callouts.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="elite-phone">Phone Number (For WhatsApp/SMS fallback)</Label>
+                                <Input 
+                                    id="elite-phone"
+                                    value={elitePhone}
+                                    onChange={(e) => setElitePhone(e.target.value)}
+                                    placeholder="+1 555-0199"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="elite-insta">Instagram Link (For Streak Share Tagging)</Label>
+                                <Input 
+                                    id="elite-insta"
+                                    value={eliteInsta}
+                                    onChange={(e) => setEliteInsta(e.target.value)}
+                                    placeholder="https://instagram.com/yourhandle"
+                                />
+                            </div>
+                            <Button className="w-full" onClick={handleSaveEliteData} disabled={isSavingElite}>
+                                {isSavingElite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                Save Elite Profile
                             </Button>
                         </CardContent>
                     </Card>

@@ -62,6 +62,7 @@ interface ProfileContextType {
   deleteCustomProfession: (professionName: string) => Promise<void>;
   loading: boolean;
   profileData: UserProfile | null;
+  updateUserProfileData: (data: Partial<UserProfile>) => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType>({
@@ -73,6 +74,7 @@ const ProfileContext = createContext<ProfileContextType>({
   deleteCustomProfession: async () => {},
   loading: true,
   profileData: null,
+  updateUserProfileData: async () => {},
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -284,8 +286,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled]);
 
 
+  const updateUserProfileData = useCallback(async (data: Partial<UserProfile>) => {
+    if (!user) return;
+    setProfileData(prev => {
+        const updated = prev ? { ...prev, ...data } : null;
+        try { if(updated) localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updated)); } catch(e) {}
+        return updated;
+    });
+    if (!isOffline && isSyncEnabled) {
+      try {
+        const profileRef = doc(db, 'users', user.uid);
+        await updateDoc(profileRef, data);
+      } catch (error) { console.error("Failed to update profile data", error); }
+    }
+  }, [user, isOffline, isSyncEnabled]);
+
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData, updateUserProfileData }}>
       {children}
     </ProfileContext.Provider>
   );

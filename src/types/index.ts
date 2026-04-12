@@ -86,6 +86,19 @@ export type CustomProfession = {
 
 export type Day = 'Saturday' | 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 
+export type StreakData = {
+    currentStreak: number;
+    highestStreak: number;
+    lastActiveDate: string; // ISO string
+    dailyHistory: {
+        date: string; // ISO string YYYY-MM-DD
+        completionPercentage: number;
+        firstTaskCompleted: boolean;
+        lastTaskCompleted: boolean;
+        perfectDayBadge: boolean;
+    }[];
+};
+
 export type UserProfile = {
     userId: string;
     profile: ProfileType;
@@ -94,6 +107,10 @@ export type UserProfile = {
     customProfessions?: CustomProfession[];
     daysOff?: Day[];
     routineVersions?: { [key: string]: number };
+    slakeCredits?: number;
+    streak?: StreakData;
+    phone?: string;
+    instagramLink?: string;
 };
 
 export type UserEvent = {
