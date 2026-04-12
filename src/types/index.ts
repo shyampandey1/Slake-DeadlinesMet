@@ -122,6 +122,14 @@ export type UserProfile = {
     bmi?: number;
     averageBP?: string; // e.g., '120/80'
     googleFitConnected?: boolean;
+    // Reformers League
+    bio?: string;
+    isReformersEnrolled?: boolean;
+    googleSyncPermissions?: {
+        meta: boolean;
+        linkedin: boolean;
+        whatsapp: boolean;
+    };
 };
 
 export type UserEvent = {

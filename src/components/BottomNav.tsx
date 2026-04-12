@@ -3,16 +3,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookText, Home, ClipboardList, Settings, Trophy, LucideIcon } from "lucide-react";
+import { BookText, Home, ClipboardList, Settings, Trophy, LucideIcon, Globe2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimerUI } from "@/hooks/useTimerUI";
 
 const navItems: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/history", label: "Log Book", icon: BookText },
   { href: "/", label: "Home", icon: Home },
-  { href: "/rewards", label: "Rewards", icon: Trophy },
   { href: "/routine", label: "Routine", icon: ClipboardList },
+  { href: "/rewards", label: "Rewards", icon: Trophy },
+  { href: "/reformers", label: "League", icon: Globe2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
