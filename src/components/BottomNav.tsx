@@ -15,7 +15,7 @@ const navItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/reformers", label: "League", icon: Globe2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
-
+ 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();

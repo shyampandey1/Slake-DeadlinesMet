@@ -62,18 +62,17 @@ export default function ReformersPage() {
      return () => unsubscribe();
   }, [isEnrolled, profileData?.userId]);
 
+  const handleEnroll = async () => {
+    setEnrolling(true);
+    setTimeout(() => {
+       setEnrolling(false);
+       setPermissionsModalOpen(true);
+    }, 1500);
+  };
+
   const handleSavePermissions = () => {
      updateUserProfileData({
         isReformersEnrolled: true,
-        googleSyncPermissions: {
-            whatsapp: whatsappSync,
-            meta: metaSync,
-            linkedin: linkedinSync
-        }
-     });
-     setPermissionsModalOpen(false);
-  };
-     updateUserProfileData({
         googleSyncPermissions: {
             whatsapp: whatsappSync,
             meta: metaSync,
