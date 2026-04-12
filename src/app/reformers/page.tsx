@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -12,8 +12,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import type { UserProfile } from "@/types";
+
 export default function ReformersPage() {
-  const { profileData } = useProfile();
+  const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
   
   const isEnrolled = profileData?.isReformersEnrolled || false;
@@ -25,6 +29,35 @@ export default function ReformersPage() {
   const [metaSync, setMetaSync] = useState(profileData?.googleSyncPermissions?.meta || false);
   const [linkedinSync, setLinkedinSync] = useState(profileData?.googleSyncPermissions?.linkedin || false);
 
+  const [liveMembers, setLiveMembers] = useState<{ id: string; name: string; location: string; status: string; online: boolean; avatar: string }[]>([]);
+
+  useEffect(() => {
+     if (!isEnrolled) return;
+     
+     const q = query(collection(db, "users"), where("isReformersEnrolled", "==", true));
+     const unsubscribe = onSnapshot(q, (snapshot) => {
+         const members: any[] = [];
+         snapshot.forEach(doc => {
+             const data = doc.data() as UserProfile;
+             if (data.userId !== profileData?.userId) {
+                 members.push({
+                     id: data.userId,
+                     name: data.displayName || "Anonymous Reformer",
+                     location: data.region || "Global",
+                     status: data.currentTaskStatus || "Reviewing metrics...",
+                     online: !!data.isOnline,
+                     avatar: data.displayPicture || "https://i.pravatar.cc/150",
+                 });
+             }
+         });
+         // Sort online first
+         members.sort((a, b) => (a.online === b.online ? 0 : a.online ? -1 : 1));
+         setLiveMembers(members);
+     });
+     
+     return () => unsubscribe();
+  }, [isEnrolled, profileData?.userId]);
+
   const handleEnroll = async () => {
     setEnrolling(true);
     // Mock save delay
@@ -35,14 +68,15 @@ export default function ReformersPage() {
   };
 
   const handleSavePermissions = () => {
+     updateUserProfileData({
+        googleSyncPermissions: {
+            whatsapp: whatsappSync,
+            meta: metaSync,
+            linkedin: linkedinSync
+        }
+     });
      setPermissionsModalOpen(false);
   };
-
-  const liveMembers = [
-    { id: 1, name: "Arjun S.", location: "Gaya Node", status: "Deep Coding Session", online: true, avatar: "https://i.pravatar.cc/150?u=12" },
-    { id: 2, name: "Sarah C.", location: "Bangalore", status: "Focus Block", online: true, avatar: "https://i.pravatar.cc/150?u=13" },
-    { id: 3, name: "Amit P.", location: "Delhi", status: "Analytics Review", online: false, avatar: "https://i.pravatar.cc/150?u=14" },
-  ];
 
   if (!isEnrolled && !enrolling && !permissionsModalOpen) {
     return (

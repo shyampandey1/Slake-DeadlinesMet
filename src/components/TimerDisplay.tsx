@@ -7,6 +7,7 @@ import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
 import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
+import { useProfile } from "@/hooks/useProfile";
 import type { Task, UserPresetTask } from "@/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -68,7 +69,21 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { playFinish, playTick } = useAudioSettings();
   const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
   const { weatherData, location } = useWeather();
+  const { profileData, updateUserProfileData } = useProfile();
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
+  
+  // Real-time League Status Ping
+  useEffect(() => {
+     if (profileData?.isReformersEnrolled) {
+         updateUserProfileData({ currentTaskStatus: taskName, isOnline: true });
+     }
+     return () => {
+         // Silently clear presence when navigating away
+         if (profileData?.isReformersEnrolled) {
+             updateUserProfileData({ currentTaskStatus: "Reviewing metrics...", isOnline: false });
+         }
+     };
+  }, [taskName, profileData?.isReformersEnrolled, updateUserProfileData]);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinished, setIsFinished] = useState(false);

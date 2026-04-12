@@ -130,6 +130,8 @@ export type UserProfile = {
         linkedin: boolean;
         whatsapp: boolean;
     };
+    currentTaskStatus?: string;
+    isOnline?: boolean;
 };
 
 export type UserEvent = {
