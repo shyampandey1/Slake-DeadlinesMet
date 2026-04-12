@@ -27,9 +27,19 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info, LogOut, X, Layers, Zap, StickyNote, Users2, Cloud, Palette, Bug, Sun, PieChart } from 'lucide-react';
+import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info, LogOut, X, Layers, Zap, StickyNote, Users2, Cloud, Palette, Bug, Sun, PieChart, Trophy, HeartPulse, BrainCircuit } from 'lucide-react';
 
 const changelog = [
+  {
+      version: "v1.5",
+      date: "Day 6",
+      features: [
+        { name: "Rewards & Gamification", description: "Earn Slake Credits and view your global leaderboard position in the new Achievement Center.", icon: "trophy" },
+        { name: "Shareable Certificates", description: "Export high-quality achievement cards for hydration, diet, and productivity streaks directly to your phone.", icon: "palette" },
+        { name: "Health & Biometrics", description: "Added BMI tracking and Google Fit bindings inside settings to contextualize your physical data.", icon: "heart-pulse" },
+        { name: "Gemini 1.5 Flash Engine", description: "Upgraded our core Genkit AI engine to Gemini 1.5 for faster, smarter weekly insight generation.", icon: "brain-circuit" },
+      ]
+  },
   {
       version: "v1.4",
       date: "Day 5",
@@ -91,6 +101,9 @@ const iconMap: { [key: string]: React.ElementType } = {
   calendar: Calendar,
   "book-text": BookText,
   "wand-sparkles": Sparkles,
+  "trophy": Trophy,
+  "heart-pulse": HeartPulse,
+  "brain-circuit": BrainCircuit,
 };
 
 
