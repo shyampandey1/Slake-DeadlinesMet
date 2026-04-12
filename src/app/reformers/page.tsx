@@ -77,7 +77,7 @@ export default function ReformersPage() {
          const members: any[] = [];
          snapshot.forEach(doc => {
              const data = doc.data() as UserProfile;
-             if (data.userId !== profileData?.userId && data.displayName) {
+             if (data.userId !== profileData?.userId) {
                  members.push({
                      id: data.userId,
                      name: data.displayName || "Anonymous Reformer",
@@ -226,7 +226,7 @@ export default function ReformersPage() {
               <h1 className="text-2xl font-black flex items-center gap-2 tracking-tight">
                   <Globe2 className="text-[#10b981] w-6 h-6" /> Reformers
               </h1>
-              <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{profileData?.region || "Gaya"} Node Server</p>
+              <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{profileData?.region ? profileData.region.split('/').reverse().join(', ').replace('_', ' ') : "India"} Region</p>
             </div>
             <Dialog open={socialModalOpen} onOpenChange={setSocialModalOpen}>
               <DialogTrigger asChild>
@@ -315,7 +315,7 @@ export default function ReformersPage() {
                                            {profileData?.displayName || "Reformer"} 
                                            <Button onClick={() => setIsEditing(true)} variant="ghost" size="icon" className="w-6 h-6 hover:bg-[#262626] rounded-full text-gray-400 hover:text-white"><Edit className="w-3 h-3" /></Button>
                                         </h2>
-                                        <p className="text-sm font-medium text-[#10b981] tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region || "Global"} Node</p>
+                                        <p className="text-sm font-medium text-[#10b981] tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region ? profileData.region.split('/').reverse()[0].replace('_', ' ') : "Global"}</p>
                                     </div>
                                     <div className="bg-[#262626]/50 border border-[#262626] px-4 py-2 rounded-xl text-center flex gap-4 mt-4 sm:mt-0 mx-auto sm:mx-0 w-fit shrink-0 shadow-inner">
                                         <div>
