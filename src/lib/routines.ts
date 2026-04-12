@@ -1,6 +1,6 @@
 import type { UserPresetTask, ProfileType } from '@/types';
 
-export const ROUTINE_TEMPLATE_VERSION = 8.4;
+export const ROUTINE_TEMPLATE_VERSION = 8.5;
 
 const commonEveningWindDown: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Evening Snacks & Hydration", duration: 15, icon: "Coffee", category: "Evening Wind-down" },
@@ -96,6 +96,8 @@ const softwareEngineerRoutine: Omit<UserPresetTask, "id" | "order" | "profession
     { name: "PR Reviews & Bug Fixing", duration: 90, icon: "FileCode", category: "Architecture & Logic" },
     { name: "Architecture & Logic Flow", duration: 60, icon: "BrainCircuit", category: "Architecture & Logic" },
     { name: "Documentation & Deployment", duration: 60, icon: "Laptop", category: "Deployment & Decompression" },
+    { name: "Side Project / OSS Contribution", duration: 90, icon: "Puzzle", category: "Late Hustle" },
+    { name: "Learning new Frameworks", duration: 45, icon: "BookOpen", category: "Late Hustle" },
     { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Deployment & Decompression" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
@@ -128,6 +130,9 @@ const entrepreneurRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[]
     { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Operations" },
     { name: "Sales & Networking Calls", duration: 120, icon: "Briefcase", category: "Operations" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Operations" },
+    { name: "Inbox Zero & Communications", duration: 45, icon: "Mail", category: "Late Hustle" },
+    { name: "Analytics & Growth Metric Review", duration: 30, icon: "TrendingUp", category: "Late Hustle" },
+    { name: "Next Day Strategy Planning", duration: 30, icon: "Target", category: "Late Hustle" },
     { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Networking & Rest" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
@@ -231,6 +236,8 @@ const freelancerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] =
     { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Fuel" },
     { name: "Invoicing & Outreach", duration: 90, icon: "FileCode", category: "Admin" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Admin" },
+    { name: "Upskilling & Coursework", duration: 60, icon: "BrainCircuit", category: "Late Hustle" },
+    { name: "Portfolio Updates", duration: 30, icon: "FolderSync", category: "Late Hustle" },
     { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Close Out" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
@@ -357,7 +364,7 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
     return enrichedTasks;
 };
 export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order" | "profession">[] } } = {
-    version: 8.4,
+    version: 8.5,
     routines: {
         "Analyst": enrichTasks(softwareEngineerRoutine),
         "Artist": enrichTasks(artistRoutine),
@@ -466,7 +473,8 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
     'Visionary Morning': { color: 'bg-sky-800 text-white', order: 1 },
     'Strategic Execution': { color: 'bg-blue-900 text-white', order: 2 },
     'Operations': { color: 'bg-emerald-800 text-white', order: 3 },
-    'Networking & Rest': { color: 'bg-slate-900 text-white', order: 4 },
+    'Late Hustle': { color: 'bg-rose-900 text-white', order: 4 },
+    'Networking & Rest': { color: 'bg-slate-900 text-white', order: 5 },
     'Vision Block': { color: 'bg-sky-800 text-white', order: 1 },
     'High Stakes': { color: 'bg-blue-900 text-white', order: 2 },
     'Operation': { color: 'bg-emerald-800 text-white', order: 3 },
