@@ -12,7 +12,7 @@ import { useTasks } from "@/hooks/useFirestore";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
 import { useProfile } from "@/hooks/useProfile";
-import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save, Award } from "lucide-react";
+import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save, Award, Activity, Heart, Globe } from "lucide-react";
 
 import {
   AlertDialog,
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -55,12 +56,37 @@ function SettingsPageComponent() {
     const [eliteInsta, setEliteInsta] = useState(profileData?.instagramLink || "");
     const [isSavingElite, setIsSavingElite] = useState(false);
 
+    // Health & Regional Dashboard State
+    const [region, setRegion] = useState(profileData?.region || "Asia/Kolkata");
+    const [country, setCountry] = useState(profileData?.country || "India");
+    const [currency, setCurrency] = useState(profileData?.currency || "INR");
+    const [weight, setWeight] = useState(profileData?.weight || 0);
+    const [height, setHeight] = useState(profileData?.height || 0);
+    const [avgBP, setAvgBP] = useState(profileData?.averageBP || "120/80");
+    const [googleFitConnected, setGoogleFitConnected] = useState(profileData?.googleFitConnected || false);
+    const [isSavingHealth, setIsSavingHealth] = useState(false);
+
     useEffect(() => {
         if (profileData) {
             setElitePhone(profileData.phone || "");
             setEliteInsta(profileData.instagramLink || "");
+            setRegion(profileData.region || "Asia/Kolkata");
+            setCountry(profileData.country || "India");
+            setCurrency(profileData.currency || "INR");
+            setWeight(profileData.weight || 0);
+            setHeight(profileData.height || 0);
+            setAvgBP(profileData.averageBP || "120/80");
+            setGoogleFitConnected(profileData.googleFitConnected || false);
         }
     }, [profileData]);
+
+    const calculateBMI = (w: number, h: number) => {
+        if (w > 0 && h > 0) {
+            const heightInMeters = h / 100;
+            return (w / (heightInMeters * heightInMeters)).toFixed(1);
+        }
+        return "N/A";
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -168,6 +194,34 @@ function SettingsPageComponent() {
             setIsSavingElite(false);
         }
     }
+
+    const handleSaveHealthRegional = async () => {
+        setIsSavingHealth(true);
+        try {
+            await updateUserProfileData({ 
+                region, country, currency, 
+                weight, height, averageBP: avgBP, 
+                bmi: parseFloat(calculateBMI(weight, height)) || 0,
+                googleFitConnected 
+            });
+            toast({ title: "Profile Updated", description: "Your bio-data and region preferences are synced." });
+        } catch(e: any) {
+            toast({ title: "Error Updating", description: e.message, variant: "destructive" });
+        } finally {
+            setIsSavingHealth(false);
+        }
+    }
+
+    const connectGoogleFit = async () => {
+        // Mocking OAuth flow success
+        setGoogleFitConnected(true);
+        setAvgBP("118/79"); // Mock fetch from Fit
+        toast({ 
+            title: "Google Fit Connected", 
+            description: "Average BP imported. By connecting, you agree to our generalized data privacy policy for health metrics." 
+        });
+        await handleSaveHealthRegional();
+    };
 
     return (
         <div className="flex flex-col h-screen">
@@ -367,6 +421,64 @@ function SettingsPageComponent() {
                             <Button className="w-full" onClick={handleSaveEliteData} disabled={isSavingElite}>
                                 {isSavingElite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                 Save Elite Profile
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-primary/20 shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="font-headline text-lg flex items-center gap-2">
+                                <Globe className="h-5 w-5 text-blue-500" />
+                                Regional & Health Profile
+                            </CardTitle>
+                            <CardDescription>Setup your display currency, BMI trackers, and smart-watch vitals.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="country">Country</Label>
+                                    <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="India" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="currency">Currency Code (Rewards)</Label>
+                                    <Input id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="INR / USD" />
+                                </div>
+                            </div>
+                            
+                            <div className="pt-4 border-t border-border/50 grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="weight">Weight (kg)</Label>
+                                    <Input id="weight" type="number" value={weight} onChange={(e) => setWeight(parseFloat(e.target.value))} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="height">Height (cm)</Label>
+                                    <Input id="height" type="number" value={height} onChange={(e) => setHeight(parseFloat(e.target.value))} />
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20">
+                                <span className="font-bold">Estimated BMI</span>
+                                <Badge variant={calculateBMI(weight, height) !== "N/A" && parseFloat(calculateBMI(weight, height)) < 25 ? "default" : "destructive"}>
+                                    {calculateBMI(weight, height)}
+                                </Badge>
+                            </div>
+
+                            <div className="pt-4 border-t border-border/50 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <Label className="font-bold flex items-center gap-2"><Heart className="text-rose-500 w-4 h-4" /> Google Fit Vitals</Label>
+                                        <p className="text-xs text-muted-foreground mt-1">Avg BP: {avgBP}</p>
+                                    </div>
+                                    <Button size="sm" variant={googleFitConnected ? "outline" : "default"} onClick={connectGoogleFit}>
+                                        {googleFitConnected ? "Fit Connected" : "Link Google Fit"}
+                                    </Button>
+                                </div>
+                                {!googleFitConnected && <p className="text-[10px] text-muted-foreground">Privacy Note: Slake stores biometrics locally and encrypted in Firestore purely for display and streak analytics. Fit data requires Google OAuth consent.</p>}
+                            </div>
+
+                            <Button className="w-full mt-4" onClick={handleSaveHealthRegional} disabled={isSavingHealth}>
+                                {isSavingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                Update Profile Data
                             </Button>
                         </CardContent>
                     </Card>

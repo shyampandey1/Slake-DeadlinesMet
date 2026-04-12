@@ -104,6 +104,7 @@ export type UserProfile = {
     profile: ProfileType;
     displayName?: string;
     email?: string;
+    displayPicture?: string;
     customProfessions?: CustomProfession[];
     daysOff?: Day[];
     routineVersions?: { [key: string]: number };
@@ -111,6 +112,16 @@ export type UserProfile = {
     streak?: StreakData;
     phone?: string;
     instagramLink?: string;
+    // Regional Data
+    region?: string;
+    country?: string;
+    currency?: string; // e.g., 'INR', 'USD'
+    // Biometric Data
+    weight?: number; // in kg
+    height?: number; // in cm
+    bmi?: number;
+    averageBP?: string; // e.g., '120/80'
+    googleFitConnected?: boolean;
 };
 
 export type UserEvent = {

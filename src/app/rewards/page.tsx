@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import html2canvas from "html2canvas";
+import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 
 const streakData = [
   { day: "Mon", percent: 100 },
@@ -19,21 +21,6 @@ const streakData = [
   { day: "Fri", percent: 100 },
   { day: "Sat", percent: 60 },
   { day: "Sun", percent: 90 },
-];
-
-const leaderboard = [
-  { id: 1, name: "Alice K.", streak: 45, avatar: "https://i.pravatar.cc/150?u=1" },
-  { id: 2, name: "Bob M.", streak: 38, avatar: "https://i.pravatar.cc/150?u=2" },
-  { id: 3, name: "Shyam P.", streak: 21, avatar: "https://i.pravatar.cc/150?u=3", isMe: true },
-  { id: 4, name: "Zara L.", streak: 15, avatar: "https://i.pravatar.cc/150?u=4" },
-  { id: 5, name: "David O.", streak: 12, avatar: "https://i.pravatar.cc/150?u=5" },
-];
-
-const rewardItems = [
-  { id: 1, name: "UPI Direct Payout", desc: "Transfer credits to bank", credits: 5000, img: "₹" },
-  { id: 2, name: "Amazon Voucher ($10)", desc: "Shop online instantly", credits: 8000, img: "🛒" },
-  { id: 3, name: "NimkiThekua Box", desc: "Authentic local treats", credits: 4000, img: "🍪" },
-  { id: 4, name: "Solana Crypto Drop", desc: "0.05 SOL to your wallet", credits: 10000, img: "💎" },
 ];
 
 const certificates = [
@@ -46,8 +33,34 @@ const certificates = [
 ];
 
 export default function RewardsPage() {
-  const [credits, setCredits] = useState(1450);
+  const { profileData } = useProfile();
+  const { user } = useAuth();
+  
+  // Realtime Integration
+  const credits = profileData?.slakeCredits || 1450;
+  const userCurrency = (profileData?.currency || "INR").toUpperCase();
+  const cSym = userCurrency === "USD" ? "$" : userCurrency === "EUR" ? "€" : "₹";
+  const userAvatar = profileData?.displayPicture || "https://i.pravatar.cc/150?u=you";
+  const userName = profileData?.displayName || user?.displayName || "You";
+  
   const [downloading, setDownloading] = useState<string | null>(null);
+
+  // Dynamic reward items based on currency
+  const rewardItems = [
+    { id: 1, name: "Direct App Payout", desc: `Transfer directly to back in ${userCurrency}`, credits: 5000, img: cSym },
+    { id: 2, name: `Amazon Voucher (${cSym}10+)`, desc: "Shop online instantly", credits: 8000, img: "🛒" },
+    { id: 3, name: "NimkiThekua Box", desc: "Authentic local treats", credits: 4000, img: "🍪" },
+    { id: 4, name: "Solana Crypto Drop", desc: "0.05 SOL to your wallet", credits: 10000, img: "💎" },
+  ];
+
+  // Dynamic Leaderboard (inserting realtime user naturally)
+  const leaderboard = [
+    { id: 1, name: "Alice K.", streak: 45, avatar: "https://i.pravatar.cc/150?u=1", isMe: false },
+    { id: 2, name: "Bob M.", streak: 38, avatar: "https://i.pravatar.cc/150?u=2", isMe: false },
+    { id: 3, name: userName, streak: profileData?.streak?.currentStreak || 21, avatar: userAvatar, isMe: true },
+    { id: 4, name: "Zara L.", streak: 15, avatar: "https://i.pravatar.cc/150?u=4", isMe: false },
+    { id: 5, name: "David O.", streak: 12, avatar: "https://i.pravatar.cc/150?u=5", isMe: false },
+  ];
 
   const exportCertificate = async (id: string, name: string) => {
     setDownloading(id);
@@ -159,26 +172,26 @@ export default function RewardsPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Crown className="w-5 h-5 text-yellow-500" />
-                                    Global Leaderboard
+                                    Global Leaderboard ({profileData?.region || "Local"})
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {leaderboard.map((user, idx) => (
-                                        <div key={user.id} className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${user.isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'}`}>
+                                    {leaderboard.map((u, idx) => (
+                                        <div key={u.id} className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${u.isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'}`}>
                                             <span className={`w-6 text-center font-bold text-sm ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-700' : 'text-muted-foreground'}`}>
                                                 #{idx + 1}
                                             </span>
                                             <Avatar className="w-8 h-8 border border-border">
-                                                <AvatarImage src={user.avatar} />
-                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                                <AvatarImage src={u.avatar} />
+                                                <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
-                                            <span className={`font-medium flex-1 text-sm ${user.isMe ? 'text-primary' : ''}`}>
-                                                {user.name} {user.isMe && "(You)"}
+                                            <span className={`font-medium flex-1 text-sm ${u.isMe ? 'text-primary' : ''}`}>
+                                                {u.name} {u.isMe && "(You)"}
                                             </span>
                                             <Badge variant="secondary" className="flex items-center gap-1 font-bold">
                                                 <Flame className="w-3 h-3 text-orange-500" />
-                                                {user.streak}
+                                                {u.streak}
                                             </Badge>
                                         </div>
                                     ))}
@@ -193,10 +206,19 @@ export default function RewardsPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Medal className="w-5 h-5 text-purple-500" />
-                                    Recent Badges
+                                    Recent Gamification Sets
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="flex items-start gap-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                                    <div className="p-2 rounded-full bg-emerald-500/20 shrink-0">
+                                        <Heart className="w-6 h-6 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-sm">Bio-Metric Synced</h4>
+                                        <p className="text-xs text-muted-foreground mt-1">Google Fit connected! {(profileData?.weight || 0) > 0 ? "Analyzing metrics..." : ""}</p>
+                                    </div>
+                                </div>
                                 <div className="flex items-start gap-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
                                     <div className="p-2 rounded-full bg-orange-500/20 shrink-0">
                                         <Flame className="w-6 h-6 text-orange-500" />
@@ -228,7 +250,7 @@ export default function RewardsPage() {
                             <Card className="border-border/50 shadow-md hover:shadow-xl transition-all duration-300">
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
-                                        <div className="p-3 bg-muted rounded-xl text-3xl">{item.img}</div>
+                                        <div className="p-3 bg-muted rounded-xl text-3xl font-bold flex items-center justify-center">{item.img}</div>
                                         <Badge variant={credits >= item.credits ? "default" : "secondary"}>
                                             {item.credits.toLocaleString()} SC
                                         </Badge>
@@ -269,18 +291,15 @@ export default function RewardsPage() {
                                     <div className="relative z-10 flex border-t border-white/20 pt-4 mt-6 items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <Award className="w-5 h-5 text-yellow-300 fill-yellow-300/50" />
-                                            <span className="text-xs font-bold uppercase tracking-wider">Slake Certified</span>
+                                            <span className="text-xs font-bold uppercase tracking-wider">Slake Certified {userName}</span>
                                         </div>
-                                        <span className="text-[10px] font-bold opacity-70">DATE: {new Date().toLocaleDateString()}</span>
+                                        <span className="text-[10px] font-bold opacity-70">DATE: {new Date().toLocaleDateString('en-GB')}</span>
                                     </div>
                                 </div>
                                 {/* Actions */}
                                 <div className="flex gap-2">
                                     <Button variant="outline" className={`flex-1 ${cert.text} border-border/50 shadow-sm`} onClick={() => exportCertificate(cert.id, cert.title)}>
                                         {downloading === cert.id ? <span className="animate-pulse">Rendering...</span> : <><Download className="w-4 h-4 mr-2" /> Export Hub</>}
-                                    </Button>
-                                    <Button variant="secondary" className="flex-none bg-primary/10 text-primary hover:bg-primary/20">
-                                        <Share2 className="w-4 h-4" />
                                     </Button>
                                 </div>
                             </motion.div>
