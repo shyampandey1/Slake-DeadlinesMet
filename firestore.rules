@@ -1,14 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Secure user data: only the owner can read/write their own data
+    // Leaderboard access: any logged-in user can read profiles, but only write their own
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
       
-      // Explicitly allow access to subcollections (tasks, events, etc.)
+      // Strict access to subcollections (sensitive tasks, calendar events, streaks mapping)
       match /{allSubcollections=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    // Direct Messages system
+    match /messages/{messageId} {
+      allow read, write: if request.auth != null;
     }
     
     // Deny access to everything else by default

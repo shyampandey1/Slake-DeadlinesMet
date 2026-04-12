@@ -77,14 +77,15 @@ export default function ReformersPage() {
          const members: any[] = [];
          snapshot.forEach(doc => {
              const data = doc.data() as UserProfile;
-             if (data.userId !== profileData?.userId) {
+             const uid = data.userId || doc.id;
+             if (uid !== profileData?.userId) {
                  members.push({
-                     id: data.userId,
+                     id: uid,
                      name: data.displayName || "Anonymous Reformer",
                      location: data.region || "Global",
                      status: data.currentTaskStatus || "Idle",
                      online: !!data.isOnline,
-                     avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${data.userId}`,
+                     avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
                      streak: data.streak?.currentStreak || 0,
                      profession: data.profile || "General",
                      isPrivate: !!data.isPrivateProfile,
