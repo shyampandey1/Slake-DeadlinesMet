@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp } from "lucide-react";
+import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +60,12 @@ export default function ReformersPage() {
       socialUrls: any;
       coins: number;
       appAge: number;
+      totalTasks: number;
+      totalWaterGlasses: number;
   }[]>([]);
+
+  const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Chat & Follow State
   const [chatMode, setChatMode] = useState(false);
@@ -116,12 +121,16 @@ export default function ReformersPage() {
                      permissions: data.googleSyncPermissions || {},
                      socialUrls: data.socialUrls || {},
                      coins: data.slakeCredits || 0,
-                     appAge: data.createdAt ? Math.floor((new Date().getTime() - new Date(data.createdAt).getTime()) / 86400000) : 0
+                     appAge: data.createdAt ? Math.floor((new Date().getTime() - new Date(data.createdAt).getTime()) / 86400000) : 0,
+                     totalTasks: data.totalTasks || 0,
+                     totalWaterGlasses: data.totalWaterGlasses || 0
                  });
          });
          members.sort((a, b) => {
              // Rank based on usage/streaks and coins to calculate ranking metric
-             return b.streak - a.streak || b.coins - a.coins;
+             const aScore = a.streak * 100 + a.appAge * 10 + a.totalTasks * 5 + a.totalWaterGlasses * 2 + a.coins;
+             const bScore = b.streak * 100 + b.appAge * 10 + b.totalTasks * 5 + b.totalWaterGlasses * 2 + b.coins;
+             return bScore - aScore;
          });
          setLiveMembers(members);
      });
@@ -335,12 +344,16 @@ export default function ReformersPage() {
               <h1 className="text-2xl font-black flex items-center gap-2 tracking-tight">
                   <Globe2 className="text-[#10b981] w-6 h-6" /> Reformers
               </h1>
-              <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
+               <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
             </div>
-            <Dialog open={socialModalOpen} onOpenChange={setSocialModalOpen}>
-              <DialogTrigger asChild>
-                  <Button variant="outline" className="border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted"><LayoutDashboard className="w-4 h-4 mr-2" />Social Sync</Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+                <Button variant="outline" className="border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted" onClick={() => setReferralModalOpen(true)}>
+                   <Share2 className="w-4 h-4 mr-2" /> Invite
+                </Button>
+                <Dialog open={socialModalOpen} onOpenChange={setSocialModalOpen}>
+                  <DialogTrigger asChild>
+                      <Button variant="outline" className="border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted"><LayoutDashboard className="w-4 h-4 mr-2" />Social Sync</Button>
+                  </DialogTrigger>
               <DialogContent className="bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="text-[#10b981] flex items-center gap-2 text-xl font-bold"><ShieldCheck /> Social Network Access</DialogTitle>
@@ -381,6 +394,76 @@ export default function ReformersPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
+
+            <Dialog open={referralModalOpen} onOpenChange={setReferralModalOpen}>
+              <DialogContent className="bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-[#10b981] flex items-center gap-2 text-xl font-bold"><Share2 /> Invite to Reformers League</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                   <div className="text-center p-4 bg-muted/40 rounded-xl border border-border">
+                        <TrendingUp className="w-10 h-10 text-amber-500 mx-auto mb-2" />
+                        <h3 className="font-bold text-foreground">Get 1,000 Slake Coins</h3>
+                        <p className="text-xs text-muted-foreground mt-1">For every friend who joins using your unique profile link, you earn 1,000 Slake Coins towards rewards!</p>
+                   </div>
+                   
+                   <div className="space-y-3">
+                       <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Share Your Link</p>
+                       <div className="flex gap-2">
+                           <Input 
+                               readOnly 
+                               value={`https://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`}
+                               className="bg-muted/50 border-[#333] text-foreground h-12"
+                           />
+                           <Button 
+                              onClick={() => {
+                                  let referralText = `Look at my profile on Slake DeadlinesMet!\n\nMetrics: ${appAgeDays} Days App Age, ${currentStreakLocal} Logbook Streak.\nJoin my accountability network natively here & grab coins:\nhttps://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`;
+                                  navigator.clipboard.writeText(referralText);
+                                  setCopied(true);
+                                  setTimeout(() => setCopied(false), 2000);
+                              }}
+                              className="bg-[#10b981] hover:bg-[#059669] text-black h-12 px-4 shadow-md"
+                           >
+                               {copied ? "Copied!" : <Copy className="w-5 h-5"/>}
+                           </Button>
+                       </div>
+                   </div>
+
+                   <div className="flex justify-around pt-2">
+                        <Button 
+                            variant="outline" size="icon" 
+                            onClick={() => {
+                                let shareText = `Check out my accountability profile logging ${currentStreakLocal} straight days!\nJoin me natively on Reformers:\nhttps://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank")
+                            }}
+                            className="w-14 h-14 rounded-full bg-[#25D366]/10 border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/20">
+                            <Phone className="w-6 h-6" />
+                        </Button>
+                        <Button 
+                            variant="outline" size="icon" 
+                            onClick={() => {
+                                let shareText = `Check out my accountability profile!\nJoin me here:\nhttps://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`;
+                                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=https://slake-deadlines-met.vercel.app/&summary=${encodeURIComponent(shareText)}`, "_blank")
+                            }}
+                            className="w-14 h-14 rounded-full bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] hover:bg-[#0077b5]/20">
+                            <Linkedin className="w-6 h-6" />
+                        </Button>
+                        <Button 
+                            variant="outline" size="icon" 
+                            onClick={() => {
+                                // For instagram, share links can't pre-fill text as easily, but copy the referral link and direct to app
+                                navigator.clipboard.writeText(`https://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`);
+                                window.open(`https://instagram.com/`, "_blank")
+                            }}
+                            className="w-14 h-14 rounded-full bg-[#E1306C]/10 border-[#E1306C]/30 text-[#E1306C] hover:bg-[#E1306C]/20">
+                            <Instagram className="w-6 h-6" />
+                        </Button>
+                   </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
         </div>
 
         {/* My Dashboard View (Editable) */}
@@ -645,6 +728,16 @@ export default function ReformersPage() {
                                                <div className="text-center">
                                                    <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Certs</div>
                                                    <div className="text-xl font-black text-[#10b981]">{Math.floor(member.streak / 7)}</div>
+                                               </div>
+                                               <div className="w-px h-8 bg-border flex sm:hidden"></div>
+                                               <div className="text-center">
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Tot Tasks</div>
+                                                   <div className="text-xl font-black text-foreground">{member.totalTasks}</div>
+                                               </div>
+                                               <div className="w-px h-8 bg-border"></div>
+                                               <div className="text-center">
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Water</div>
+                                                   <div className="text-xl font-black text-blue-400">{member.totalWaterGlasses}</div>
                                                </div>
                                            </div>
 

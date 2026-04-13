@@ -76,8 +76,14 @@ export function useTasks() {
 
       // --- LOGBOOK STREAK SYNC ---
       const activeDates = new Set<string>();
+      let totalTasks = 0;
+      let totalWaterGlasses = 0;
       userTasks.filter(t => t.completed).forEach(t => {
           if (t.createdAt) activeDates.add(new Date(t.createdAt).toISOString().split('T')[0]);
+          totalTasks++;
+          if (t.name.toLowerCase().includes('water')) {
+              totalWaterGlasses++;
+          }
       });
       const dates = Array.from(activeDates).sort((a,b) => b.localeCompare(a));
       let currentStreak = 0;
@@ -115,7 +121,7 @@ export function useTasks() {
 
       // Update native profile silently if out of sync
       const pStreak = profileData?.streak;
-      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak) {
+      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profileData as any)?.totalTasks !== totalTasks || (profileData as any)?.totalWaterGlasses !== totalWaterGlasses) {
          updateUserProfileData({ 
             streak: { 
                ...pStreak, 
@@ -123,8 +129,10 @@ export function useTasks() {
                highestStreak, 
                lastActiveDate: today, 
                dailyHistory: pStreak?.dailyHistory || [] 
-            } 
-         });
+            },
+            totalTasks,
+            totalWaterGlasses
+         } as any);
       }
       // --- END STREAK SYNC ---
 
