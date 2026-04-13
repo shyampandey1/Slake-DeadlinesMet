@@ -138,6 +138,9 @@ export type UserProfile = {
     currentTaskStatus?: string;
     isOnline?: boolean;
     isPrivateProfile?: boolean;
+    pinnedCertificates?: string[];
+    gender?: "Male" | "Female" | "Prefer not to share" | string;
+    createdAt?: any;
 };
 
 export type UserEvent = {

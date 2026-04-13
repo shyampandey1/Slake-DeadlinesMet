@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import html2canvas from "html2canvas";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useTasks } from "@/hooks/useFirestore";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import type { UserProfile } from "@/types";
@@ -69,7 +70,7 @@ export default function RewardsPage() {
                  coins: data.slakeCredits || 0,
                  daysElapsed: data.streak?.highestStreak || 0,
                  certificates: Math.floor((data.streak?.highestStreak || 0) / 7),
-                 city: data.region?.split('/').reverse()[0].replace('_', ' ') || "Global",
+                 city: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
                  routine: data.profile || "General",
                  isMe: uid === profileData?.userId
              });
@@ -88,17 +89,68 @@ export default function RewardsPage() {
     { id: 2, name: `Riderz Hub Cafe Coins`, desc: "₹59 value. Follow hydration goals for first 3 days", credits: 60000, img: "☕" },
     { id: 3, name: "Amazon Voucher", desc: "Minimum ₹99 voucher", credits: 100000, img: "🛒" },
     { id: 4, name: "NimkiThekua Box", desc: "For 1 Week Hydration Master", credits: 1000000, img: "🍪" },
-    { id: 5, name: "Solana Crypto", desc: "30 day streak morning to evening conquerer", credits: 5000000, img: "💎" },
+    { id: 5, name: "Solana Crypto (INR 500)", desc: "5M Coins redeemed to ₹500 Solana", credits: 5000000, img: "💎" },
+    { id: 6, name: "Bitcoin (INR 500)", desc: "5M Coins redeemed to ₹500 BTC", credits: 5000000, img: "₿" },
+    { id: 7, name: "Ethereum (INR 500)", desc: "5M Coins redeemed to ₹500 ETH", credits: 5000000, img: "Ξ" },
   ];
 
-  // Specific certificates from prompt
-  const highestStreak = profileData?.streak?.highestStreak || 1;
+  const { tasks } = useTasks();
+
+  const activeDates = new Set<string>();
+  tasks.filter(t => t.completed).forEach(t => {
+      if (t.createdAt) activeDates.add(new Date(t.createdAt).toISOString().split('T')[0]);
+  });
+  const dates = Array.from(activeDates).sort((a,b) => b.localeCompare(a));
+  
+  let currentStreakLocal = 0;
+  let highestStreakLocal = profileData?.streak?.highestStreak || 1;
+  const today = new Date().toISOString().split('T')[0];
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+  if (dates.length > 0) {
+      let computedHighestStreak = 1;
+      let tempStreak = 1;
+      for (let i = 0; i < dates.length - 1; i++) {
+          const diffTime = new Date(dates[i]).getTime() - new Date(dates[i+1]).getTime();
+          if (Math.abs(diffTime - 86400000) < 3600000) { 
+              tempStreak++;
+              if (tempStreak > computedHighestStreak) computedHighestStreak = tempStreak;
+          } else {
+              tempStreak = 1;
+          }
+      }
+      highestStreakLocal = Math.max(highestStreakLocal, computedHighestStreak);
+      
+      if (dates.includes(today) || dates.includes(yesterdayStr)) {
+          let checkDate = new Date(dates[0]);
+          while (true) {
+             const c = checkDate.toISOString().split('T')[0];
+             if (activeDates.has(c)) {
+                 currentStreakLocal++;
+                 checkDate = new Date(checkDate.getTime() - 86400000);
+             } else {
+                 break;
+             }
+          }
+      }
+  } else {
+      currentStreakLocal = profileData?.streak?.currentStreak || 0;
+  }
+
+  const highestStreak = highestStreakLocal;
+  
+  // Custom tracking for specific certificates
+  const waterGlasses = tasks.filter(t => t.completed && t.name.toLowerCase().includes('water')).length;
+  const emailsChecked = tasks.filter(t => t.completed && t.name.toLowerCase().includes('mail')).length;
+  const mealsLogged = tasks.filter(t => t.completed && ['breakfast', 'lunch', 'dinner', 'snack'].some(m => t.name.toLowerCase().includes(m))).length;
+  const workouts = tasks.filter(t => t.completed && ['workout', 'exercise', 'gym'].some(w => t.name.toLowerCase().includes(w))).length;
+
   const certificates = [
-    { id: "cert-basic-hydro", title: "Basic Hydration", desc: "Drinking a glass of water 3 times.", progress: Math.min((highestStreak / 3) * 100, 100), current: Math.min(highestStreak, 3), total: 3, icon: Droplet, color: "from-blue-200 to-blue-400", label: "Starter" },
-    { id: "cert-master-hydro", title: "Master Hydration", desc: "Maintaining an 8-glass weekly streak.", progress: Math.min((highestStreak / 7) * 100, 100), current: Math.min(highestStreak, 7), total: 7, icon: Droplet, color: "from-blue-500 to-cyan-600", label: "Master" },
-    { id: "cert-inbox", title: "Inbox Zero Starter", desc: "Checking mail for the first time with the app timer.", progress: 100, current: 1, total: 1, icon: Mail, color: "from-purple-400 to-indigo-500", label: "Productivity" },
-    { id: "cert-nutrition-base", title: "Nutritional Consistency (Basic)", desc: "Breakfast, lunch, snacks, & dinner logged on point.", progress: Math.min((highestStreak / 3) * 100, 100), current: Math.min(highestStreak, 3), total: 3, icon: Coffee, color: "from-orange-300 to-orange-500", label: "Starter Tracker" },
-    { id: "cert-commitment", title: "Iron Commitment Chaser", desc: "Logging in and exercising 3 times.", progress: Math.min((highestStreak / 3) * 100, 100), current: Math.min(highestStreak, 3), total: 3, icon: Dumbbell, color: "from-gray-600 to-gray-800", label: "Body Fitness" },
+    { id: "cert-basic-hydro", title: "Basic Hydration", desc: "Drinking a glass of water 3 times.", progress: Math.min((waterGlasses / 3) * 100, 100), current: Math.min(waterGlasses, 3), total: 3, icon: Droplet, color: "from-blue-200 to-blue-400", label: "Starter" },
+    { id: "cert-master-hydro", title: "Master Hydration", desc: "Maintaining an 8-glass weekly streak.", progress: Math.min((waterGlasses / 56) * 100, 100), current: Math.min(waterGlasses, 56), total: 56, icon: Droplet, color: "from-blue-500 to-cyan-600", label: "Master" },
+    { id: "cert-inbox", title: "Inbox Zero Starter", desc: "Checking mail for the first time with the app timer.", progress: Math.min((emailsChecked / 1) * 100, 100), current: Math.min(emailsChecked, 1), total: 1, icon: Mail, color: "from-purple-400 to-indigo-500", label: "Productivity" },
+    { id: "cert-nutrition-base", title: "Nutritional Consistency (Basic)", desc: "Breakfast, lunch, snacks, & dinner logged on point.", progress: Math.min((mealsLogged / 3) * 100, 100), current: Math.min(mealsLogged, 3), total: 3, icon: Coffee, color: "from-orange-300 to-orange-500", label: "Starter Tracker" },
+    { id: "cert-commitment", title: "Iron Commitment Chaser", desc: "Logging in and exercising 3 times.", progress: Math.min((workouts / 3) * 100, 100), current: Math.min(workouts, 3), total: 3, icon: Dumbbell, color: "from-gray-600 to-gray-800", label: "Body Fitness" },
   ];
 
   const exportCertificate = async (id: string, name: string) => {
@@ -118,6 +170,16 @@ export default function RewardsPage() {
     } finally {
       setDownloading(null);
     }
+  };
+
+  const pinCertificate = async (certId: string, certTitle: string) => {
+      const currentPins = profileData?.pinnedCertificates || [];
+      if (!currentPins.includes(certId)) {
+          await updateUserProfileData({ pinnedCertificates: [...currentPins, certId] });
+          alert(`Successfully Pinned ${certTitle} to your Reformers Profile!`);
+      } else {
+          alert(`${certTitle} is already pinned!`);
+      }
   };
 
   return (
@@ -330,7 +392,7 @@ export default function RewardsPage() {
                                     <Button variant="outline" disabled={!isUnlocked} className="flex-1 border-border/50 shadow-sm font-bold bg-muted/30" onClick={() => exportCertificate(cert.id, cert.title)}>
                                         {downloading === cert.id ? <span className="animate-pulse">Rendering...</span> : <><Download className="w-4 h-4 mr-2" /> Export</>}
                                     </Button>
-                                    <Button variant="outline" disabled={!isUnlocked} className="flex-1 border-border/50 shadow-sm font-bold bg-muted/30 text-primary hover:text-primary">
+                                    <Button variant="outline" disabled={!isUnlocked} className="flex-1 border-border/50 shadow-sm font-bold bg-muted/30 text-primary hover:text-primary" onClick={() => pinCertificate(cert.id, cert.title)}>
                                         <Pin className="w-4 h-4 mr-2" /> Pin to Profile
                                     </Button>
                                 </div>

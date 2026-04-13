@@ -78,11 +78,34 @@ export async function getProductivityInsights(input: ProductivityInsightsInput):
     return output!;
   } catch (error: any) {
     console.error("AI Insights Error:", error.name, error.message);
+    // Native computation fallback
+    const totalTime = input.tasks.reduce((acc, t) => acc + t.duration, 0);
+    const completedCount = input.tasks.filter(t => t.completed).length;
+    let focusScore = Math.min(100, Math.round((completedCount / input.tasks.length) * 60 + (totalTime / 120) * 40));
+    
+    // Pattern detection
+    const catCounts: { [key:string]: number } = {};
+    input.tasks.forEach(t => { const c = t.category || "General"; catCounts[c] = (catCounts[c] || 0) + 1; });
+    const topCat = Object.keys(catCounts).sort((a,b) => catCounts[b] - catCounts[a])[0];
+
+    const summary = completedCount === input.tasks.length 
+        ? "Flawless execution! You completed every task you set out to do."
+        : `Strong effort. You logged ${totalTime} minutes of focus and completed ${completedCount} tasks.`;
+
+    const strengths = [
+        `You dedicated significant time towards ${topCat}.`,
+        completedCount > 3 ? "Excellent volume of task completions." : "Good foundational tracking habits."
+    ];
+    const suggestions = [
+      "Try to sequence your hardest tasks during your peak energy hours.",
+      "Ensure you're taking 5-minute breaks after every 30 minutes of deep focus."
+    ];
+
     return {
-      summary: "We couldn't generate insights right now, but your dedication is noted.",
-      strengths: ["Consistency in tracking."],
-      suggestions: ["Review your Log Book manually for trends."],
-      focusScore: 50
+      summary,
+      strengths,
+      suggestions,
+      focusScore: isNaN(focusScore) ? 0 : focusScore
     };
   }
 }

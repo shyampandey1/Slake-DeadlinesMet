@@ -32,9 +32,9 @@ export const getAvailableCategories = getCats;
 export const getAvailableIcons = getIcons;
 
 
-// Hook for managing user's task history
 export function useTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
+  const { profileData, updateUserProfileData } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const TASKS_CACHE_KEY = 'user_tasks';
@@ -73,6 +73,61 @@ export function useTasks() {
         userTasks.push({ id: doc.id, ...data, createdAt } as Task);
       });
       setTasks(userTasks);
+
+      // --- LOGBOOK STREAK SYNC ---
+      const activeDates = new Set<string>();
+      userTasks.filter(t => t.completed).forEach(t => {
+          if (t.createdAt) activeDates.add(new Date(t.createdAt).toISOString().split('T')[0]);
+      });
+      const dates = Array.from(activeDates).sort((a,b) => b.localeCompare(a));
+      let currentStreak = 0;
+      let highestStreak = 0;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      
+      if (dates.length > 0) {
+          highestStreak = 1;
+          let tempStreak = 1;
+          for (let i = 0; i < dates.length - 1; i++) {
+              const diffTime = new Date(dates[i]).getTime() - new Date(dates[i+1]).getTime();
+              if (Math.abs(diffTime - 86400000) < 3600000) { // accounting for DST
+                  tempStreak++;
+                  if (tempStreak > highestStreak) highestStreak = tempStreak;
+              } else {
+                  tempStreak = 1;
+              }
+          }
+      }
+      
+      if (dates.includes(today) || dates.includes(yesterdayStr)) {
+          let checkDate = new Date(dates[0]);
+          while (true) {
+             const c = checkDate.toISOString().split('T')[0];
+             if (activeDates.has(c)) {
+                 currentStreak++;
+                 checkDate = new Date(checkDate.getTime() - 86400000);
+             } else {
+                 break;
+             }
+          }
+      }
+
+      // Update native profile silently if out of sync
+      const pStreak = profileData?.streak;
+      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak) {
+         updateUserProfileData({ 
+            streak: { 
+               ...pStreak, 
+               currentStreak, 
+               highestStreak, 
+               lastActiveDate: today, 
+               dailyHistory: pStreak?.dailyHistory || [] 
+            } 
+         });
+      }
+      // --- END STREAK SYNC ---
+
        try {
         localStorage.setItem(cacheKey, JSON.stringify(userTasks));
       } catch (error) {
