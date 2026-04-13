@@ -92,7 +92,7 @@ export function useAudioSettings() {
 
   useEffect(() => {
     let initialVolume = 0.7;
-    let initialSound = finishSounds[0].name;
+    let initialSound = 'Digital Alarm';
 
     try {
       const storedEnabled = localStorage.getItem(AUDIO_ENABLED_KEY);

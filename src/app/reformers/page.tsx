@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useWeather } from "@/hooks/useWeather";
 
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy } from "firebase/firestore";
@@ -21,6 +22,7 @@ import type { UserProfile } from "@/types";
 export default function ReformersPage() {
   const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
+  const { location } = useWeather();
   
   const isEnrolled = profileData?.isReformersEnrolled || false;
   const [enrolling, setEnrolling] = useState(false);
@@ -37,6 +39,7 @@ export default function ReformersPage() {
   const [editBio, setEditBio] = useState("");
   const [editProfession, setEditProfession] = useState("");
   const [editDP, setEditDP] = useState("");
+  const [editSocialUrls, setEditSocialUrls] = useState<{meta?: string, linkedin?: string, whatsapp?: string}>({});
 
   const [liveMembers, setLiveMembers] = useState<{ 
       id: string; 
@@ -50,6 +53,7 @@ export default function ReformersPage() {
       isPrivate: boolean;
       bio: string;
       permissions: any;
+      socialUrls: any;
   }[]>([]);
 
   // Chat & Follow State
@@ -64,8 +68,13 @@ export default function ReformersPage() {
         setEditBio(profileData.bio || "Building disciplined habits.");
         setEditProfession(profileData.profile || "General");
         setEditDP(profileData.displayPicture || "");
+        setEditSocialUrls(profileData.socialUrls || {});
+        
+        setWhatsappSync(profileData.googleSyncPermissions?.whatsapp || false);
+        setMetaSync(profileData.googleSyncPermissions?.meta || false);
+        setLinkedinSync(profileData.googleSyncPermissions?.linkedin || false);
      }
-  }, [profileData?.bio, profileData?.profile, profileData?.displayPicture]);
+  }, [profileData?.bio, profileData?.profile, profileData?.displayPicture, profileData?.socialUrls, profileData?.googleSyncPermissions]);
 
   // Massive snapshot query (Pulling all users who exist in the system to auto-populate friends)
   useEffect(() => {
@@ -90,7 +99,8 @@ export default function ReformersPage() {
                      profession: data.profile || "General",
                      isPrivate: !!data.isPrivateProfile,
                      bio: data.bio || "Building disciplined habits.",
-                     permissions: data.googleSyncPermissions || {}
+                     permissions: data.googleSyncPermissions || {},
+                     socialUrls: data.socialUrls || {}
                  });
              }
          });
@@ -139,9 +149,42 @@ export default function ReformersPage() {
             whatsapp: whatsappSync,
             meta: metaSync,
             linkedin: linkedinSync
-        }
+        },
+        socialUrls: editSocialUrls
      });
      setSocialModalOpen(false);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+         const img = new Image();
+         img.onload = () => {
+             const canvas = document.createElement("canvas");
+             const MAX_WIDTH = 300;
+             const MAX_HEIGHT = 300;
+             let width = img.width;
+             let height = img.height;
+
+             if (width > height) {
+                 if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+             } else {
+                 if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+             }
+             canvas.width = width; canvas.height = height;
+             const ctx = canvas.getContext("2d");
+             ctx?.drawImage(img, 0, 0, width, height);
+             setEditDP(canvas.toDataURL("image/jpeg", 0.7));
+         };
+         img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+  };
+
+  const handleRandomVector = () => {
+      setEditDP(`https://api.dicebear.com/9.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`);
   };
 
   const handleSaveProfile = () => {
@@ -227,7 +270,7 @@ export default function ReformersPage() {
               <h1 className="text-2xl font-black flex items-center gap-2 tracking-tight">
                   <Globe2 className="text-[#10b981] w-6 h-6" /> Reformers
               </h1>
-              <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{profileData?.region ? profileData.region.split('/').reverse().join(', ').replace('_', ' ') : "India"} Region</p>
+              <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region ? profileData.region.split('/').reverse().join(', ').replace('_', ' ') : "India")} Region</p>
             </div>
             <Dialog open={socialModalOpen} onOpenChange={setSocialModalOpen}>
               <DialogTrigger asChild>
@@ -259,6 +302,14 @@ export default function ReformersPage() {
                     </div>
                     <Switch checked={linkedinSync} onCheckedChange={setLinkedinSync} className="data-[state=checked]:bg-[#10b981]" />
                   </div>
+                  {(whatsappSync || metaSync || linkedinSync) && (
+                     <div className="pt-4 border-t border-[#262626] space-y-3">
+                         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-2">Social Profile URLs</p>
+                         {whatsappSync && <Input value={editSocialUrls.whatsapp || ""} onChange={(e) => setEditSocialUrls({...editSocialUrls, whatsapp: e.target.value})} placeholder="WhatsApp URL/Number" className="bg-[#262626]/50 border-none text-white h-10" />}
+                         {metaSync && <Input value={editSocialUrls.meta || ""} onChange={(e) => setEditSocialUrls({...editSocialUrls, meta: e.target.value})} placeholder="Instagram URL" className="bg-[#262626]/50 border-none text-white h-10" />}
+                         {linkedinSync && <Input value={editSocialUrls.linkedin || ""} onChange={(e) => setEditSocialUrls({...editSocialUrls, linkedin: e.target.value})} placeholder="LinkedIn URL" className="bg-[#262626]/50 border-none text-white h-10" />}
+                     </div>
+                  )}
                 </div>
                 <DialogFooter className="border-t border-[#262626] pt-4 mt-2">
                   <Button onClick={handleSavePermissions} className="w-full bg-[#10b981] hover:bg-[#059669] text-black font-extrabold text-sm h-12">Save Configuration</Button>
@@ -280,8 +331,14 @@ export default function ReformersPage() {
                                     <AvatarFallback>{profileData?.displayName?.charAt(0) || "U"}</AvatarFallback>
                                </Avatar>
                                <div className="flex-1 space-y-2">
-                                  <label className="text-xs text-gray-400 font-bold tracking-widest uppercase">Display Picture URL</label>
-                                  <Input value={editDP} onChange={(e) => setEditDP(e.target.value)} placeholder="https://..." className="bg-[#262626] border-none text-white h-10 w-full" />
+                                  <label className="text-xs text-gray-400 font-bold tracking-widest uppercase">Display Picture</label>
+                                  <div className="flex gap-2">
+                                      <Button variant="outline" className="bg-[#262626] border-none hover:bg-[#333] hover:text-white text-white h-10 relative overflow-hidden">
+                                          <Camera className="w-4 h-4 mr-2" /> Upload
+                                          <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                      </Button>
+                                      <Button variant="outline" onClick={handleRandomVector} className="bg-[#262626] hover:bg-[#333] hover:text-white border-none text-white h-10">Vector</Button>
+                                  </div>
                                </div>
                            </div>
                            <div className="space-y-2">
@@ -334,10 +391,16 @@ export default function ReformersPage() {
                                     {profileData?.bio || "Building disciplined habits and enforcing high-performance standards."}
                                 </p>
                                 
-                                <div className="flex items-center gap-2 mt-5 justify-center sm:justify-start">
-                                    {profileData?.googleSyncPermissions?.linkedin && <Badge variant="outline" className="bg-[#0077b5]/10 text-[#0077b5] border-[#0077b5]/30">Linked</Badge>}
-                                    {profileData?.googleSyncPermissions?.meta && <Badge variant="outline" className="bg-[#E1306C]/10 text-[#E1306C] border-[#E1306C]/30">Instagram</Badge>}
-                                    {profileData?.googleSyncPermissions?.whatsapp && <Badge variant="outline" className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30">WhatsApp</Badge>}
+                                <div className="flex flex-wrap items-center gap-2 mt-5 justify-center sm:justify-start">
+                                    {profileData?.googleSyncPermissions?.linkedin && profileData?.socialUrls?.linkedin && (
+                                        <Badge variant="outline" className="bg-[#0077b5]/10 text-[#0077b5] border-[#0077b5]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.linkedin, "_blank")}>Linked</Badge>
+                                    )}
+                                    {profileData?.googleSyncPermissions?.meta && profileData?.socialUrls?.meta && (
+                                        <Badge variant="outline" className="bg-[#E1306C]/10 text-[#E1306C] border-[#E1306C]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.meta, "_blank")}>Instagram</Badge>
+                                    )}
+                                    {profileData?.googleSyncPermissions?.whatsapp && profileData?.socialUrls?.whatsapp && (
+                                        <Badge variant="outline" className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.whatsapp, "_blank")}>WhatsApp</Badge>
+                                    )}
                                     {profileData?.isPrivateProfile && <Badge variant="outline" className="bg-gray-800 text-gray-400 border-gray-700"><LockKeyhole className="w-3 h-3 mr-1"/> Private</Badge>}
                                 </div>
                             </div>
@@ -491,9 +554,15 @@ export default function ReformersPage() {
                                            </div>
 
                                            <div className="flex items-center justify-center gap-3 pt-2">
-                                               {member.permissions?.linkedin && <Button variant="outline" size="icon" className="rounded-full bg-[#0077b5]/10 border-[#0077b5]/30 hover:bg-[#0077b5]/20 text-[#0077b5] h-10 w-10"><Linkedin className="w-4 h-4" /></Button>}
-                                               {member.permissions?.meta && <Button variant="outline" size="icon" className="rounded-full bg-[#E1306C]/10 border-[#E1306C]/30 hover:bg-[#E1306C]/20 text-[#E1306C] h-10 w-10"><Instagram className="w-4 h-4" /></Button>}
-                                               {member.permissions?.whatsapp && <Button variant="outline" size="icon" className="rounded-full bg-[#25D366]/10 border-[#25D366]/30 hover:bg-[#25D366]/20 text-[#25D366] h-10 w-10"><Phone className="w-4 h-4" /></Button>}
+                                               {member.permissions?.linkedin && member.socialUrls?.linkedin && (
+                                                   <Button variant="outline" size="icon" onClick={() => window.open(member.socialUrls.linkedin, "_blank")} className="rounded-full bg-[#0077b5]/10 border-[#0077b5]/30 hover:bg-[#0077b5]/20 text-[#0077b5] h-10 w-10"><Linkedin className="w-4 h-4" /></Button>
+                                               )}
+                                               {member.permissions?.meta && member.socialUrls?.meta && (
+                                                   <Button variant="outline" size="icon" onClick={() => window.open(member.socialUrls.meta, "_blank")} className="rounded-full bg-[#E1306C]/10 border-[#E1306C]/30 hover:bg-[#E1306C]/20 text-[#E1306C] h-10 w-10"><Instagram className="w-4 h-4" /></Button>
+                                               )}
+                                               {member.permissions?.whatsapp && member.socialUrls?.whatsapp && (
+                                                   <Button variant="outline" size="icon" onClick={() => window.open(member.socialUrls.whatsapp, "_blank")} className="rounded-full bg-[#25D366]/10 border-[#25D366]/30 hover:bg-[#25D366]/20 text-[#25D366] h-10 w-10"><Phone className="w-4 h-4" /></Button>
+                                               )}
                                            </div>
                                        </div>
                                    )}

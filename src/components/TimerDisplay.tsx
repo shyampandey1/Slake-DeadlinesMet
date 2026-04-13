@@ -138,10 +138,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       requireInteraction: true,
     };
 
-    if (isScheduled && offlineNotificationsEnabled && 'showTrigger' in Notification.prototype) {
-      const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
-      // @ts-ignore
-      notificationOptions.showTrigger = new TimestampTrigger(triggerTime);
+    if (isScheduled) {
+      if (offlineNotificationsEnabled && 'showTrigger' in Notification.prototype) {
+        const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
+        // @ts-ignore
+        notificationOptions.showTrigger = new TimestampTrigger(triggerTime);
+      } else {
+        return; // Browser doesn't support background triggers or they are disabled
+      }
     }
 
     try {
@@ -315,14 +319,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         showCompletionNotification(false); // Immediate one
         clearTimer(); // End background tracking
       } else if (difference <= 10 && difference > 0) {
-        // Activate continuous tense flashing in the last 4 seconds
-        if (difference <= 4) setFlashState('continuous');
+        // Activate continuous tense flashing in the last 10 seconds
+        if (difference <= 10) setFlashState('continuous');
         // Tick each second for the final countdown - ensure it only plays once per second
         if (lastTickRef.current !== difference) {
             lastTickRef.current = difference;
             playTick();
         }
-      } else if (difference <= 11 && difference > 4) {
+      } else if (difference <= 11 && difference > 10) {
         setFlashState('none');
       }
     }, 500);

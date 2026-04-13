@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Cell } from "recharts";
-import { Award, Zap, Trophy, TrendingUp, Medal, Flame, Star, Crown, Gift, Share2, Download, Droplet, Mail, Coffee, Dumbbell, Wind, Eye, Heart } from "lucide-react";
+import { Award, Zap, Trophy, TrendingUp, Medal, Flame, Star, Crown, Gift, Share2, Download, Droplet, Mail, Coffee, Dumbbell, Wind, Eye, Heart, Pin, MapPin } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import html2canvas from "html2canvas";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/lib/firebase";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import type { UserProfile } from "@/types";
 
 const streakData = [
   { day: "Mon", percent: 100 },
@@ -23,43 +27,78 @@ const streakData = [
   { day: "Sun", percent: 90 },
 ];
 
-const certificates = [
-  { id: "cert-hydro", title: "Master of Hydration", desc: "Logged 100% water intake for 7 straight days.", icon: Droplet, color: "from-blue-400 to-cyan-500", text: "text-blue-500", label: "Hydration Streak" },
-  { id: "cert-mail", title: "Inbox Zero Hero", desc: "Checked & cleared mail precisely on time.", icon: Mail, color: "from-purple-400 to-indigo-500", text: "text-purple-500", label: "Productivity" },
-  { id: "cert-meals", title: "Nutritional Consistency", desc: "Breakfast, lunch, snacks, & dinner logged on point.", icon: Coffee, color: "from-orange-400 to-red-500", text: "text-orange-500", label: "Diet Tracker" },
-  { id: "cert-exercise", title: "Iron Commitment", desc: "Hit all exercise tasks without a single skip.", icon: Dumbbell, color: "from-gray-700 to-gray-900", text: "text-gray-800", label: "Body Fitness" },
-  { id: "cert-breath", title: "Zen Mindset", desc: "Dedicated sessions to deep breathing.", icon: Wind, color: "from-teal-400 to-emerald-500", text: "text-teal-500", label: "Mental Health" },
-  { id: "cert-eye", title: "Digital Defender", desc: "Protected vision with scheduled eye strain exercises.", icon: Eye, color: "from-pink-400 to-rose-500", text: "text-rose-500", label: "Eye Care" },
-];
-
 export default function RewardsPage() {
-  const { profileData } = useProfile();
+  const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
   
-  // Realtime Integration
-  const credits = profileData?.slakeCredits || 1450;
+  const [credits, setCredits] = useState(profileData?.slakeCredits || 0);
+  
+  useEffect(() => {
+    // Slake Balance Initialization
+    if (profileData && profileData.slakeCredits === undefined) {
+        // Just starting = 1000, 1 week streak = 1500
+        const isOneWeek = (profileData.streak?.highestStreak || 0) >= 7;
+        const initialCredits = isOneWeek ? 1500 : 1000;
+        updateUserProfileData({ slakeCredits: initialCredits });
+        setCredits(initialCredits);
+    } else {
+        setCredits(profileData?.slakeCredits || 1000); // fallback
+    }
+  }, [profileData, updateUserProfileData]);
+
   const userCurrency = (profileData?.currency || "INR").toUpperCase();
   const cSym = userCurrency === "USD" ? "$" : userCurrency === "EUR" ? "€" : "₹";
   const userAvatar = profileData?.displayPicture || "https://i.pravatar.cc/150?u=you";
   const userName = profileData?.displayName || user?.displayName || "You";
   
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [liveLeaderboard, setLiveLeaderboard] = useState<any[]>([]);
 
-  // Dynamic reward items based on currency
+  useEffect(() => {
+     const q = query(collection(db, "users"));
+     const unsubscribe = onSnapshot(q, (snapshot) => {
+         const members: any[] = [];
+         snapshot.forEach(doc => {
+             const data = doc.data() as UserProfile;
+             const uid = data.userId || doc.id;
+             members.push({
+                 id: uid,
+                 name: data.displayName || "Anonymous Reformer",
+                 avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
+                 streak: data.streak?.currentStreak || 0,
+                 coins: data.slakeCredits || 0,
+                 daysElapsed: data.streak?.highestStreak || 0,
+                 certificates: Math.floor((data.streak?.highestStreak || 0) / 7),
+                 city: data.region?.split('/').reverse()[0].replace('_', ' ') || "Global",
+                 routine: data.profile || "General",
+                 isMe: uid === profileData?.userId
+             });
+         });
+         // Rank based on usage/streaks and coins
+         members.sort((a, b) => b.streak - a.streak || b.coins - a.coins);
+         setLiveLeaderboard(members);
+     });
+     
+     return () => unsubscribe();
+  }, [profileData?.userId]);
+
+  // Simplify redemption options
   const rewardItems = [
-    { id: 1, name: "Direct App Payout", desc: `Transfer directly to back in ${userCurrency}`, credits: 5000, img: cSym },
-    { id: 2, name: `Amazon Voucher (${cSym}10+)`, desc: "Shop online instantly", credits: 8000, img: "🛒" },
-    { id: 3, name: "NimkiThekua Box", desc: "Authentic local treats", credits: 4000, img: "🍪" },
-    { id: 4, name: "Solana Crypto Drop", desc: "0.05 SOL to your wallet", credits: 10000, img: "💎" },
+    { id: 1, name: "Direct Payout", desc: "₹10 transferred directly", credits: 10000, img: cSym },
+    { id: 2, name: `Riderz Hub Cafe Coins`, desc: "₹59 value. Follow hydration goals for first 3 days", credits: 60000, img: "☕" },
+    { id: 3, name: "Amazon Voucher", desc: "Minimum ₹99 voucher", credits: 100000, img: "🛒" },
+    { id: 4, name: "NimkiThekua Box", desc: "For 1 Week Hydration Master", credits: 1000000, img: "🍪" },
+    { id: 5, name: "Solana Crypto", desc: "30 day streak morning to evening conquerer", credits: 5000000, img: "💎" },
   ];
 
-  // Dynamic Leaderboard (inserting realtime user naturally)
-  const leaderboard = [
-    { id: 1, name: "Alice K.", streak: 45, avatar: "https://i.pravatar.cc/150?u=1", isMe: false },
-    { id: 2, name: "Bob M.", streak: 38, avatar: "https://i.pravatar.cc/150?u=2", isMe: false },
-    { id: 3, name: userName, streak: profileData?.streak?.currentStreak || 21, avatar: userAvatar, isMe: true },
-    { id: 4, name: "Zara L.", streak: 15, avatar: "https://i.pravatar.cc/150?u=4", isMe: false },
-    { id: 5, name: "David O.", streak: 12, avatar: "https://i.pravatar.cc/150?u=5", isMe: false },
+  // Specific certificates from prompt
+  const highestStreak = profileData?.streak?.highestStreak || 1;
+  const certificates = [
+    { id: "cert-basic-hydro", title: "Basic Hydration", desc: "Drinking a glass of water 3 times.", progress: Math.min((highestStreak / 3) * 100, 100), current: Math.min(highestStreak, 3), total: 3, icon: Droplet, color: "from-blue-200 to-blue-400", label: "Starter" },
+    { id: "cert-master-hydro", title: "Master Hydration", desc: "Maintaining an 8-glass weekly streak.", progress: Math.min((highestStreak / 7) * 100, 100), current: Math.min(highestStreak, 7), total: 7, icon: Droplet, color: "from-blue-500 to-cyan-600", label: "Master" },
+    { id: "cert-inbox", title: "Inbox Zero Starter", desc: "Checking mail for the first time with the app timer.", progress: 100, current: 1, total: 1, icon: Mail, color: "from-purple-400 to-indigo-500", label: "Productivity" },
+    { id: "cert-nutrition-base", title: "Nutritional Consistency (Basic)", desc: "Breakfast, lunch, snacks, & dinner logged on point.", progress: Math.min((highestStreak / 3) * 100, 100), current: Math.min(highestStreak, 3), total: 3, icon: Coffee, color: "from-orange-300 to-orange-500", label: "Starter Tracker" },
+    { id: "cert-commitment", title: "Iron Commitment Chaser", desc: "Logging in and exercising 3 times.", progress: Math.min((highestStreak / 3) * 100, 100), current: Math.min(highestStreak, 3), total: 3, icon: Dumbbell, color: "from-gray-600 to-gray-800", label: "Body Fitness" },
   ];
 
   const exportCertificate = async (id: string, name: string) => {
@@ -104,7 +143,6 @@ export default function RewardsPage() {
             </TabsList>
 
             <TabsContent value="dashboard" className="space-y-6">
-                {/* Slake Credits Card */}
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
                     <Card className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white border-none shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none mix-blend-overlay">
@@ -119,80 +157,58 @@ export default function RewardsPage() {
                                 <span className="text-2xl pb-1 font-bold text-white/90">SC</span>
                             </div>
                             <p className="mt-4 text-sm text-white/80 max-w-[280px] relative z-10 font-medium">
-                                Complete daily tasks without breaking your combo to earn multipliers!
+                                Keep grinding your daily tasks to unlock more rewards!
                             </p>
                         </CardContent>
                     </Card>
                 </motion.div>
 
-                {/* Weekly Progress Chart */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                    <Card className="backdrop-blur-xl bg-card/80 border-border/50 shadow-lg relative overflow-hidden flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-blue-500" />
-                                Weekly Streak
-                            </CardTitle>
-                            <CardDescription>Your daily task completion percentage</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1">
-                            <div className="h-[200px] w-full mt-2">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={streakData}>
-                                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12, fontWeight: 600 }} />
-                                        <RechartsTooltip 
-                                            cursor={{ fill: 'rgba(255,255,255,0.1)' }}
-                                            content={({ active, payload }) => {
-                                                if (active && payload && payload.length) {
-                                                    return (
-                                                        <div className="bg-popover text-popover-foreground border border-border p-2 rounded-lg shadow-xl text-sm font-bold">
-                                                            {payload[0].value}% Completed
-                                                        </div>
-                                                    )
-                                                }
-                                                return null;
-                                            }}
-                                        />
-                                        <Bar dataKey="percent" radius={[6, 6, 6, 6]}>
-                                            {streakData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.percent === 100 ? '#10b981' : entry.percent > 50 ? '#3b82f6' : '#ef4444'} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Leaderboard Section */}
+                <div className="grid grid-cols-1 gap-6">
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
                         <Card className="h-full border-border/50 shadow-lg">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Crown className="w-5 h-5 text-yellow-500" />
-                                    Global Leaderboard ({profileData?.region || "Local"})
+                                    Global Leaderboard (Real-Time)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {leaderboard.map((u, idx) => (
-                                        <div key={u.id} className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${u.isMe ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'}`}>
-                                            <span className={`w-6 text-center font-bold text-sm ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-700' : 'text-muted-foreground'}`}>
-                                                #{idx + 1}
-                                            </span>
-                                            <Avatar className="w-8 h-8 border border-border">
-                                                <AvatarImage src={u.avatar} />
-                                                <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <span className={`font-medium flex-1 text-sm ${u.isMe ? 'text-primary' : ''}`}>
-                                                {u.name} {u.isMe && "(You)"}
-                                            </span>
-                                            <Badge variant="secondary" className="flex items-center gap-1 font-bold">
-                                                <Flame className="w-3 h-3 text-orange-500" />
-                                                {u.streak}
-                                            </Badge>
+                                    {liveLeaderboard.length === 0 && <p className="text-sm text-muted-foreground text-center">Syncing players...</p>}
+                                    {liveLeaderboard.map((u, idx) => (
+                                        <div key={u.id} className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl transition-colors ${u.isMe ? 'bg-primary/5 border border-primary/20' : 'bg-muted/30 hover:bg-muted/50 border border-transparent'}`}>
+                                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                                <span className={`w-8 text-center font-black text-xl flex-shrink-0 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-700' : 'text-muted-foreground/50'}`}>
+                                                    #{idx + 1}
+                                                </span>
+                                                <Avatar className="w-10 h-10 border border-border">
+                                                    <AvatarImage src={u.avatar} />
+                                                    <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex flex-col flex-grow">
+                                                    <span className={`font-bold text-base flex items-center gap-2 ${u.isMe ? 'text-primary' : ''}`}>
+                                                        {u.name} {u.isMe && "(You)"}
+                                                    </span>
+                                                    <span className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" /> {u.city} • <span className="text-primary">{u.routine}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex gap-2 sm:ml-auto w-full sm:w-auto overflow-x-auto pb-1 mt-2 sm:mt-0">
+                                                <Badge variant="secondary" className="flex items-center gap-1 font-bold whitespace-nowrap bg-background">
+                                                    <Flame className="w-3 h-3 text-orange-500" />
+                                                    {u.streak} Days
+                                                </Badge>
+                                                <Badge variant="secondary" className="flex items-center gap-1 font-bold whitespace-nowrap bg-background">
+                                                    <Zap className="w-3 h-3 text-indigo-500" />
+                                                    {u.coins.toLocaleString()} SC
+                                                </Badge>
+                                                <Badge variant="secondary" className="flex items-center gap-1 font-bold whitespace-nowrap bg-background">
+                                                    <Medal className="w-3 h-3 text-yellow-500" />
+                                                    {u.certificates} Ctd
+                                                </Badge>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -200,41 +216,26 @@ export default function RewardsPage() {
                         </Card>
                     </motion.div>
                     
-                    {/* Badges Section */}
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                         <Card className="h-full border-border/50 shadow-lg">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Medal className="w-5 h-5 text-purple-500" />
-                                    Recent Gamification Sets
+                                    <TrendingUp className="w-5 h-5 text-purple-500" />
+                                    Recent Gamification Progress
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="flex items-start gap-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                                    <div className="p-2 rounded-full bg-emerald-500/20 shrink-0">
-                                        <Heart className="w-6 h-6 text-emerald-500" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-sm">Bio-Metric Synced</h4>
-                                        <p className="text-xs text-muted-foreground mt-1">Google Fit connected! {(profileData?.weight || 0) > 0 ? "Analyzing metrics..." : ""}</p>
-                                    </div>
-                                </div>
                                 <div className="flex items-start gap-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
                                     <div className="p-2 rounded-full bg-orange-500/20 shrink-0">
                                         <Flame className="w-6 h-6 text-orange-500" />
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-sm">Morning-to-Evening</h4>
-                                        <p className="text-xs text-muted-foreground mt-1">Completed the first and last task with no missing blocks in between.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 opacity-50 grayscale">
-                                    <div className="p-2 rounded-full bg-blue-500/20 shrink-0">
-                                        <Star className="w-6 h-6 text-blue-500" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-sm">Perfect Week</h4>
-                                        <p className="text-xs text-muted-foreground mt-1">Hit 100% completion for 7 days straight. (Locked)</p>
+                                    <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                           <h4 className="font-bold text-sm">Consistent Login</h4>
+                                           <span className="text-xs font-bold text-orange-500">{highestStreak} / 30 Days</span>
+                                        </div>
+                                        <Progress value={Math.min((highestStreak / 30)*100, 100)} className="h-1.5 mt-2 bg-background" />
+                                        <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-tight">On track for Solana Crypto Redemptions</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -245,61 +246,92 @@ export default function RewardsPage() {
 
             <TabsContent value="redeem" className="space-y-6">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {rewardItems.map((item, idx) => (
+                    {rewardItems.map((item, idx) => {
+                        const isUnlocked = credits >= item.credits;
+                        const progress = Math.min((credits / item.credits) * 100, 100);
+                        return (
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
-                            <Card className="border-border/50 shadow-md hover:shadow-xl transition-all duration-300">
-                                <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-start">
-                                        <div className="p-3 bg-muted rounded-xl text-3xl font-bold flex items-center justify-center">{item.img}</div>
-                                        <Badge variant={credits >= item.credits ? "default" : "secondary"}>
+                            <Card className={`border-border/50 shadow-md transition-all duration-300 h-full flex flex-col ${isUnlocked ? 'border-primary/50 bg-primary/5' : ''}`}>
+                                <CardHeader className="pb-2 flex-grow">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="p-3 bg-card border shadow-sm rounded-xl text-3xl font-bold flex items-center justify-center">{item.img}</div>
+                                        <Badge variant={isUnlocked ? "default" : "secondary"} className="font-mono font-bold">
                                             {item.credits.toLocaleString()} SC
                                         </Badge>
                                     </div>
-                                    <CardTitle className="text-lg mt-4">{item.name}</CardTitle>
-                                    <CardDescription>{item.desc}</CardDescription>
+                                    <CardTitle className="text-lg leading-tight">{item.name}</CardTitle>
+                                    <CardDescription className="text-sm mt-1">{item.desc}</CardDescription>
                                 </CardHeader>
-                                <CardFooter>
-                                    <Button className="w-full font-bold" variant={credits >= item.credits ? "default" : "secondary"} disabled={credits < item.credits}>
-                                        {credits >= item.credits ? "Redeem Now" : "Not Enough Credits"}
+                                <CardContent className="pb-2">
+                                    <div className="space-y-1 mt-2">
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                           <span>Progress</span>
+                                           <span>{Math.floor(progress)}%</span>
+                                        </div>
+                                        <Progress value={progress} className={`h-2 ${isUnlocked ? '[&>div]:bg-primary' : '[&>div]:bg-muted-foreground'}`} />
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="pt-2">
+                                    <Button className="w-full font-bold" variant={isUnlocked ? "default" : "secondary"} disabled={!isUnlocked}>
+                                        {isUnlocked ? "Redeem Now" : "Keep Grinding"}
                                     </Button>
                                 </CardFooter>
                             </Card>
                         </motion.div>
-                    ))}
+                    )})}
                  </div>
             </TabsContent>
 
             <TabsContent value="certificates" className="space-y-6">
-                <p className="text-muted-foreground text-center mb-6">Complete streaks to unlock and showcase your discipline visually.</p>
+                <p className="text-muted-foreground text-center mb-6">Complete milestones to unlock master tiers and pin them to your Reformers Dashboard.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {certificates.map((cert, idx) => {
                         const IconComponent = cert.icon;
+                        const isUnlocked = cert.progress >= 100;
                         return (
                             <motion.div key={cert.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.1 }} className="flex flex-col gap-3">
-                                {/* The Certificate Element to be captured */}
-                                <div id={cert.id} className={`relative overflow-hidden rounded-2xl p-6 border-2 border-primary/10 shadow-2xl bg-gradient-to-br ${cert.color} text-white flex flex-col justify-between min-h-[220px]`}>
+                                <div id={cert.id} className={`relative overflow-hidden rounded-2xl p-6 border-2 shadow-2xl flex flex-col justify-between min-h-[220px] transition-all ${isUnlocked ? `border-transparent bg-gradient-to-br ${cert.color} text-white` : 'border-border bg-card/60 text-muted-foreground grayscale-[0.8]'}`}>
                                     <div className="absolute top-0 right-0 -mt-6 -mr-6 opacity-20 rotate-12 pointer-events-none mix-blend-overlay">
                                         <IconComponent className="w-48 h-48" />
                                     </div>
-                                    <div className="relative z-10">
-                                        <Badge className="bg-white/20 text-white hover:bg-white/30 border-none font-bold tracking-widest uppercase text-[10px] mb-4">
-                                            {cert.label}
-                                        </Badge>
-                                        <h3 className="text-2xl font-black mb-2 leading-tight drop-shadow-md">{cert.title}</h3>
-                                        <p className="text-sm text-white/90 font-medium max-w-[80%] drop-shadow-sm">{cert.desc}</p>
-                                    </div>
-                                    <div className="relative z-10 flex border-t border-white/20 pt-4 mt-6 items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Award className="w-5 h-5 text-yellow-300 fill-yellow-300/50" />
-                                            <span className="text-xs font-bold uppercase tracking-wider">Slake Certified {userName}</span>
+                                    <div className="relative z-10 flex flex-col h-full">
+                                        <div className="flex justify-between items-start">
+                                            <Badge className={`border-none font-bold tracking-widest uppercase text-[10px] mb-4 ${isUnlocked ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-muted text-muted-foreground'}`}>
+                                                {cert.label}
+                                            </Badge>
                                         </div>
-                                        <span className="text-[10px] font-bold opacity-70">DATE: {new Date().toLocaleDateString('en-GB')}</span>
+                                        
+                                        <h3 className={`text-2xl font-black mb-2 leading-tight drop-shadow-md ${!isUnlocked && 'text-foreground/70'}`}>{cert.title}</h3>
+                                        <p className={`text-sm font-medium max-w-[80%] drop-shadow-sm mb-4 ${!isUnlocked ? 'text-muted-foreground' : 'text-white/90'}`}>{cert.desc}</p>
+                                        
+                                        <div className="mt-auto space-y-1">
+                                            <div className="flex justify-between items-end">
+                                                <p className={`text-[10px] font-black uppercase tracking-widest ${isUnlocked ? 'text-white/70' : 'text-muted-foreground'}`}>
+                                                    {isUnlocked ? 'UNLOCKED' : 'IN PROGRESS'}
+                                                </p>
+                                                <p className={`text-xs font-bold ${isUnlocked ? 'text-white' : 'text-foreground'}`}>
+                                                    {cert.current} / {cert.total}
+                                                </p>
+                                            </div>
+                                            <Progress value={cert.progress} className={`h-1.5 ${isUnlocked ? '[&>div]:bg-white bg-black/20' : ''}`} />
+                                        </div>
                                     </div>
+                                    {isUnlocked && (
+                                        <div className="relative z-10 flex border-t border-white/20 pt-4 mt-6 items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Award className="w-5 h-5 text-yellow-300 fill-yellow-300/50" />
+                                                <span className="text-xs font-bold uppercase tracking-wider drop-shadow-sm">Slake Certified {userName}</span>
+                                            </div>
+                                            <span className="text-[10px] font-bold opacity-70">DATE: {new Date().toLocaleDateString('en-GB')}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                {/* Actions */}
                                 <div className="flex gap-2">
-                                    <Button variant="outline" className={`flex-1 ${cert.text} border-border/50 shadow-sm`} onClick={() => exportCertificate(cert.id, cert.title)}>
-                                        {downloading === cert.id ? <span className="animate-pulse">Rendering...</span> : <><Download className="w-4 h-4 mr-2" /> Export Hub</>}
+                                    <Button variant="outline" disabled={!isUnlocked} className="flex-1 border-border/50 shadow-sm font-bold bg-muted/30" onClick={() => exportCertificate(cert.id, cert.title)}>
+                                        {downloading === cert.id ? <span className="animate-pulse">Rendering...</span> : <><Download className="w-4 h-4 mr-2" /> Export</>}
+                                    </Button>
+                                    <Button variant="outline" disabled={!isUnlocked} className="flex-1 border-border/50 shadow-sm font-bold bg-muted/30 text-primary hover:text-primary">
+                                        <Pin className="w-4 h-4 mr-2" /> Pin to Profile
                                     </Button>
                                 </div>
                             </motion.div>

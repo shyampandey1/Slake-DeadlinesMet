@@ -130,6 +130,11 @@ export type UserProfile = {
         linkedin: boolean;
         whatsapp: boolean;
     };
+    socialUrls?: {
+        meta?: string;
+        linkedin?: string;
+        whatsapp?: string;
+    };
     currentTaskStatus?: string;
     isOnline?: boolean;
     isPrivateProfile?: boolean;
