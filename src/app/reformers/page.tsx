@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWeather } from "@/hooks/useWeather";
 
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 
@@ -112,7 +112,7 @@ export default function ReformersPage() {
                      location: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
                      status: data.currentTaskStatus || "Idle",
                      online: !!data.isOnline,
-                     avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
+                     avatar: data.displayPicture || `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${uid}`,
                      streak: data.streak?.currentStreak || 0,
                      profession: data.profile || "General",
                      isPrivate: !!data.isPrivateProfile,
@@ -137,6 +137,54 @@ export default function ReformersPage() {
      
      return () => unsubscribe();
   }, [isEnrolled, profileData?.userId]);
+
+  // Backfill sync for older offline members that lack profile telemetry
+  useEffect(() => {
+      let mounted = true;
+      const syncMissingProfiles = async () => {
+          let updated = false;
+          const newMembers = [...liveMembers];
+          for (let i = 0; i < newMembers.length; i++) {
+             if (newMembers[i].appAge === 0 && newMembers[i].totalTasks === 0) {
+                 try {
+                    const tasksRef = collection(db, 'users', newMembers[i].id, 'tasks');
+                    const q = query(tasksRef, orderBy('createdAt', 'asc'));
+                    const snap = await getDocs(q);
+                    if (!snap.empty && mounted) {
+                        newMembers[i].totalTasks = snap.docs.length;
+                        const firstDate = snap.docs[0].data().createdAt;
+                        if (firstDate) {
+                            newMembers[i].appAge = Math.floor((new Date().getTime() - new Date(firstDate).getTime()) / 86400000);
+                        }
+                        
+                        let wt = 0;
+                        snap.docs.forEach((d: any) => { if (d.data().name?.toLowerCase().includes('water')) wt++; });
+                        newMembers[i].totalWaterGlasses = wt;
+                        updated = true;
+                    }
+                 } catch (e) {
+                     // Fails gracefully if permissions drop
+                 }
+             }
+          }
+          if (updated && mounted) {
+             newMembers.sort((a,b) => {
+                 const aScore = a.streak * 100 + a.appAge * 10 + a.totalTasks * 5 + a.totalWaterGlasses * 2 + a.coins;
+                 const bScore = b.streak * 100 + b.appAge * 10 + b.totalTasks * 5 + b.totalWaterGlasses * 2 + b.coins;
+                 return bScore - aScore;
+             });
+             setLiveMembers(newMembers);
+          }
+      };
+      
+      const to = setTimeout(() => {
+          if (liveMembers.some(m => m.appAge === 0 && m.totalTasks === 0)) {
+              syncMissingProfiles();
+          }
+      }, 500);
+
+      return () => { mounted = false; clearTimeout(to); };
+  }, [liveMembers]);
 
   // Load chat messages when entering chatMode
   useEffect(() => {
@@ -208,7 +256,7 @@ export default function ReformersPage() {
   };
 
   const handleRandomVector = () => {
-      setEditDP(`https://api.dicebear.com/9.x/avataaars/svg?seed=${Math.random().toString(36).substring(7)}`);
+      setEditDP(`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${Math.random().toString(36).substring(7)}`);
   };
 
   const handleSaveProfile = () => {
@@ -246,7 +294,16 @@ export default function ReformersPage() {
 
   const handleFollow = async () => {
       setIsFollowing(!isFollowing);
-      // Native Follow Hook
+      if (!isFollowing && selectedUser && profileData?.userId) {
+          try {
+              await addDoc(collection(db, "messages"), {
+                  senderId: profileData.userId,
+                  receiverId: selectedUser.id,
+                  text: `started following you!`,
+                  timestamp: serverTimestamp()
+              });
+          } catch(e) { }
+      }
   };
 
   const activeDates = new Set<string>();

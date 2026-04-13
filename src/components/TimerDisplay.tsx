@@ -133,7 +133,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       tag: "timer-done",
       vibrate: [200, 100, 200],
       data: {
-        url: window.location.href,
+        url: window.location.href.includes('?') ? `${window.location.href}&from_notification=true` : `${window.location.href}?from_notification=true`,
       },
       requireInteraction: true,
     };

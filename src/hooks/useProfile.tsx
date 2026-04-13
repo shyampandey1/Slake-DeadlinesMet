@@ -206,6 +206,59 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled, initializeUserTasks]);
 
 
+  useEffect(() => {
+     if (!user || isOffline || !isSyncEnabled || typeof window === 'undefined') return;
+     
+     const msgsQ = query(collection(db, "messages"), where("receiverId", "==", user.uid));
+     
+     let isInitialMessagesLoad = true;
+     const unsubMsgs = onSnapshot(msgsQ, (snap) => {
+         if (isInitialMessagesLoad) {
+             isInitialMessagesLoad = false;
+             return;
+         }
+         snap.docChanges().forEach((change) => {
+             if (change.type === 'added') {
+                 const msgData = change.doc.data();
+                 if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+                     navigator.serviceWorker.ready.then((reg) => {
+                         reg.showNotification("New Reformers Message", {
+                             body: msgData.text ? (msgData.text.length > 40 ? msgData.text.substring(0, 40) + "..." : msgData.text) : "Someone sent you a text.",
+                             icon: "/icon.svg",
+                             badge: "/icon.svg",
+                             tag: `msg-${change.doc.id}`,
+                             data: { url: "/reformers?from_notification=true" }
+                         });
+                     }).catch(e => console.warn(e));
+                 }
+             }
+         });
+     });
+     
+     return () => {
+         unsubMsgs();
+     };
+  }, [user, isOffline, isSyncEnabled]);
+
+  useEffect(() => {
+     if (typeof window !== 'undefined' && user && !isOffline && isSyncEnabled) {
+         const urlParams = new URLSearchParams(window.location.search);
+         if (urlParams.get('from_notification')) {
+             // Increment notification clicks silently
+             const profileRef = doc(db, 'users', user.uid);
+             getDoc(profileRef).then(docSnap => {
+                 if (docSnap.exists()) {
+                     const currentClicks = (docSnap.data().notificationClicks || 0) + 1;
+                     updateDoc(profileRef, { notificationClicks: currentClicks }).catch(() => {});
+                 }
+             });
+             // Clean the URL without refreshing
+             window.history.replaceState({}, document.title, window.location.pathname);
+         }
+     }
+  }, [user, isOffline, isSyncEnabled]);
+
+
     const setProfile = useCallback(async (newProfile: ProfileType) => {
     if (!user) return;
     if (profile === newProfile) return;
