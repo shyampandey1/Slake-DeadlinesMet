@@ -677,9 +677,21 @@ export default function ReformersPage() {
                             </div>
                             
                             <div className="flex items-center gap-4 shrink-0">
-                                <div className="text-center pr-2">
-                                    <p className="text-xs font-bold text-foreground leading-tight">{member.streak}</p>
-                                    <p className="text-[10px] uppercase tracking-widest text-[#10b981] font-bold">Days</p>
+                                <div className="text-center">
+                                    <p className="text-xs font-bold text-foreground leading-tight">{member.appAge}</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Age</p>
+                                </div>
+                                <div className="text-center hidden sm:block">
+                                    <p className="text-xs font-bold text-foreground leading-tight">{member.totalTasks}</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Tasks</p>
+                                </div>
+                                <div className="text-center hidden md:block">
+                                    <p className="text-xs font-bold text-amber-500 leading-tight">{member.coins}</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-amber-500/70 font-bold">Coins</p>
+                                </div>
+                                <div className="text-center pr-2 border-l border-border/50 pl-3 md:pl-4">
+                                    <p className="text-xs font-black text-foreground leading-tight">{member.streak}</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-[#10b981] font-bold">Streak</p>
                                 </div>
                             </div>
                         </div>
