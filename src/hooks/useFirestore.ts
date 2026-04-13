@@ -119,9 +119,15 @@ export function useTasks() {
           }
       }
 
+      let appAge = 0;
+      if (userTasks.length > 0) {
+          const oldestTaskDate = new Date(userTasks[userTasks.length - 1].createdAt).getTime();
+          appAge = Math.floor((new Date().getTime() - oldestTaskDate) / 86400000);
+      }
+
       // Update native profile silently if out of sync
       const pStreak = profileData?.streak;
-      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profileData as any)?.totalTasks !== totalTasks || (profileData as any)?.totalWaterGlasses !== totalWaterGlasses) {
+      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profileData as any)?.totalTasks !== totalTasks || (profileData as any)?.totalWaterGlasses !== totalWaterGlasses || (profileData as any)?.appAge !== appAge) {
          updateUserProfileData({ 
             streak: { 
                ...pStreak, 
@@ -131,7 +137,8 @@ export function useTasks() {
                dailyHistory: pStreak?.dailyHistory || [] 
             },
             totalTasks,
-            totalWaterGlasses
+            totalWaterGlasses,
+            appAge
          } as any);
       }
       // --- END STREAK SYNC ---

@@ -141,6 +141,7 @@ export type UserProfile = {
     pinnedCertificates?: string[];
     gender?: "Male" | "Female" | "Prefer not to share" | string;
     createdAt?: any;
+    appAge?: number;
     totalTasks?: number;
     totalWaterGlasses?: number;
 };

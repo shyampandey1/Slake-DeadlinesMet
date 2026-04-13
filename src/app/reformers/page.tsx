@@ -121,7 +121,7 @@ export default function ReformersPage() {
                      permissions: data.googleSyncPermissions || {},
                      socialUrls: data.socialUrls || {},
                      coins: data.slakeCredits || 0,
-                     appAge: data.createdAt ? Math.floor((new Date().getTime() - new Date(data.createdAt).getTime()) / 86400000) : 0,
+                     appAge: data.appAge !== undefined ? data.appAge : (data.createdAt ? Math.floor((new Date().getTime() - new Date(data.createdAt).getTime()) / 86400000) : 0),
                      totalTasks: data.totalTasks || 0,
                      totalWaterGlasses: data.totalWaterGlasses || 0
                  });

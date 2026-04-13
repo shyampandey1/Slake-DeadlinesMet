@@ -176,7 +176,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 customProfessions: [], 
                 routineVersions: {},
                 displayName: user.displayName || undefined,
-                email: user.email || undefined
+                email: user.email || undefined,
+                displayPicture: 'photoURL' in user ? user.photoURL || undefined : undefined,
+                createdAt: new Date().toISOString()
             };
             await setDoc(profileRef, dataToSet); // This creates the user doc if it doesn't exist
         }
