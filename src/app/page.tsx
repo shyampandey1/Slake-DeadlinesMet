@@ -9,6 +9,13 @@ export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+       const urlParams = new URLSearchParams(window.location.search);
+       const refId = urlParams.get('ref');
+       if (refId) {
+           localStorage.setItem('slake_referral_id', refId);
+       }
+    }
     const timer = setInterval(() => {
       setCurrentDate(new Date());
     }, 60000); // Update every minute
