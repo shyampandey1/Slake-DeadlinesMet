@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "./ui/separator";
-import { usePresetTasks, useCalendarEvents } from "@/hooks/useFirestore";
+import { useTasks, usePresetTasks, useCalendarEvents } from "@/hooks/useFirestore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask, Preset } from "@/types";
 import { cn } from "@/lib/utils";
@@ -119,6 +119,7 @@ function formatDuration(minutes: number): string {
 
 export default function TaskForm() {
   const router = useRouter();
+  const { tasks: loggedTasks } = useTasks();
   const { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory, isDefaultTask } = usePresetTasks();
   const { events } = useCalendarEvents();
   const { profile } = useProfile();
@@ -168,6 +169,14 @@ export default function TaskForm() {
         });
     }
     
+    const todayStr = new Date().toISOString().split('T')[0];
+    const completedCounts: Record<string, number> = {};
+    loggedTasks.forEach(t => {
+      if (t.completed && t.createdAt && typeof t.createdAt === 'string' && t.createdAt.startsWith(todayStr)) {
+        completedCounts[t.name] = (completedCounts[t.name] || 0) + 1;
+      }
+    });
+
     const sortedCategoryNames = Object.keys(newPresetTasks).sort((a, b) => {
         if (a === "Today's Events") return -1;
         if (b === "Today's Events") return 1;
@@ -178,10 +187,22 @@ export default function TaskForm() {
     sortedCategoryNames.forEach(categoryName => {
         sortedPreset[categoryName] = newPresetTasks[categoryName];
         sortedPreset[categoryName].tasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+        sortedPreset[categoryName].tasks.forEach((task: any) => {
+            const count = completedCounts[task.name] || 0;
+            if (count > 0) {
+                task.isCompleted = true;
+                completedCounts[task.name] = count - 1;
+            } else {
+                task.isCompleted = false;
+            }
+        });
     });
 
     return sortedPreset;
-  }, [presetTasks, events, categoryTimeRanges]);
+  }, [presetTasks, events, categoryTimeRanges, loggedTasks]);
+  
+  // Removed completedTodayTasks since we compute it inside mergedTasks
   
   const scrollTo = useCallback(
     (index: number) => carouselApi && carouselApi.scrollTo(index),
@@ -361,19 +382,24 @@ export default function TaskForm() {
                                 <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
                                 <ScrollArea className="h-full pr-3">
                                     <div className="space-y-2">
-                                    {tasks.map((task, index) => {
-                                        const Icon = iconMap[task.icon] || BrainCircuit;
+                                    {tasks.map((task: any, index: number) => {
+                                        const Icon = iconMap[task.icon as string] || BrainCircuit;
                                         const isEventTask = task.isEvent;
+                                        const isCompleted = task.isCompleted;
                                         return (
                                             <Button
                                                 key={task.id || `${task.name}-${index}`}
                                                 variant="outline"
-                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal", { "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask })}
+                                                className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal transition-all", 
+                                                { 
+                                                  "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask,
+                                                  "opacity-50 grayscale": isCompleted
+                                                })}
                                                 onClick={() => selectQuickStartTask(task, category)}
                                                 onDoubleClick={() => task.id && !isEventTask && !isDefaultTask(task) && handleOpenDialog(task, category)}
                                             >
                                                 <Icon className="w-5 h-5 text-muted-foreground" />
-                                                <span className="flex-1 text-left font-normal">{task.name}</span>
+                                                <span className={cn("flex-1 text-left font-normal", isCompleted && "line-through text-muted-foreground")}>{task.name}</span>
                                                 <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
                                             </Button>
                                         );

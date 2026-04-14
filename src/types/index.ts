@@ -12,6 +12,8 @@ export type Task = {
   completed: boolean;
   createdAt: any; // Can be a server timestamp
   category?: string;
+  earnedCoins?: number;
+  isFalseEntry?: boolean;
 };
 
 export type MockUser = {
@@ -144,6 +146,8 @@ export type UserProfile = {
     appAge?: number;
     totalTasks?: number;
     totalWaterGlasses?: number;
+    reformersStatus?: 'pending' | 'approved' | null;
+    isReformersAdmin?: boolean;
 };
 
 export type UserEvent = {

@@ -8,6 +8,7 @@ import { usePresetTasks } from "@/hooks/useFirestore";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const SUGGESTED_CHIPS = [
   { name: 'Quick Water Break', duration: 5, category: 'health', icon: 'droplet' },
@@ -36,8 +37,8 @@ export default function VoiceInput({ className }: { className?: string }) {
 
   const transcriptRef = useRef("");
   
-  const { addPresetTask } = usePresetTasks();
   const { profile } = useProfile();
+  const router = useRouter();
 
   // Keyword scanning logic
   useEffect(() => {
@@ -73,11 +74,19 @@ export default function VoiceInput({ className }: { className?: string }) {
 
         recognitionInstance.onresult = (event: any) => {
           let currentTranscript = "";
+          let isFinal = false;
           for (let i = 0; i < event.results.length; i++) {
             currentTranscript += event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+               isFinal = true;
+            }
           }
           setTranscript(currentTranscript);
           transcriptRef.current = currentTranscript;
+          
+          if (isFinal) {
+             recognitionInstance.stop();
+          }
         };
 
         recognitionInstance.onerror = (event: any) => {
@@ -90,7 +99,8 @@ export default function VoiceInput({ className }: { className?: string }) {
           setIsListening(false);
           // If a keyword was detected, open quick setup
           if (detectedTask && !showQuickSetup) {
-             handleChipClick(detectedTask);
+             setSetupTask(detectedTask);
+             setShowQuickSetup(true);
           } else if (transcriptRef.current.trim() && !detectedTask) {
              // Incomplete voice command fallback -> prefill fields
              setSetupTask({ name: transcriptRef.current.trim().substring(0, 30), duration: 15, category: 'other', icon: 'file' });
@@ -122,15 +132,26 @@ export default function VoiceInput({ className }: { className?: string }) {
     }
   }, [recognition, isListening]);
 
+  const startTimerRoute = (task: any) => {
+    const params = new URLSearchParams({
+      task: task.name,
+      duration: task.duration.toString(),
+    });
+    if (task.category) {
+      params.append("category", task.category);
+    }
+    router.push(`/timer?${params.toString()}`);
+  }
+
   const handleChipClick = (task: any) => {
     if (isListening) recognition.stop();
-    setSetupTask(task);
-    setShowQuickSetup(true);
+    // directly start the timer for chip suggestions
+    startTimerRoute(task);
   };
 
-  const handleStartTask = async () => {
+  const handleStartTask = () => {
     if (setupTask) {
-       await addPresetTask(setupTask, profile);
+       startTimerRoute(setupTask);
        setShowQuickSetup(false);
        setSetupTask(null);
        setTranscript("");
@@ -208,7 +229,7 @@ export default function VoiceInput({ className }: { className?: string }) {
                     className="mt-2"
                   >
                     <Button 
-                      onClick={() => handleChipClick(detectedTask)}
+                      onClick={() => { setSetupTask(detectedTask); setShowQuickSetup(true); }}
                       className="rounded-full bg-[#10b981] hover:bg-[#10b981]/90 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] px-6 py-6 font-bold text-lg gap-2"
                     >
                       <Check className="w-5 h-5" /> Confirm & Start {detectedTask.name}
@@ -268,7 +289,7 @@ export default function VoiceInput({ className }: { className?: string }) {
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-[#0d0d0d] border-t border-white/10 rounded-t-3xl pb-[env(safe-area-inset-bottom)] pt-6 px-6 max-h-[85vh] shadow-2xl"
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-[#0d0d0d] border-t border-white/10 rounded-t-3xl pt-6 px-6 pb-12 max-h-[85vh] shadow-[0_-20px_40px_rgba(0,0,0,0.8)]"
           >
             <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
             

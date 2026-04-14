@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { useRouter } from "next/navigation";
 import html2canvas from "html2canvas";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,21 +32,35 @@ const streakData = [
 export default function RewardsPage() {
   const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
+  const router = useRouter();
   
   const [credits, setCredits] = useState(profileData?.slakeCredits || 0);
   
   useEffect(() => {
-    // Slake Balance Initialization
-    if (profileData && profileData.slakeCredits === undefined) {
-        // Just starting = 1000, 1 week streak = 1500
-        const isOneWeek = (profileData.streak?.highestStreak || 0) >= 7;
-        const initialCredits = isOneWeek ? 1500 : 1000;
-        updateUserProfileData({ slakeCredits: initialCredits });
-        setCredits(initialCredits);
-    } else {
-        setCredits(profileData?.slakeCredits || 1000); // fallback
+    if (profileData) {
+        // Eager Calculation Algorithm to reward active, long-term users
+        const streak = profileData.streak?.highestStreak || 0;
+        const tasksDone = (profileData as any).totalTasks || 0;
+        const water = (profileData as any).totalWaterGlasses || 0;
+        const age = (profileData as any).appAge || 0;
+        
+        // Generous point system based on retro logs
+        const base = 1000;
+        const taskScore = tasksDone * 250;     // 250 coins per task
+        const waterScore = water * 500;        // 500 coins per water
+        const streakScore = streak * 1000;     // 1000 coins per streak day
+        const ageScore = age * 200;            // 200 coins per day since joining
+        
+        const newCredits = base + taskScore + waterScore + streakScore + ageScore;
+        
+        if (profileData.slakeCredits !== newCredits) {
+             updateUserProfileData({ slakeCredits: newCredits });
+             setCredits(newCredits);
+        } else {
+             setCredits(profileData.slakeCredits);
+        }
     }
-  }, [profileData, updateUserProfileData]);
+  }, [profileData?.streak?.highestStreak, (profileData as any)?.totalTasks, (profileData as any)?.totalWaterGlasses, (profileData as any)?.appAge, profileData?.slakeCredits, updateUserProfileData]);
 
   const userCurrency = (profileData?.currency || "INR").toUpperCase();
   const cSym = userCurrency === "USD" ? "$" : userCurrency === "EUR" ? "€" : "₹";
@@ -69,7 +84,7 @@ export default function RewardsPage() {
                  streak: data.streak?.currentStreak || 0,
                  coins: data.slakeCredits || 0,
                  daysElapsed: data.streak?.highestStreak || 0,
-                 certificates: Math.floor((data.streak?.highestStreak || 0) / 7),
+                 certificates: Math.floor((data.streak?.highestStreak || 0) / 3) + Math.floor(((data as any).totalTasks || 0) / 10),
                  city: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
                  routine: data.profile || "General",
                  isMe: uid === profileData?.userId
@@ -145,12 +160,19 @@ export default function RewardsPage() {
   const mealsLogged = tasks.filter(t => t.completed && ['breakfast', 'lunch', 'dinner', 'snack'].some(m => t.name.toLowerCase().includes(m))).length;
   const workouts = tasks.filter(t => t.completed && ['workout', 'exercise', 'gym'].some(w => t.name.toLowerCase().includes(w))).length;
 
+  const totalAllTasks = tasks.filter(t => t.completed).length;
+  const appAgeDays = (profileData as any)?.appAge || 0;
+
   const certificates = [
     { id: "cert-basic-hydro", title: "Basic Hydration", desc: "Drinking a glass of water 3 times.", progress: Math.min((waterGlasses / 3) * 100, 100), current: Math.min(waterGlasses, 3), total: 3, icon: Droplet, color: "from-blue-200 to-blue-400", label: "Starter" },
     { id: "cert-master-hydro", title: "Master Hydration", desc: "Maintaining an 8-glass weekly streak.", progress: Math.min((waterGlasses / 56) * 100, 100), current: Math.min(waterGlasses, 56), total: 56, icon: Droplet, color: "from-blue-500 to-cyan-600", label: "Master" },
+    { id: "cert-legendary-hydro", title: "Hydration Legend", desc: "Consumed 100 glasses of water.", progress: Math.min((waterGlasses / 100) * 100, 100), current: Math.min(waterGlasses, 100), total: 100, icon: Droplet, color: "from-cyan-400 to-teal-400", label: "Legend" },
     { id: "cert-inbox", title: "Inbox Zero Starter", desc: "Checking mail for the first time with the app timer.", progress: Math.min((emailsChecked / 1) * 100, 100), current: Math.min(emailsChecked, 1), total: 1, icon: Mail, color: "from-purple-400 to-indigo-500", label: "Productivity" },
+    { id: "cert-task-master", title: "Task Mastery", desc: "Completed 50 diverse tasks.", progress: Math.min((totalAllTasks / 50) * 100, 100), current: Math.min(totalAllTasks, 50), total: 50, icon: Star, color: "from-yellow-400 to-orange-500", label: "Elite Achiever" },
+    { id: "cert-focus-titan", title: "Deep Focus Titan", desc: "Completed 100 diverse tasks.", progress: Math.min((totalAllTasks / 100) * 100, 100), current: Math.min(totalAllTasks, 100), total: 100, icon: Flame, color: "from-red-500 to-rose-700", label: "Titan" },
     { id: "cert-nutrition-base", title: "Nutritional Consistency (Basic)", desc: "Breakfast, lunch, snacks, & dinner logged on point.", progress: Math.min((mealsLogged / 3) * 100, 100), current: Math.min(mealsLogged, 3), total: 3, icon: Coffee, color: "from-orange-300 to-orange-500", label: "Starter Tracker" },
     { id: "cert-commitment", title: "Iron Commitment Chaser", desc: "Logging in and exercising 3 times.", progress: Math.min((workouts / 3) * 100, 100), current: Math.min(workouts, 3), total: 3, icon: Dumbbell, color: "from-gray-600 to-gray-800", label: "Body Fitness" },
+    { id: "cert-legacy", title: "Legacy Reformer", desc: "30 Days of App usage.", progress: Math.min((appAgeDays / 30) * 100, 100), current: Math.min(appAgeDays, 30), total: 30, icon: Crown, color: "from-amber-300 to-yellow-600", label: "Veteran" },
   ];
 
   const exportCertificate = async (id: string, name: string) => {
@@ -188,13 +210,29 @@ export default function RewardsPage() {
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center space-y-2 mb-8"
+            className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8"
         >
-            <h1 className="text-4xl font-extrabold tracking-tight flex items-center justify-center gap-3">
-                <Trophy className="w-10 h-10 text-yellow-500 fill-current drop-shadow-md" />
-                Achievement Center
-            </h1>
-            <p className="text-muted-foreground text-lg">Earn credits, redeem rewards, and share your success.</p>
+            <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-4xl font-extrabold tracking-tight flex items-center justify-center sm:justify-start gap-3">
+                    <Trophy className="w-10 h-10 text-yellow-500 fill-current drop-shadow-md" />
+                    Achievement Center
+                </h1>
+                <p className="text-muted-foreground text-lg">Earn credits, redeem rewards, and share your success.</p>
+            </div>
+            <Button 
+                variant="ghost" 
+                onClick={() => router.push('/reformers')}
+                className="flex items-center gap-3 p-2 h-auto rounded-2xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/50 transition-all group"
+            >
+                <div className="text-right hidden sm:block">
+                    <p className="text-xs font-bold text-foreground">{userName}</p>
+                    <p className="text-[10px] text-primary font-black uppercase tracking-tighter">View Profile</p>
+                </div>
+                <Avatar className="w-12 h-12 border-2 border-transparent group-hover:border-primary/50 transition-all">
+                    <AvatarImage src={userAvatar} />
+                    <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                </Avatar>
+            </Button>
         </motion.div>
 
         <Tabs defaultValue="dashboard" className="w-full">
@@ -238,7 +276,11 @@ export default function RewardsPage() {
                                 <div className="space-y-4">
                                     {liveLeaderboard.length === 0 && <p className="text-sm text-muted-foreground text-center">Syncing players...</p>}
                                     {liveLeaderboard.map((u, idx) => (
-                                        <div key={u.id} className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl transition-colors ${u.isMe ? 'bg-primary/5 border border-primary/20' : 'bg-muted/30 hover:bg-muted/50 border border-transparent'}`}>
+                                        <div 
+                                            key={u.id} 
+                                            onClick={() => router.push('/reformers')}
+                                            className={`cursor-pointer flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl transition-all duration-300 transform hover:scale-[1.01] ${u.isMe ? 'bg-primary/5 border border-primary/20' : 'bg-muted/30 hover:bg-muted/50 border border-transparent'}`}
+                                        >
                                             <div className="flex items-center gap-3 w-full sm:w-auto">
                                                 <span className={`w-8 text-center font-black text-xl flex-shrink-0 ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-700' : 'text-muted-foreground/50'}`}>
                                                     #{idx + 1}

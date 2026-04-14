@@ -406,19 +406,57 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       }
     }
 
+    let finalCompleted = completed;
+    let earnedCoins = 0;
+    let isFalse = false;
+
+    if (completed) {
+       // False entry logic
+       if (timeSpentInSeconds < 10) {
+           isFalse = true;
+           finalCompleted = false;
+           alert("False Entry Detected: Completion time was unnaturally fast. No rewards added.");
+       } else {
+           // Optimum coin addition calculation
+           const durationRatio = (timeSpentInSeconds / 60) / initialDuration;
+           let baseCoins = 50 + (actualDuration * 10);
+           
+           // Optimum Match Bonus (finished between 80% and 120% of planned time)
+           if (durationRatio >= 0.8 && durationRatio <= 1.2) {
+               baseCoins += 100;
+           }
+           
+           // Hydration/Health multipliers
+           if (taskName.toLowerCase().includes('water')) {
+               baseCoins += 50; 
+           }
+           if (['workout', 'exercise', 'gym'].some(w => taskName.toLowerCase().includes(w))) {
+               baseCoins += 150;
+           }
+           
+           earnedCoins = Math.floor(baseCoins);
+       }
+    }
+
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
       duration: actualDuration,
       initialDuration: initialDuration,
-      completed,
+      completed: finalCompleted,
       category: finalCategory,
+      earnedCoins: earnedCoins,
+      isFalseEntry: isFalse,
     };
 
     await addTask(newTask);
 
-    if (completed) {
+    if (finalCompleted) {
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
+      // Let's also update profile credits live so it feels immediate
+      if (profileData && earnedCoins > 0) {
+         updateUserProfileData({ slakeCredits: (profileData.slakeCredits || 0) + earnedCoins });
+      }
       try {
         const pastTasks = tasks.slice(0, 5).map(t => ({ taskName: t.name, duration: t.duration, completionStatus: t.completed }));
         const result = await generateMotivationalMessage({

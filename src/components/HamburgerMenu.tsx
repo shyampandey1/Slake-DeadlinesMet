@@ -162,11 +162,14 @@ export default function HamburgerMenu({ white = false }: { white?: boolean }) {
           </SheetHeader>
           <div className="py-4">
             {user && (
-              <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3" onClick={() => navigateTo('/settings')}>
-                <User className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground truncate">
-                  {user.displayName || user.email}
-                </span>
+              <Button variant="outline" className="w-full justify-start gap-3 h-auto p-3 hover:border-primary/50 transition-all" onClick={() => navigateTo('/reformers')}>
+                <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <User className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-bold text-foreground truncate">
+                    {user.displayName || "My Profile"}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-none">REFORMER</Badge>
               </Button>
             )}
           </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +16,93 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWeather } from "@/hooks/useWeather";
 
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
+
+function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, enrolling: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  const opacity1 = useTransform(scrollYProgress, [0, 0.2, 0.3], [1, 1, 0]);
+  const scale1 = useTransform(scrollYProgress, [0, 0.2], [1, 0.8]);
+
+  const opacity2 = useTransform(scrollYProgress, [0.2, 0.3, 0.5, 0.6], [0, 1, 1, 0]);
+  const y2 = useTransform(scrollYProgress, [0.2, 0.3], [100, 0]);
+
+  const opacity3 = useTransform(scrollYProgress, [0.5, 0.6, 0.8, 0.9], [0, 1, 1, 0]);
+  const y3 = useTransform(scrollYProgress, [0.5, 0.6], [100, 0]);
+
+  const opacity4 = useTransform(scrollYProgress, [0.8, 0.9, 1], [0, 1, 1]);
+  const scale4 = useTransform(scrollYProgress, [0.8, 0.9], [0.8, 1]);
+
+  return (
+    <div ref={containerRef} className="h-[400vh] relative bg-black font-sans">
+      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center justify-center pointer-events-none p-6">
+        
+        {/* Animated Background Vector / Glass */}
+        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+            <motion.div 
+               style={{ rotate: useTransform(scrollYProgress, [0, 1], [0, 180]) }}
+               className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#10b981]/20 via-transparent to-transparent pointer-events-none"
+            />
+            <div className="absolute inset-0 backdrop-blur-[100px] pointer-events-none"></div>
+        </div>
+
+        {/* SECTION 1 */}
+        <motion.div style={{ opacity: opacity1, scale: scale1 }} className="absolute z-10 w-full max-w-3xl flex flex-col items-center justify-center text-center">
+            <Globe2 className="w-24 h-24 text-[#10b981] mb-8 drop-shadow-[0_0_30px_rgba(16,185,129,0.8)]" />
+            <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-gray-200 to-gray-500 mb-6 drop-shadow-lg tracking-tight">The Reformers League</h1>
+            <p className="text-xl text-gray-400 font-medium tracking-wide">Scroll down to discover the elite network.</p>
+        </motion.div>
+
+        {/* SECTION 2 */}
+        <motion.div style={{ opacity: opacity2, y: y2 }} className="absolute z-10 w-full max-w-3xl flex flex-col items-center justify-center text-center">
+            <div className="p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
+                <Zap className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
+                <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">Generate Slake Coins</h2>
+                <p className="text-lg text-gray-300 leading-relaxed font-medium">By strictly sticking to your routines, logging tasks over time, and dominating the accountability leaderboard, you stack native currency effortlessly.</p>
+            </div>
+        </motion.div>
+
+        {/* SECTION 3 */}
+        <motion.div style={{ opacity: opacity3, y: y3 }} className="absolute z-10 w-full max-w-5xl flex flex-col md:flex-row justify-center gap-6 text-center">
+            <div className="p-6 md:p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl flex-1 flex flex-col items-center justify-center">
+                <Gift className="w-16 h-16 text-pink-500 mb-6" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">NimkiThekua Box</h2>
+                <p className="text-sm md:text-base text-gray-300 leading-relaxed">Unlock the authentic Bihar special NimkiThekua gift box, sent directly to your door when you master your physical routines.</p>
+            </div>
+            <div className="p-6 md:p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl flex-1 flex flex-col items-center justify-center">
+                <div className="flex gap-2 mb-6">
+                   <div className="w-14 h-14 rounded-full bg-[#0077b5]/20 flex items-center justify-center text-[#0077b5] font-bold text-xl border border-[#0077b5]/50">Ξ</div>
+                   <div className="w-14 h-14 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-xl border border-orange-500/50">₿</div>
+                   <div className="w-14 h-14 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xs border border-purple-500/50">SOL</div>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Crypto Bounties</h2>
+                <p className="text-sm md:text-base text-gray-300 leading-relaxed">Exchange coins for true digital assets. Your daily momentum and iron-clad discipline literally pays dividends.</p>
+            </div>
+        </motion.div>
+
+        {/* SECTION 4 / ACTION */}
+        <motion.div style={{ opacity: opacity4, scale: scale4 }} className="absolute z-20 w-full max-w-2xl flex flex-col items-center justify-center text-center pointer-events-auto">
+            <ShieldCheck className="w-24 h-24 text-[#10b981] mb-8 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]" />
+            <h2 className="text-5xl md:text-6xl font-black text-white mb-6">Do the best of your routine.</h2>
+            <p className="text-xl text-gray-400 mb-10 tracking-tight font-medium">Claim your spot on the grid today.</p>
+            <Button 
+                onClick={onEnroll}
+                disabled={enrolling}
+                className="w-full max-w-sm h-16 rounded-2xl bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-extrabold text-xl shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all transform hover:scale-105 active:scale-95 border border-[#10b981]/50"
+            >
+                {enrolling ? "Enrolling User..." : "Final Join"}
+            </Button>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
 
 export default function ReformersPage() {
   const { profileData, updateUserProfileData } = useProfile();
@@ -62,6 +146,9 @@ export default function ReformersPage() {
       appAge: number;
       totalTasks: number;
       totalWaterGlasses: number;
+      isEnrolled: boolean;
+      reformersStatus: string | null;
+      isReformersAdmin: boolean;
   }[]>([]);
 
   const [referralModalOpen, setReferralModalOpen] = useState(false);
@@ -123,7 +210,10 @@ export default function ReformersPage() {
                      coins: data.slakeCredits || 0,
                      appAge: data.appAge !== undefined ? data.appAge : (data.createdAt ? Math.floor((new Date().getTime() - new Date(data.createdAt).getTime()) / 86400000) : 0),
                      totalTasks: data.totalTasks || 0,
-                     totalWaterGlasses: data.totalWaterGlasses || 0
+                     totalWaterGlasses: data.totalWaterGlasses || 0,
+                     isEnrolled: data.isReformersEnrolled || false,
+                     reformersStatus: data.reformersStatus || null,
+                     isReformersAdmin: data.isReformersAdmin || false
                  });
          });
          members.sort((a, b) => {
@@ -215,8 +305,17 @@ export default function ReformersPage() {
   };
 
   const handleSavePermissions = () => {
+     const isShyam = profileData?.displayName?.toLowerCase() === "shyam pandey";
+     const alreadyApproved = profileData?.reformersStatus === 'approved';
+     
+     const newStatus = alreadyApproved ? 'approved' : (isShyam ? 'approved' : 'pending');
+     // Only Shyam or previously approved users get 'isReformersEnrolled: true' immediately
+     const newEnrolled = (isShyam || alreadyApproved);
+
      updateUserProfileData({
-        isReformersEnrolled: true,
+        isReformersEnrolled: newEnrolled,
+        reformersStatus: newStatus,
+        isReformersAdmin: isShyam || profileData?.isReformersAdmin,
         googleSyncPermissions: {
             whatsapp: whatsappSync,
             meta: metaSync,
@@ -226,6 +325,40 @@ export default function ReformersPage() {
      });
      setSocialModalOpen(false);
   };
+
+  const approveUser = async (userId: string) => {
+      try {
+          await updateDoc(doc(db, "users", userId), {
+              reformersStatus: 'approved',
+              isReformersEnrolled: true
+          });
+      } catch (err) {
+          console.error("Approval failed", err);
+      }
+  };
+
+  const makeAdmin = async (userId: string) => {
+      try {
+          await updateDoc(doc(db, "users", userId), {
+              isReformersAdmin: true
+          });
+      } catch (err) {
+          console.error("Admin promotion failed", err);
+      }
+  };
+
+  const handleLeaveLeague = async () => {
+      if (window.confirm("Are you sure you want to leave the Reformers League? Your profile will no longer be visible on the leaderboard.")) {
+          await updateUserProfileData({
+              isReformersEnrolled: false,
+              reformersStatus: null
+          });
+      }
+  };
+
+  const reformersStatus = profileData?.reformersStatus || null;
+  const isAdmin = profileData?.displayName?.toLowerCase() === "shyam pandey" || profileData?.isReformersAdmin;
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -355,40 +488,18 @@ export default function ReformersPage() {
   const myRank = myRankIndex !== -1 ? myRankIndex + 1 : 'Unranked';
   const rankChangeFactor = `+${Math.floor(Math.random() * 3) + 1}`;
 
-  if (!isEnrolled && !enrolling && !socialModalOpen) {
+  if (reformersStatus === 'pending' && !isEnrolled && !enrolling && !socialModalOpen) {
     return (
-      <div className="min-h-screen bg-background pb-24 text-foreground p-4 pt-16 font-sans">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto space-y-6">
-          <div className="text-center py-10">
-            <div className="mx-auto w-24 h-24 mb-6 rounded-full bg-[#10b981]/20 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.3)]">
-               <Globe2 className="w-12 h-12 text-[#10b981]" />
-            </div>
-            <h1 className="text-4xl font-extrabold tracking-tight mb-4 text-foreground">Reformers League</h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">Join the global network of discipline. See your real friends, logbook syncs, and chat securely in real-time.</p>
-          </div>
-          <Card className="bg-[#1a1a1a] border-border shadow-2xl">
-             <CardHeader>
-                <CardTitle className="text-[#10b981] flex items-center gap-2"><ShieldCheck /> Access Requirements</CardTitle>
-             </CardHeader>
-             <CardContent className="space-y-4 text-gray-300">
-               <div className="flex items-start gap-3">
-                 <CheckCircle2 className="w-5 h-5 text-[#10b981] shrink-0 mt-0.5" />
-                 <p className="text-sm">Public Profile listing displaying your logbook streaks to your friends.</p>
-               </div>
-               <div className="flex items-start gap-3">
-                 <CheckCircle2 className="w-5 h-5 text-[#10b981] shrink-0 mt-0.5" />
-                 <p className="text-sm">Social Sync bindings to securely transmit your public milestones to LinkedIn and WhatsApp.</p>
-               </div>
-             </CardContent>
-             <CardFooter>
-                 <Button className="w-full bg-[#10b981] hover:bg-[#059669] text-black font-extrabold py-6 rounded-xl text-lg transition-transform hover:scale-[1.02]" onClick={handleEnroll}>
-                    {enrolling ? "Enrolling User..." : "Enable Reformers Network"}
-                 </Button>
-             </CardFooter>
-          </Card>
-        </motion.div>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center p-6 space-y-6 pt-16 font-sans">
+        <ShieldCheck className="w-24 h-24 text-yellow-500 animate-pulse drop-shadow-[0_0_20px_rgba(234,179,8,0.5)]" />
+        <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">Access Restricted</h1>
+        <p className="text-lg text-gray-400 max-w-md">Your application to join the Reformers League is pending review. An administrator will verify your profile shortly.</p>
       </div>
     );
+  }
+
+  if ((!isEnrolled || reformersStatus === null) && !enrolling && !socialModalOpen) {
+    return <ReformersOnboarding onEnroll={handleEnroll} enrolling={enrolling} />;
   }
 
   return (
@@ -404,6 +515,49 @@ export default function ReformersPage() {
                <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
             </div>
             <div className="flex gap-2">
+                {isAdmin && (
+                    <Dialog open={adminModalOpen} onOpenChange={setAdminModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="border-yellow-500/30 bg-[#1a1a1a] text-yellow-500 hover:text-yellow-400 hover:bg-muted"><LockKeyhole className="w-4 h-4 mr-2" /> Admin</Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-[#1a1a1a] border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle className="text-yellow-500 flex items-center gap-2 text-xl font-bold"><ShieldCheck /> Admin Access</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <h3 className="font-bold text-sm text-gray-400 uppercase tracking-widest">Pending Approvals</h3>
+                                {liveMembers.filter(m => m.reformersStatus === 'pending').map(m => (
+                                     <div key={m.id} className="flex items-center justify-between p-3 border border-border rounded-xl">
+                                         <div className="flex items-center gap-3">
+                                            <Avatar className="w-10 h-10"><AvatarImage src={m.avatar} /></Avatar>
+                                            <div>
+                                               <p className="font-bold">{m.name}</p>
+                                               <p className="text-xs text-muted-foreground">{m.profession}</p>
+                                            </div>
+                                         </div>
+                                         <Button size="sm" className="bg-[#10b981] hover:bg-[#059669] text-black font-bold" onClick={() => approveUser(m.id)}>Approve</Button>
+                                     </div>
+                                ))}
+                                {liveMembers.filter(m => m.reformersStatus === 'pending').length === 0 && <p className="text-sm text-gray-500 bg-muted/20 p-4 rounded-lg">No pending requests.</p>}
+
+                                <h3 className="font-bold text-sm text-gray-400 uppercase tracking-widest mt-6">Manage Members (Enrolled)</h3>
+                                {liveMembers.filter(m => m.isEnrolled).map(m => (
+                                     <div key={m.id} className="flex items-center justify-between p-3 border border-border rounded-xl">
+                                         <div className="flex items-center gap-3">
+                                            <Avatar className="w-10 h-10"><AvatarImage src={m.avatar} /></Avatar>
+                                            <div>
+                                               <p className="font-bold">{m.name} {m.isReformersAdmin && <Badge className="ml-2 bg-yellow-500 text-black text-[9px]">ADMIN</Badge>}</p>
+                                            </div>
+                                         </div>
+                                         {!m.isReformersAdmin && (
+                                            <Button size="sm" variant="outline" className="text-yellow-500 border-yellow-500/50 hover:bg-yellow-500 hover:text-black" onClick={() => makeAdmin(m.id)}>Promote</Button>
+                                         )}
+                                     </div>
+                                ))}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
                 <Button variant="outline" className="border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted" onClick={() => setReferralModalOpen(true)}>
                    <Share2 className="w-4 h-4 mr-2" /> Invite
                 </Button>
@@ -574,9 +728,14 @@ export default function ReformersPage() {
                                     <AvatarImage src={profileData?.displayPicture || "https://i.pravatar.cc/150"} />
                                     <AvatarFallback>{profileData?.displayName?.charAt(0) || "U"}</AvatarFallback>
                                 </Avatar>
-                                <Button onClick={togglePrivacy} size="icon" variant="secondary" className="absolute bottom-0 right-0 w-8 h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-border" title={profileData?.isPrivateProfile ? "Private" : "Public"}>
-                                    {profileData?.isPrivateProfile ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Unlock className="w-4 h-4 text-[#10b981]" />}
-                                </Button>
+                                <div className="absolute bottom-0 right-0 flex flex-col gap-1">
+                                    <Button onClick={togglePrivacy} size="icon" variant="secondary" className="w-8 h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-border" title={profileData?.isPrivateProfile ? "Private" : "Public"}>
+                                        {profileData?.isPrivateProfile ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Unlock className="w-4 h-4 text-[#10b981]" />}
+                                    </Button>
+                                    <Button onClick={handleLeaveLeague} size="icon" variant="destructive" className="w-8 h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-red-500/50 bg-[#1a1a1a] hover:bg-red-500 text-red-500 hover:text-white" title="Exit League">
+                                        <LogOut className="w-3.5 h-3.5" />
+                                    </Button>
+                                </div>
                             </div>
                             
                             <div className="flex-1 text-center sm:text-left space-y-2 w-full pt-2">
@@ -590,7 +749,7 @@ export default function ReformersPage() {
                                     </div>
                                     <div className="bg-muted/50 border border-border px-4 py-2 rounded-xl flex flex-wrap gap-4 mt-4 sm:mt-0 mx-auto sm:mx-0 w-fit shrink-0 shadow-inner">
                                         <div className="text-center min-w-[70px]">
-                                            <p className="text-[10px] uppercase text-muted-foreground font-bold">App Age</p>
+                                            <p className="text-[10px] uppercase text-muted-foreground font-bold">App Days</p>
                                             <p className="text-xl font-black text-foreground">{appAgeDays}D</p>
                                         </div>
                                         <div className="border-l border-border pl-4 text-center min-w-[70px]">
@@ -679,7 +838,7 @@ export default function ReformersPage() {
                             <div className="flex items-center gap-4 shrink-0">
                                 <div className="text-center">
                                     <p className="text-xs font-bold text-foreground leading-tight">{member.appAge}</p>
-                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Age</p>
+                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Days</p>
                                 </div>
                                 <div className="text-center hidden sm:block">
                                     <p className="text-xs font-bold text-foreground leading-tight">{member.totalTasks}</p>
@@ -780,7 +939,7 @@ export default function ReformersPage() {
                                            
                                            <div className="bg-muted/50 border border-border p-4 rounded-xl flex justify-around items-center shadow-sm flex-wrap gap-2">
                                                <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">App Age</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">App Days</div>
                                                    <div className="text-xl font-black text-foreground">{member.appAge}D</div>
                                                </div>
                                                <div className="w-px h-8 bg-border"></div>

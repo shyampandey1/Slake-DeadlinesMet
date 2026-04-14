@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function ServiceWorkerRegistrar() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [permissionState, setPermissionState] = useState<NotificationPermission>("default");
   const [isVisible, setIsVisible] = useState(true);
+  const { requestPermissionAndToken } = useNotifications();
 
   useEffect(() => {
     // 1. Instantly register Service Worker to handle incoming pushes
@@ -64,12 +66,12 @@ export default function ServiceWorkerRegistrar() {
 
   const attemptToRequestNotifications = async () => {
     try {
+      const token = await requestPermissionAndToken();
       if ("Notification" in window) {
-        const permission = await Notification.requestPermission();
-        setPermissionState(permission);
-        if (permission === "granted") {
-          console.log("We now have permission to push timer URLs via Service Worker!");
-        }
+        setPermissionState(Notification.permission);
+      }
+      if (token) {
+        console.log("We now have permission to push timer URLs via Service Worker and got FCM token!");
       }
     } catch (e) {
       console.warn("Notification request failed in this PWA environment", e);
