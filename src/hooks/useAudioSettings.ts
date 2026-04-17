@@ -18,7 +18,7 @@ const finishSounds = [
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(finishSounds[0].name);
-  const [volume, setVolumeState] = useState([0.7]); // higher default for "loud" chime
+  const [volume, setVolumeState] = useState([1.0]); // higher default for "loud" chime
   const soundInstances = useRef<{ [key: string]: Howl }>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -91,7 +91,7 @@ export function useAudioSettings() {
   }, []);
 
   useEffect(() => {
-    let initialVolume = 0.7;
+    let initialVolume = 1.0;
     let initialSound = 'Digital Alarm';
 
     try {

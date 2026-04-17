@@ -1,5 +1,6 @@
 importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyDzkJ_Y0y2BKRIHxUeslXLblxO-0wjMCx0",
@@ -13,20 +14,49 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(async (payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
   const notificationTitle = payload.notification?.title || payload.data?.title || 'Reminder';
+  let notificationBody = payload.notification?.body || payload.data?.body || 'Time to stay on track!';
+  
+  // Tag-based distinct logic
+  const tag = payload.data?.tag || payload.notification?.tag || 'default-reformer-tag';
+  
+  // Social Motivation Logic for Hydration
+  if (tag === 'hydration-reminder' || notificationTitle.toLowerCase().includes('hydration')) {
+    try {
+      // We use the compat SDK already initialized
+      const db = firebase.firestore();
+      const leaderSnap = await db.collection('reformer_stats').doc('hydration_leader').get();
+      if (leaderSnap.exists) {
+        const leaderData = leaderSnap.data();
+        const leaderName = leaderData.name || 'A top performer';
+        // Assuming we might have user info in payload or we just use a generic 'you'
+        notificationBody = `Hey, ${leaderName} is leading the hydration league! 💧 Drink up to catch them.`;
+      }
+    } catch (e) {
+      console.error('Failed to fetch social motivation data', e);
+    }
+  }
+
   const notificationOptions = {
-    body: payload.notification?.body || payload.data?.body || 'Time to stay on track!',
+    body: notificationBody,
     icon: '/icon.svg',
+    badge: '/icon.svg',
+    tag: tag,
+    requireInteraction: true,
+    priority: 'high',
     actions: [
       {
         action: 'go_to_app',
         title: 'Go to App'
       }
     ],
-    data: { url: '/' }
+    data: { 
+      url: payload.data?.url || '/',
+      ...payload.data 
+    }
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

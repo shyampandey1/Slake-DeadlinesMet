@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut } from "lucide-react";
+import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut, Utensils, Gamepad2, Loader2, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,79 +27,241 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
     offset: ["start start", "end end"]
   });
 
-  const opacity1 = useTransform(scrollYProgress, [0, 0.2, 0.3], [1, 1, 0]);
-  const scale1 = useTransform(scrollYProgress, [0, 0.2], [1, 0.8]);
-
-  const opacity2 = useTransform(scrollYProgress, [0.2, 0.3, 0.5, 0.6], [0, 1, 1, 0]);
-  const y2 = useTransform(scrollYProgress, [0.2, 0.3], [100, 0]);
-
-  const opacity3 = useTransform(scrollYProgress, [0.5, 0.6, 0.8, 0.9], [0, 1, 1, 0]);
-  const y3 = useTransform(scrollYProgress, [0.5, 0.6], [100, 0]);
-
-  const opacity4 = useTransform(scrollYProgress, [0.8, 0.9, 1], [0, 1, 1]);
-  const scale4 = useTransform(scrollYProgress, [0.8, 0.9], [0.8, 1]);
+  // Staggered Children Pattern Logic
+  const fadeInVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (i: number) => ({
+      opacity: 1, 
+      y: 0,
+      transition: { delay: i * 0.15, duration: 0.6, ease: "easeOut" } as any
+    })
+  };
 
   return (
-    <div ref={containerRef} className="h-[400vh] relative bg-black font-sans">
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col items-center justify-center pointer-events-none p-6">
-        
-        {/* Animated Background Vector / Glass */}
-        <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+    <div ref={containerRef} className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30">
+      {/* Hero Section */}
+      <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden p-6 text-center">
+        <motion.div 
+           initial={{ opacity: 0, scale: 0.9 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ duration: 1 }}
+           className="absolute inset-0 z-0"
+        >
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        </motion.div>
+
+        <motion.div 
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="relative z-10 space-y-6"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold tracking-widest uppercase mb-4">
+             <Zap className="w-4 h-4" /> The Elite Network
+          </div>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-4 leading-none">
+            REFORMERS <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">LEAGUE</span>
+          </h1>
+          <p className="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto font-medium">
+            Join the top 1% of producers aligning their biology with their ambitions.
+          </p>
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="pt-12 opacity-40"
+          >
+            <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center p-1">
+              <div className="w-1 h-2 bg-white rounded-full" />
+            </div>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="max-w-6xl mx-auto px-6 py-24 space-y-32">
+        {/* Benefit 1 */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid md:grid-cols-2 gap-12 items-center"
+        >
+           <div className="space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                 <Activity className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h2 className="text-4xl font-bold">Healthy Routine Tracking</h2>
+              <p className="text-lg text-slate-400 leading-relaxed">
+                Stay accountable with automated habit loops. Our engine monitors your hydration, eye health, 
+                and task completion in real-time, enforcing a state of peak productivity.
+              </p>
+              <ul className="space-y-3">
+                 {['Biological Syncing', 'Accountability Partner Alerts', 'Deep Focus Intervals'].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-slate-300">
+                       <CheckCircle2 className="w-5 h-5 text-emerald-500" /> {item}
+                    </li>
+                 ))}
+              </ul>
+           </div>
+           
+           <div className="relative aspect-square rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-2xl p-8 group">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
+              {/* Mock Task List Animation */}
+              <div className="relative space-y-4">
+                 {[
+                   { name: 'Hydration Ping', time: 'Every 45m', status: 'Active' },
+                   { name: 'Eye Relief', time: '20-20-20 Rule', status: 'Pending' },
+                   { name: 'Strategic Architecture', time: 'Deep Block', status: 'Completed' }
+                 ].map((task, i) => (
+                   <motion.div 
+                     key={i}
+                     initial={{ x: -20, opacity: 0 }}
+                     whileInView={{ x: 0, opacity: 1 }}
+                     transition={{ delay: i * 0.2 }}
+                     className="p-4 rounded-xl bg-slate-900/50 border border-white/5 flex justify-between items-center"
+                   >
+                     <div>
+                       <div className="font-bold flex items-center gap-2">
+                         {task.status === 'Completed' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <div className="w-4 h-4 rounded-full border border-white/20" />}
+                         {task.name}
+                       </div>
+                       <div className="text-xs text-slate-500">{task.time}</div>
+                     </div>
+                     <Badge className={task.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}>{task.status}</Badge>
+                   </motion.div>
+                 ))}
+              </div>
+           </div>
+        </motion.div>
+
+        {/* Benefit 2 - Coins */}
+        <motion.div 
+           initial="hidden"
+           whileInView="visible"
+           viewport={{ once: true, margin: "-100px" }}
+           className="grid md:grid-cols-2 gap-12 items-center md:flex-row-reverse"
+        >
+           <div className="md:order-2 space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                 <Zap className="w-8 h-8 text-amber-400" />
+              </div>
+              <h2 className="text-4xl font-bold">Hydration & Exercise = Slake Coins</h2>
+              <p className="text-lg text-slate-400 leading-relaxed">
+                Your discipline is now a currency. Every task logged and every hydration target met 
+                mints Slake Coins directly into your digital vault.
+              </p>
+              <div className="flex gap-4">
+                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center flex-1">
+                    <p className="text-xs text-slate-500 uppercase font-bold mb-1">Workout</p>
+                    <p className="text-2xl font-black text-amber-500">+150</p>
+                 </div>
+                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center flex-1">
+                    <p className="text-xs text-slate-500 uppercase font-bold mb-1">Water</p>
+                    <p className="text-2xl font-black text-blue-400">+50</p>
+                 </div>
+              </div>
+           </div>
+           
+           <div className="md:order-1 relative aspect-square rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-2xl flex items-center justify-center">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent" />
+              {/* Falling Coin Animation Mock */}
+              <div className="relative">
+                 <motion.div 
+                   animate={{ rotateY: 360 }}
+                   transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                   className="w-32 h-32 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-4 border-amber-200/50 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.4)]"
+                 >
+                    <span className="text-4xl font-black text-amber-900">$</span>
+                 </motion.div>
+                 {[...Array(5)].map((_, i) => (
+                    <motion.div
+                       key={i}
+                       initial={{ y: -100, x: Math.random() * 200 - 100, opacity: 0 }}
+                       animate={{ y: 200, opacity: [0, 1, 0] }}
+                       transition={{ repeat: Infinity, duration: 2 + Math.random(), delay: i * 0.4 }}
+                       className="absolute top-0 w-6 h-6 rounded-full bg-amber-500/30"
+                    />
+                 ))}
+              </div>
+           </div>
+        </motion.div>
+      </section>
+
+      {/* Rewards Showcase */}
+      <section className="bg-slate-900/50 py-24 border-y border-white/5">
+         <div className="max-w-6xl mx-auto px-6">
+            <h2 className="text-4xl md:text-5xl font-black text-center mb-16">PREMIUM <span className="text-emerald-400">REWARDS</span></h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+               {/* Reward 1 */}
+               <motion.div 
+                 custom={0} variants={fadeInVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                 className="group p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all hover:-translate-y-2"
+               >
+                  <div className="flex gap-2 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-[10px] border border-purple-500/50">SOL</div>
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-[10px] border border-blue-500/50">POLY</div>
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">Crypto Payouts</h3>
+                  <p className="text-sm text-slate-400 mb-6">Redeem Slake Coins for Solana or Polygon assets. Real value for real work.</p>
+                  <div className="h-1 w-12 bg-emerald-500 rounded-full" />
+               </motion.div>
+
+               {/* Reward 2 */}
+               <motion.div 
+                 custom={1} variants={fadeInVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                 className="group p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all hover:-translate-y-2 border-amber-500/20"
+               >
+                  <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 mb-6 border border-amber-500/30">
+                     <Utensils className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">NimkiThekua Box</h3>
+                  <p className="text-sm text-slate-400 mb-6">Authentic Bihar dessert boxes shipped to your door. The taste of victory.</p>
+                  <div className="h-1 w-12 bg-amber-500 rounded-full" />
+               </motion.div>
+
+               {/* Reward 3 */}
+               <motion.div 
+                 custom={2} variants={fadeInVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                 className="group p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all hover:-translate-y-2 border-red-500/20"
+               >
+                  <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 mb-6 border border-red-500/30">
+                     <Gamepad2 className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3">Riderz Hub Cafe</h3>
+                  <p className="text-sm text-slate-400 mb-6">Exclusive access to Sim-Racing, Snacks, and high-speed gaming hubs.</p>
+                  <div className="h-1 w-12 bg-red-500 rounded-full" />
+               </motion.div>
+            </div>
+         </div>
+      </section>
+
+      {/* Sticky Bottom Action */}
+      <motion.div 
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-0 left-0 right-0 p-6 z-50 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent pointer-events-none"
+      >
+        <div className="max-w-md mx-auto pointer-events-auto">
+          <Button 
+            onClick={onEnroll}
+            disabled={enrolling}
+            className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-lg shadow-[0_0_30px_rgba(16,185,129,0.3)] group relative overflow-hidden"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {enrolling ? <Loader2 className="w-5 h-5 animate-spin" /> : "JOIN THE LEAGUE"}
+              {!enrolling && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+            </span>
             <motion.div 
-               style={{ rotate: useTransform(scrollYProgress, [0, 1], [0, 180]) }}
-               className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#10b981]/20 via-transparent to-transparent pointer-events-none"
+               animate={{ x: ['100%', '-100%'] }}
+               transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+               className="absolute inset-0 bg-white/20 -skew-x-12"
             />
-            <div className="absolute inset-0 backdrop-blur-[100px] pointer-events-none"></div>
+          </Button>
+          <p className="text-[10px] text-center text-slate-500 mt-2 uppercase tracking-widest font-bold">Standard enrollment protocol active</p>
         </div>
+      </motion.div>
 
-        {/* SECTION 1 */}
-        <motion.div style={{ opacity: opacity1, scale: scale1 }} className="absolute z-10 w-full max-w-3xl flex flex-col items-center justify-center text-center">
-            <Globe2 className="w-24 h-24 text-[#10b981] mb-8 drop-shadow-[0_0_30px_rgba(16,185,129,0.8)]" />
-            <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-gray-200 to-gray-500 mb-6 drop-shadow-lg tracking-tight">The Reformers League</h1>
-            <p className="text-xl text-gray-400 font-medium tracking-wide">Scroll down to discover the elite network.</p>
-        </motion.div>
-
-        {/* SECTION 2 */}
-        <motion.div style={{ opacity: opacity2, y: y2 }} className="absolute z-10 w-full max-w-3xl flex flex-col items-center justify-center text-center">
-            <div className="p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl">
-                <Zap className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
-                <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">Generate Slake Coins</h2>
-                <p className="text-lg text-gray-300 leading-relaxed font-medium">By strictly sticking to your routines, logging tasks over time, and dominating the accountability leaderboard, you stack native currency effortlessly.</p>
-            </div>
-        </motion.div>
-
-        {/* SECTION 3 */}
-        <motion.div style={{ opacity: opacity3, y: y3 }} className="absolute z-10 w-full max-w-5xl flex flex-col md:flex-row justify-center gap-6 text-center">
-            <div className="p-6 md:p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl flex-1 flex flex-col items-center justify-center">
-                <Gift className="w-16 h-16 text-pink-500 mb-6" />
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">NimkiThekua Box</h2>
-                <p className="text-sm md:text-base text-gray-300 leading-relaxed">Unlock the authentic Bihar special NimkiThekua gift box, sent directly to your door when you master your physical routines.</p>
-            </div>
-            <div className="p-6 md:p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl flex-1 flex flex-col items-center justify-center">
-                <div className="flex gap-2 mb-6">
-                   <div className="w-14 h-14 rounded-full bg-[#0077b5]/20 flex items-center justify-center text-[#0077b5] font-bold text-xl border border-[#0077b5]/50">Ξ</div>
-                   <div className="w-14 h-14 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-xl border border-orange-500/50">₿</div>
-                   <div className="w-14 h-14 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xs border border-purple-500/50">SOL</div>
-                </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Crypto Bounties</h2>
-                <p className="text-sm md:text-base text-gray-300 leading-relaxed">Exchange coins for true digital assets. Your daily momentum and iron-clad discipline literally pays dividends.</p>
-            </div>
-        </motion.div>
-
-        {/* SECTION 4 / ACTION */}
-        <motion.div style={{ opacity: opacity4, scale: scale4 }} className="absolute z-20 w-full max-w-2xl flex flex-col items-center justify-center text-center pointer-events-auto">
-            <ShieldCheck className="w-24 h-24 text-[#10b981] mb-8 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]" />
-            <h2 className="text-5xl md:text-6xl font-black text-white mb-6">Do the best of your routine.</h2>
-            <p className="text-xl text-gray-400 mb-10 tracking-tight font-medium">Claim your spot on the grid today.</p>
-            <Button 
-                onClick={onEnroll}
-                disabled={enrolling}
-                className="w-full max-w-sm h-16 rounded-2xl bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-extrabold text-xl shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all transform hover:scale-105 active:scale-95 border border-[#10b981]/50"
-            >
-                {enrolling ? "Enrolling User..." : "Final Join"}
-            </Button>
-        </motion.div>
-      </div>
+      <div className="h-32" /> {/* Spacer for sticky button */}
     </div>
   );
 }
@@ -159,6 +321,34 @@ export default function ReformersPage() {
   const [messageText, setMessageText] = useState("");
   const [conversation, setConversation] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [myFollowers, setMyFollowers] = useState(0);
+  const [myFollowing, setMyFollowing] = useState(0);
+  const [selectedUserFollowers, setSelectedUserFollowers] = useState(0);
+  const [selectedUserFollowing, setSelectedUserFollowing] = useState(0);
+
+  // Fetch local followers/following counts
+  useEffect(() => {
+     if (user?.uid) {
+         try {
+             const follRef = collection(db, "users", user.uid, "followers");
+             const followingRef = collection(db, "users", user.uid, "following");
+             getDocs(follRef).then(snap => setMyFollowers(snap.size)).catch(() => {});
+             getDocs(followingRef).then(snap => setMyFollowing(snap.size)).catch(() => {});
+         } catch(e) {}
+     }
+  }, [user?.uid]);
+
+  // Fetch selected user's followers/following counts
+  useEffect(() => {
+     if (selectedUser?.id && !chatMode) {
+         try {
+             const follRef = collection(db, "users", selectedUser.id, "followers");
+             const followingRef = collection(db, "users", selectedUser.id, "following");
+             getDocs(follRef).then(snap => setSelectedUserFollowers(snap.size)).catch(() => {});
+             getDocs(followingRef).then(snap => setSelectedUserFollowing(snap.size)).catch(() => {});
+         } catch(e) {}
+     }
+  }, [selectedUser?.id, chatMode]);
 
   // Load baseline profile data for editing
   useEffect(() => {
@@ -503,11 +693,11 @@ export default function ReformersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 text-foreground">
+    <div className="min-h-screen bg-slate-950 pb-24 text-white selection:bg-[#10b981]/30">
       <div className="p-4 pt-12 max-w-4xl mx-auto space-y-6">
         
         {/* Header Ribbon / Social Sync Modal */}
-        <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
             <div>
               <h1 className="text-2xl font-black flex items-center gap-2 tracking-tight">
                   <Globe2 className="text-[#10b981] w-6 h-6" /> Reformers
@@ -747,26 +937,30 @@ export default function ReformersPage() {
                                         </h2>
                                         <p className="text-sm font-medium text-[#10b981] tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global"}</p>
                                     </div>
-                                    <div className="bg-muted/50 border border-border px-4 py-2 rounded-xl flex flex-wrap gap-4 mt-4 sm:mt-0 mx-auto sm:mx-0 w-fit shrink-0 shadow-inner">
-                                        <div className="text-center min-w-[70px]">
-                                            <p className="text-[10px] uppercase text-muted-foreground font-bold">App Days</p>
-                                            <p className="text-xl font-black text-foreground">{appAgeDays}D</p>
+                                    <div className="grid grid-cols-3 gap-4 mt-6 w-full max-w-xl mx-auto sm:mx-0">
+                                        <div className="text-center">
+                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Followers</p>
+                                            <p className="text-xl font-bold text-foreground">{myFollowers}</p>
                                         </div>
-                                        <div className="border-l border-border pl-4 text-center min-w-[70px]">
-                                            <p className="text-[10px] uppercase text-muted-foreground font-bold">Logbook</p>
-                                            <p className="text-xl font-black text-foreground">{currentStreakLocal}</p>
+                                        <div className="text-center">
+                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Following</p>
+                                            <p className="text-xl font-bold text-foreground">{myFollowing}</p>
                                         </div>
-                                        <div className="border-l border-border pl-4 text-center min-w-[70px]">
-                                            <p className="text-[10px] uppercase text-muted-foreground font-bold">Coins</p>
-                                            <p className="text-xl font-black text-amber-500">{profileData?.slakeCredits || 0}</p>
+                                        <div className="text-center">
+                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Streak</p>
+                                            <p className="text-xl font-bold text-foreground">{currentStreakLocal}</p>
                                         </div>
-                                        <div className="border-l border-border pl-4 text-center min-w-[70px]">
-                                            <p className="text-[10px] uppercase text-muted-foreground font-bold">Certs</p>
-                                            <p className="text-xl font-black text-foreground">{Math.floor(highestStreakLocal / 7)}</p>
+                                        <div className="text-center pt-2">
+                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">App Days</p>
+                                            <p className="text-xl font-bold text-foreground">{appAgeDays}</p>
                                         </div>
-                                        <div className="border-l border-border pl-4 text-center min-w-[70px]">
-                                            <p className="text-[10px] uppercase text-muted-foreground font-bold flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500"/></p>
-                                            <p className="text-xl font-black text-[#10b981]">#{myRank} <span className="text-xs text-green-500">{rankChangeFactor}</span></p>
+                                        <div className="text-center pt-2">
+                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Coins</p>
+                                            <p className="text-xl font-bold text-amber-500">{profileData?.slakeCredits || 0}</p>
+                                        </div>
+                                        <div className="text-center pt-2">
+                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500"/></p>
+                                            <p className="text-xl font-bold text-[#10b981]">#{myRank}</p>
                                         </div>
                                     </div>
                                 </div>

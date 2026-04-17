@@ -148,6 +148,8 @@ export type UserProfile = {
     totalWaterGlasses?: number;
     reformersStatus?: 'pending' | 'approved' | null;
     isReformersAdmin?: boolean;
+    followersCount?: number;
+    followingCount?: number;
 };
 
 export type UserEvent = {
