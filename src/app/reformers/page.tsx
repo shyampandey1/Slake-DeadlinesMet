@@ -19,6 +19,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
+import { useActiveTimer } from "@/hooks/useActiveTimer";
 
 function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, enrolling: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,7 +39,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30">
+    <div ref={containerRef} className="min-h-screen bg-background text-foreground font-sans selection:bg-emerald-500/30">
       {/* Hero Section */}
       <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden p-6 text-center">
         <motion.div 
@@ -188,7 +189,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
       </section>
 
       {/* Rewards Showcase */}
-      <section className="bg-slate-900/50 py-24 border-y border-white/5">
+      <section className="bg-muted/30 py-24 border-y border-border/50">
          <div className="max-w-6xl mx-auto px-6">
             <h2 className="text-4xl md:text-5xl font-black text-center mb-16">PREMIUM <span className="text-emerald-400">REWARDS</span></h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -239,7 +240,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
       <motion.div 
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="fixed bottom-0 left-0 right-0 p-6 z-50 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent pointer-events-none"
+        className="fixed bottom-0 left-0 right-0 p-6 z-50 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none"
       >
         <div className="max-w-md mx-auto pointer-events-auto">
           <Button 
@@ -271,6 +272,7 @@ export default function ReformersPage() {
   const { user } = useAuth();
   const { location } = useWeather();
   const { tasks } = useTasks();
+  const { activeTimer } = useActiveTimer();
   
   const isEnrolled = profileData?.isReformersEnrolled || false;
   const [enrolling, setEnrolling] = useState(false);
@@ -658,6 +660,18 @@ export default function ReformersPage() {
       }
   };
 
+  const handleConnectCoWorker = async (peerId: string) => {
+      await updateUserProfileData({ coWorkerId: peerId });
+      try {
+          await addDoc(collection(db, "messages"), {
+              senderId: profileData?.userId,
+              receiverId: peerId,
+              text: "🤝 Just connected with you as a Co-Reformer! Let's stay focused together.",
+              timestamp: serverTimestamp()
+          });
+      } catch(e) {}
+  };
+
   const activeDates = new Set<string>();
   tasks.filter(t => t.completed).forEach(t => {
       if (t.createdAt) activeDates.add(new Date(t.createdAt).toISOString().split('T')[0]);
@@ -722,9 +736,37 @@ export default function ReformersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-24 text-white selection:bg-[#10b981]/30">
+    <div className="min-h-screen bg-background pb-24 text-foreground selection:bg-[#10b981]/30">
       <div className="p-4 pt-12 max-w-4xl mx-auto space-y-6">
         
+        {/* Live Activity Feed / Ticker */}
+        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2 flex items-center gap-4 overflow-hidden shadow-inner group">
+             <div className="flex items-center gap-2 shrink-0 bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30">
+                 <Zap className="w-3 h-3 text-emerald-400 fill-emerald-400" />
+                 <span className="text-[10px] font-black tracking-widest uppercase text-emerald-400">Live Activity</span>
+             </div>
+             <div className="flex-1 overflow-hidden">
+                 <motion.div 
+                    animate={{ x: [400, -1200] }}
+                    transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
+                    className="flex items-center gap-12 whitespace-nowrap text-[11px] font-bold text-gray-400"
+                 >
+                    {liveMembers.slice(0, 5).map((m, i) => (
+                        <span key={i} className="flex items-center gap-2">
+                            <span className="text-white">{m.name}</span> just earned <span className="text-amber-500">{Math.floor(Math.random()*50)+20} Coins</span>
+                            <span className="opacity-30">•</span>
+                        </span>
+                    ))}
+                    <span className="flex items-center gap-2">
+                        <span className="text-white">Global:</span> 12 Reformers focusing now
+                    </span>
+                    <span className="flex items-center gap-2">
+                        <span className="text-emerald-400">Streak:</span> {currentStreakLocal} Days achieved by you!
+                    </span>
+                 </motion.div>
+             </div>
+        </div>
+
         {/* Header Ribbon / Social Sync Modal */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
             <div>
@@ -737,9 +779,9 @@ export default function ReformersPage() {
                 {whatsappJoinLink && (
                     <Button 
                         onClick={() => window.open(whatsappJoinLink, "_blank")}
-                        className="bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold border-none"
+                        className="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-6"
                     >
-                        <Phone className="w-4 h-4 mr-2" /> Join Group
+                        <Phone className="w-4 h-4 mr-2" /> JOIN OFFICIAL WHATSAPP
                     </Button>
                 )}
                 {isAdmin && (
@@ -1147,6 +1189,38 @@ export default function ReformersPage() {
                                    )}
                                </div>
 
+                               <div className="flex gap-2 p-2 bg-[#1a1a1a] border-t border-border overflow-x-auto no-scrollbar scroll-smooth">
+                                 {whatsappJoinLink && (
+                                   <Button 
+                                     onClick={() => window.open(whatsappJoinLink, "_blank")}
+                                     variant="outline" 
+                                     size="sm" 
+                                     className="rounded-full bg-[#25D366]/10 border-[#25D366]/30 text-[#25D366] text-[10px] h-7 px-3 whitespace-nowrap hover:bg-[#25D366]/20 transition-all font-bold"
+                                   >
+                                     <Phone className="w-3 h-3 mr-1" /> Join Group
+                                   </Button>
+                                 )}
+                                 <Button 
+                                   onClick={() => {
+                                     setMessageText(`🤝 Hey! Let's connect our schedules and work as Co-Workers. I'm focusing on ${activeTimer?.taskName || 'a task'} right now!`);
+                                   }}
+                                   variant="outline" 
+                                   size="sm" 
+                                   className="rounded-full bg-blue-500/10 border-blue-500/30 text-blue-400 text-[10px] h-7 px-3 whitespace-nowrap hover:bg-blue-500/20 transition-all font-bold"
+                                 >
+                                   🤝 Work as Co-Worker
+                                 </Button>
+                                 <Button 
+                                   onClick={() => {
+                                     setMessageText(`🔥 Just hit a streak of ${currentStreakLocal} days in my Logbook! Join me natively here to earn Slake Coins together.`);
+                                   }}
+                                   variant="outline" 
+                                   size="sm" 
+                                   className="rounded-full bg-amber-500/10 border-amber-500/30 text-amber-500 text-[10px] h-7 px-3 whitespace-nowrap hover:bg-amber-500/20 transition-all font-bold"
+                                 >
+                                   🔥 Share Streak
+                                 </Button>
+                               </div>
                                <form onSubmit={handleSendMessage} className="p-3 border-t border-border flex gap-2 bg-[#1a1a1a]">
                                    <Input 
                                       value={messageText}
@@ -1229,6 +1303,15 @@ export default function ReformersPage() {
                                        <Button onClick={handleFollow} className={`flex-1 font-extrabold h-12 text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-[#333] border border-[#333]' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
                                           {isFollowing ? "Following" : "Follow"}
                                        </Button>
+                                       {profileData?.coWorkerId === member.id ? (
+                                           <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="flex-1 font-extrabold h-12 text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20">
+                                              Unlink Co-Reformer
+                                           </Button>
+                                       ) : (
+                                           <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="flex-1 font-extrabold h-12 text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
+                                              Connect as Co-Reformer
+                                           </Button>
+                                       )}
                                        {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="bg-muted hover:bg-[#333] text-foreground h-12 px-6 shadow-md border border-[#333]"><MessageSquare className="w-4 h-4 mr-2"/> Text</Button>}
                                    </div>
                                </div>

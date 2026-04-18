@@ -150,6 +150,14 @@ export type UserProfile = {
     isReformersAdmin?: boolean;
     followersCount?: number;
     followingCount?: number;
+    // Co-working & Live Sync
+    coWorkerId?: string;
+    activeSession?: {
+        taskName: string;
+        expectedEndTime: number;
+        isPaused: boolean;
+        duration: number;
+    };
 };
 
 export type UserEvent = {
