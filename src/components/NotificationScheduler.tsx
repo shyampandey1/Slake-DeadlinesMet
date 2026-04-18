@@ -50,7 +50,8 @@ export default function NotificationScheduler() {
               // @ts-ignore
               showTrigger: new TimestampTrigger(eventDate.getTime()),
               data: {
-                 url: "/",
+                 url: "/calendar",
+                 type: "CALENDAR",
               }
             };
 

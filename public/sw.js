@@ -45,23 +45,58 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data.url;
+  const notificationData = event.notification.data || {};
+  let targetUrl = notificationData.url || "/";
+
+  // If a specific activity type is provided without a URL, map it
+  if (!notificationData.url && notificationData.type) {
+    switch (notificationData.type.toUpperCase()) {
+      case 'REFORMERS': 
+      case 'LEAGUE':
+        targetUrl = "/reformers"; 
+        break;
+      case 'CALENDAR': 
+      case 'PLANNER':
+        targetUrl = "/calendar"; 
+        break;
+      case 'REWARDS': 
+      case 'COINS':
+        targetUrl = "/rewards"; 
+        break;
+      case 'HISTORY': 
+        targetUrl = "/history"; 
+        break;
+      case 'SETTINGS': 
+        targetUrl = "/settings"; 
+        break;
+      case 'TIMER':
+        targetUrl = "/";
+        break;
+    }
+  }
+
+  // Convert relative URLs to absolute
+  if (targetUrl.startsWith('/')) {
+    targetUrl = self.location.origin + targetUrl;
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      // If a window is already completely open, just instantly focus it and navigate to the timer URL!
+      // 1. Try to find an existing window of our app
       for (const client of clientList) {
-        if ("focus" in client) {
+        const clientUrl = new URL(client.url);
+        if (clientUrl.origin === self.location.origin && "focus" in client) {
           return client.focus().then(() => {
-            if (targetUrl) {
+            // Only navigate if we're not already there to avoid unnecessary reloads
+            if (client.url !== targetUrl) {
               return client.navigate(targetUrl);
             }
           });
         }
       }
       
-      // If the app is currently completely closed, open a brand new window natively!
-      if (self.clients.openWindow && targetUrl) {
+      // 2. If no window is found, open a new one
+      if (self.clients.openWindow) {
         return self.clients.openWindow(targetUrl);
       }
     })
