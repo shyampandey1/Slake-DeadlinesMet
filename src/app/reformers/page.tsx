@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWeather } from "@/hooks/useWeather";
 
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 
@@ -276,6 +276,8 @@ export default function ReformersPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [socialModalOpen, setSocialModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [whatsappJoinLink, setWhatsappJoinLink] = useState("");
+  const [editWhatsappJoinLink, setEditWhatsappJoinLink] = useState("");
 
   // Sync states for legally compliant modal
   const [whatsappSync, setWhatsappSync] = useState(profileData?.googleSyncPermissions?.whatsapp || false);
@@ -537,6 +539,17 @@ export default function ReformersPage() {
       }
   };
 
+  const handleUpdateWhatsappJoinLink = async () => {
+    try {
+        await setDoc(doc(db, "config", "reformers"), {
+            whatsappJoinLink: editWhatsappJoinLink
+        }, { merge: true });
+        // Toast handled by effect since it's a listener
+    } catch (err) {
+        console.error("Failed to update WhatsApp link", err);
+    }
+  };
+
   const handleLeaveLeague = async () => {
       if (window.confirm("Are you sure you want to leave the Reformers League? Your profile will no longer be visible on the leaderboard.")) {
           await updateUserProfileData({
@@ -705,6 +718,14 @@ export default function ReformersPage() {
                <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
             </div>
             <div className="flex gap-2">
+                {whatsappJoinLink && (
+                    <Button 
+                        onClick={() => window.open(whatsappJoinLink, "_blank")}
+                        className="bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold border-none"
+                    >
+                        <Phone className="w-4 h-4 mr-2" /> Join Group
+                    </Button>
+                )}
                 {isAdmin && (
                     <Dialog open={adminModalOpen} onOpenChange={setAdminModalOpen}>
                         <DialogTrigger asChild>
@@ -744,6 +765,23 @@ export default function ReformersPage() {
                                          )}
                                      </div>
                                 ))}
+
+                                <h3 className="font-bold text-sm text-gray-400 uppercase tracking-widest mt-6">Global League Settings</h3>
+                                <div className="space-y-4 p-4 border border-border rounded-xl bg-muted/10">
+                                    <div className="space-y-2">
+                                        <label className="text-xs text-muted-foreground font-bold uppercase">WhatsApp Group Joining Link</label>
+                                        <div className="flex gap-2">
+                                            <Input 
+                                                value={editWhatsappJoinLink} 
+                                                onChange={(e) => setEditWhatsappJoinLink(e.target.value)} 
+                                                placeholder="https://chat.whatsapp.com/..." 
+                                                className="bg-muted/50 border-none text-foreground"
+                                            />
+                                            <Button onClick={handleUpdateWhatsappJoinLink} size="sm" className="bg-[#10b981] hover:bg-[#059669] text-black">Update</Button>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground">This link will be visible as a "Join Group" button for all reformers.</p>
+                                    </div>
+                                </div>
                             </div>
                         </DialogContent>
                     </Dialog>
@@ -977,7 +1015,21 @@ export default function ReformersPage() {
                                         <Badge variant="outline" className="bg-[#E1306C]/10 text-[#E1306C] border-[#E1306C]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.meta, "_blank")}>Instagram</Badge>
                                     )}
                                     {profileData?.googleSyncPermissions?.whatsapp && profileData?.socialUrls?.whatsapp && (
-                                        <Badge variant="outline" className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.whatsapp, "_blank")}>WhatsApp</Badge>
+                                        <Badge 
+                                            variant="outline" 
+                                            className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 cursor-pointer" 
+                                            onClick={() => {
+                                                const val = profileData.socialUrls!.whatsapp!;
+                                                if (val.startsWith('http')) {
+                                                    window.open(val, "_blank");
+                                                } else {
+                                                    const cleanNum = val.replace(/\D/g, '');
+                                                    window.open(`https://wa.me/${cleanNum}`, "_blank");
+                                                }
+                                            }}
+                                        >
+                                            WhatsApp
+                                        </Badge>
                                     )}
                                     {profileData?.isPrivateProfile && <Badge variant="outline" className="bg-gray-800 text-muted-foreground border-gray-700"><LockKeyhole className="w-3 h-3 mr-1"/> Private</Badge>}
                                 </div>
@@ -1171,7 +1223,22 @@ export default function ReformersPage() {
                                                    <Button variant="outline" size="icon" onClick={() => window.open(member.socialUrls.meta, "_blank")} className="rounded-full bg-[#E1306C]/10 border-[#E1306C]/30 hover:bg-[#E1306C]/20 text-[#E1306C] h-10 w-10"><Instagram className="w-4 h-4" /></Button>
                                                )}
                                                {member.permissions?.whatsapp && member.socialUrls?.whatsapp && (
-                                                   <Button variant="outline" size="icon" onClick={() => window.open(member.socialUrls.whatsapp, "_blank")} className="rounded-full bg-[#25D366]/10 border-[#25D366]/30 hover:bg-[#25D366]/20 text-[#25D366] h-10 w-10"><Phone className="w-4 h-4" /></Button>
+                                                   <Button 
+                                                       variant="outline" 
+                                                       size="icon" 
+                                                       onClick={() => {
+                                                           const val = member.socialUrls.whatsapp;
+                                                           if (val.startsWith('http')) {
+                                                               window.open(val, "_blank");
+                                                           } else {
+                                                               const cleanNum = val.replace(/\D/g, '');
+                                                               window.open(`https://wa.me/${cleanNum}`, "_blank");
+                                                           }
+                                                       }} 
+                                                       className="rounded-full bg-[#25D366]/10 border-[#25D366]/30 hover:bg-[#25D366]/20 text-[#25D366] h-10 w-10"
+                                                   >
+                                                       <Phone className="w-4 h-4" />
+                                                   </Button>
                                                )}
                                            </div>
                                        </div>
