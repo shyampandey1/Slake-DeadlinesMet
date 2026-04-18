@@ -340,6 +340,22 @@ export default function ReformersPage() {
      }
   }, [user?.uid]);
 
+  // Load global reformers config
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "config", "reformers"), (snap) => {
+      if (snap.exists()) {
+        const link = snap.data().whatsappJoinLink || "https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ";
+        setWhatsappJoinLink(link);
+        setEditWhatsappJoinLink(link);
+      } else {
+        const defaultLink = "https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ";
+        setWhatsappJoinLink(defaultLink);
+        setEditWhatsappJoinLink(defaultLink);
+      }
+    });
+    return () => unsub();
+  }, []);
+
   // Fetch selected user's followers/following counts
   useEffect(() => {
      if (selectedUser?.id && !chatMode) {
@@ -1014,23 +1030,6 @@ export default function ReformersPage() {
                                     {profileData?.googleSyncPermissions?.meta && profileData?.socialUrls?.meta && (
                                         <Badge variant="outline" className="bg-[#E1306C]/10 text-[#E1306C] border-[#E1306C]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.meta, "_blank")}>Instagram</Badge>
                                     )}
-                                    {profileData?.googleSyncPermissions?.whatsapp && profileData?.socialUrls?.whatsapp && (
-                                        <Badge 
-                                            variant="outline" 
-                                            className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/30 cursor-pointer" 
-                                            onClick={() => {
-                                                const val = profileData.socialUrls!.whatsapp!;
-                                                if (val.startsWith('http')) {
-                                                    window.open(val, "_blank");
-                                                } else {
-                                                    const cleanNum = val.replace(/\D/g, '');
-                                                    window.open(`https://wa.me/${cleanNum}`, "_blank");
-                                                }
-                                            }}
-                                        >
-                                            WhatsApp
-                                        </Badge>
-                                    )}
                                     {profileData?.isPrivateProfile && <Badge variant="outline" className="bg-gray-800 text-muted-foreground border-gray-700"><LockKeyhole className="w-3 h-3 mr-1"/> Private</Badge>}
                                 </div>
                             </div>
@@ -1221,24 +1220,6 @@ export default function ReformersPage() {
                                                )}
                                                {member.permissions?.meta && member.socialUrls?.meta && (
                                                    <Button variant="outline" size="icon" onClick={() => window.open(member.socialUrls.meta, "_blank")} className="rounded-full bg-[#E1306C]/10 border-[#E1306C]/30 hover:bg-[#E1306C]/20 text-[#E1306C] h-10 w-10"><Instagram className="w-4 h-4" /></Button>
-                                               )}
-                                               {member.permissions?.whatsapp && member.socialUrls?.whatsapp && (
-                                                   <Button 
-                                                       variant="outline" 
-                                                       size="icon" 
-                                                       onClick={() => {
-                                                           const val = member.socialUrls.whatsapp;
-                                                           if (val.startsWith('http')) {
-                                                               window.open(val, "_blank");
-                                                           } else {
-                                                               const cleanNum = val.replace(/\D/g, '');
-                                                               window.open(`https://wa.me/${cleanNum}`, "_blank");
-                                                           }
-                                                       }} 
-                                                       className="rounded-full bg-[#25D366]/10 border-[#25D366]/30 hover:bg-[#25D366]/20 text-[#25D366] h-10 w-10"
-                                                   >
-                                                       <Phone className="w-4 h-4" />
-                                                   </Button>
                                                )}
                                            </div>
                                        </div>
