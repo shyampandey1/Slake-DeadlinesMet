@@ -342,8 +342,10 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
     
     let waterCount = 0;
     let eyeCount = 0;
+    let entertainmentCount = 0;
     const totalWaters = 8;
     const totalEyes = 4;
+    const totalEntertainment = 2; // Scheduled leisure slots
 
     for (let i = 0; i < cleanedTasks.length; i++) {
         enrichedTasks.push(cleanedTasks[i]);
@@ -358,6 +360,16 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
         if (eyeCount < expectedEye) {
             eyeCount++;
             enrichedTasks.push({ name: "Eye strain exercise", duration: 2, icon: "Eye", category: cleanedTasks[i].category });
+        }
+
+        // Add entertainment/gaming slots around 40% and 80% through the routine
+        const expectedEnt = Math.floor(((i + 1) / cleanedTasks.length) * (totalEntertainment + 1));
+        if (entertainmentCount < expectedEnt && entertainmentCount < totalEntertainment) {
+            entertainmentCount++;
+            const leisureTask = entertainmentCount === 1 
+                ? { name: "Video Game / Creative Entertainment", duration: 20, icon: "Gamepad2", category: cleanedTasks[i].category }
+                : { name: "Music & Digital Chill (Refreshment)", duration: 15, icon: "Headphones", category: cleanedTasks[i].category };
+            enrichedTasks.push(leisureTask);
         }
     }
 
