@@ -649,7 +649,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           {taskName}
         </h1>
 
-        {profileData?.isReformersEnrolled && (
+        {profileData?.isReformersEnrolled && profileData?.coWorkerId && (
           <div className="mb-8 flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-1000">
              <div className="flex -space-x-2">
                 {[1, 2, 3].map(i => (
