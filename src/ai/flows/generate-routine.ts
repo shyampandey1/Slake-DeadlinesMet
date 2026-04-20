@@ -44,6 +44,8 @@ const prompt = ai.definePrompt({
   2. EVERY task name in the entire 24-hour routine MUST be unique. Do not repeat names like "Short Break" or "Email Check".
   3. Avoid minor 1-minute or 2-minute tasks that clutter the schedule unless they are essential transitions.
   4. Ensure a balance between deep focus work, administrative tasks, and rest.
+  5. MANDATORY: Incorporate at least 2-3 "Entertainment & Gaming" sessions throughout the day. These should be framed as video games, creative entertainment, or digital chill-out sessions to keep the user refreshed.
+
   
   For each task, provide:
   - name: A unique, descriptive, and professional title.

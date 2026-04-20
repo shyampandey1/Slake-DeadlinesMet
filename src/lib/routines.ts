@@ -1,6 +1,6 @@
 import type { UserPresetTask, ProfileType } from '@/types';
 
-export const ROUTINE_TEMPLATE_VERSION = 8.5;
+export const ROUTINE_TEMPLATE_VERSION = 9.0;
 
 const commonEveningWindDown: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Evening Snacks & Hydration", duration: 15, icon: "Coffee", category: "Evening Wind-down" },
@@ -345,7 +345,7 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
     let entertainmentCount = 0;
     const totalWaters = 8;
     const totalEyes = 4;
-    const totalEntertainment = 2; // Scheduled leisure slots
+    const totalEntertainment = 3; // Scheduled leisure slots
 
     for (let i = 0; i < cleanedTasks.length; i++) {
         enrichedTasks.push(cleanedTasks[i]);
@@ -362,13 +362,18 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
             enrichedTasks.push({ name: "Eye strain exercise", duration: 2, icon: "Eye", category: cleanedTasks[i].category });
         }
 
-        // Add entertainment/gaming slots around 40% and 80% through the routine
+        // Add entertainment/gaming slots around 33%, 66% and 90% through the routine
         const expectedEnt = Math.floor(((i + 1) / cleanedTasks.length) * (totalEntertainment + 1));
         if (entertainmentCount < expectedEnt && entertainmentCount < totalEntertainment) {
             entertainmentCount++;
-            const leisureTask = entertainmentCount === 1 
-                ? { name: "Video Game / Creative Entertainment", duration: 20, icon: "Gamepad2", category: cleanedTasks[i].category }
-                : { name: "Music & Digital Chill (Refreshment)", duration: 15, icon: "Headphones", category: cleanedTasks[i].category };
+            let leisureTask;
+            if (entertainmentCount === 1) {
+                leisureTask = { name: "Visual Pleasure/Gaming (Morning Break)", duration: 15, icon: "Gamepad2", category: "Entertainment & Gaming" };
+            } else if (entertainmentCount === 2) {
+                leisureTask = { name: "Digital Entertainment Session", duration: 20, icon: "Tv", category: "Entertainment & Gaming" };
+            } else {
+                leisureTask = { name: "Gaming/Creative Leisure (Unwind)", duration: 25, icon: "Gamepad2", category: "Entertainment & Gaming" };
+            }
             enrichedTasks.push(leisureTask);
         }
     }
@@ -376,7 +381,7 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
     return enrichedTasks;
 };
 export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order" | "profession">[] } } = {
-    version: 8.5,
+    version: 9.0,
     routines: {
         "Analyst": enrichTasks(softwareEngineerRoutine),
         "Artist": enrichTasks(artistRoutine),
@@ -557,6 +562,7 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
     'Health & Wellness': { color: 'bg-rose-800 text-white', order: 4 },
     'Evening Wind-down': { color: 'bg-indigo-800 text-white', order: 5 },
     'Bedtime Routine': { color: 'bg-slate-800 text-white', order: 6 },
+    'Entertainment & Gaming': { color: 'bg-indigo-900 text-white', order: 6 },
     'Default': { color: 'bg-slate-800 text-white', order: 99 },
 };
 

@@ -649,21 +649,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           {taskName}
         </h1>
 
-        {profileData?.isReformersEnrolled && profileData?.coWorkerId && (
-          <div className="mb-8 flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-1000">
-             <div className="flex -space-x-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="w-6 h-6 rounded-full border-2 border-slate-950 bg-emerald-900 flex items-center justify-center overflow-hidden">
-                    <img src={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${i + (Math.random()*100)}`} alt="Reformer" className="w-full h-full opacity-80" />
-                  </div>
-                ))}
-             </div>
-             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
-                Live: 12 Reformers focusing right now
-             </p>
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]" />
-          </div>
-        )}
+
         <div className="mb-12">
           {!syncComplete ? (
             <div className="flex flex-col items-center justify-center p-12">

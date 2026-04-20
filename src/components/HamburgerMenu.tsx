@@ -31,6 +31,15 @@ import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info
 
 const changelog = [
   {
+      version: "v1.6",
+      date: "Day 7",
+      features: [
+        { name: "Gaming & Leisure Sync", description: "Daily routines now automatically include specialized 'Entertainment & Gaming' sessions to keep you refreshed throughout the day.", icon: "zap" },
+        { name: "Clean Timer Experience", description: "Removed live status distractions from the timer screen to keep your focus sessions minimal and clean.", icon: "layers" },
+      ]
+  },
+
+  {
       version: "v1.5",
       date: "Day 6",
       features: [
