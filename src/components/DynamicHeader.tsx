@@ -246,25 +246,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
                             <p className="text-sm text-white/80 hidden sm:block max-w-xs leading-relaxed" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>Focus on one task at a time. Set your goal and go.</p>
                          </div>
-                         <div className="flex items-center gap-3">
-                             <a 
-                                 href="https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ" 
-                                 target="_blank" 
-                                 rel="noopener noreferrer"
-                                 className="hidden sm:flex items-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(37,211,102,0.3)] transition-colors"
-                             >
-                                 <Phone className="w-3.5 h-3.5" /> Join Reformers
-                             </a>
-                             <a 
-                                 href="https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ" 
-                                 target="_blank" 
-                                 rel="noopener noreferrer"
-                                 className="sm:hidden flex items-center justify-center w-8 h-8 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-full shadow-[0_0_10px_rgba(37,211,102,0.3)] transition-colors"
-                             >
-                                 <Phone className="w-4 h-4" />
-                             </a>
-                             <HamburgerMenu white />
-                         </div>
+                         <HamburgerMenu white />
                     </div>
 
                     <div className="flex flex-col items-start text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>

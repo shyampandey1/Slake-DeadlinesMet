@@ -778,14 +778,14 @@ export default function ReformersPage() {
             <div className="flex flex-wrap items-center gap-2">
                 <Button 
                     onClick={() => window.open(whatsappJoinLink || "https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ", "_blank")}
-                    className="flex-1 sm:flex-none bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-4 sm:px-6 whitespace-nowrap text-xs sm:text-sm"
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-4 sm:px-6 whitespace-nowrap text-[10px] sm:text-xs h-9 sm:h-10"
                 >
-                    <Phone className="w-4 h-4 mr-1 sm:mr-2" /> JOIN WHATSAPP
+                    <Phone className="w-3.5 h-3.5 mr-1 sm:mr-2 shrink-0" /> JOIN WHATSAPP
                 </Button>
                 {isAdmin && (
                     <Dialog open={adminModalOpen} onOpenChange={setAdminModalOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="border-yellow-500/30 bg-[#1a1a1a] text-yellow-500 hover:text-yellow-400 hover:bg-muted"><LockKeyhole className="w-4 h-4 mr-2" /> Admin</Button>
+                            <Button variant="outline" className="flex-1 sm:flex-none border-yellow-500/30 bg-[#1a1a1a] text-yellow-500 hover:text-yellow-400 hover:bg-muted text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4"><LockKeyhole className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Admin</Button>
                         </DialogTrigger>
                         <DialogContent className="bg-[#1a1a1a] border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
@@ -842,12 +842,12 @@ export default function ReformersPage() {
                         </DialogContent>
                     </Dialog>
                 )}
-                <Button variant="outline" className="border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted" onClick={() => setReferralModalOpen(true)}>
-                   <Share2 className="w-4 h-4 mr-2" /> Invite
+                <Button variant="outline" className="flex-1 sm:flex-none border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4" onClick={() => setReferralModalOpen(true)}>
+                   <Share2 className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Invite
                 </Button>
                 <Dialog open={socialModalOpen} onOpenChange={setSocialModalOpen}>
                   <DialogTrigger asChild>
-                      <Button variant="outline" className="border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted"><LayoutDashboard className="w-4 h-4 mr-2" />Social Sync</Button>
+                      <Button variant="outline" className="flex-1 sm:flex-none border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4"><LayoutDashboard className="w-3.5 h-3.5 mr-1 sm:mr-2" />Social Sync</Button>
                   </DialogTrigger>
               <DialogContent className="bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
                 <DialogHeader>
@@ -1163,7 +1163,7 @@ export default function ReformersPage() {
                         </div>
                     </DialogTrigger>
                     
-                    <DialogContent className="bg-[#1a1a1a] border-border text-foreground w-[95vw] sm:max-w-md max-h-[90vh] overflow-x-hidden overflow-y-auto p-0 rounded-2xl">
+                    <DialogContent className="bg-[#1a1a1a] border-border text-foreground w-[96vw] max-w-[400px] max-h-[92vh] overflow-x-hidden overflow-y-auto p-0 rounded-2xl">
                        <DialogHeader className="hidden">
                           <DialogTitle>Profile Actions</DialogTitle>
                        </DialogHeader>
