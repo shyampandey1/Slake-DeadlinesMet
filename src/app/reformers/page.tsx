@@ -768,19 +768,19 @@ export default function ReformersPage() {
         </div>
 
         {/* Header Ribbon / Social Sync Modal */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
             <div>
               <h1 className="text-2xl font-black flex items-center gap-2 tracking-tight">
                   <Globe2 className="text-[#10b981] w-6 h-6" /> Reformers
               </h1>
                <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <Button 
                     onClick={() => window.open(whatsappJoinLink || "https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ", "_blank")}
-                    className="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-6"
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-4 sm:px-6 whitespace-nowrap text-xs sm:text-sm"
                 >
-                    <Phone className="w-4 h-4 mr-2" /> JOIN OFFICIAL WHATSAPP
+                    <Phone className="w-4 h-4 mr-1 sm:mr-2" /> JOIN WHATSAPP
                 </Button>
                 {isAdmin && (
                     <Dialog open={adminModalOpen} onOpenChange={setAdminModalOpen}>
@@ -1006,71 +1006,71 @@ export default function ReformersPage() {
                            </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
                             <div className="relative shrink-0 group">
-                                <Avatar className="w-28 h-28 border-4 border-[#10b981]/30 group-hover:border-[#10b981] transition-colors">
+                                <Avatar className="w-16 h-16 sm:w-28 sm:h-28 border-2 sm:border-4 border-[#10b981]/30 group-hover:border-[#10b981] transition-colors">
                                     <AvatarImage src={profileData?.displayPicture || "https://i.pravatar.cc/150"} />
                                     <AvatarFallback>{profileData?.displayName?.charAt(0) || "U"}</AvatarFallback>
                                 </Avatar>
-                                <div className="absolute bottom-0 right-0 flex flex-col gap-1">
-                                    <Button onClick={togglePrivacy} size="icon" variant="secondary" className="w-8 h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-border" title={profileData?.isPrivateProfile ? "Private" : "Public"}>
-                                        {profileData?.isPrivateProfile ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Unlock className="w-4 h-4 text-[#10b981]" />}
+                                <div className="absolute -bottom-2 -right-2 sm:bottom-0 sm:right-0 flex flex-row sm:flex-col gap-1">
+                                    <Button onClick={togglePrivacy} size="icon" variant="secondary" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-border" title={profileData?.isPrivateProfile ? "Private" : "Public"}>
+                                        {profileData?.isPrivateProfile ? <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-[#10b981]" />}
                                     </Button>
-                                    <Button onClick={handleLeaveLeague} size="icon" variant="destructive" className="w-8 h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-red-500/50 bg-[#1a1a1a] hover:bg-red-500 text-red-500 hover:text-white" title="Exit League">
-                                        <LogOut className="w-3.5 h-3.5" />
+                                    <Button onClick={handleLeaveLeague} size="icon" variant="destructive" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-red-500/50 bg-[#1a1a1a] hover:bg-red-500 text-red-500 hover:text-white" title="Exit League">
+                                        <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                     </Button>
                                 </div>
                             </div>
                             
-                            <div className="flex-1 text-center sm:text-left space-y-2 w-full pt-2">
+                            <div className="flex-1 text-center sm:text-left space-y-1 sm:space-y-2 w-full pt-1 sm:pt-2">
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
                                     <div>
-                                        <h2 className="text-2xl font-extrabold text-foreground flex justify-center sm:justify-start items-center gap-2">
+                                        <h2 className="text-xl sm:text-2xl font-extrabold text-foreground flex justify-center sm:justify-start items-center gap-1 sm:gap-2">
                                            {profileData?.displayName || "Reformer"} 
-                                           <Button onClick={() => setIsEditing(true)} variant="ghost" size="icon" className="w-6 h-6 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground"><Edit className="w-3 h-3" /></Button>
+                                           <Button onClick={() => setIsEditing(true)} variant="ghost" size="icon" className="w-5 h-5 sm:w-6 sm:h-6 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground"><Edit className="w-3 h-3" /></Button>
                                         </h2>
-                                        <p className="text-sm font-medium text-[#10b981] tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global"}</p>
+                                        <p className="text-[10px] sm:text-sm font-medium text-[#10b981] tracking-wider sm:tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global"}</p>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-4 mt-6 w-full max-w-xl mx-auto sm:mx-0">
+                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 mt-3 sm:mt-6 w-full max-w-xl mx-auto sm:mx-0">
                                         <div className="text-center">
-                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Followers</p>
-                                            <p className="text-xl font-bold text-foreground">{myFollowers}</p>
+                                            <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">Followers</p>
+                                            <p className="text-sm sm:text-xl font-bold text-foreground">{myFollowers}</p>
+                                        </div>
+                                        <div className="text-center border-l border-r border-[#333] sm:border-none">
+                                            <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">Following</p>
+                                            <p className="text-sm sm:text-xl font-bold text-foreground">{myFollowing}</p>
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Following</p>
-                                            <p className="text-xl font-bold text-foreground">{myFollowing}</p>
+                                            <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">Streak</p>
+                                            <p className="text-sm sm:text-xl font-bold text-foreground">{currentStreakLocal}</p>
                                         </div>
-                                        <div className="text-center">
-                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Streak</p>
-                                            <p className="text-xl font-bold text-foreground">{currentStreakLocal}</p>
+                                        <div className="text-center pt-2 sm:pt-0">
+                                            <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">App Days</p>
+                                            <p className="text-sm sm:text-xl font-bold text-foreground">{appAgeDays}</p>
                                         </div>
-                                        <div className="text-center pt-2">
-                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">App Days</p>
-                                            <p className="text-xl font-bold text-foreground">{appAgeDays}</p>
+                                        <div className="text-center pt-2 sm:pt-0 border-l border-r border-[#333] sm:border-none">
+                                            <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">DM Coins</p>
+                                            <p className="text-sm sm:text-xl font-bold text-amber-500">{profileData?.slakeCredits || 0}</p>
                                         </div>
-                                        <div className="text-center pt-2">
-                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Coins</p>
-                                            <p className="text-xl font-bold text-amber-500">{profileData?.slakeCredits || 0}</p>
-                                        </div>
-                                        <div className="text-center pt-2">
-                                            <p className="text-sm uppercase text-muted-foreground font-bold leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500"/></p>
-                                            <p className="text-xl font-bold text-[#10b981]">#{myRank}</p>
+                                        <div className="text-center pt-2 sm:pt-0">
+                                            <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500"/></p>
+                                            <p className="text-sm sm:text-xl font-bold text-[#10b981]">#{myRank}</p>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <p className="text-sm text-gray-300 max-w-lg mt-3 mx-auto sm:mx-0 leading-relaxed">
+                                <p className="text-xs sm:text-sm text-gray-300 max-w-lg mt-2 sm:mt-3 mx-auto sm:mx-0 leading-relaxed">
                                     {profileData?.bio || "Building disciplined habits and enforcing high-performance standards."}
                                 </p>
                                 
-                                <div className="flex flex-wrap items-center gap-2 mt-5 justify-center sm:justify-start">
+                                <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-5 justify-center sm:justify-start">
                                     {profileData?.googleSyncPermissions?.linkedin && profileData?.socialUrls?.linkedin && (
-                                        <Badge variant="outline" className="bg-[#0077b5]/10 text-[#0077b5] border-[#0077b5]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.linkedin, "_blank")}>Linked</Badge>
+                                        <Badge variant="outline" className="bg-[#0077b5]/10 text-[#0077b5] border-[#0077b5]/30 cursor-pointer text-[9px] sm:text-xs" onClick={() => window.open(profileData.socialUrls!.linkedin, "_blank")}>Linked</Badge>
                                     )}
                                     {profileData?.googleSyncPermissions?.meta && profileData?.socialUrls?.meta && (
-                                        <Badge variant="outline" className="bg-[#E1306C]/10 text-[#E1306C] border-[#E1306C]/30 cursor-pointer" onClick={() => window.open(profileData.socialUrls!.meta, "_blank")}>Instagram</Badge>
+                                        <Badge variant="outline" className="bg-[#E1306C]/10 text-[#E1306C] border-[#E1306C]/30 cursor-pointer text-[9px] sm:text-xs" onClick={() => window.open(profileData.socialUrls!.meta, "_blank")}>Instagram</Badge>
                                     )}
-                                    {profileData?.isPrivateProfile && <Badge variant="outline" className="bg-gray-800 text-muted-foreground border-gray-700"><LockKeyhole className="w-3 h-3 mr-1"/> Private</Badge>}
+                                    {profileData?.isPrivateProfile && <Badge variant="outline" className="bg-gray-800 text-muted-foreground border-gray-700 text-[9px] sm:text-xs"><LockKeyhole className="w-3 h-3 mr-1"/> Private</Badge>}
                                 </div>
                             </div>
                         </div>
@@ -1163,7 +1163,7 @@ export default function ReformersPage() {
                         </div>
                     </DialogTrigger>
                     
-                    <DialogContent className="bg-[#1a1a1a] border-border text-foreground w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
+                    <DialogContent className="bg-[#1a1a1a] border-border text-foreground w-[95vw] sm:max-w-md max-h-[90vh] overflow-x-hidden overflow-y-auto p-0 rounded-2xl">
                        <DialogHeader className="hidden">
                           <DialogTitle>Profile Actions</DialogTitle>
                        </DialogHeader>
@@ -1276,30 +1276,30 @@ export default function ReformersPage() {
                                        <div className="space-y-5">
                                            <p className="text-sm text-gray-300 italic bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">"{member.bio}"</p>
                                            
-                                           <div className="bg-muted/50 border border-border p-4 rounded-xl grid grid-cols-3 gap-y-4 gap-x-2 items-center justify-items-center shadow-sm">
+                                           <div className="bg-muted/50 border border-border p-3 sm:p-4 rounded-xl grid grid-cols-3 gap-y-4 gap-x-2 items-start justify-items-center shadow-sm w-full">
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">App Days</div>
-                                                   <div className="text-lg font-black text-foreground">{member.appAge}D</div>
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">App Days</div>
+                                                   <div className="text-sm sm:text-lg font-black text-foreground truncate">{member.appAge}D</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Logbook</div>
-                                                   <div className="text-lg font-black text-foreground">{member.streak}</div>
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Logbook</div>
+                                                   <div className="text-sm sm:text-lg font-black text-foreground truncate">{member.streak}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">DM Coins</div>
-                                                   <div className="text-lg font-black text-amber-500">{member.coins}</div>
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">DM Coins</div>
+                                                   <div className="text-sm sm:text-lg font-black text-amber-500 truncate">{member.coins}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Certs</div>
-                                                   <div className="text-lg font-black text-[#10b981]">{Math.floor(member.streak / 7)}</div>
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Certs</div>
+                                                   <div className="text-sm sm:text-lg font-black text-[#10b981] truncate">{Math.floor(member.streak / 7)}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Tot Tasks</div>
-                                                   <div className="text-lg font-black text-foreground">{member.totalTasks}</div>
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Tasks</div>
+                                                   <div className="text-sm sm:text-lg font-black text-foreground truncate">{member.totalTasks}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Water</div>
-                                                   <div className="text-lg font-black text-blue-400">{member.totalWaterGlasses}</div>
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Water</div>
+                                                   <div className="text-sm sm:text-lg font-black text-blue-400 truncate">{member.totalWaterGlasses}</div>
                                                </div>
                                            </div>
 
@@ -1314,24 +1314,24 @@ export default function ReformersPage() {
                                        </div>
                                    )}
                                    
-                                   <div className="flex items-center gap-3 pt-6 border-t border-border">
-                                       <Button onClick={handleFollow} className={`flex-1 font-extrabold h-12 text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-[#333] border border-[#333]' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
+                                   <div className="flex flex-wrap items-center justify-center gap-2 pt-6 border-t border-border w-full">
+                                       <Button onClick={handleFollow} className={`flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-[#333] border border-[#333]' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
                                           {isFollowing ? "Following" : "Follow"}
                                        </Button>
                                        {profileData?.coWorkerId === member.id ? (
-                                           <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="flex-1 font-extrabold h-12 text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20">
+                                           <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 px-2 leading-tight">
                                               Unlink Co-Reformer
                                            </Button>
                                        ) : profileData?.pendingCoWorkerId === member.id ? (
-                                           <Button variant="outline" disabled className="flex-1 font-extrabold h-12 text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70">
+                                           <Button variant="outline" disabled className="flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 px-2 leading-tight">
                                               Pending
                                            </Button>
                                        ) : (
-                                           <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="flex-1 font-extrabold h-12 text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
+                                           <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 px-2 leading-tight">
                                               Connect as Co-Reformer
                                            </Button>
                                        )}
-                                       {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="bg-muted hover:bg-[#333] text-foreground h-12 px-6 shadow-md border border-[#333]"><MessageSquare className="w-4 h-4 mr-2"/> Text</Button>}
+                                       {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="flex-1 min-w-[20%] bg-muted hover:bg-[#333] text-foreground h-12 px-3 shadow-md border border-[#333] text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-1 sm:mr-2"/> Text</Button>}
                                    </div>
                                </div>
                            </div>
