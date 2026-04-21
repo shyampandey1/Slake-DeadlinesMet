@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut, Utensils, Gamepad2, Loader2, ArrowRight } from "lucide-react";
+import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut, Utensils, Gamepad2, Loader2, ArrowRight, BrainCircuit, Wind, Dumbbell, BookOpen, PenSquare, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,12 +16,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWeather } from "@/hooks/useWeather";
 
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc, writeBatch } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 
 function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, enrolling: boolean }) {
+  const movers = [
+    { key: 'M', title: 'Meditation', icon: BrainCircuit, color: 'text-purple-400', bg: 'bg-purple-500/10', desc: 'Center your mind before the day begins.' },
+    { key: 'O', title: 'Oxygenation', icon: Wind, color: 'text-blue-400', bg: 'bg-blue-500/10', desc: 'Power your cells with deep focused breathing.' },
+    { key: 'V', title: 'Visualization', icon: Sparkles, color: 'text-amber-400', bg: 'bg-amber-500/10', desc: 'Manifest your goals with mental clarity.' },
+    { key: 'E', title: 'Exercise', icon: Dumbbell, color: 'text-emerald-400', bg: 'bg-emerald-500/10', desc: 'Ignite your metabolism and physical strength.' },
+    { key: 'R', title: 'Reading Positive', icon: BookOpen, color: 'text-sky-400', bg: 'bg-sky-500/10', desc: 'Feed your consciousness with wisdom.' },
+    { key: 'S', title: 'Scribing', icon: PenSquare, color: 'text-rose-400', bg: 'bg-rose-500/10', desc: 'Journal your intent and track progress.' }
+  ];
+
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -188,53 +197,58 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
         </motion.div>
       </section>
 
-      {/* Rewards Showcase */}
-      <section className="bg-muted/30 py-24 border-y border-border/50">
-         <div className="max-w-6xl mx-auto px-6">
-            <h2 className="text-4xl md:text-5xl font-black text-center mb-16">PREMIUM <span className="text-emerald-400">REWARDS</span></h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-               {/* Reward 1 */}
-               <motion.div 
-                 custom={0} variants={fadeInVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}
-                 className="group p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all hover:-translate-y-2"
-               >
-                  <div className="flex gap-2 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-[10px] border border-purple-500/50">SOL</div>
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-[10px] border border-blue-500/50">POLY</div>
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">Crypto Payouts</h3>
-                  <p className="text-sm text-slate-400 mb-6">Redeem DM Coins for Solana or Polygon assets. Real value for real work.</p>
-                  <div className="h-1 w-12 bg-emerald-500 rounded-full" />
-               </motion.div>
+       {/* MOVERS Section */}
+       <section className="max-w-6xl mx-auto px-6 py-32 space-y-20">
+          <div className="text-center space-y-4">
+             <h2 className="text-5xl md:text-7xl font-black tracking-tighter">THE <span className="text-emerald-400">MOVERS</span> PROTOCOL</h2>
+             <p className="text-xl text-slate-400 max-w-2xl mx-auto">The blueprint of a successful Reformer. Master these six pillars to dominate your day.</p>
+          </div>
 
-               {/* Reward 2 */}
-               <motion.div 
-                 custom={1} variants={fadeInVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}
-                 className="group p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all hover:-translate-y-2 border-amber-500/20"
-               >
-                  <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 mb-6 border border-amber-500/30">
-                     <Utensils className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">NimkiThekua Box</h3>
-                  <p className="text-sm text-slate-400 mb-6">Authentic Bihar dessert boxes shipped to your door. The taste of victory.</p>
-                  <div className="h-1 w-12 bg-amber-500 rounded-full" />
-               </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+             {movers.map((item, i) => (
+                <motion.div 
+                   key={item.key}
+                   initial={{ opacity: 0, y: 30 }}
+                   whileInView={{ opacity: 1, y: 0 }}
+                   viewport={{ once: true }}
+                   transition={{ delay: i * 0.1 }}
+                   className="group relative p-8 rounded-[2rem] bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2"
+                >
+                   <div className={`w-16 h-16 ${item.bg} rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 duration-500`}>
+                      <item.icon className={`w-8 h-8 ${item.color}`} />
+                   </div>
+                   <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                         <span className={`text-4xl font-black ${item.color}`}>{item.key}</span>
+                         <h3 className="text-2xl font-bold text-white">{item.title}</h3>
+                      </div>
+                      <p className="text-slate-400 leading-relaxed font-medium">{item.desc}</p>
+                   </div>
+                   <div className={`absolute top-4 right-6 text-6xl font-black opacity-[0.03] ${item.color} select-none transition-opacity group-hover:opacity-10`}>{item.key}</div>
+                </motion.div>
+             ))}
+          </div>
 
-               {/* Reward 3 */}
-               <motion.div 
-                 custom={2} variants={fadeInVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}
-                 className="group p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all hover:-translate-y-2 border-red-500/20"
-               >
-                  <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center text-red-400 mb-6 border border-red-500/30">
-                     <Gamepad2 className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">Riderz Hub Cafe</h3>
-                  <p className="text-sm text-slate-400 mb-6">Exclusive access to Sim-Racing, Snacks, and high-speed gaming hubs.</p>
-                  <div className="h-1 w-12 bg-red-500 rounded-full" />
-               </motion.div>
-            </div>
-         </div>
-      </section>
+          <motion.div 
+             initial={{ opacity: 0, scale: 0.9 }}
+             whileInView={{ opacity: 1, scale: 1 }}
+             viewport={{ once: true }}
+             className="p-12 rounded-[3rem] bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-transparent border border-white/10 text-center space-y-8"
+          >
+             <h3 className="text-3xl md:text-5xl font-black">YOUR SCHEDULE, <span className="text-emerald-400">AUTOMATICALLY TUNED</span></h3>
+             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                Joining the league doesn't just give you a rank. It realigns your entire existence. 
+                Our engine automatically injects the MOVERS protocol into your daily routine, 
+                optimizing your habits from the moment you wake up.
+             </p>
+             <div className="flex flex-wrap justify-center gap-4 py-4">
+                {['6:00 AM Meditation', '6:15 AM Breathing', '6:30 AM Visualization'].map((tag, i) => (
+                   <Badge key={i} variant="outline" className="px-4 py-2 border-white/20 bg-white/5 text-slate-300">{tag}</Badge>
+                ))}
+                <span className="text-slate-500 font-bold self-center">...and more</span>
+             </div>
+          </motion.div>
+       </section>
 
       {/* Sticky Bottom Action */}
       <motion.div 
@@ -285,6 +299,7 @@ export default function ReformersPage() {
   const [whatsappSync, setWhatsappSync] = useState(profileData?.googleSyncPermissions?.whatsapp || false);
   const [metaSync, setMetaSync] = useState(profileData?.googleSyncPermissions?.meta || false);
   const [linkedinSync, setLinkedinSync] = useState(profileData?.googleSyncPermissions?.linkedin || false);
+  const [showTunedPopup, setShowTunedPopup] = useState(false);
 
   // Edit Profile States
   const [isEditing, setIsEditing] = useState(false);
@@ -507,11 +522,53 @@ export default function ReformersPage() {
   }, [chatMode, selectedUser, profileData?.userId]);
 
   const handleEnroll = async () => {
+    if (!user) return;
     setEnrolling(true);
-    setTimeout(() => {
-       setEnrolling(false);
-       setSocialModalOpen(true);
-    }, 1500);
+
+    try {
+        // Automatically tune schedule to MOVERS
+        const moversTasks: any[] = [
+            { name: "M: Meditation", duration: 15, icon: "BrainCircuit", category: "Morning Kickstart", order: 0 },
+            { name: "O: Oxygenation (Deep Breathing)", duration: 10, icon: "Wind", category: "Morning Kickstart", order: 1 },
+            { name: "V: Visualization", duration: 10, icon: "Sparkles", category: "Morning Kickstart", order: 2 },
+            { name: "E: Exercise & Morning Warm-up", duration: 20, icon: "Dumbbell", category: "Morning Kickstart", order: 3 },
+            { name: "R: Reading Positive Content", duration: 20, icon: "BookOpen", category: "Morning Kickstart", order: 4 },
+            { name: "S: Scribing (Journaling)", duration: 15, icon: "PenSquare", category: "Morning Kickstart", order: 5 }
+        ];
+
+        // Batch update firestore userPresetTasks
+        const tasksCollectionRef = collection(db, 'users', user.uid, 'userPresetTasks');
+        const currentTasksQuery = query(tasksCollectionRef, where('profession', '==', profileData?.profile || 'General'));
+        const currentTasksSnapshot = await getDocs(currentTasksQuery);
+        
+        const batch = writeBatch(db);
+        // We prepends MOVERS to existing routine by shifting orders
+        currentTasksSnapshot.forEach(doc => {
+            const data = doc.data();
+            batch.update(doc.ref, { order: (data.order || 0) + 6 });
+        });
+
+        moversTasks.forEach(task => {
+            const newDocRef = doc(tasksCollectionRef);
+            batch.set(newDocRef, {
+                ...task,
+                profession: profileData?.profile || 'General'
+            });
+        });
+
+        await batch.commit();
+        
+        setEnrolling(false);
+        setShowTunedPopup(true);
+        setTimeout(() => {
+            setShowTunedPopup(false);
+            setSocialModalOpen(true);
+        }, 4000);
+
+    } catch (err) {
+        console.error("Enrollment failed:", err);
+        setEnrolling(false);
+    }
   };
 
   const handleSavePermissions = () => {
@@ -1342,6 +1399,30 @@ export default function ReformersPage() {
           </div>
         </div>
 
+        <Dialog open={showTunedPopup} onOpenChange={setShowTunedPopup}>
+           <DialogContent className="bg-slate-950/95 border-emerald-500/50 text-white text-center p-12 rounded-[2.5rem] backdrop-blur-xl shadow-[0_0_50px_rgba(16,185,129,0.2)] sm:max-w-md">
+              <motion.div 
+                 initial={{ scale: 0.8, opacity: 0 }}
+                 animate={{ scale: 1, opacity: 1 }}
+                 className="space-y-6"
+              >
+                 <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-500/30">
+                    <Zap className="w-12 h-12 text-emerald-400 animate-pulse" />
+                 </div>
+                 <h2 className="text-3xl font-black tracking-tight">SCHEDULE TUNED</h2>
+                 <p className="text-slate-400 leading-relaxed">
+                    Welcome, Reformer. Your routine has been automatically aligned with the 
+                    <span className="text-emerald-400 font-bold"> MOVERS</span> protocol. 
+                    Refresh your homescreen to see your new path.
+                 </p>
+                 <div className="pt-4 flex justify-center gap-2">
+                    {['M','O','V','E','R','S'].map(l => (
+                        <div key={l} className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-black text-sm border border-emerald-500/20">{l}</div>
+                    ))}
+                 </div>
+              </motion.div>
+           </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
