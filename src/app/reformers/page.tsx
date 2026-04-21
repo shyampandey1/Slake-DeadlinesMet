@@ -146,10 +146,10 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
               <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
                  <Zap className="w-8 h-8 text-amber-400" />
               </div>
-              <h2 className="text-4xl font-bold">Hydration & Exercise = Slake Coins</h2>
+              <h2 className="text-4xl font-bold">Hydration & Exercise = DM Coins</h2>
               <p className="text-lg text-slate-400 leading-relaxed">
                 Your discipline is now a currency. Every task logged and every hydration target met 
-                mints Slake Coins directly into your digital vault.
+                mints DM Coins directly into your digital vault.
               </p>
               <div className="flex gap-4">
                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center flex-1">
@@ -203,7 +203,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                     <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-[10px] border border-blue-500/50">POLY</div>
                   </div>
                   <h3 className="text-2xl font-bold mb-3">Crypto Payouts</h3>
-                  <p className="text-sm text-slate-400 mb-6">Redeem Slake Coins for Solana or Polygon assets. Real value for real work.</p>
+                  <p className="text-sm text-slate-400 mb-6">Redeem DM Coins for Solana or Polygon assets. Real value for real work.</p>
                   <div className="h-1 w-12 bg-emerald-500 rounded-full" />
                </motion.div>
 
@@ -661,12 +661,12 @@ export default function ReformersPage() {
   };
 
   const handleConnectCoWorker = async (peerId: string) => {
-      await updateUserProfileData({ coWorkerId: peerId });
+      await updateUserProfileData({ pendingCoWorkerId: peerId });
       try {
           await addDoc(collection(db, "messages"), {
               senderId: profileData?.userId,
               receiverId: peerId,
-              text: "🤝 Just connected with you as a Co-Reformer! Let's stay focused together.",
+              text: "🤝 I'd like to join you as a Co-Reformer! Let's stay focused together.",
               timestamp: serverTimestamp()
           });
       } catch(e) {}
@@ -901,8 +901,8 @@ export default function ReformersPage() {
                 <div className="space-y-6 py-4">
                    <div className="text-center p-4 bg-muted/40 rounded-xl border border-border">
                         <TrendingUp className="w-10 h-10 text-amber-500 mx-auto mb-2" />
-                        <h3 className="font-bold text-foreground">Get 1,000 Slake Coins</h3>
-                        <p className="text-xs text-muted-foreground mt-1">For every friend who joins using your unique profile link, you earn 1,000 Slake Coins towards rewards!</p>
+                        <h3 className="font-bold text-foreground">Get 1,000 DM Coins</h3>
+                        <p className="text-xs text-muted-foreground mt-1">For every friend who joins using your unique profile link, you earn 1,000 DM Coins towards rewards!</p>
                    </div>
                    
                    <div className="space-y-3">
@@ -1082,6 +1082,25 @@ export default function ReformersPage() {
         </div>
 
         {/* Global Live Leaderboard Panel */}
+        {isAdmin && liveMembers.filter(m => m.reformersStatus === 'pending').length > 0 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl mb-6 shadow-sm">
+                <h3 className="font-bold text-yellow-500 flex items-center gap-2 mb-3"><ShieldCheck className="w-5 h-5" /> Pending Approvals</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {liveMembers.filter(m => m.reformersStatus === 'pending').map(m => (
+                        <div key={m.id} className="flex items-center justify-between p-3 border border-yellow-500/20 bg-black/40 rounded-xl">
+                            <div className="flex items-center gap-3 w-full overflow-hidden">
+                               <Avatar className="w-10 h-10 shrink-0"><AvatarImage src={m.avatar} /></Avatar>
+                               <div className="min-w-0 flex-1">
+                                  <p className="font-bold text-white text-sm truncate">{m.name}</p>
+                                  <p className="text-[10px] uppercase text-muted-foreground truncate">{m.profession}</p>
+                               </div>
+                               <Button size="sm" className="bg-[#10b981] hover:bg-[#059669] text-black font-bold shrink-0 text-xs h-7" onClick={() => approveUser(m.id)}>Approve</Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
         <div className="space-y-4 pt-6">
           <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
              <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Global Leaderboard</span>
@@ -1143,7 +1162,7 @@ export default function ReformersPage() {
                         </div>
                     </DialogTrigger>
                     
-                    <DialogContent className="bg-[#1a1a1a] border-border text-foreground sm:max-w-md overflow-hidden p-0">
+                    <DialogContent className="bg-[#1a1a1a] border-border text-foreground w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
                        <DialogHeader className="hidden">
                           <DialogTitle>Profile Actions</DialogTitle>
                        </DialogHeader>
@@ -1208,11 +1227,11 @@ export default function ReformersPage() {
                                    size="sm" 
                                    className="rounded-full bg-blue-500/10 border-blue-500/30 text-blue-400 text-[10px] h-7 px-3 whitespace-nowrap hover:bg-blue-500/20 transition-all font-bold"
                                  >
-                                   🤝 Work as Co-Worker
+                                   🤝 Work as Co-Reformer
                                  </Button>
                                  <Button 
                                    onClick={() => {
-                                     setMessageText(`🔥 Just hit a streak of ${currentStreakLocal} days in my Logbook! Join me natively here to earn Slake Coins together.`);
+                                     setMessageText(`🔥 Just hit a streak of ${currentStreakLocal} days in my Logbook! Join me natively here to earn DM Coins together.`);
                                    }}
                                    variant="outline" 
                                    size="sm" 
@@ -1256,35 +1275,30 @@ export default function ReformersPage() {
                                        <div className="space-y-5">
                                            <p className="text-sm text-gray-300 italic bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">"{member.bio}"</p>
                                            
-                                           <div className="bg-muted/50 border border-border p-4 rounded-xl flex justify-around items-center shadow-sm flex-wrap gap-2">
-                                               <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">App Days</div>
-                                                   <div className="text-xl font-black text-foreground">{member.appAge}D</div>
+                                           <div className="bg-muted/50 border border-border p-4 rounded-xl grid grid-cols-3 gap-y-4 gap-x-2 items-center justify-items-center shadow-sm">
+                                               <div className="text-center w-full">
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">App Days</div>
+                                                   <div className="text-lg font-black text-foreground">{member.appAge}D</div>
                                                </div>
-                                               <div className="w-px h-8 bg-border"></div>
-                                               <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Logbook</div>
-                                                   <div className="text-xl font-black text-foreground">{member.streak}</div>
+                                               <div className="text-center w-full">
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Logbook</div>
+                                                   <div className="text-lg font-black text-foreground">{member.streak}</div>
                                                </div>
-                                               <div className="w-px h-8 bg-border"></div>
-                                               <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Coins</div>
-                                                   <div className="text-xl font-black text-amber-500">{member.coins}</div>
+                                               <div className="text-center w-full">
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">DM Coins</div>
+                                                   <div className="text-lg font-black text-amber-500">{member.coins}</div>
                                                </div>
-                                               <div className="w-px h-8 bg-border"></div>
-                                               <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Certs</div>
-                                                   <div className="text-xl font-black text-[#10b981]">{Math.floor(member.streak / 7)}</div>
+                                               <div className="text-center w-full">
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Certs</div>
+                                                   <div className="text-lg font-black text-[#10b981]">{Math.floor(member.streak / 7)}</div>
                                                </div>
-                                               <div className="w-px h-8 bg-border flex sm:hidden"></div>
-                                               <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Tot Tasks</div>
-                                                   <div className="text-xl font-black text-foreground">{member.totalTasks}</div>
+                                               <div className="text-center w-full">
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Tot Tasks</div>
+                                                   <div className="text-lg font-black text-foreground">{member.totalTasks}</div>
                                                </div>
-                                               <div className="w-px h-8 bg-border"></div>
-                                               <div className="text-center">
-                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Water</div>
-                                                   <div className="text-xl font-black text-blue-400">{member.totalWaterGlasses}</div>
+                                               <div className="text-center w-full">
+                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Water</div>
+                                                   <div className="text-lg font-black text-blue-400">{member.totalWaterGlasses}</div>
                                                </div>
                                            </div>
 
@@ -1306,6 +1320,10 @@ export default function ReformersPage() {
                                        {profileData?.coWorkerId === member.id ? (
                                            <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="flex-1 font-extrabold h-12 text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20">
                                               Unlink Co-Reformer
+                                           </Button>
+                                       ) : profileData?.pendingCoWorkerId === member.id ? (
+                                           <Button variant="outline" disabled className="flex-1 font-extrabold h-12 text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70">
+                                              Pending
                                            </Button>
                                        ) : (
                                            <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="flex-1 font-extrabold h-12 text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">

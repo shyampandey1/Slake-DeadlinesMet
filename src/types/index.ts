@@ -152,6 +152,7 @@ export type UserProfile = {
     followingCount?: number;
     // Co-working & Live Sync
     coWorkerId?: string;
+    pendingCoWorkerId?: string;
     activeSession?: {
         taskName: string;
         expectedEndTime: number;

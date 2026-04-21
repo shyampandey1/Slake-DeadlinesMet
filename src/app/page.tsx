@@ -39,7 +39,7 @@ export default function Home() {
                </div>
                <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Level Up Your Discipline</h3>
                <p className="text-white/80 text-sm mb-6 max-w-md leading-relaxed">
-                 You have 0 Slake Coins. Join the Reformers League to turn your daily hydration, 
+                 You have 0 DM Coins. Join the Reformers League to turn your daily hydration, 
                  exercise, and tasks into real rewards and crypto payouts.
                </p>
                <Button asChild className="bg-white text-red-600 hover:bg-white/90 font-bold px-8 h-12 rounded-xl transition-all hover:translate-x-1 shadow-lg">

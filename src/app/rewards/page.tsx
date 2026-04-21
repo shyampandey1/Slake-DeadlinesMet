@@ -249,7 +249,7 @@ export default function RewardsPage() {
                             <Zap className="w-40 h-40" />
                         </div>
                         <CardHeader>
-                            <CardTitle className="text-lg font-medium text-white/90">Slake Balance</CardTitle>
+                            <CardTitle className="text-lg font-medium text-white/90">DM Coins</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-end gap-3 z-10 relative">
