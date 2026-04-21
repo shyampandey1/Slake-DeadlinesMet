@@ -558,6 +558,12 @@ export default function ReformersPage() {
 
         await batch.commit();
         
+        // Update local user status to pending so admin can see it
+        await updateUserProfileData({
+            reformersStatus: 'pending',
+            isReformersEnrolled: false // Wait for admin approval
+        });
+
         setEnrolling(false);
         setShowTunedPopup(true);
         setTimeout(() => {
@@ -1333,30 +1339,30 @@ export default function ReformersPage() {
                                        <div className="space-y-5">
                                            <p className="text-sm text-gray-300 italic bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">"{member.bio}"</p>
                                            
-                                           <div className="bg-muted/50 border border-border p-3 sm:p-4 rounded-xl grid grid-cols-3 gap-y-4 gap-x-2 items-start justify-items-center shadow-sm w-full">
+                                           <div className="bg-muted/50 border border-border p-3 sm:p-4 rounded-xl grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2 items-start justify-items-center shadow-sm w-full">
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">App Days</div>
-                                                   <div className="text-sm sm:text-lg font-black text-foreground truncate">{member.appAge}D</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">App Days</div>
+                                                   <div className="text-base sm:text-lg font-black text-foreground truncate">{member.appAge}D</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Logbook</div>
-                                                   <div className="text-sm sm:text-lg font-black text-foreground truncate">{member.streak}</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Logbook</div>
+                                                   <div className="text-base sm:text-lg font-black text-foreground truncate">{member.streak}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">DM Coins</div>
-                                                   <div className="text-sm sm:text-lg font-black text-amber-500 truncate">{member.coins}</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">DM Coins</div>
+                                                   <div className="text-base sm:text-lg font-black text-amber-500 truncate">{member.coins}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Certs</div>
-                                                   <div className="text-sm sm:text-lg font-black text-[#10b981] truncate">{Math.floor(member.streak / 7)}</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Certs</div>
+                                                   <div className="text-base sm:text-lg font-black text-[#10b981] truncate">{Math.floor(member.streak / 7)}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Tasks</div>
-                                                   <div className="text-sm sm:text-lg font-black text-foreground truncate">{member.totalTasks}</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Tasks</div>
+                                                   <div className="text-base sm:text-lg font-black text-foreground truncate">{member.totalTasks}</div>
                                                </div>
                                                <div className="text-center w-full">
-                                                   <div className="text-[9px] text-gray-500 font-black uppercase tracking-wider md:tracking-widest mb-1 truncate">Water</div>
-                                                   <div className="text-sm sm:text-lg font-black text-blue-400 truncate">{member.totalWaterGlasses}</div>
+                                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Water</div>
+                                                   <div className="text-base sm:text-lg font-black text-blue-400 truncate">{member.totalWaterGlasses}</div>
                                                </div>
                                            </div>
 
@@ -1371,25 +1377,28 @@ export default function ReformersPage() {
                                        </div>
                                    )}
                                    
-                                   <div className="flex flex-wrap items-center justify-center gap-2 pt-6 border-t border-border w-full">
-                                       <Button onClick={handleFollow} className={`flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-[#333] border border-[#333]' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
-                                          {isFollowing ? "Following" : "Follow"}
-                                       </Button>
-                                       {profileData?.coWorkerId === member.id ? (
-                                           <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 px-2 leading-tight">
-                                              Unlink Co-Reformer
-                                           </Button>
-                                       ) : profileData?.pendingCoWorkerId === member.id ? (
-                                           <Button variant="outline" disabled className="flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 px-2 leading-tight">
-                                              Pending
-                                           </Button>
-                                       ) : (
-                                           <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="flex-1 min-w-[30%] font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 px-2 leading-tight">
-                                              Connect as Co-Reformer
-                                           </Button>
-                                       )}
-                                       {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="flex-1 min-w-[20%] bg-muted hover:bg-[#333] text-foreground h-12 px-3 shadow-md border border-[#333] text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-1 sm:mr-2"/> Text</Button>}
-                                   </div>
+                                   <div className="grid grid-cols-2 gap-3 pt-6 border-t border-border w-full">
+                                        <Button onClick={handleFollow} className={`w-full font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-[#333] border border-[#333]' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
+                                           {isFollowing ? "Following" : "Follow"}
+                                        </Button>
+                                        {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="w-full bg-muted hover:bg-[#333] text-foreground h-12 px-3 shadow-md border border-[#333] text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-2"/> Text</Button>}
+                                        
+                                        <div className="col-span-2">
+                                            {profileData?.coWorkerId === member.id ? (
+                                                <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
+                                                   Unlink Co-Reformer
+                                                </Button>
+                                            ) : profileData?.pendingCoWorkerId === member.id ? (
+                                                <Button variant="outline" disabled className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 leading-tight">
+                                                   Pending Approval
+                                                </Button>
+                                            ) : (
+                                                <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 leading-tight">
+                                                   Connect as Co-Reformer
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
                                </div>
                            </div>
                        )}
