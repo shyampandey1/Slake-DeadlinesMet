@@ -776,14 +776,12 @@ export default function ReformersPage() {
                <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
             </div>
             <div className="flex gap-2">
-                {whatsappJoinLink && (
-                    <Button 
-                        onClick={() => window.open(whatsappJoinLink, "_blank")}
-                        className="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-6"
-                    >
-                        <Phone className="w-4 h-4 mr-2" /> JOIN OFFICIAL WHATSAPP
-                    </Button>
-                )}
+                <Button 
+                    onClick={() => window.open(whatsappJoinLink || "https://chat.whatsapp.com/K2xFpbUYhXaBe7EsOYXmkJ", "_blank")}
+                    className="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#20ba5a] hover:to-[#075E54] text-white font-black border-none shadow-[0_0_20px_rgba(37,211,102,0.3)] px-6"
+                >
+                    <Phone className="w-4 h-4 mr-2" /> JOIN OFFICIAL WHATSAPP
+                </Button>
                 {isAdmin && (
                     <Dialog open={adminModalOpen} onOpenChange={setAdminModalOpen}>
                         <DialogTrigger asChild>
@@ -1082,7 +1080,7 @@ export default function ReformersPage() {
         </div>
 
         {/* Global Live Leaderboard Panel */}
-        {isAdmin && liveMembers.filter(m => m.reformersStatus === 'pending').length > 0 && (
+        {isAdmin && (
             <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl mb-6 shadow-sm">
                 <h3 className="font-bold text-yellow-500 flex items-center gap-2 mb-3"><ShieldCheck className="w-5 h-5" /> Pending Approvals</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1098,6 +1096,9 @@ export default function ReformersPage() {
                             </div>
                         </div>
                     ))}
+                    {liveMembers.filter(m => m.reformersStatus === 'pending').length === 0 && (
+                        <p className="text-sm text-yellow-500/70 p-2">No pending reformers at the moment. You're all caught up!</p>
+                    )}
                 </div>
             </div>
         )}
