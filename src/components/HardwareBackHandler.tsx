@@ -28,7 +28,7 @@ export default function HardwareBackHandler() {
             if (now - lastPressRef.current < 2000) {
                 // Secondary check: Are they really trying to exit?
                 // In a PWA standalone mode, this will properly exit to the launcher.
-                window.history.back(); 
+                window.history.back();
             } else {
                 lastPressRef.current = now;
                 toast({

@@ -201,6 +201,7 @@ export default function RewardsPage() {
     } finally {
       setDownloading(null);
     }
+  };
 
   const pinCertificate = async (certId: string, certTitle: string) => {
       if (!user) return;
