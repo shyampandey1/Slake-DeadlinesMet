@@ -719,16 +719,71 @@ export default function ReformersPage() {
     };
 
     const handleFollow = async () => {
-        setIsFollowing(!isFollowing);
-        if (!isFollowing && selectedUser && profileData?.userId) {
-            try {
+        if (!selectedUser || !profileData?.userId) return;
+        const newIsFollowing = !isFollowing;
+        setIsFollowing(newIsFollowing);
+        
+        try {
+            const followerRef = doc(db, "users", selectedUser.id, "user_followers", profileData.userId);
+            const followingRef = doc(db, "users", profileData.userId, "user_following", selectedUser.id);
+            
+            if (newIsFollowing) {
+                await setDoc(followerRef, { 
+                    timestamp: serverTimestamp(), 
+                    name: profileData.displayName || "Anonymous", 
+                    avatar: profileData.displayPicture || "" 
+                });
+                await setDoc(followingRef, { 
+                    timestamp: serverTimestamp(), 
+                    name: selectedUser.name, 
+                    avatar: selectedUser.avatar 
+                });
+                
                 await addDoc(collection(db, "messages"), {
                     senderId: profileData.userId,
                     receiverId: selectedUser.id,
                     text: `started following you!`,
                     timestamp: serverTimestamp()
                 });
-            } catch (e) { }
+            } else {
+                const { deleteDoc } = await import("firebase/firestore");
+                await deleteDoc(followerRef);
+                await deleteDoc(followingRef);
+            }
+        } catch (e) {
+            console.error("Follow action failed:", e);
+        }
+    };
+
+    // Add this useEffect to check initial follow status
+    useEffect(() => {
+        if (selectedUser?.id && profileData?.userId) {
+            const checkFollow = async () => {
+                const { getDoc, doc } = await import("firebase/firestore");
+                const followingRef = doc(db, "users", profileData.userId, "user_following", selectedUser.id);
+                const snap = await getDoc(followingRef);
+                setIsFollowing(snap.exists());
+            };
+            checkFollow();
+        }
+    }, [selectedUser?.id, profileData?.userId]);
+
+    const handleAcceptCoWorker = async (peerId: string) => {
+        if (!user) return;
+        try {
+            const myRef = doc(db, "users", user.uid);
+            const peerRef = doc(db, "users", peerId);
+            
+            const batch = writeBatch(db);
+            batch.update(myRef, { coWorkerId: peerId, pendingCoWorkerId: "" });
+            batch.update(peerRef, { coWorkerId: user.uid, pendingCoWorkerId: "" });
+            await batch.commit();
+            
+            // Trigger local update if hook allows, or let onSnapshot handle it
+            updateUserProfileData({ coWorkerId: peerId, pendingCoWorkerId: "" });
+            alert("🤝 You are now Co-Reformers! Stay focused together.");
+        } catch (e) {
+            console.error("Accept failed:", e);
         }
     };
 
@@ -1252,7 +1307,7 @@ export default function ReformersPage() {
                                             </div>
                                             <div className="text-center hidden md:block">
                                                 <p className="text-xs font-bold text-amber-500 leading-tight">{member.coins}</p>
-                                                <p className="text-[9px] uppercase tracking-widest text-amber-500/70 font-bold">Coins</p>
+                                                <p className="text-[9px] uppercase tracking-widest text-amber-500/70 font-bold">DM Coins</p>
                                             </div>
                                             <div className="text-center pr-2 border-l border-border/50 pl-3 md:pl-4">
                                                 <p className="text-xs font-black text-foreground leading-tight">{member.streak}</p>
@@ -1377,6 +1432,14 @@ export default function ReformersPage() {
 
                                                         <div className="bg-muted/50 border border-border p-3 sm:p-4 rounded-xl grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2 items-start justify-items-center shadow-sm w-full">
                                                             <div className="text-center w-full">
+                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Followers</div>
+                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{selectedUserFollowers}</div>
+                                                            </div>
+                                                            <div className="text-center w-full">
+                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Following</div>
+                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{selectedUserFollowing}</div>
+                                                            </div>
+                                                            <div className="text-center w-full">
                                                                 <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">App Days</div>
                                                                 <div className="text-base sm:text-lg font-black text-foreground truncate">{member.appAge}D</div>
                                                             </div>
@@ -1423,6 +1486,10 @@ export default function ReformersPage() {
                                                         {profileData?.coWorkerId === member.id ? (
                                                             <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                 Unlink Co-Reformer
+                                                            </Button>
+                                                        ) : member.pendingCoWorkerId === profileData?.userId ? (
+                                                            <Button onClick={() => handleAcceptCoWorker(member.id)} variant="default" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-[#10b981] text-black hover:bg-[#059669] leading-tight">
+                                                                Accept Co-Reformer Request
                                                             </Button>
                                                         ) : profileData?.pendingCoWorkerId === member.id ? (
                                                             <Button variant="outline" disabled className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 leading-tight">

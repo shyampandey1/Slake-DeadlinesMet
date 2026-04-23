@@ -343,7 +343,7 @@ export default function RewardsPage() {
                         <CardContent>
                             <div className="flex items-end gap-3 z-10 relative">
                                 <span className="text-6xl font-black tracking-tighter drop-shadow-md">{credits.toLocaleString()}</span>
-                                <span className="text-2xl pb-1 font-bold text-white/90">SC</span>
+                                <span className="text-2xl pb-1 font-bold text-white/90">DM Coins</span>
                             </div>
                             <p className="mt-4 text-sm text-white/80 max-w-[280px] relative z-10 font-medium">
                                 Keep grinding your daily tasks to unlock more rewards!
@@ -395,7 +395,7 @@ export default function RewardsPage() {
                                                 </Badge>
                                                 <Badge variant="secondary" className="flex items-center gap-1 font-bold whitespace-nowrap bg-background">
                                                     <Zap className="w-3 h-3 text-indigo-500" />
-                                                    {u.coins.toLocaleString()} SC
+                                                    {u.coins.toLocaleString()} DM Coins
                                                 </Badge>
                                                 <Badge variant="secondary" className="flex items-center gap-1 font-bold whitespace-nowrap bg-background">
                                                     <Medal className="w-3 h-3 text-yellow-500" />
@@ -449,7 +449,7 @@ export default function RewardsPage() {
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="p-3 bg-card border shadow-sm rounded-xl text-3xl font-bold flex items-center justify-center">{item.img}</div>
                                         <Badge variant={isUnlocked ? "default" : "secondary"} className="font-mono font-bold">
-                                            {item.credits.toLocaleString()} SC
+                                            {item.credits.toLocaleString()} DM Coins
                                         </Badge>
                                     </div>
                                     <CardTitle className="text-lg leading-tight">{item.name}</CardTitle>
@@ -574,7 +574,7 @@ export default function RewardsPage() {
                                 <div className="p-4 rounded-xl bg-muted/30 border border-border flex items-center justify-between">
                                     <div>
                                         <p className="text-xs text-muted-foreground font-bold uppercase">Cost</p>
-                                        <p className="text-lg font-black">{selectedReward.credits.toLocaleString()} SC</p>
+                                        <p className="text-lg font-black">{selectedReward.credits.toLocaleString()} DM Coins</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs text-muted-foreground font-bold uppercase">Reward</p>
