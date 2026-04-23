@@ -723,6 +723,15 @@ export default function ReformersPage() {
         const newIsFollowing = !isFollowing;
         setIsFollowing(newIsFollowing);
         
+        // Optimistically update counts
+        if (newIsFollowing) {
+            setSelectedUserFollowers(prev => prev + 1);
+            setMyFollowing(prev => prev + 1);
+        } else {
+            setSelectedUserFollowers(prev => Math.max(0, prev - 1));
+            setMyFollowing(prev => Math.max(0, prev - 1));
+        }
+        
         try {
             const followerRef = doc(db, "users", selectedUser.id, "user_followers", profileData.userId);
             const followingRef = doc(db, "users", profileData.userId, "user_following", selectedUser.id);
@@ -746,12 +755,13 @@ export default function ReformersPage() {
                     timestamp: serverTimestamp()
                 });
             } else {
-                const { deleteDoc } = await import("firebase/firestore");
                 await deleteDoc(followerRef);
                 await deleteDoc(followingRef);
             }
         } catch (e) {
             console.error("Follow action failed:", e);
+            // Rollback on error
+            setIsFollowing(!newIsFollowing);
         }
     };
 
@@ -771,19 +781,39 @@ export default function ReformersPage() {
     const handleAcceptCoWorker = async (peerId: string) => {
         if (!user) return;
         try {
-            const myRef = doc(db, "users", user.uid);
-            const peerRef = doc(db, "users", peerId);
-            
             const batch = writeBatch(db);
-            batch.update(myRef, { coWorkerId: peerId, pendingCoWorkerId: "" });
-            batch.update(peerRef, { coWorkerId: user.uid, pendingCoWorkerId: "" });
+            batch.update(doc(db, "users", user.uid), { coWorkerId: peerId, pendingCoWorkerId: "" });
+            batch.update(doc(db, "users", peerId), { coWorkerId: user.uid, pendingCoWorkerId: "" });
             await batch.commit();
             
-            // Trigger local update if hook allows, or let onSnapshot handle it
             updateUserProfileData({ coWorkerId: peerId, pendingCoWorkerId: "" });
             alert("🤝 You are now Co-Reformers! Stay focused together.");
         } catch (e) {
             console.error("Accept failed:", e);
+        }
+    };
+
+    const handleWithdrawRequest = async () => {
+        if (!user) return;
+        try {
+            await updateUserProfileData({ pendingCoWorkerId: "" });
+            alert("Request withdrawn.");
+        } catch (e) {
+            console.error("Withdraw failed:", e);
+        }
+    };
+
+    const handleUnlinkCoWorker = async (peerId: string) => {
+        if (!user) return;
+        try {
+            const batch = writeBatch(db);
+            batch.update(doc(db, "users", user.uid), { coWorkerId: "" });
+            batch.update(doc(db, "users", peerId), { coWorkerId: "" });
+            await batch.commit();
+            updateUserProfileData({ coWorkerId: "" });
+            alert("Unlinked successfully.");
+        } catch (e) {
+            console.error("Unlink failed:", e);
         }
     };
 
@@ -1256,6 +1286,32 @@ export default function ReformersPage() {
                         </div>
                     </div>
                 )}
+                {/* Incoming Co-Reformer Requests Section */}
+                {liveMembers.filter(m => m.pendingCoWorkerId === profileData?.userId).length > 0 && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl mb-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-emerald-400 flex items-center gap-2"><Users className="w-5 h-5" /> Co-Reformer Requests</h3>
+                            <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Action Required</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {liveMembers.filter(m => m.pendingCoWorkerId === profileData?.userId).map(m => (
+                                <div key={m.id} className="flex items-center justify-between p-3 border border-emerald-500/20 bg-black/40 rounded-xl hover:bg-black/60 transition-colors">
+                                    <div className="flex items-center gap-3 w-full overflow-hidden">
+                                        <Avatar className="w-10 h-10 shrink-0 border border-emerald-500/30"><AvatarImage src={m.avatar} /></Avatar>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-white text-sm truncate">{m.name}</p>
+                                            <p className="text-[10px] uppercase text-muted-foreground truncate">{m.profession}</p>
+                                        </div>
+                                        <div className="flex gap-2 shrink-0">
+                                            <Button size="sm" className="bg-[#10b981] hover:bg-[#059669] text-black font-bold text-xs h-8 px-4" onClick={() => handleAcceptCoWorker(m.id)}>Accept</Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="space-y-4 pt-6">
                     <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
                         <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Global Leaderboard</span>
@@ -1484,7 +1540,7 @@ export default function ReformersPage() {
 
                                                     <div className="col-span-2">
                                                         {profileData?.coWorkerId === member.id ? (
-                                                            <Button onClick={() => updateUserProfileData({ coWorkerId: "" })} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
+                                                            <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                 Unlink Co-Reformer
                                                             </Button>
                                                         ) : member.pendingCoWorkerId === profileData?.userId ? (
@@ -1492,8 +1548,8 @@ export default function ReformersPage() {
                                                                 Accept Co-Reformer Request
                                                             </Button>
                                                         ) : profileData?.pendingCoWorkerId === member.id ? (
-                                                            <Button variant="outline" disabled className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 leading-tight">
-                                                                Pending Approval
+                                                            <Button onClick={() => handleWithdrawRequest()} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 leading-tight">
+                                                                Withdraw Request
                                                             </Button>
                                                         ) : (
                                                             <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 leading-tight">
