@@ -824,10 +824,19 @@ export default function ReformersPage() {
     };
 
     const handleConnectCoWorker = async (peerId: string) => {
+        if (!user) return;
+        const peer = liveMembers.find(m => m.id === peerId);
+        
+        // Auto-accept if they already requested me
+        if (peer?.pendingCoWorkerId === user.uid) {
+            handleAcceptCoWorker(peerId);
+            return;
+        }
+
         await updateUserProfileData({ pendingCoWorkerId: peerId });
         try {
             await addDoc(collection(db, "messages"), {
-                senderId: user?.uid,
+                senderId: user.uid,
                 receiverId: peerId,
                 text: "🤝 I'd like to join you as a Co-Reformer! Let's stay focused together.",
                 timestamp: serverTimestamp()
@@ -1544,14 +1553,19 @@ export default function ReformersPage() {
                                                     </Button>
                                                     {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="w-full bg-muted hover:bg-[#333] text-foreground h-12 px-3 shadow-md border border-[#333] text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-2" /> Text</Button>}
 
-                                                    <div className="col-span-2">
+                                                    <div className="col-span-2 space-y-2">
                                                         {profileData?.coWorkerId === member.id ? (
-                                                            <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
-                                                                Unlink Co-Reformer
-                                                            </Button>
+                                                            <>
+                                                                <Button onClick={() => window.location.href='/timer'} variant="default" className="w-full font-black h-14 text-sm bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] leading-tight uppercase tracking-widest">
+                                                                    🚀 Start the Co-op
+                                                                </Button>
+                                                                <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-10 text-xs bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
+                                                                    Unlink Co-Reformer
+                                                                </Button>
+                                                            </>
                                                         ) : member.pendingCoWorkerId === user?.uid ? (
-                                                            <Button onClick={() => handleAcceptCoWorker(member.id)} variant="default" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-[#10b981] text-black hover:bg-[#059669] leading-tight">
-                                                                Accept Co-Reformer Request
+                                                            <Button onClick={() => handleAcceptCoWorker(member.id)} variant="default" className="w-full font-black h-12 text-sm bg-emerald-500 text-black hover:bg-emerald-400 leading-tight uppercase tracking-wider">
+                                                                🤝 Accept & Start Co-op
                                                             </Button>
                                                         ) : profileData?.pendingCoWorkerId === member.id ? (
                                                             <Button onClick={() => handleWithdrawRequest()} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 leading-tight">
