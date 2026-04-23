@@ -349,10 +349,14 @@ export default function ReformersPage() {
     useEffect(() => {
         if (user?.uid) {
             try {
-                const follRef = collection(db, "users", user.uid, "followers");
-                const followingRef = collection(db, "users", user.uid, "following");
-                getDocs(follRef).then(snap => setMyFollowers(snap.size)).catch(() => { });
-                getDocs(followingRef).then(snap => setMyFollowing(snap.size)).catch(() => { });
+                const { collection, onSnapshot } = require("firebase/firestore");
+                const follRef = collection(db, "users", user.uid, "user_followers");
+                const followingRef = collection(db, "users", user.uid, "user_following");
+                
+                const unsubFoll = onSnapshot(follRef, (snap: any) => setMyFollowers(snap.size));
+                const unsubFollowing = onSnapshot(followingRef, (snap: any) => setMyFollowing(snap.size));
+                
+                return () => { unsubFoll(); unsubFollowing(); };
             } catch (e) { }
         }
     }, [user?.uid]);
@@ -377,10 +381,14 @@ export default function ReformersPage() {
     useEffect(() => {
         if (selectedUser?.id && !chatMode) {
             try {
-                const follRef = collection(db, "users", selectedUser.id, "followers");
-                const followingRef = collection(db, "users", selectedUser.id, "following");
-                getDocs(follRef).then(snap => setSelectedUserFollowers(snap.size)).catch(() => { });
-                getDocs(followingRef).then(snap => setSelectedUserFollowing(snap.size)).catch(() => { });
+                const { collection, onSnapshot } = require("firebase/firestore");
+                const follRef = collection(db, "users", selectedUser.id, "user_followers");
+                const followingRef = collection(db, "users", selectedUser.id, "user_following");
+                
+                const unsubFoll = onSnapshot(follRef, (snap: any) => setSelectedUserFollowers(snap.size));
+                const unsubFollowing = onSnapshot(followingRef, (snap: any) => setSelectedUserFollowing(snap.size));
+                
+                return () => { unsubFoll(); unsubFollowing(); };
             } catch (e) { }
         }
     }, [selectedUser?.id, chatMode]);
@@ -1095,30 +1103,30 @@ export default function ReformersPage() {
                                                 </h2>
                                                 <p className="text-[10px] sm:text-sm font-medium text-[#10b981] tracking-wider sm:tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global"}</p>
                                             </div>
-                                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4 mt-3 sm:mt-6 w-full max-w-xl mx-auto sm:mx-0">
+                                            <div className="grid grid-cols-3 gap-4 mt-6 w-full max-w-xl mx-auto sm:mx-0 min-h-[120px]">
                                                 <div className="text-center">
-                                                    <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">Followers</p>
-                                                    <p className="text-sm sm:text-xl font-bold text-foreground">{myFollowers}</p>
-                                                </div>
-                                                <div className="text-center border-l border-r border-[#333] sm:border-none">
-                                                    <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">Following</p>
-                                                    <p className="text-sm sm:text-xl font-bold text-foreground">{myFollowing}</p>
+                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Followers</p>
+                                                    <p className="text-xl font-bold text-foreground">{myFollowers}</p>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">Streak</p>
-                                                    <p className="text-sm sm:text-xl font-bold text-foreground">{currentStreakLocal}</p>
+                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Following</p>
+                                                    <p className="text-xl font-bold text-foreground">{myFollowing}</p>
                                                 </div>
-                                                <div className="text-center pt-2 sm:pt-0">
-                                                    <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">App Days</p>
-                                                    <p className="text-sm sm:text-xl font-bold text-foreground">{appAgeDays}</p>
+                                                <div className="text-center">
+                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Streak</p>
+                                                    <p className="text-xl font-bold text-foreground">{currentStreakLocal}</p>
                                                 </div>
-                                                <div className="text-center pt-2 sm:pt-0 border-l border-r border-[#333] sm:border-none">
-                                                    <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight">DM Coins</p>
-                                                    <p className="text-sm sm:text-xl font-bold text-amber-500">{profileData?.slakeCredits || 0}</p>
+                                                <div className="text-center">
+                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">App Days</p>
+                                                    <p className="text-xl font-bold text-foreground">{appAgeDays}</p>
                                                 </div>
-                                                <div className="text-center pt-2 sm:pt-0">
-                                                    <p className="text-[9px] sm:text-sm uppercase text-muted-foreground font-bold leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500" /></p>
-                                                    <p className="text-sm sm:text-xl font-bold text-[#10b981]">#{myRank}</p>
+                                                <div className="text-center">
+                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">DM Coins</p>
+                                                    <p className="text-xl font-bold text-amber-500">{profileData?.slakeCredits || 0}</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500" /></p>
+                                                    <p className="text-xl font-bold text-[#10b981]">#{myRank}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1136,6 +1144,33 @@ export default function ReformersPage() {
                                             )}
                                             {profileData?.isPrivateProfile && <Badge variant="outline" className="bg-gray-800 text-muted-foreground border-gray-700 text-[9px] sm:text-xs"><LockKeyhole className="w-3 h-3 mr-1" /> Private</Badge>}
                                         </div>
+
+                                        {/* Pinned Certificates Section */}
+                                        {profileData?.pinnedCertificateIds && profileData.pinnedCertificateIds.length > 0 && (
+                                            <div className="mt-8 pt-6 border-t border-border/50">
+                                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-2 justify-center sm:justify-start">
+                                                    <Award className="w-4 h-4 text-yellow-500" /> Pinned Certificates
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    {profileData.pinnedCertificateIds.map(certId => {
+                                                        // Fallback display for certificates as we don't have the full cert data here easily
+                                                        // In a real app, we'd fetch or have a shared constant for cert definitions
+                                                        const certTitle = certId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').replace('Cert ', '');
+                                                        return (
+                                                            <div key={certId} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 shadow-sm hover:border-[#10b981]/30 transition-all">
+                                                                <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 shrink-0">
+                                                                    <Medal className="w-5 h-5 text-yellow-500" />
+                                                                </div>
+                                                                <div className="overflow-hidden">
+                                                                    <p className="text-sm font-bold truncate text-foreground">{certTitle}</p>
+                                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Slake Certified</p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

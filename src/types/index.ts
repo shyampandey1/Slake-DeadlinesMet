@@ -141,6 +141,8 @@ export type UserProfile = {
     isOnline?: boolean;
     isPrivateProfile?: boolean;
     pinnedCertificates?: string[];
+    pinnedCertificateIds?: string[];
+    slakeBalance?: number;
     gender?: "Male" | "Female" | "Prefer not to share" | string;
     createdAt?: any;
     appAge?: number;

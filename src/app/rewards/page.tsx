@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Cell } from "recharts";
-import { Award, Zap, Trophy, TrendingUp, Medal, Flame, Star, Crown, Gift, Share2, Download, Droplet, Mail, Coffee, Dumbbell, Wind, Eye, Heart, Pin, MapPin } from "lucide-react";
+import { Award, Zap, Trophy, TrendingUp, Medal, Flame, Star, Crown, Gift, Share2, Download, Droplet, Mail, Coffee, Dumbbell, Wind, Eye, Heart, Pin, MapPin, CheckCircle2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation";
 import html2canvas from "html2canvas";
@@ -69,6 +71,13 @@ export default function RewardsPage() {
   
   const [downloading, setDownloading] = useState<string | null>(null);
   const [liveLeaderboard, setLiveLeaderboard] = useState<any[]>([]);
+  
+  // Redemption Modal States
+  const [redemptionModalOpen, setRedemptionModalOpen] = useState(false);
+  const [selectedReward, setSelectedReward] = useState<any>(null);
+  const [upiId, setUpiId] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [redemptionSuccess, setRedemptionSuccess] = useState(false);
 
   useEffect(() => {
      const q = query(collection(db, "users"));
@@ -192,15 +201,94 @@ export default function RewardsPage() {
     } finally {
       setDownloading(null);
     }
-  };
 
   const pinCertificate = async (certId: string, certTitle: string) => {
-      const currentPins = profileData?.pinnedCertificates || [];
-      if (!currentPins.includes(certId)) {
-          await updateUserProfileData({ pinnedCertificates: [...currentPins, certId] });
-          alert(`Successfully Pinned ${certTitle} to your Reformers Profile!`);
+      if (!user) return;
+      const currentPins = profileData?.pinnedCertificateIds || [];
+      const isPinned = currentPins.includes(certId);
+      
+      try {
+          const { arrayUnion, arrayRemove, doc, updateDoc } = await import("firebase/firestore");
+          const userRef = doc(db, "users", user.uid);
+          
+          if (!isPinned) {
+              await updateDoc(userRef, {
+                  pinnedCertificateIds: arrayUnion(certId)
+              });
+              // Optimistic local update
+              updateUserProfileData({ pinnedCertificateIds: [...currentPins, certId] });
+              alert(`Successfully Pinned ${certTitle} to your Reformers Profile!`);
+          } else {
+              await updateDoc(userRef, {
+                  pinnedCertificateIds: arrayRemove(certId)
+              });
+              // Optimistic local update
+              updateUserProfileData({ pinnedCertificateIds: currentPins.filter(id => id !== certId) });
+              alert(`Removed ${certTitle} from your Profile.`);
+          }
+      } catch (error) {
+          console.error("Error pinning certificate:", error);
+          alert("Failed to update pin status. Please try again.");
+      }
+  };
+
+  const handleRedeemClick = (item: any) => {
+      if (item.id === 1) { // Direct Payout
+          setSelectedReward(item);
+          setRedemptionModalOpen(true);
+          setRedemptionSuccess(false);
+          setUpiId("");
       } else {
-          alert(`${certTitle} is already pinned!`);
+          // Other redemptions logic (could be added later)
+          alert(`Redemption for ${item.name} is coming soon!`);
+      }
+  };
+
+  const submitRedemption = async () => {
+      if (!user || !selectedReward || !upiId.trim()) return;
+      setIsRedeeming(true);
+      
+      try {
+          const { addDoc, collection, serverTimestamp, doc, updateDoc, increment } = await import("firebase/firestore");
+          
+          // 1. Create redemption request
+          await addDoc(collection(db, "redemption_requests"), {
+              userId: user.uid,
+              userName: profileData?.displayName || "Anonymous",
+              userEmail: profileData?.email || user.email,
+              amount: selectedReward.credits / 1000, // Example conversion logic
+              creditsRedeemed: selectedReward.credits,
+              upiId: upiId.trim(),
+              status: 'pending',
+              timestamp: serverTimestamp(),
+              rewardName: selectedReward.name
+          });
+          
+          // 2. Deduct coins from user (Optimistic UI update first)
+          const newBalance = credits - selectedReward.credits;
+          setCredits(newBalance);
+          updateUserProfileData({ 
+              slakeCredits: newBalance,
+              slakeBalance: newBalance
+          });
+          
+          // 3. Persist deduction in Firestore
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, {
+              slakeCredits: increment(-selectedReward.credits),
+              slakeBalance: increment(-selectedReward.credits)
+          });
+          
+          setRedemptionSuccess(true);
+          setTimeout(() => {
+              setRedemptionModalOpen(false);
+              setIsRedeeming(false);
+          }, 2000);
+          
+      } catch (error) {
+          console.error("Redemption failed:", error);
+          alert("Failed to process redemption. Please try again.");
+          setIsRedeeming(false);
       }
   };
 
@@ -213,11 +301,11 @@ export default function RewardsPage() {
             className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8"
         >
             <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-4xl font-extrabold tracking-tight flex items-center justify-center sm:justify-start gap-3">
-                    <Trophy className="w-10 h-10 text-yellow-500 fill-current drop-shadow-md" />
+                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight flex items-center justify-center sm:justify-start gap-3">
+                    <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500 fill-current drop-shadow-md" />
                     Achievement Center
                 </h1>
-                <p className="text-muted-foreground text-lg">Earn credits, redeem rewards, and share your success.</p>
+                <p className="text-muted-foreground text-sm sm:text-lg">Earn credits, redeem rewards, and share your success.</p>
             </div>
             <Button 
                 variant="ghost" 
@@ -236,10 +324,10 @@ export default function RewardsPage() {
         </motion.div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8 bg-card/80 backdrop-blur-md h-14 rounded-2xl shadow-sm border border-border/50">
-                <TabsTrigger value="dashboard" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold">Dashboard</TabsTrigger>
-                <TabsTrigger value="redeem" className="rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-bold">Redeem</TabsTrigger>
-                <TabsTrigger value="certificates" className="rounded-xl data-[state=active]:bg-yellow-500 data-[state=active]:text-white font-bold">Certificates</TabsTrigger>
+            <TabsList className="flex w-full mb-8 bg-card/80 backdrop-blur-md h-14 rounded-2xl shadow-sm border border-border/50 overflow-x-auto no-scrollbar justify-start sm:justify-center p-1">
+                <TabsTrigger value="dashboard" className="flex-1 sm:flex-none sm:px-8 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold whitespace-nowrap">Dashboard</TabsTrigger>
+                <TabsTrigger value="redeem" className="flex-1 sm:flex-none sm:px-8 rounded-xl data-[state=active]:bg-indigo-500 data-[state=active]:text-white font-bold whitespace-nowrap">Redeem</TabsTrigger>
+                <TabsTrigger value="certificates" className="flex-1 sm:flex-none sm:px-8 rounded-xl data-[state=active]:bg-yellow-500 data-[state=active]:text-white font-bold whitespace-nowrap">Certificates</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dashboard" className="space-y-6">
@@ -376,7 +464,12 @@ export default function RewardsPage() {
                                     </div>
                                 </CardContent>
                                 <CardFooter className="pt-2">
-                                    <Button className="w-full font-bold" variant={isUnlocked ? "default" : "secondary"} disabled={!isUnlocked}>
+                                    <Button 
+                                        className="w-full font-bold" 
+                                        variant={isUnlocked ? "default" : "secondary"} 
+                                        disabled={!isUnlocked}
+                                        onClick={() => handleRedeemClick(item)}
+                                    >
                                         {isUnlocked ? "Redeem Now" : "Keep Grinding"}
                                     </Button>
                                 </CardFooter>
@@ -435,7 +528,8 @@ export default function RewardsPage() {
                                         {downloading === cert.id ? <span className="animate-pulse">Rendering...</span> : <><Download className="w-4 h-4 mr-2" /> Export</>}
                                     </Button>
                                     <Button variant="outline" disabled={!isUnlocked} className="flex-1 border-border/50 shadow-sm font-bold bg-muted/30 text-primary hover:text-primary" onClick={() => pinCertificate(cert.id, cert.title)}>
-                                        <Pin className="w-4 h-4 mr-2" /> Pin to Profile
+                                        <Pin className={`w-4 h-4 mr-2 ${(profileData?.pinnedCertificateIds || []).includes(cert.id) ? 'fill-current' : ''}`} /> 
+                                        {(profileData?.pinnedCertificateIds || []).includes(cert.id) ? 'Pinned' : 'Pin to Profile'}
                                     </Button>
                                 </div>
                             </motion.div>
@@ -444,6 +538,85 @@ export default function RewardsPage() {
                 </div>
             </TabsContent>
         </Tabs>
+
+        {/* Redemption Modal */}
+        {selectedReward && (
+            <Dialog open={redemptionModalOpen} onOpenChange={setRedemptionModalOpen}>
+                <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Gift className="w-5 h-5 text-indigo-500" />
+                            Redeem {selectedReward.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Enter your payment details to receive your reward.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6 py-4">
+                        {redemptionSuccess ? (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex flex-col items-center justify-center py-6 space-y-4"
+                            >
+                                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center border-2 border-green-500/50">
+                                    <CheckCircle2 className="w-8 h-8 text-green-500" />
+                                </div>
+                                <div className="text-center">
+                                    <h3 className="text-xl font-bold">Redemption Sent!</h3>
+                                    <p className="text-sm text-muted-foreground">Your request is being processed. You'll receive a notification soon.</p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <>
+                                <div className="p-4 rounded-xl bg-muted/30 border border-border flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-bold uppercase">Cost</p>
+                                        <p className="text-lg font-black">{selectedReward.credits.toLocaleString()} SC</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-muted-foreground font-bold uppercase">Reward</p>
+                                        <p className="text-lg font-black text-indigo-500">{selectedReward.desc}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">UPI ID / Phone Number</label>
+                                    <Input 
+                                        value={upiId}
+                                        onChange={(e) => setUpiId(e.target.value)}
+                                        placeholder="e.g. 9876543210@ybl"
+                                        className="h-12 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-indigo-500"
+                                        disabled={isRedeeming}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Ensure your UPI ID is correct to avoid payment delays.</p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {!redemptionSuccess && (
+                        <DialogFooter>
+                            <Button 
+                                onClick={submitRedemption} 
+                                disabled={!upiId.trim() || isRedeeming}
+                                className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                            >
+                                {isRedeeming ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Confirm Redemption"
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </DialogContent>
+            </Dialog>
+        )}
 
       </div>
     </div>
