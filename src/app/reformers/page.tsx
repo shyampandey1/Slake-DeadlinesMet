@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWeather } from "@/hooks/useWeather";
 
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc, writeBatch } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc, writeBatch, increment } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
@@ -348,16 +348,13 @@ export default function ReformersPage() {
     // Fetch local followers/following counts
     useEffect(() => {
         if (user?.uid) {
-            try {
-                const { collection, onSnapshot } = require("firebase/firestore");
-                const follRef = collection(db, "users", user.uid, "user_followers");
-                const followingRef = collection(db, "users", user.uid, "user_following");
-                
-                const unsubFoll = onSnapshot(follRef, (snap: any) => setMyFollowers(snap.size));
-                const unsubFollowing = onSnapshot(followingRef, (snap: any) => setMyFollowing(snap.size));
-                
-                return () => { unsubFoll(); unsubFollowing(); };
-            } catch (e) { }
+            const follRef = collection(db, "users", user.uid, "user_followers");
+            const followingRef = collection(db, "users", user.uid, "user_following");
+            
+            const unsubFoll = onSnapshot(follRef, (snap: any) => setMyFollowers(snap.size));
+            const unsubFollowing = onSnapshot(followingRef, (snap: any) => setMyFollowing(snap.size));
+            
+            return () => { unsubFoll(); unsubFollowing(); };
         }
     }, [user?.uid]);
 
@@ -459,7 +456,7 @@ export default function ReformersPage() {
         });
 
         return () => unsubscribe();
-    }, [isEnrolled, profileData?.userId]);
+    }, [isEnrolled, user?.uid]);
 
     // Backfill sync for older offline members that lack profile telemetry
     useEffect(() => {
@@ -511,7 +508,7 @@ export default function ReformersPage() {
 
     // Load chat messages when entering chatMode
     useEffect(() => {
-        if (chatMode && selectedUser && profileData?.userId) {
+        if (chatMode && selectedUser && user?.uid) {
             const qMerge = query(collection(db, "messages"), orderBy("timestamp", "asc"));
             const unsubMerge = onSnapshot(qMerge, (snap) => {
                 const msgs: any[] = [];
@@ -527,7 +524,7 @@ export default function ReformersPage() {
 
             return () => unsubMerge();
         }
-    }, [chatMode, selectedUser, profileData?.userId]);
+    }, [chatMode, selectedUser, user?.uid]);
 
     const handleEnroll = async () => {
         if (!user) return;
@@ -703,7 +700,7 @@ export default function ReformersPage() {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageText.trim() || !selectedUser || !profileData?.userId) return;
+        if (!messageText.trim() || !selectedUser || !user?.uid) return;
 
         try {
             await addDoc(collection(db, "messages"), {
@@ -719,7 +716,7 @@ export default function ReformersPage() {
     };
 
     const handleFollow = async () => {
-        if (!selectedUser || !profileData?.userId) return;
+        if (!selectedUser || !user?.uid) return;
         const newIsFollowing = !isFollowing;
         setIsFollowing(newIsFollowing);
         
@@ -733,50 +730,59 @@ export default function ReformersPage() {
         }
         
         try {
-            const followerRef = doc(db, "users", selectedUser.id, "user_followers", profileData.userId);
-            const followingRef = doc(db, "users", profileData.userId, "user_following", selectedUser.id);
+            const followerRef = doc(db, "users", selectedUser.id, "user_followers", user.uid);
+            const followingRef = doc(db, "users", user.uid, "user_following", selectedUser.id);
+            const targetUserRef = doc(db, "users", selectedUser.id);
+            const myRef = doc(db, "users", user.uid);
+            
+            const batch = writeBatch(db);
             
             if (newIsFollowing) {
-                await setDoc(followerRef, { 
+                batch.set(followerRef, { 
                     timestamp: serverTimestamp(), 
-                    name: profileData.displayName || "Anonymous", 
-                    avatar: profileData.displayPicture || "" 
+                    name: profileData?.displayName || "Anonymous", 
+                    avatar: profileData?.displayPicture || "" 
                 });
-                await setDoc(followingRef, { 
+                batch.set(followingRef, { 
                     timestamp: serverTimestamp(), 
                     name: selectedUser.name, 
                     avatar: selectedUser.avatar 
                 });
+                batch.update(targetUserRef, { followersCount: increment(1) });
+                batch.update(myRef, { followingCount: increment(1) });
+                
+                await batch.commit();
                 
                 await addDoc(collection(db, "messages"), {
-                    senderId: profileData.userId,
+                    senderId: user.uid,
                     receiverId: selectedUser.id,
                     text: `started following you!`,
                     timestamp: serverTimestamp()
                 });
             } else {
-                await deleteDoc(followerRef);
-                await deleteDoc(followingRef);
+                batch.delete(followerRef);
+                batch.delete(followingRef);
+                batch.update(targetUserRef, { followersCount: increment(-1) });
+                batch.update(myRef, { followingCount: increment(-1) });
+                await batch.commit();
             }
         } catch (e) {
             console.error("Follow action failed:", e);
-            // Rollback on error
             setIsFollowing(!newIsFollowing);
         }
     };
 
     // Add this useEffect to check initial follow status
     useEffect(() => {
-        if (selectedUser?.id && profileData?.userId) {
+        if (selectedUser?.id && user?.uid) {
+            const followingRef = doc(db, "users", user.uid, "user_following", selectedUser.id);
             const checkFollow = async () => {
-                const { getDoc, doc } = await import("firebase/firestore");
-                const followingRef = doc(db, "users", profileData.userId, "user_following", selectedUser.id);
-                const snap = await getDoc(followingRef);
-                setIsFollowing(snap.exists());
+                const snap = await getDocs(query(collection(db, "users", user.uid, "user_following"), where("__name__", "==", selectedUser.id)));
+                setIsFollowing(!snap.empty);
             };
             checkFollow();
         }
-    }, [selectedUser?.id, profileData?.userId]);
+    }, [selectedUser?.id, user?.uid]);
 
     const handleAcceptCoWorker = async (peerId: string) => {
         if (!user) return;
@@ -821,7 +827,7 @@ export default function ReformersPage() {
         await updateUserProfileData({ pendingCoWorkerId: peerId });
         try {
             await addDoc(collection(db, "messages"), {
-                senderId: profileData?.userId,
+                senderId: user?.uid,
                 receiverId: peerId,
                 text: "🤝 I'd like to join you as a Co-Reformer! Let's stay focused together.",
                 timestamp: serverTimestamp()
@@ -874,7 +880,7 @@ export default function ReformersPage() {
         ? Math.floor((new Date().getTime() - new Date(tasks[tasks.length - 1].createdAt).getTime()) / 86400000)
         : 0;
 
-    const myRankIndex = liveMembers.findIndex(m => m.id === profileData?.userId);
+    const myRankIndex = liveMembers.findIndex(m => m.id === user?.uid);
     const myRank = myRankIndex !== -1 ? myRankIndex + 1 : 'Unranked';
     const rankChangeFactor = `+${Math.floor(Math.random() * 3) + 1}`;
 
@@ -1065,12 +1071,12 @@ export default function ReformersPage() {
                                     <div className="flex gap-2">
                                         <Input
                                             readOnly
-                                            value={`https://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`}
+                                            value={`https://slake-deadlines-met.vercel.app/?ref=${user?.uid}`}
                                             className="bg-muted/50 border-[#333] text-foreground h-12"
                                         />
                                         <Button
                                             onClick={() => {
-                                                let referralText = `Look at my profile on Slake DeadlinesMet!\n\nMetrics: ${appAgeDays} Days App Age, ${currentStreakLocal} Logbook Streak.\nJoin my accountability network natively here & grab coins:\nhttps://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`;
+                                                let referralText = `Look at my profile on Slake DeadlinesMet!\n\nMetrics: ${appAgeDays} Days App Age, ${currentStreakLocal} Logbook Streak.\nJoin my accountability network natively here & grab coins:\nhttps://slake-deadlines-met.vercel.app/?ref=${user?.uid}`;
                                                 navigator.clipboard.writeText(referralText);
                                                 setCopied(true);
                                                 setTimeout(() => setCopied(false), 2000);
@@ -1086,7 +1092,7 @@ export default function ReformersPage() {
                                     <Button
                                         variant="outline" size="icon"
                                         onClick={() => {
-                                            let shareText = `Check out my accountability profile logging ${currentStreakLocal} straight days!\nJoin me natively on Reformers:\nhttps://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`;
+                                            let shareText = `Check out my accountability profile logging ${currentStreakLocal} straight days!\nJoin me natively on Reformers:\nhttps://slake-deadlines-met.vercel.app/?ref=${user?.uid}`;
                                             window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank")
                                         }}
                                         className="w-14 h-14 rounded-full bg-[#25D366]/10 border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/20">
@@ -1095,7 +1101,7 @@ export default function ReformersPage() {
                                     <Button
                                         variant="outline" size="icon"
                                         onClick={() => {
-                                            let shareText = `Check out my accountability profile!\nJoin me here:\nhttps://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`;
+                                            let shareText = `Check out my accountability profile!\nJoin me here:\nhttps://slake-deadlines-met.vercel.app/?ref=${user?.uid}`;
                                             window.open(`https://www.linkedin.com/sharing/share-offsite/?url=https://slake-deadlines-met.vercel.app/&summary=${encodeURIComponent(shareText)}`, "_blank")
                                         }}
                                         className="w-14 h-14 rounded-full bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] hover:bg-[#0077b5]/20">
@@ -1105,7 +1111,7 @@ export default function ReformersPage() {
                                         variant="outline" size="icon"
                                         onClick={() => {
                                             // For instagram, share links can't pre-fill text as easily, but copy the referral link and direct to app
-                                            navigator.clipboard.writeText(`https://slake-deadlines-met.vercel.app/?ref=${profileData?.userId}`);
+                                            navigator.clipboard.writeText(`https://slake-deadlines-met.vercel.app/?ref=${user?.uid}`);
                                             window.open(`https://instagram.com/`, "_blank")
                                         }}
                                         className="w-14 h-14 rounded-full bg-[#E1306C]/10 border-[#E1306C]/30 text-[#E1306C] hover:bg-[#E1306C]/20">
@@ -1287,14 +1293,14 @@ export default function ReformersPage() {
                     </div>
                 )}
                 {/* Incoming Co-Reformer Requests Section */}
-                {liveMembers.filter(m => m.pendingCoWorkerId === profileData?.userId).length > 0 && (
+                {liveMembers.filter(m => m.pendingCoWorkerId === user?.uid).length > 0 && (
                     <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl mb-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-bold text-emerald-400 flex items-center gap-2"><Users className="w-5 h-5" /> Co-Reformer Requests</h3>
                             <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Action Required</Badge>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {liveMembers.filter(m => m.pendingCoWorkerId === profileData?.userId).map(m => (
+                            {liveMembers.filter(m => m.pendingCoWorkerId === user?.uid).map(m => (
                                 <div key={m.id} className="flex items-center justify-between p-3 border border-emerald-500/20 bg-black/40 rounded-xl hover:bg-black/60 transition-colors">
                                     <div className="flex items-center gap-3 w-full overflow-hidden">
                                         <Avatar className="w-10 h-10 shrink-0 border border-emerald-500/30"><AvatarImage src={m.avatar} /></Avatar>
@@ -1407,7 +1413,7 @@ export default function ReformersPage() {
                                                     </div>
                                                 ) : (
                                                     conversation.map((msg) => {
-                                                        const isMe = msg.senderId === profileData?.userId;
+                                                        const isMe = msg.senderId === user?.uid;
                                                         return (
                                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                                 <div className={`max-w-[75%] p-3 rounded-2xl text-sm leading-snug shadow-sm ${isMe ? 'bg-[#10b981] text-black rounded-tr-sm' : 'bg-muted text-foreground rounded-tl-sm border border-[#333]'}`}>
@@ -1543,7 +1549,7 @@ export default function ReformersPage() {
                                                             <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                 Unlink Co-Reformer
                                                             </Button>
-                                                        ) : member.pendingCoWorkerId === profileData?.userId ? (
+                                                        ) : member.pendingCoWorkerId === user?.uid ? (
                                                             <Button onClick={() => handleAcceptCoWorker(member.id)} variant="default" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-[#10b981] text-black hover:bg-[#059669] leading-tight">
                                                                 Accept Co-Reformer Request
                                                             </Button>
