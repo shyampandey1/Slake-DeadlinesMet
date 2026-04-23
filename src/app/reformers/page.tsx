@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut, Utensils, Gamepad2, Loader2, ArrowRight, BrainCircuit, Wind, Dumbbell, BookOpen, PenSquare, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -277,7 +278,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
     );
 }
 
-export default function ReformersPage() {
+function ReformersPageContent() {
     const { profileData, updateUserProfileData } = useProfile();
     const { user } = useAuth();
     const { location } = useWeather();
@@ -1340,6 +1341,9 @@ export default function ReformersPage() {
                 )}
 
                 <div className="space-y-4 pt-6">
+                    <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
+                        <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Global Leaderboard</span>
+                        <span className="text-[10px] text-[#10b981] bg-[#10b981]/10 px-2 py-1 rounded-sm border border-[#10b981]/20">LIVE SYNC</span>
                     </h3>
                     
                     {/* Active Co-Reformer Session Card */}
@@ -1690,8 +1694,16 @@ export default function ReformersPage() {
                             </div>
                         </motion.div>
                     </DialogContent>
-                </Dialog>
+        </Dialog>
             </div>
         </div>
+    );
+}
+
+export default function ReformersPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="w-12 h-12 animate-spin text-emerald-500" /></div>}>
+            <ReformersPageContent />
+        </Suspense>
     );
 }
