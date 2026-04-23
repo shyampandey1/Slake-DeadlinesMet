@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useWeather } from "@/hooks/useWeather";
+import { useCoOpSession } from "@/hooks/useCoOpSession";
 
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc, writeBatch, increment } from "firebase/firestore";
@@ -340,6 +341,9 @@ function ReformersPageContent() {
     const [selectedUserFollowers, setSelectedUserFollowers] = useState(0);
     const [selectedUserFollowing, setSelectedUserFollowing] = useState(0);
     const [peerLatestData, setPeerLatestData] = useState<any>(null);
+    const { session: activeCoOp, createSession, joinSession } = useCoOpSession();
+    const [showStartTogetherModal, setShowStartTogetherModal] = useState(false);
+    const [coOpTaskToPropose, setCoOpTaskToPropose] = useState<any>(null);
 
     useEffect(() => {
         if (user?.uid) {
@@ -1340,6 +1344,31 @@ function ReformersPageContent() {
                     </div>
                 )}
 
+                {/* Persistent Co-op Banner */}
+                {activeCoOp && (
+                    <div className="bg-[#10b981] text-black p-3 rounded-xl mb-6 flex items-center justify-between shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse">
+                        <div className="flex items-center gap-3">
+                            <Users className="w-5 h-5" />
+                            <span className="font-black uppercase tracking-widest text-xs sm:text-sm">Joined as Co-Reformers</span>
+                        </div>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-black hover:bg-black/10 font-bold text-xs"
+                            onClick={() => {
+                                const params = new URLSearchParams({
+                                    task: activeCoOp.taskName,
+                                    duration: activeCoOp.initialDuration.toString(),
+                                    coOpSessionId: activeCoOp.id
+                                });
+                                window.location.href = `/timer?${params.toString()}`;
+                            }}
+                        >
+                            Open Live Timer →
+                        </Button>
+                    </div>
+                )}
+
                 <div className="space-y-4 pt-6">
                     <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
                         <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Global Leaderboard</span>
@@ -1391,15 +1420,27 @@ function ReformersPageContent() {
                                         </div>
                                     </div>
                                     <Button 
-                                        onClick={() => {
-                                            const params = new URLSearchParams({
-                                                task: s.taskName,
-                                                duration: s.duration.toString(),
-                                                expectedEndTime: s.expectedEndTime.toString(),
-                                                category: "Co-op Session",
-                                                color: "#10b981"
-                                            });
-                                            window.location.href = `/timer?${params.toString()}`;
+                                        onClick={async () => {
+                                            const s = coWorker.activeSession;
+                                            // Check if it's a co-op session
+                                            if (s.coOpSessionId) {
+                                                await joinSession(s.coOpSessionId);
+                                                const params = new URLSearchParams({
+                                                    task: s.taskName,
+                                                    duration: s.duration.toString(),
+                                                    coOpSessionId: s.coOpSessionId
+                                                });
+                                                window.location.href = `/timer?${params.toString()}`;
+                                            } else {
+                                                const params = new URLSearchParams({
+                                                    task: s.taskName,
+                                                    duration: s.duration.toString(),
+                                                    expectedEndTime: s.expectedEndTime.toString(),
+                                                    category: "Co-op Session",
+                                                    color: "#10b981"
+                                                });
+                                                window.location.href = `/timer?${params.toString()}`;
+                                            }
                                         }}
                                         className="h-16 px-10 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xl rounded-2xl shadow-[0_0_40px_rgba(16,185,129,0.3)] transition-all hover:scale-105 active:scale-95 group/btn"
                                     >
@@ -1506,6 +1547,31 @@ function ReformersPageContent() {
                                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                                 <div className={`max-w-[75%] p-3 rounded-2xl text-sm leading-snug shadow-sm ${isMe ? 'bg-[#10b981] text-black rounded-tr-sm' : 'bg-muted text-foreground rounded-tl-sm border border-[#333]'}`}>
                                                                     {msg.text}
+                                                                    {msg.coOpSessionId && (
+                                                                        <div className="mt-3 pt-3 border-t border-black/10">
+                                                                            <Button 
+                                                                                size="sm" 
+                                                                                className="w-full bg-black text-[#10b981] hover:bg-black/80 font-black text-[10px] uppercase tracking-tighter"
+                                                                                onClick={async () => {
+                                                                                    await joinSession(msg.coOpSessionId);
+                                                                                    // Find the session data to get task info
+                                                                                    const sessionRef = doc(db, "coop_sessions", msg.coOpSessionId);
+                                                                                    const snap = await getDoc(sessionRef);
+                                                                                    if (snap.exists()) {
+                                                                                        const s = snap.data();
+                                                                                        const params = new URLSearchParams({
+                                                                                            task: s.taskName,
+                                                                                            duration: s.initialDuration.toString(),
+                                                                                            coOpSessionId: msg.coOpSessionId
+                                                                                        });
+                                                                                        window.location.href = `/timer?${params.toString()}`;
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                Join Live Session
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         );
@@ -1635,8 +1701,15 @@ function ReformersPageContent() {
                                                     <div className="col-span-2 space-y-2">
                                                         {profileData?.coWorkerId === member.id ? (
                                                             <>
-                                                                <Button onClick={() => window.location.href='/timer?task=Co-reformer%20Session&duration=25&category=Work&color=%2310b981'} variant="default" className="w-full font-black h-14 text-sm bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] leading-tight uppercase tracking-widest">
-                                                                    🚀 Start the Co-op
+                                                                <Button 
+                                                                    onClick={() => {
+                                                                        setCoOpTaskToPropose({ name: "Co-reformer Session", duration: 25 });
+                                                                        setShowStartTogetherModal(true);
+                                                                    }} 
+                                                                    variant="default" 
+                                                                    className="w-full font-black h-14 text-sm bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] leading-tight uppercase tracking-widest"
+                                                                >
+                                                                    🤝 Start Together
                                                                 </Button>
                                                                 <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-10 text-xs bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                     Unlink Co-Reformer
@@ -1670,6 +1743,58 @@ function ReformersPageContent() {
                         ))}
                     </div>
                 </div>
+
+                <Dialog open={showStartTogetherModal} onOpenChange={setShowStartTogetherModal}>
+                    <DialogContent className="bg-slate-900 border-emerald-500/30 text-white p-8 rounded-3xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black text-emerald-400 flex items-center gap-2">
+                                <Users className="w-6 h-6" /> START TOGETHER?
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400 font-medium pt-2">
+                                You are about to start a real-time synchronized focus session with {selectedUser?.name}. Any actions like Start, Pause, or Stop will be shared.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-6 space-y-4">
+                            <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
+                                <p className="text-[10px] uppercase font-black text-emerald-500/60 mb-1">Proposed Task</p>
+                                <p className="text-lg font-bold text-white">{coOpTaskToPropose?.name || "Co-reformer Session"}</p>
+                                <p className="text-xs text-slate-500">{coOpTaskToPropose?.duration || 25} Minutes</p>
+                            </div>
+                        </div>
+                        <DialogFooter className="flex gap-3">
+                            <Button variant="ghost" onClick={() => setShowStartTogetherModal(false)} className="flex-1 font-bold">Cancel</Button>
+                            <Button 
+                                onClick={async () => {
+                                    if (!selectedUser) return;
+                                    const sessionId = await createSession({
+                                        taskName: coOpTaskToPropose?.name || "Co-reformer Session",
+                                        initialDuration: coOpTaskToPropose?.duration || 25,
+                                        participants: [user?.uid!, selectedUser.id],
+                                        createdBy: user?.uid!
+                                    });
+                                    if (sessionId) {
+                                        await addDoc(collection(db, "messages"), {
+                                            senderId: user?.uid,
+                                            receiverId: selectedUser.id,
+                                            text: `started this task as a co-reformer, would you like to join?`,
+                                            coOpSessionId: sessionId,
+                                            timestamp: serverTimestamp()
+                                        });
+                                        const params = new URLSearchParams({
+                                            task: coOpTaskToPropose?.name || "Co-reformer Session",
+                                            duration: (coOpTaskToPropose?.duration || 25).toString(),
+                                            coOpSessionId: sessionId
+                                        });
+                                        window.location.href = `/timer?${params.toString()}`;
+                                    }
+                                }}
+                                className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black font-black"
+                            >
+                                START SESSION
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 <Dialog open={showTunedPopup} onOpenChange={setShowTunedPopup}>
                     <DialogContent className="bg-slate-950/95 border-emerald-500/50 text-white text-center p-12 rounded-[2.5rem] backdrop-blur-xl shadow-[0_0_50px_rgba(16,185,129,0.2)] sm:max-w-md">

@@ -13,7 +13,8 @@ import type { Task, UserPresetTask, UserProfile } from "@/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useCoOpSession } from "@/hooks/useCoOpSession";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,8 @@ interface TimerDisplayProps {
   initialDuration: number; // in minutes
   category?: string;
   color?: string;
+  expectedEndTime?: number;
+  coOpSessionId?: string;
 }
 
 type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
@@ -65,7 +68,7 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 };
 
 
-export default function TimerDisplay({ taskName, initialDuration, category, color }: TimerDisplayProps) {
+export default function TimerDisplay({ taskName, initialDuration, category, color, expectedEndTime, coOpSessionId }: TimerDisplayProps) {
   const router = useRouter();
   const { tasks, addTask } = useTasks();
   const { presetTasks } = usePresetTasks();
@@ -74,6 +77,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
+  const { session, updateSession } = useCoOpSession(coOpSessionId || activeTimer?.coOpSessionId);
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
@@ -290,6 +294,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             initialDuration,
             category,
             color,
+            expectedEndTime,
+            coOpSessionId
           });
           setTimeRemaining(initialDuration * 60);
           setIsPaused(false);
@@ -307,7 +313,27 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         }
         hasInitializedRef.current = true;
         setSyncComplete(true);
-    }, [taskName, initialDuration, category, color, startTimer, isInitialized]); // Removed activeTimer from deps to prevent re-init loop
+    }, [taskName, initialDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId]); // Removed activeTimer from deps to prevent re-init loop
+
+    // CO-OP SYNC ENGINE
+    useEffect(() => {
+        if (session && syncComplete) {
+            // Update local state from shared session
+            if (session.isPaused !== isPaused) {
+                setIsPaused(session.isPaused);
+            }
+            if (session.status === "running" && session.expectedEndTime) {
+                const diff = Math.max(0, Math.round((session.expectedEndTime - Date.now()) / 1000));
+                if (Math.abs(diff - timeRemaining) > 2) { // Only sync if drift > 2s
+                    setTimeRemaining(diff);
+                }
+            } else if (session.status === "waiting") {
+                if (session.timeLeftWhenPaused !== undefined && session.timeLeftWhenPaused !== null) {
+                    setTimeRemaining(session.timeLeftWhenPaused);
+                }
+            }
+        }
+    }, [session, syncComplete]);
 
   const expectedEndTimeRef = useRef<number | null>(null);
   const timeRemainingRef = useRef(timeRemaining);
@@ -397,6 +423,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const handleEndEarly = () => {
     setIsPaused(true);
     setIsFinished(true);
+    if (session) {
+      updateSession({ status: "finished", isPaused: true });
+    }
   };
 
   const handleStartSuggestedTask = () => {
@@ -671,6 +700,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     const newPaused = !isPaused;
                     setIsPaused(newPaused);
                     updateTimer({ isPaused: newPaused }, timeRemaining);
+                    
+                    if (session) {
+                        updateSession({ 
+                            isPaused: newPaused, 
+                            timeLeftWhenPaused: timeRemaining,
+                            status: newPaused ? "waiting" : "running",
+                            expectedEndTime: newPaused ? null : Date.now() + (timeRemaining * 1000)
+                        });
+                    }
+
                     if (newPaused) {
                       cancelScheduledNotification();
                     } else {
@@ -713,7 +752,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               </AlertDialogCancel>
               <AlertDialogAction
                 className="bg-red-600 hover:bg-red-700"
-                onClick={() => { setShowExitWarning(false); clearTimer(); router.push("/"); }}
+                onClick={() => { 
+                    setShowExitWarning(false); 
+                    if (session) updateSession({ status: "finished" });
+                    clearTimer(); 
+                    router.push("/"); 
+                }}
               >
                 Exit without saving
               </AlertDialogAction>

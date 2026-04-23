@@ -12,8 +12,10 @@ export default function TimerPageContent() {
   const taskName = searchParams.get('task');
   const durationStr = searchParams.get('duration');
   const duration = durationStr ? parseInt(durationStr, 10) : null;
-  const category = searchParams.get('category') ?? undefined;
   const color = searchParams.get('color') ?? undefined;
+  const expectedEndTimeStr = searchParams.get('expectedEndTime');
+  const expectedEndTime = expectedEndTimeStr ? parseInt(expectedEndTimeStr, 10) : undefined;
+  const coOpSessionId = searchParams.get('coOpSessionId') ?? undefined;
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export default function TimerPageContent() {
       initialDuration={duration!}
       category={category}
       color={color}
+      expectedEndTime={expectedEndTime}
+      coOpSessionId={coOpSessionId}
     />
   );
 }

@@ -11,12 +11,13 @@ interface ActiveTimer {
     color?: string;
     isPaused: boolean;
     timeLeftWhenPaused?: number;
+    coOpSessionId?: string;
 }
 
 interface TimerContextType {
     activeTimer: ActiveTimer | null;
     isInitialized: boolean;
-    startTimer: (timer: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'>) => void;
+    startTimer: (timer: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string }) => void;
     clearTimer: () => void;
     updateTimer: (updates: Partial<ActiveTimer>, remainingSeconds?: number) => void;
 }
@@ -57,8 +58,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const startTimer = useCallback((timerData: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'>) => {
-        const expectedEndTime = Date.now() + (timerData.initialDuration * 60 * 1000);
+    const startTimer = useCallback((timerData: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string }) => {
+        const expectedEndTime = timerData.expectedEndTime || Date.now() + (timerData.initialDuration * 60 * 1000);
         const newTimer = { ...timerData, expectedEndTime, isPaused: false };
         saveTimer(newTimer);
     }, []);
