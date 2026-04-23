@@ -144,7 +144,6 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                     </div>
                 </motion.div>
 
-                {/* Benefit 2 - Coins */}
                 <motion.div
                     initial="hidden"
                     whileInView="visible"
@@ -174,7 +173,6 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
 
                     <div className="md:order-1 relative aspect-square rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-2xl flex items-center justify-center">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent" />
-                        {/* Falling Coin Animation Mock */}
                         <div className="relative">
                             <motion.div
                                 animate={{ rotateY: 360 }}
@@ -197,7 +195,6 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                 </motion.div>
             </section>
 
-            {/* MOVERS Section */}
             <section className="max-w-6xl mx-auto px-6 py-32 space-y-20">
                 <div className="text-center space-y-4">
                     <h2 className="text-5xl md:text-7xl font-black tracking-tighter">THE <span className="text-emerald-400">MOVERS</span> PROTOCOL</h2>
@@ -250,7 +247,6 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                 </motion.div>
             </section>
 
-            {/* Sticky Bottom Action */}
             <motion.div
                 initial={{ y: 100 }}
                 animate={{ y: 0 }}
@@ -276,7 +272,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                 </div>
             </motion.div>
 
-            <div className="h-32" /> {/* Spacer for sticky button */}
+            <div className="h-32" />
         </div>
     );
 }
@@ -286,7 +282,8 @@ export default function ReformersPage() {
     const { user } = useAuth();
     const { location } = useWeather();
     const { tasks } = useTasks();
-    const { activeTimer } = useActiveTimer();
+    const { activeTimer, startTimer } = useActiveTimer();
+    const searchParams = useSearchParams();
 
     const isEnrolled = profileData?.isReformersEnrolled || false;
     const [enrolling, setEnrolling] = useState(false);
@@ -295,13 +292,11 @@ export default function ReformersPage() {
     const [whatsappJoinLink, setWhatsappJoinLink] = useState("");
     const [editWhatsappJoinLink, setEditWhatsappJoinLink] = useState("");
 
-    // Sync states for legally compliant modal
     const [whatsappSync, setWhatsappSync] = useState(profileData?.googleSyncPermissions?.whatsapp || false);
     const [metaSync, setMetaSync] = useState(profileData?.googleSyncPermissions?.meta || false);
     const [linkedinSync, setLinkedinSync] = useState(profileData?.googleSyncPermissions?.linkedin || false);
     const [showTunedPopup, setShowTunedPopup] = useState(false);
 
-    // Edit Profile States
     const [isEditing, setIsEditing] = useState(false);
     const [editBio, setEditBio] = useState("");
     const [editProfession, setEditProfession] = useState("");
@@ -335,7 +330,6 @@ export default function ReformersPage() {
     const [referralModalOpen, setReferralModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    // Chat & Follow State
     const [chatMode, setChatMode] = useState(false);
     const [messageText, setMessageText] = useState("");
     const [conversation, setConversation] = useState<any[]>([]);
@@ -344,8 +338,8 @@ export default function ReformersPage() {
     const [myFollowing, setMyFollowing] = useState(0);
     const [selectedUserFollowers, setSelectedUserFollowers] = useState(0);
     const [selectedUserFollowing, setSelectedUserFollowing] = useState(0);
+    const [peerLatestData, setPeerLatestData] = useState<any>(null);
 
-    // Fetch local followers/following counts
     useEffect(() => {
         if (user?.uid) {
             const follRef = collection(db, "users", user.uid, "user_followers");
@@ -358,7 +352,6 @@ export default function ReformersPage() {
         }
     }, [user?.uid]);
 
-    // Load global reformers config
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "config", "reformers"), (snap) => {
             if (snap.exists()) {
@@ -374,7 +367,6 @@ export default function ReformersPage() {
         return () => unsub();
     }, []);
 
-    // Fetch selected user's followers/following counts
     useEffect(() => {
         if (selectedUser?.id && !chatMode) {
             try {
@@ -772,17 +764,37 @@ export default function ReformersPage() {
         }
     };
 
-    // Add this useEffect to check initial follow status
+    // Add this useEffect to check initial follow status and peer connection status
     useEffect(() => {
         if (selectedUser?.id && user?.uid) {
-            const followingRef = doc(db, "users", user.uid, "user_following", selectedUser.id);
-            const checkFollow = async () => {
-                const snap = await getDocs(query(collection(db, "users", user.uid, "user_following"), where("__name__", "==", selectedUser.id)));
-                setIsFollowing(!snap.empty);
+            const checkPeerStatus = async () => {
+                const { getDoc, doc } = await import("firebase/firestore");
+                
+                // Check follow status
+                const followingRef = doc(db, "users", user.uid, "user_following", selectedUser.id);
+                const followSnap = await getDoc(followingRef);
+                setIsFollowing(followSnap.exists());
+
+                // Fetch latest peer data for co-reformer check
+                const peerRef = doc(db, "users", selectedUser.id);
+                const peerSnap = await getDoc(peerRef);
+                if (peerSnap.exists()) {
+                    const data = peerSnap.data();
+                    setPeerLatestData(data);
+
+                    // AUTO-LINK DEADLOCK FIX: 
+                    // If I have requested them AND they have requested me, just link us NOW.
+                    if (data.pendingCoWorkerId === user.uid && profileData?.pendingCoWorkerId === selectedUser.id) {
+                        console.log("Mutual request detected - auto-linking...");
+                        handleAcceptCoWorker(selectedUser.id);
+                    }
+                }
             };
-            checkFollow();
+            checkPeerStatus();
+        } else {
+            setPeerLatestData(null);
         }
-    }, [selectedUser?.id, user?.uid]);
+    }, [selectedUser?.id, user?.uid, profileData?.pendingCoWorkerId]);
 
     const handleAcceptCoWorker = async (peerId: string) => {
         if (!user) return;
@@ -1328,10 +1340,73 @@ export default function ReformersPage() {
                 )}
 
                 <div className="space-y-4 pt-6">
-                    <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
-                        <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Global Leaderboard</span>
-                        <span className="text-[10px] text-[#10b981] bg-[#10b981]/10 px-2 py-1 rounded-sm border border-[#10b981]/20">LIVE SYNC</span>
                     </h3>
+                    
+                    {/* Active Co-Reformer Session Card */}
+                    {(() => {
+                        const coWorker = liveMembers.find(m => m.id === profileData?.coWorkerId);
+                        if (!coWorker || !coWorker.activeSession) return null;
+                        
+                        const s = coWorker.activeSession;
+                        const timeLeft = Math.max(0, Math.round((s.expectedEndTime - Date.now()) / 1000));
+                        const isPaused = s.isPaused;
+                        const progress = Math.min(100, Math.max(0, (timeLeft / (s.duration * 60)) * 100));
+
+                        return (
+                            <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 p-6 rounded-2xl mb-8 shadow-xl relative overflow-hidden group border-2 animate-in fade-in zoom-in duration-500">
+                                <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700" />
+                                <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+                                    <div className="relative">
+                                        <Avatar className="w-20 h-20 border-4 border-emerald-500/20 shadow-lg ring-2 ring-emerald-500/20 ring-offset-2 ring-offset-black">
+                                            <AvatarImage src={coWorker.avatar} />
+                                            <AvatarFallback className="bg-emerald-950 text-emerald-400">{coWorker.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <span className={`absolute bottom-1 right-1 w-5 h-5 border-4 border-[#1a1a1a] rounded-full flex ${isPaused ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`}></span>
+                                    </div>
+                                    <div className="flex-1 text-center md:text-left space-y-1">
+                                        <div className="flex items-center justify-center md:justify-start gap-3">
+                                            <h3 className="text-xl font-black text-white">{coWorker.name} is Focused</h3>
+                                            <Badge className="bg-emerald-500 text-black font-black text-[10px] animate-pulse">LIVE CO-OP</Badge>
+                                        </div>
+                                        <p className="text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-2">
+                                            Focusing on: <span className="text-white font-bold">{s.taskName}</span>
+                                            {isPaused && <span className="text-amber-500 font-black text-[10px] uppercase tracking-widest">[PAUSED]</span>}
+                                        </p>
+                                        <div className="flex flex-col gap-2 mt-4 max-w-xs mx-auto md:mx-0">
+                                            <div className="flex justify-between items-end">
+                                                <span className="text-xs font-black text-emerald-400 font-mono uppercase tracking-widest">Session Progress</span>
+                                                <span className="text-lg font-black text-white font-mono">{100 - Math.round(progress)}%</span>
+                                            </div>
+                                            <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
+                                                <motion.div 
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${100 - progress}%` }}
+                                                    className={`h-full rounded-full ${isPaused ? 'bg-amber-500' : 'bg-emerald-500'} shadow-[0_0_15px_rgba(16,185,129,0.5)]`}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                task: s.taskName,
+                                                duration: s.duration.toString(),
+                                                expectedEndTime: s.expectedEndTime.toString(),
+                                                category: "Co-op Session",
+                                                color: "#10b981"
+                                            });
+                                            window.location.href = `/timer?${params.toString()}`;
+                                        }}
+                                        className="h-16 px-10 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xl rounded-2xl shadow-[0_0_40px_rgba(16,185,129,0.3)] transition-all hover:scale-105 active:scale-95 group/btn"
+                                    >
+                                        <Activity className="mr-3 w-6 h-6 group-hover/btn:animate-bounce" />
+                                        JOIN CO-OP
+                                    </Button>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <div className="grid grid-cols-1 gap-3">
                         {liveMembers.map(member => (
                             <Dialog key={member.id} open={selectedUser?.id === member.id} onOpenChange={(open) => {
@@ -1556,21 +1631,26 @@ export default function ReformersPage() {
                                                     <div className="col-span-2 space-y-2">
                                                         {profileData?.coWorkerId === member.id ? (
                                                             <>
-                                                                <Button onClick={() => window.location.href='/timer'} variant="default" className="w-full font-black h-14 text-sm bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] leading-tight uppercase tracking-widest">
+                                                                <Button onClick={() => window.location.href='/timer?task=Co-reformer%20Session&duration=25&category=Work&color=%2310b981'} variant="default" className="w-full font-black h-14 text-sm bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] leading-tight uppercase tracking-widest">
                                                                     🚀 Start the Co-op
                                                                 </Button>
                                                                 <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-10 text-xs bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                     Unlink Co-Reformer
                                                                 </Button>
                                                             </>
-                                                        ) : member.pendingCoWorkerId === user?.uid ? (
-                                                            <Button onClick={() => handleAcceptCoWorker(member.id)} variant="default" className="w-full font-black h-12 text-sm bg-emerald-500 text-black hover:bg-emerald-400 leading-tight uppercase tracking-wider">
+                                                        ) : (peerLatestData?.pendingCoWorkerId === user?.uid || member.pendingCoWorkerId === user?.uid) ? (
+                                                            <Button onClick={() => handleAcceptCoWorker(member.id)} variant="default" className="w-full font-black h-14 text-sm bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] leading-tight uppercase tracking-widest">
                                                                 🤝 Accept & Start Co-op
                                                             </Button>
                                                         ) : profileData?.pendingCoWorkerId === member.id ? (
-                                                            <Button onClick={() => handleWithdrawRequest()} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 leading-tight">
-                                                                Withdraw Request
-                                                            </Button>
+                                                            <div className="space-y-2">
+                                                                <Button variant="outline" disabled className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 leading-tight">
+                                                                    Waiting for {member.name.split(' ')[0]} to Accept...
+                                                                </Button>
+                                                                <Button onClick={() => handleWithdrawRequest()} variant="ghost" className="w-full text-[10px] uppercase font-bold text-red-400 hover:text-red-300">
+                                                                    Withdraw Request
+                                                                </Button>
+                                                            </div>
                                                         ) : (
                                                             <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 leading-tight">
                                                                 Connect as Co-Reformer
