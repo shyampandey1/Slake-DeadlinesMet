@@ -33,6 +33,8 @@ import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
+import { useCoOpSession } from "@/hooks/useCoOpSession";
 import { Skeleton } from "./ui/skeleton";
 import TaskDeletion from "./TaskDeletion";
 import {
@@ -130,6 +132,10 @@ export default function TaskForm() {
   const [carouselApi, setCarouselApi] = useState<CarouselApi | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
+  const { user } = useAuth();
+  const { profileData } = useProfile();
+  const { createSession, joinSession } = useCoOpSession();
+  const [incomingSession, setIncomingSession] = useState<any>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -253,6 +259,36 @@ export default function TaskForm() {
       scrollTo(0);
     }
   }, [carouselApi, mergedTasks, activeCategory, scrollTo]);
+ 
+  // Listen for incoming Co-op Sessions
+  useEffect(() => {
+    if (!user?.uid || !profileData?.coWorkerId) return;
+    
+    const { db } = require("@/lib/firebase");
+    const { collection, query, where, onSnapshot, orderBy, limit } = require("firebase/firestore");
+    
+    const q = query(
+      collection(db, "coop_sessions"),
+      where("participants", "array-contains", user.uid),
+      where("status", "==", "waiting"),
+      orderBy("lastActionAt", "desc"),
+      limit(1)
+    );
+
+    const unsub = onSnapshot(q, (snap: any) => {
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        // Only show if we didn't create it
+        if (data.createdBy !== user.uid) {
+          setIncomingSession({ id: snap.docs[0].id, ...data });
+        }
+      } else {
+        setIncomingSession(null);
+      }
+    });
+
+    return () => unsub();
+  }, [user?.uid, profileData?.coWorkerId]);
 
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
@@ -277,11 +313,25 @@ export default function TaskForm() {
     setIsDialogOpen(false);
   };
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     const params = new URLSearchParams({
       task: values.taskName,
       duration: values.duration.toString(),
     });
+
+    // Co-op Session Logic
+    if (profileData?.coWorkerId) {
+      const sessionId = await createSession({
+        taskName: values.taskName,
+        initialDuration: values.duration,
+        participants: [user?.uid!, profileData.coWorkerId],
+        createdBy: user?.uid!
+      });
+      if (sessionId) {
+        params.append("coOpSessionId", sessionId);
+      }
+    }
+
     if (values.category) {
       // Find the category color to pass to the timer page
       const categoryData = mergedTasks[values.category];
@@ -341,6 +391,34 @@ export default function TaskForm() {
   return (
     <>
       <div className="space-y-6 sm:space-y-8">
+        {incomingSession && (
+          <div className="bg-[#10b981] text-black p-4 rounded-2xl shadow-xl flex flex-col gap-3 animate-in slide-in-from-top-4 duration-500 border-2 border-white/20">
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5" />
+              <div className="flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">Incoming Co-op Task</p>
+                <p className="text-sm font-black leading-tight">{incomingSession.taskName}</p>
+              </div>
+              <Badge variant="outline" className="border-black/20 text-black font-bold">READY</Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={async () => {
+                  await joinSession(incomingSession.id);
+                  const params = new URLSearchParams({
+                    task: incomingSession.taskName,
+                    duration: incomingSession.initialDuration.toString(),
+                    coOpSessionId: incomingSession.id
+                  });
+                  window.location.href = `/timer?${params.toString()}`;
+                }}
+                className="flex-1 bg-black text-[#10b981] hover:bg-black/80 font-black h-10"
+              >
+                JOIN & START TOGETHER
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="px-2 flex justify-between items-center">
           <div>
             <h2 className="font-headline text-2xl sm:text-3xl text-white drop-shadow-md">Quick Start Tasks</h2>

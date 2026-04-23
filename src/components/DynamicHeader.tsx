@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useActiveTimer } from '@/hooks/useActiveTimer';
 import Link from 'next/link';
-import { Play, Pause, Phone } from 'lucide-react';
+import { Play, Pause, Phone, Users } from 'lucide-react';
+import { useProfile } from '@/hooks/useProfile';
 
 interface DynamicHeaderProps {
     currentDate: Date;
@@ -67,6 +68,7 @@ function LiveClock() {
 export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const { weatherData } = useWeather();
     const { activeTimer } = useActiveTimer();
+    const { profileData } = useProfile();
     const [stars, setStars] = useState<React.ReactElement[]>([]);
     const svgContainerRef = useRef<SVGSVGElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -250,6 +252,16 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     </div>
 
                     <div className="flex flex-col items-start text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                        {profileData?.coWorkerId && (
+                             <motion.div 
+                                 initial={{ opacity: 0, y: -10 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 className="flex items-center gap-2 mb-3 px-3 py-1 bg-[#10b981]/20 border border-[#10b981]/30 rounded-full backdrop-blur-md animate-pulse"
+                             >
+                                 <Users className="w-3.5 h-3.5 text-[#10b981]" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#10b981]">Joined as Co-Reformers</span>
+                             </motion.div>
+                         )}
                         <div className="flex items-baseline gap-3">
                             <LiveClock />
                             {weatherData && (
