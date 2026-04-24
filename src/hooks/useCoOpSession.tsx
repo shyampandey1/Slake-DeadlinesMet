@@ -57,7 +57,7 @@ export const useCoOpSession = (sessionId?: string) => {
             ...data,
             startTime: null,
             expectedEndTime: null,
-            isPaused: false,
+            isPaused: true,
             timeLeftWhenPaused: data.initialDuration * 60,
             status: "waiting",
             lastActionBy: user.uid,

@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useCoOpSession } from "@/hooks/useCoOpSession";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +78,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
+  const { user } = useAuth();
   const { session, updateSession } = useCoOpSession(coOpSessionId || activeTimer?.coOpSessionId);
   const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
   
@@ -318,23 +320,29 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
     // CO-OP SYNC ENGINE
     useEffect(() => {
-        if (session && syncComplete) {
-            // Update local state from shared session
-            if (session.isPaused !== isPaused) {
-                setIsPaused(session.isPaused);
-            }
-            if (session.status === "running" && session.expectedEndTime) {
-                const diff = Math.max(0, Math.round((session.expectedEndTime - Date.now()) / 1000));
-                if (Math.abs(diff - timeRemaining) > 2) { // Only sync if drift > 2s
-                    setTimeRemaining(diff);
+        if (session && syncComplete && user) {
+            // ONLY sync if the change came from someone else to prevent bounces
+            if (session.lastActionBy !== user.uid) {
+                // Update local state from shared session
+                if (session.isPaused !== isPaused) {
+                    setIsPaused(session.isPaused);
                 }
-            } else if (session.status === "waiting") {
-                if (session.timeLeftWhenPaused !== undefined && session.timeLeftWhenPaused !== null) {
-                    setTimeRemaining(session.timeLeftWhenPaused);
+                if (session.status === "running" && session.expectedEndTime) {
+                    const diff = Math.max(0, Math.round((session.expectedEndTime - Date.now()) / 1000));
+                    if (Math.abs(diff - timeRemaining) > 2) { // Only sync if drift > 2s
+                        setTimeRemaining(diff);
+                    }
+                    // Crucial: Update the ref used by the local timer engine
+                    expectedEndTimeRef.current = session.expectedEndTime;
+                } else if (session.status === "waiting") {
+                    if (session.timeLeftWhenPaused !== undefined && session.timeLeftWhenPaused !== null) {
+                        setTimeRemaining(session.timeLeftWhenPaused);
+                    }
+                    expectedEndTimeRef.current = null;
                 }
             }
         }
-    }, [session, syncComplete]);
+    }, [session, syncComplete, user?.uid]);
 
   const expectedEndTimeRef = useRef<number | null>(null);
   const timeRemainingRef = useRef(timeRemaining);
