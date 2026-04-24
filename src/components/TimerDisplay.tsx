@@ -115,7 +115,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                taskName,
                expectedEndTime: activeTimer?.expectedEndTime || (Date.now() + timeRemaining * 1000),
                isPaused: isPaused,
-               duration: initialDuration
+               duration: initialDuration,
+               coOpSessionId: coOpSessionId || activeTimer?.coOpSessionId
             }
          });
      }
@@ -129,7 +130,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
              });
          }
      };
-  }, [taskName, profileData?.isReformersEnrolled, updateUserProfileData, isPaused, initialDuration]);
+  }, [taskName, profileData?.isReformersEnrolled, updateUserProfileData, isPaused, initialDuration, activeTimer?.expectedEndTime, coOpSessionId, activeTimer?.coOpSessionId]);
 
   useEffect(() => {
     const saved = localStorage.getItem('deadlinesmet_offline_notifications');
@@ -597,7 +598,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       <motion.div 
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="fixed top-24 right-4 w-60 bg-slate-900/80 border border-emerald-500/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl z-50 overflow-hidden hidden lg:block"
+        className="fixed top-24 right-4 w-60 bg-slate-900/80 border border-emerald-500/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl z-50 overflow-hidden hidden md:block"
       >
         <div className="absolute top-0 right-0 p-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]" />

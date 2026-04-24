@@ -160,6 +160,7 @@ export type UserProfile = {
         expectedEndTime: number;
         isPaused: boolean;
         duration: number;
+        coOpSessionId?: string;
     };
 };
 
