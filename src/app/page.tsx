@@ -31,7 +31,7 @@ export default function Home() {
     <AuthWrapper>
       <div className="flex flex-col min-h-screen bg-background pb-20">
         <DynamicHeader currentDate={currentDate} />
-        <main className="flex-1 w-full max-w-4xl mx-auto p-6 sm:p-8 md:p-10 -mt-36 relative z-10">
+        <main className="flex-1 w-full max-w-4xl mx-auto p-6 sm:p-8 md:p-10 -mt-24 relative z-10">
           {profileData?.slakeCredits === 0 && (
             <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 shadow-xl shadow-orange-500/20 border border-white/10 overflow-hidden relative group">
                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">

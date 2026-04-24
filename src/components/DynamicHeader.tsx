@@ -252,18 +252,18 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     </div>
 
                     <div className="flex flex-col items-start text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                        {profileData?.coWorkerId && (
-                             <motion.div 
-                                 initial={{ opacity: 0, y: -10 }}
-                                 animate={{ opacity: 1, y: 0 }}
-                                 className="flex items-center gap-2 mb-3 px-3 py-1 bg-[#10b981]/20 border border-[#10b981]/30 rounded-full backdrop-blur-md animate-pulse"
-                             >
-                                 <Users className="w-3.5 h-3.5 text-[#10b981]" />
-                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#10b981]">Joined as Co-Reformers</span>
-                             </motion.div>
-                         )}
-                        <div className="flex items-baseline gap-3">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                             <LiveClock />
+                            {profileData?.coWorkerId && (
+                                <motion.div 
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="flex items-center gap-1.5 px-2 py-0.5 bg-[#10b981]/20 border border-[#10b981]/30 rounded-full backdrop-blur-md"
+                                >
+                                    <Users className="w-3 h-3 text-[#10b981]" />
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-[#10b981]">Co-Reformer Active</span>
+                                </motion.div>
+                            )}
                             {weatherData && (
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 group hover:bg-white/20 transition-all duration-300">
                                     <WeatherIcon className="h-4 w-4 text-white/90" />
@@ -274,7 +274,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                 </div>
                             )}
                         </div>
-                        {isClient && <p className="text-sm opacity-90 font-medium tracking-wide mt-1">{format(currentDate, 'EEEE, LLLL d')}</p>}
+                        {isClient && <p className="text-sm opacity-90 font-medium tracking-wide">{format(currentDate, 'EEEE, LLLL d')}</p>}
                     </div>
                 </div>
             </div>

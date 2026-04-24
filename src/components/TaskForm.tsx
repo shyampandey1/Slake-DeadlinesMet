@@ -312,14 +312,18 @@ export default function TaskForm() {
     });
 
     if (profileData?.coWorkerId) {
-      const sessionId = await createSession({
-        taskName: values.taskName,
-        initialDuration: values.duration,
-        participants: [user?.uid!, profileData.coWorkerId],
-        createdBy: user?.uid!
-      });
-      if (sessionId) {
-        params.append("coOpSessionId", sessionId);
+      try {
+        const sessionId = await createSession({
+          taskName: values.taskName,
+          initialDuration: values.duration,
+          participants: [user?.uid!, profileData.coWorkerId],
+          createdBy: user?.uid!
+        });
+        if (sessionId) {
+          params.append("coOpSessionId", sessionId);
+        }
+      } catch (e) {
+        console.error("Co-op session creation failed:", e);
       }
     }
 
@@ -329,13 +333,13 @@ export default function TaskForm() {
         const colorClassMatch = categoryData.color.match(/bg-[a-z]+-\d+/);
         if (colorClassMatch && colorClassMatch[0]) {
           params.append("color", colorClassMatch[0]);
-        } else {
-          params.append("color", "bg-gray-500");
         }
       }
       params.append("category", values.category);
     }
-    router.push(`/timer?${params.toString()}`);
+    
+    // Using window.location.href for a clean navigation to the high-state timer page
+    window.location.href = `/timer?${params.toString()}`;
   }
 
   const categoriesWithColors = Object.entries(mergedTasks).map(([name, { color }]) => ({ name, color }));
@@ -453,21 +457,38 @@ export default function TaskForm() {
                                 const isEventTask = task.isEvent;
                                 const isCompleted = task.isCompleted;
                                 return (
-                                  <Button
-                                    key={task.id || `${task.name}-${index}`}
-                                    variant="outline"
-                                    className={cn("w-full justify-start gap-3 h-auto py-2 px-3 whitespace-normal transition-all",
-                                      {
-                                        "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask,
-                                        "opacity-50 grayscale": isCompleted
-                                      })}
-                                    onClick={() => selectQuickStartTask(task, category)}
-                                    onDoubleClick={() => task.id && !isEventTask && !isDefaultTask(task) && handleOpenDialog(task, category)}
-                                  >
-                                    <Icon className="w-5 h-5 text-muted-foreground" />
-                                    <span className={cn("flex-1 text-left font-normal", isCompleted && "line-through text-muted-foreground")}>{task.name}</span>
-                                    <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
-                                  </Button>
+                                  <div className="w-full flex items-center gap-2">
+                                    <Button
+                                      key={task.id || `${task.name}-${index}`}
+                                      variant="outline"
+                                      className={cn("flex-1 justify-start gap-3 h-auto py-2 px-3 whitespace-normal transition-all",
+                                        {
+                                          "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask,
+                                          "opacity-50 grayscale": isCompleted
+                                        })}
+                                      onClick={() => selectQuickStartTask(task, category)}
+                                      onDoubleClick={() => task.id && !isEventTask && !isDefaultTask(task) && handleOpenDialog(task, category)}
+                                    >
+                                      <Icon className="w-5 h-5 text-muted-foreground" />
+                                      <span className={cn("flex-1 text-left font-normal", isCompleted && "line-through text-muted-foreground")}>{task.name}</span>
+                                      <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
+                                    </Button>
+                                    {!isCompleted && (
+                                      <Button 
+                                        size="icon" 
+                                        variant="secondary"
+                                        className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors"
+                                        onClick={() => {
+                                          form.setValue("taskName", task.name);
+                                          form.setValue("duration", task.duration);
+                                          form.setValue("category", category);
+                                          form.handleSubmit(onSubmit)();
+                                        }}
+                                      >
+                                        <Play className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 );
                               })}
 
