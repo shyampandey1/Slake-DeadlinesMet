@@ -96,6 +96,22 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [offlineNotificationsEnabled, setOfflineNotificationsEnabled] = useState(false);
   const [peerData, setPeerData] = useState<UserProfile | null>(null);
 
+  // Move refs to the top to avoid ReferenceErrors in effects
+  const expectedEndTimeRef = useRef<number | null>(null);
+  const timeRemainingRef = useRef(timeRemaining);
+  const isFinishedRef = useRef(isFinished);
+  const showMotivationalDialogRef = useRef(showMotivationalDialog);
+  const lastTickRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    timeRemainingRef.current = timeRemaining;
+  }, [timeRemaining]);
+
+  useEffect(() => {
+    isFinishedRef.current = isFinished;
+    showMotivationalDialogRef.current = showMotivationalDialog;
+  }, [isFinished, showMotivationalDialog]);
+
   // Monitor Co-op Partner Session
   useEffect(() => {
     if (!profileData?.coWorkerId) return;
@@ -343,21 +359,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             }
         }
     }, [session, syncComplete, user?.uid]);
-
-  const expectedEndTimeRef = useRef<number | null>(null);
-  const timeRemainingRef = useRef(timeRemaining);
-  const isFinishedRef = useRef(isFinished);
-  const showMotivationalDialogRef = useRef(showMotivationalDialog);
-  const lastTickRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    timeRemainingRef.current = timeRemaining;
-  }, [timeRemaining]);
-
-  useEffect(() => {
-    isFinishedRef.current = isFinished;
-    showMotivationalDialogRef.current = showMotivationalDialog;
-  }, [isFinished, showMotivationalDialog]);
 
   // Main stable timer engine resilient to background throttling
   useEffect(() => {
