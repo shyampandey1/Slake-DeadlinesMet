@@ -6,9 +6,8 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-// 1. Corrected the type name here
 import type { UseEmblaCarouselType } from 'embla-carousel-react';
-type CarouselApi = any; // Fallback to resolve build error
+type CarouselApi = any; 
 import { format, isToday, parseISO } from "date-fns";
 import Link from "next/link";
 
@@ -44,8 +43,8 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import VoiceInput from "./VoiceInput";
-
-
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot, limit } from "firebase/firestore";
 
 const formSchema = z.object({
   taskName: z.string().min(1, {
@@ -128,7 +127,6 @@ export default function TaskForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const customTaskFormRef = useRef<HTMLDivElement>(null);
-  // 2. Used the corrected type for the state
   const [carouselApi, setCarouselApi] = useState<CarouselApi | undefined>()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
@@ -208,8 +206,6 @@ export default function TaskForm() {
     return sortedPreset;
   }, [presetTasks, events, categoryTimeRanges, loggedTasks]);
 
-  // Removed completedTodayTasks since we compute it inside mergedTasks
-
   const scrollTo = useCallback(
     (index: number) => carouselApi && carouselApi.scrollTo(index),
     [carouselApi]
@@ -219,7 +215,6 @@ export default function TaskForm() {
     if (!carouselApi) return
     setSelectedIndex(carouselApi.selectedScrollSnap())
   }, [carouselApi, setSelectedIndex])
-
 
   useEffect(() => {
     if (!carouselApi) return
@@ -264,14 +259,10 @@ export default function TaskForm() {
   useEffect(() => {
     if (!user?.uid || !profileData?.coWorkerId) return;
     
-    const { db } = require("@/lib/firebase");
-    const { collection, query, where, onSnapshot, orderBy, limit } = require("firebase/firestore");
-    
     const q = query(
       collection(db, "coop_sessions"),
       where("participants", "array-contains", user.uid),
       where("status", "==", "waiting"),
-      orderBy("lastActionAt", "desc"),
       limit(1)
     );
 
@@ -285,11 +276,12 @@ export default function TaskForm() {
       } else {
         setIncomingSession(null);
       }
+    }, (error) => {
+      console.warn("Co-op session listener failed (likely missing index):", error);
     });
 
     return () => unsub();
   }, [user?.uid, profileData?.coWorkerId]);
-
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
     const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
@@ -319,7 +311,6 @@ export default function TaskForm() {
       duration: values.duration.toString(),
     });
 
-    // Co-op Session Logic
     if (profileData?.coWorkerId) {
       const sessionId = await createSession({
         taskName: values.taskName,
@@ -333,15 +324,12 @@ export default function TaskForm() {
     }
 
     if (values.category) {
-      // Find the category color to pass to the timer page
       const categoryData = mergedTasks[values.category];
       if (categoryData && categoryData.color) {
-        // Extract only the color class name (e.g., "bg-blue-500" from a string that might contain other classes)
         const colorClassMatch = categoryData.color.match(/bg-[a-z]+-\d+/);
         if (colorClassMatch && colorClassMatch[0]) {
           params.append("color", colorClassMatch[0]);
         } else {
-          // Fallback to a default color if the specific pattern is not found
           params.append("color", "bg-gray-500");
         }
       }
@@ -610,4 +598,3 @@ export default function TaskForm() {
     </>
   );
 }
-
