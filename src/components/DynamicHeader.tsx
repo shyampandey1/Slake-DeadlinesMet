@@ -183,7 +183,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
     return (
         <div className="relative w-full h-72 sm:h-80 lg:h-96 min-h-[300px]">
-             {activeTimer && (
+             {activeTimer && activeTimer.taskName && (
                 <Link 
                     href={`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}`} 
                     className="absolute top-0 left-0 right-0 z-50 bg-primary/20 backdrop-blur-xl border-b border-primary/30 p-2 flex items-center justify-between animate-in slide-in-from-top duration-500 overflow-hidden"

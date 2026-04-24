@@ -126,8 +126,8 @@ export function useTasks() {
       }
 
       // Update native profile silently if out of sync
-      const pStreak = profileData?.streak;
-      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profileData as any)?.totalTasks !== totalTasks || (profileData as any)?.totalWaterGlasses !== totalWaterGlasses || (profileData as any)?.appAge !== appAge) {
+      const pStreak = profileDataRef.current?.streak;
+      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profileDataRef.current as any)?.totalTasks !== totalTasks || (profileDataRef.current as any)?.totalWaterGlasses !== totalWaterGlasses || (profileDataRef.current as any)?.appAge !== appAge) {
          updateUserProfileData({ 
             streak: { 
                ...pStreak, 
@@ -155,7 +155,13 @@ export function useTasks() {
     });
 
     return () => unsubscribe();
-  }, [user, isOffline, isSyncEnabled]);
+  }, [user, isOffline, isSyncEnabled, updateUserProfileData]); 
+
+  // Keep profileDataRef updated for the onSnapshot closure
+  const profileDataRef = useRef(profileData);
+  useEffect(() => {
+    profileDataRef.current = profileData;
+  }, [profileData]);
 
   const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
     if (!user) return;

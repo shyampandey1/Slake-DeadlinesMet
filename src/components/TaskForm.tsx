@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
+import { Play, Coffee, Droplets, BrainCircuit, Mail, ListChecks, Users, Utensils, Bed, Footprints, Dumbbell, StretchHorizontal, Wind, BookOpen, Plus, Wrench, Target, ShoppingBag, LucideIcon, Clock, Calendar, FolderSearch, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Wand2, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { UseEmblaCarouselType } from 'embla-carousel-react';
 type CarouselApi = any; 
@@ -144,8 +144,8 @@ export default function TaskForm() {
   });
 
   const mergedTasks = useMemo(() => {
-    const newPresetTasks: Preset = JSON.parse(JSON.stringify(presetTasks));
-    const todaysEvents = events.filter(e => e.date && isToday(parseISO(e.date)));
+    const newPresetTasks: Preset = JSON.parse(JSON.stringify(presetTasks || {}));
+    const todaysEvents = events.filter(e => e.date && typeof e.date === 'string' && isToday(parseISO(e.date)));
 
     if (todaysEvents.length > 0) {
       const eventCategory = "Today's Events";
@@ -338,8 +338,8 @@ export default function TaskForm() {
       params.append("category", values.category);
     }
     
-    // Using window.location.href for a clean navigation to the high-state timer page
-    window.location.href = `/timer?${params.toString()}`;
+    // Using router.push for smoother SPA-style navigation
+    router.push(`/timer?${params.toString()}`);
   }
 
   const categoriesWithColors = Object.entries(mergedTasks).map(([name, { color }]) => ({ name, color }));
