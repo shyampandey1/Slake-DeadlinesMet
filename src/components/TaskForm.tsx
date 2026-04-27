@@ -23,7 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "./ui/separator";
-import { useTasks, usePresetTasks, useCalendarEvents } from "@/hooks/useFirestore";
+import { useTasks, useCalendarEvents } from "@/hooks/useFirestore";
+import { useRoutineStore } from "@/hooks/useRoutineStore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask, Preset } from "@/types";
 import { cn } from "@/lib/utils";
@@ -121,7 +122,7 @@ function formatDuration(minutes: number): string {
 export default function TaskForm() {
   const router = useRouter();
   const { tasks: loggedTasks } = useTasks();
-  const { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory, isDefaultTask } = usePresetTasks();
+  const { presetTasks, loading, addPresetTask, updatePresetTask, deletePresetTask, categoryTimeRanges, activeCategory, isDefaultTask } = useRoutineStore();
   const { events } = useCalendarEvents();
   const { profile } = useProfile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

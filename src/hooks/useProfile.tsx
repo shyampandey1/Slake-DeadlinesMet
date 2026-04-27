@@ -63,6 +63,8 @@ interface ProfileContextType {
   loading: boolean;
   profileData: UserProfile | null;
   updateUserProfileData: (data: Partial<UserProfile>) => Promise<void>;
+  reformerPreference: 'morning_primer' | 'evening_restorer';
+  setReformerPreference: (pref: 'morning_primer' | 'evening_restorer') => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType>({
@@ -75,6 +77,8 @@ const ProfileContext = createContext<ProfileContextType>({
   loading: true,
   profileData: null,
   updateUserProfileData: async () => {},
+  reformerPreference: 'morning_primer',
+  setReformerPreference: async () => {},
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -85,7 +89,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const profile = profileData?.profile || "General";
   const daysOff = profileData?.daysOff || [];
   const customProfessions = profileData?.customProfessions || [];
-  
+  const reformerPreference = profileData?.reformerPreference || 'morning_primer';
+
+  const setReformerPreference = useCallback(async (pref: 'morning_primer' | 'evening_restorer') => {
+    await updateUserProfileData({ reformerPreference: pref });
+  }, [updateUserProfileData]);
+
   const initializeUserTasks = useCallback(async (uid: string, prof: ProfileType) => {
     if (!prof || !isSyncEnabled || isOffline) return;
 
@@ -357,7 +366,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled]);
 
   return (
-    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData, updateUserProfileData }}>
+    <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData, updateUserProfileData, reformerPreference, setReformerPreference }}>
       {children}
     </ProfileContext.Provider>
   );

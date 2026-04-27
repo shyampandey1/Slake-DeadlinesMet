@@ -362,24 +362,72 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
             enrichedTasks.push({ name: "Eye strain exercise", duration: 2, icon: "Eye", category: cleanedTasks[i].category });
         }
 
-        // Add entertainment/gaming slots around 33%, 66% and 90% through the routine
-        const expectedEnt = Math.floor(((i + 1) / cleanedTasks.length) * (totalEntertainment + 1));
-        if (entertainmentCount < expectedEnt && entertainmentCount < totalEntertainment) {
+        // Add entertainment/gaming slots later in the day (After 50%, 75%, and 90% of routine)
+        const progress = (i + 1) / cleanedTasks.length;
+        if (entertainmentCount === 0 && progress >= 0.5) {
             entertainmentCount++;
-            let leisureTask;
-            if (entertainmentCount === 1) {
-                leisureTask = { name: "Visual Pleasure/Gaming (Morning Break)", duration: 15, icon: "Gamepad2", category: "Entertainment & Gaming" };
-            } else if (entertainmentCount === 2) {
-                leisureTask = { name: "Digital Entertainment Session", duration: 20, icon: "Tv", category: "Entertainment & Gaming" };
-            } else {
-                leisureTask = { name: "Gaming/Creative Leisure (Unwind)", duration: 25, icon: "Gamepad2", category: "Entertainment & Gaming" };
-            }
-            enrichedTasks.push(leisureTask);
+            enrichedTasks.push({ name: "Post-Work Visual Break", duration: 15, icon: "Gamepad2", category: "Entertainment & Gaming" });
+        } else if (entertainmentCount === 1 && progress >= 0.75) {
+            entertainmentCount++;
+            enrichedTasks.push({ name: "Digital Entertainment Session", duration: 20, icon: "Tv", category: "Entertainment & Gaming" });
+        } else if (entertainmentCount === 2 && progress >= 0.95) {
+            entertainmentCount++;
+            enrichedTasks.push({ name: "Late Night Gaming/Leisure", duration: 25, icon: "Gamepad2", category: "Entertainment & Gaming" });
         }
     }
 
     return enrichedTasks;
 };
+
+export const wrapRoutineWithMOVERS = (
+    tasks: Omit<UserPresetTask, "id" | "order" | "profession">[],
+    profession: ProfileType,
+    preference: 'morning_primer' | 'evening_restorer'
+) => {
+    const HIGH_PHYSICAL = ["Healthcare Professional", "Sales", "Medical Representative", "Delivery Agent"];
+    const HIGH_COGNITIVE = ["Software Engineer", "Analyst", "Manager", "Consultant", "Entrepreneur", "Researcher"];
+    const CREATIVE = ["Artist", "Designer", "Content Creator", "Writer"];
+
+    const isPhysical = HIGH_PHYSICAL.includes(profession);
+    const isCognitive = HIGH_COGNITIVE.includes(profession);
+    const isCreative = CREATIVE.includes(profession);
+
+    // Protocol Tasks
+    const M = { name: "Meditation (M)", duration: 10, icon: "BrainCircuit", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
+    const O = { name: "Oxygenation (O)", duration: 10, icon: "Wind", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
+    
+    let vName = "Visualization (V)";
+    if (isCognitive) vName = "Strategic Planning (V)";
+    const V = { name: vName, duration: 10, icon: "Target", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
+    
+    let eName = "Exercise (E)";
+    if (isPhysical && preference === 'evening_restorer') eName = "Recovery Stretch (E)";
+    const E = { name: eName, duration: 30, icon: "Dumbbell", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
+
+    let rName = "Reading (R)";
+    if (isCreative) rName = "Inspiration Intake (R)";
+    const R = { name: rName, duration: 15, icon: "BookOpen", category: "Evening Protocol" };
+    
+    const S = { name: "Scribing (S)", duration: 15, icon: "PenSquare", category: "Evening Protocol" };
+
+    const result = [...tasks];
+
+    if (preference === 'morning_primer') {
+        // Inject M+O+V+E at the start
+        result.unshift(M, O, V, E);
+        // Inject R+S at the end
+        result.push(R, S);
+    } else {
+        // Inject E at the start
+        const morningE = { ...E, category: "Morning Protocol" };
+        result.unshift(morningE);
+        // Inject M+O+V+R+S at the end
+        result.push(M, O, V, R, S);
+    }
+
+    return result;
+};
+
 export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order" | "profession">[] } } = {
     version: 9.0,
     routines: {
@@ -438,6 +486,11 @@ export const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines.
 };
 
 export const categoryConfig: { [key: string]: { color: string, order: number } } = {
+    // MOVERS Protocol
+    'MOVERS Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 0 },
+    'Morning Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 0 },
+    'Evening Protocol': { color: 'bg-indigo-950 text-indigo-100 border-indigo-500/50', order: 98 },
+    
     // Creative Professional
     'Morning Kickstart': { color: 'bg-indigo-800 text-white', order: 1 },
     'Pre-Production': { color: 'bg-blue-800 text-white', order: 2 },

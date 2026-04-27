@@ -24,7 +24,7 @@ import {
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
 import { getDay, set, subDays } from 'date-fns';
-import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
+import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, wrapRoutineWithMOVERS, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
 import { format as formatDate, parse, compareDesc } from 'date-fns';
 
 // Re-export for easier access in other components

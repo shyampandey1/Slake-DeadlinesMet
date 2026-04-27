@@ -155,6 +155,7 @@ export type UserProfile = {
     // Co-working & Live Sync
     coWorkerId?: string;
     pendingCoWorkerId?: string;
+    reformerPreference?: 'morning_primer' | 'evening_restorer';
     activeSession?: {
         taskName: string;
         expectedEndTime: number;

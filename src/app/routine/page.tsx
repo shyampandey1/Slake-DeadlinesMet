@@ -6,8 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useProfile, professions, Profession } from "@/hooks/useProfile";
-import { usePresetTasks } from "@/hooks/useFirestore";
-import { icons } from "lucide-react"; // Changed from * as icons
+import { useRoutineStore } from "@/hooks/useRoutineStore";
+import { icons } from "lucide-react"; 
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,8 +52,8 @@ const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
 
 function RoutinePageComponent() {
   const router = useRouter();
-  const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading } = useProfile();
-  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, clearAndSetPresetTasks } = usePresetTasks();
+  const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading, profileData, reformerPreference, setReformerPreference } = useProfile();
+  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, clearAndSetPresetTasks } = useRoutineStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -213,12 +213,48 @@ function RoutinePageComponent() {
                         <Checkbox id="saturday" checked={daysOff.includes('Saturday')} onCheckedChange={() => handleDayOffToggle('Saturday')} />
                         <label htmlFor="saturday" className="text-sm font-medium leading-none">Saturday</label>
                     </div>
-                    <div className=".flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
                         <Checkbox id="sunday" checked={daysOff.includes('Sunday')} onCheckedChange={() => handleDayOffToggle('Sunday')} />
                         <label htmlFor="sunday" className="text-sm font-medium leading-none">Sunday</label>
                     </div>
                 </CardContent>
             </Card>
+
+            {profileData?.isReformersEnrolled && (
+                <Card className="border-emerald-500/30 bg-emerald-500/5">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-lg flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-emerald-500" />
+                            MOVERS Protocol
+                        </CardTitle>
+                        <CardDescription>Select your preferred energy synchronization template.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button 
+                            variant={reformerPreference === 'morning_primer' ? 'default' : 'outline'}
+                            onClick={() => setReformerPreference('morning_primer')}
+                            className={cn(
+                                "flex flex-col items-start gap-1 h-auto p-4 text-left",
+                                reformerPreference === 'morning_primer' && "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            )}
+                        >
+                            <span className="font-bold">The Morning Primer</span>
+                            <span className="text-xs opacity-80">(M+O+V+E) at start; (R+S) at end.</span>
+                        </Button>
+                        <Button 
+                            variant={reformerPreference === 'evening_restorer' ? 'default' : 'outline'}
+                            onClick={() => setReformerPreference('evening_restorer')}
+                            className={cn(
+                                "flex flex-col items-start gap-1 h-auto p-4 text-left",
+                                reformerPreference === 'evening_restorer' && "bg-indigo-600 hover:bg-indigo-700 text-white"
+                            )}
+                        >
+                            <span className="font-bold">The Evening Restorer</span>
+                            <span className="text-xs opacity-80">(E) at start; (M+O+V+R+S) at end.</span>
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
 
             <div ref={routineRef} className="pt-4 scroll-mt-24">
               <div className="flex justify-between items-center mb-6">
