@@ -364,7 +364,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   useEffect(() => {
     if (!syncComplete) return;
 
-    if (isPaused || isFinished) {
+    if (isPaused || isFinished || timeRemainingRef.current <= 0) {
       expectedEndTimeRef.current = null;
       return;
     }
@@ -579,15 +579,15 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const InfoDisplay = () => (
     <div className="flex items-center gap-3 sm:gap-6 text-foreground/90 scale-90 sm:scale-100 origin-top">
       <div className="flex flex-col items-center">
-        <span className="text-xl sm:text-3xl font-bold font-headline">{currentDate ? format(currentDate, 'p') : '--:--'}</span>
-        <span className="text-[10px] sm:text-xs uppercase tracking-widest opacity-60">{currentDate ? format(currentDate, 'EEEE, MMM d') : '---'}</span>
+        <span className="text-2xl sm:text-3xl font-bold font-headline">{currentDate ? format(currentDate, 'p') : '--:--'}</span>
+        <span className="text-xs sm:text-sm uppercase tracking-widest opacity-60">{currentDate ? format(currentDate, 'EEEE, MMM d') : '---'}</span>
       </div>
       {weatherData && (
         <div className="flex items-center gap-2 pl-3 sm:pl-6 border-l border-white/20">
           <WeatherIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <div className="flex flex-col">
-            <span className="text-lg sm:text-xl font-bold">{weatherData.temp}°</span>
-            <span className="text-[9px] sm:text-[10px] uppercase opacity-60 tracking-tighter max-w-[60px] sm:max-w-none truncate">{location}</span>
+            <span className="text-xl font-bold">{weatherData.temp}°</span>
+            <span className="text-[10px] sm:text-xs uppercase opacity-70 tracking-tighter max-w-[80px] sm:max-w-none truncate">{location}</span>
           </div>
         </div>
       )}
@@ -618,20 +618,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 <AvatarFallback className="bg-emerald-950 text-emerald-400">{p.displayName?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="overflow-hidden">
-                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Co-Op Partner</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Co-Op Partner</p>
                 <p className="text-sm font-bold truncate text-white">{p.displayName}</p>
             </div>
         </div>
         <div className="space-y-4">
             <div>
-                <p className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 flex justify-between">
+                <p className="text-xs uppercase font-bold text-slate-500 mb-1.5 flex justify-between">
                     Current Focus 
-                    <span className={`text-[9px] ${s.isPaused ? 'text-amber-500' : 'text-emerald-500'}`}>{s.isPaused ? 'PAUSED' : 'LIVE'}</span>
+                    <span className={`text-[10px] ${s.isPaused ? 'text-amber-500' : 'text-emerald-500'}`}>{s.isPaused ? 'PAUSED' : 'LIVE'}</span>
                 </p>
-                <p className="text-xs font-medium text-slate-200 truncate bg-white/5 p-2 rounded-lg border border-white/5">{s.taskName}</p>
+                <p className="text-sm font-medium text-slate-200 truncate bg-white/5 p-2 rounded-lg border border-white/5">{s.taskName}</p>
             </div>
             <div className="space-y-1.5">
-                <div className="flex justify-between items-center text-[11px] font-black">
+                <div className="flex justify-between items-center text-xs font-black">
                     <span className="text-emerald-400 font-mono">{formatTime(peerTimeLeft)}</span>
                     <span className="text-slate-500">{100 - Math.round(peerProgress)}%</span>
                 </div>
@@ -645,12 +645,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
                 <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                    <p className="text-[9px] uppercase text-slate-500 font-bold mb-0.5">Hydration</p>
-                    <p className="text-xs font-black text-blue-400">{p.totalWaterGlasses || 0} Glasses</p>
+                    <p className="text-[10px] uppercase text-slate-500 font-bold mb-0.5">Hydration</p>
+                    <p className="text-sm font-black text-blue-400">{p.totalWaterGlasses || 0} Glasses</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                    <p className="text-[9px] uppercase text-slate-500 font-bold mb-0.5">Streak</p>
-                    <p className="text-xs font-black text-amber-500">{p.streak?.currentStreak || 0} Days</p>
+                    <p className="text-[10px] uppercase text-slate-500 font-bold mb-0.5">Streak</p>
+                    <p className="text-sm font-black text-amber-500">{p.streak?.currentStreak || 0} Days</p>
                 </div>
             </div>
         </div>
@@ -686,7 +686,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         <h2 className="mb-2 text-sm sm:text-xl font-medium tracking-wide text-foreground/80 uppercase tracking-[0.2em] opacity-50">{category || 'Focus Session'}</h2>
         <h1 className={cn(
             "mb-8 font-bold tracking-tight text-foreground font-headline transition-all duration-300 px-4",
-            taskName.length > 20 ? "text-2xl sm:text-4xl md:text-5xl" : "text-3xl sm:text-5xl md:text-6xl lg:text-7xl"
+            taskName.length > 20 ? "text-3xl sm:text-5xl md:text-6xl" : "text-4xl sm:text-6xl md:text-7xl lg:text-8xl"
         )}>
           {taskName}
         </h1>
@@ -846,10 +846,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             )}
             <Button
               variant="outline"
-              asChild
+              onClick={() => {
+                setShowMotivationalDialog(false);
+                router.push('/');
+              }}
               className="w-full h-12 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
             >
-              <Link href="/">Back to Home</Link>
+              Back to Home
             </Button>
           </DialogFooter>
         </DialogContent>

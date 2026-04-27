@@ -11,7 +11,7 @@ const VOLUME_KEY = 'timerVolume';
 const finishSounds = [
     { name: 'Premium Chime', src: 'synthesized' },
     { name: 'Vintage Bell', src: 'https://actions.google.com/sounds/v1/alarms/dinner_bell_triangle.ogg' },
-    { name: 'Digital Alarm', src: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg' },
+    { name: 'Digital Alarm', src: 'synthesized_digital' },
     { name: 'Bugle Chime', src: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg' },
 ];
 
@@ -90,6 +90,45 @@ export function useAudioSettings() {
     }
   }, []);
 
+  const playSynthesizedDigitalAlarm = useCallback((vol: number) => {
+    try {
+      const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      const playBeep = (time: number) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1000, time);
+        
+        const adjustedVol = Math.min(vol * 1.5, 1.0);
+        
+        g.gain.setValueAtTime(0, time);
+        g.gain.linearRampToValueAtTime(adjustedVol, time + 0.02);
+        g.gain.setValueAtTime(adjustedVol, time + 0.15);
+        g.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
+        
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.25);
+      };
+
+      for (let i = 0; i < 4; i++) {
+          const groupStart = ctx.currentTime + (i * 1.0);
+          playBeep(groupStart);
+          playBeep(groupStart + 0.25);
+          playBeep(groupStart + 0.5);
+      }
+      
+      setTimeout(() => ctx.close(), 4500);
+    } catch (e) {
+      console.warn("Digital alarm synthesis failed", e);
+    }
+  }, []);
+
+
   useEffect(() => {
     let initialVolume = 1.0;
     let initialSound = 'Digital Alarm';
@@ -164,13 +203,15 @@ export function useAudioSettings() {
     if (!isAudioEnabled || !isInitialized) return;
     if (selectedSound === 'Premium Chime') {
       playSynthesizedChime(volume[0]);
+    } else if (selectedSound === 'Digital Alarm') {
+      playSynthesizedDigitalAlarm(volume[0]);
     } else {
       const sound = soundInstances.current[selectedSound];
       if (sound) {
         sound.play();
       }
     }
-  }, [isAudioEnabled, selectedSound, isInitialized, volume, playSynthesizedChime]);
+  }, [isAudioEnabled, selectedSound, isInitialized, volume, playSynthesizedChime, playSynthesizedDigitalAlarm]);
 
   const playTick = useCallback(() => {
     if (!isAudioEnabled || !isInitialized) return;
@@ -181,6 +222,8 @@ export function useAudioSettings() {
     if (!isInitialized) return;
     if (selectedSound === 'Premium Chime') {
       playSynthesizedChime(volume[0]);
+    } else if (selectedSound === 'Digital Alarm') {
+      playSynthesizedDigitalAlarm(volume[0]);
     } else {
       const sound = soundInstances.current[selectedSound];
       if (sound) {
@@ -188,7 +231,7 @@ export function useAudioSettings() {
         sound.play();
       }
     }
-  }, [selectedSound, isInitialized, volume, playSynthesizedChime]);
+  }, [selectedSound, isInitialized, volume, playSynthesizedChime, playSynthesizedDigitalAlarm]);
 
   return { 
     isAudioEnabled, 
