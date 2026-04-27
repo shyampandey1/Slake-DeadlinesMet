@@ -90,6 +90,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const daysOff = profileData?.daysOff || [];
   const customProfessions = profileData?.customProfessions || [];
   const reformerPreference = profileData?.reformerPreference || 'morning_primer';
+  
+  const updateUserProfileData = useCallback(async (data: Partial<UserProfile>) => {
+    if (!user) return;
+    setProfileData(prev => {
+        const updated = prev ? { ...prev, ...data } : null;
+        try { if(updated) localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updated)); } catch(e) {}
+        return updated;
+    });
+    if (!isOffline && isSyncEnabled) {
+      try {
+        const profileRef = doc(db, 'users', user.uid);
+        await updateDoc(profileRef, data);
+      } catch (error) { console.error("Failed to update profile data", error); }
+    }
+  }, [user, isOffline, isSyncEnabled]);
 
   const setReformerPreference = useCallback(async (pref: 'morning_primer' | 'evening_restorer') => {
     await updateUserProfileData({ reformerPreference: pref });
@@ -350,20 +365,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user, isOffline, isSyncEnabled]);
 
 
-  const updateUserProfileData = useCallback(async (data: Partial<UserProfile>) => {
-    if (!user) return;
-    setProfileData(prev => {
-        const updated = prev ? { ...prev, ...data } : null;
-        try { if(updated) localStorage.setItem(`user-profile_${user.uid}`, JSON.stringify(updated)); } catch(e) {}
-        return updated;
-    });
-    if (!isOffline && isSyncEnabled) {
-      try {
-        const profileRef = doc(db, 'users', user.uid);
-        await updateDoc(profileRef, data);
-      } catch (error) { console.error("Failed to update profile data", error); }
-    }
-  }, [user, isOffline, isSyncEnabled]);
 
   return (
     <ProfileContext.Provider value={{ profile, setProfile, daysOff, setDaysOff, loading, customProfessions, deleteCustomProfession, profileData, updateUserProfileData, reformerPreference, setReformerPreference }}>
