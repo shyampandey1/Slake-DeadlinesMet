@@ -355,6 +355,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                         setTimeRemaining(session.timeLeftWhenPaused);
                     }
                     expectedEndTimeRef.current = null;
+                } else if (session.status === "finished" && !isFinishedRef.current) {
+                    setIsFinished(true);
+                    setFlashState('none');
+                    expectedEndTimeRef.current = null;
+                    clearTimer();
                 }
             }
         }
@@ -458,6 +463,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const handleSaveTask = async (completed: boolean) => {
     setIsFinished(false);
     clearTimer();
+    if (session) {
+      updateSession({ status: "finished" });
+    }
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
@@ -596,66 +604,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
 
   const CoOpDisplay = () => {
-    if (!peerData || !peerData.activeSession) return null;
-    const p = peerData;
-    const s = p.activeSession;
-    if (!s) return null;
-    const peerTimeLeft = Math.max(0, Math.round((s.expectedEndTime - Date.now()) / 1000));
-    const peerProgress = Math.min(100, Math.max(0, (peerTimeLeft / (s.duration * 60)) * 100));
-
-    return (
-      <motion.div 
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="fixed top-24 right-4 w-60 bg-slate-900/80 border border-emerald-500/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl z-50 overflow-hidden hidden md:block"
-      >
-        <div className="absolute top-0 right-0 p-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,1)]" />
-        </div>
-        <div className="flex items-center gap-3 mb-4">
-            <Avatar className="w-10 h-10 border-2 border-emerald-500/30">
-                <AvatarImage src={p.displayPicture} />
-                <AvatarFallback className="bg-emerald-950 text-emerald-400">{p.displayName?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="overflow-hidden">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Co-Op Partner</p>
-                <p className="text-sm font-bold truncate text-white">{p.displayName}</p>
-            </div>
-        </div>
-        <div className="space-y-4">
-            <div>
-                <p className="text-xs uppercase font-bold text-slate-500 mb-1.5 flex justify-between">
-                    Current Focus 
-                    <span className={`text-[10px] ${s.isPaused ? 'text-amber-500' : 'text-emerald-500'}`}>{s.isPaused ? 'PAUSED' : 'LIVE'}</span>
-                </p>
-                <p className="text-sm font-medium text-slate-200 truncate bg-white/5 p-2 rounded-lg border border-white/5">{s.taskName}</p>
-            </div>
-            <div className="space-y-1.5">
-                <div className="flex justify-between items-center text-xs font-black">
-                    <span className="text-emerald-400 font-mono">{formatTime(peerTimeLeft)}</span>
-                    <span className="text-slate-500">{100 - Math.round(peerProgress)}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                    <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${100 - peerProgress}%` }}
-                        className={`h-full ${s.isPaused ? 'bg-amber-500' : 'bg-emerald-500'} shadow-[0_0_10px_rgba(16,185,129,0.5)]`}
-                    />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
-                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                    <p className="text-[10px] uppercase text-slate-500 font-bold mb-0.5">Hydration</p>
-                    <p className="text-sm font-black text-blue-400">{p.totalWaterGlasses || 0} Glasses</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-2 border border-white/5">
-                    <p className="text-[10px] uppercase text-slate-500 font-bold mb-0.5">Streak</p>
-                    <p className="text-sm font-black text-amber-500">{p.streak?.currentStreak || 0} Days</p>
-                </div>
-            </div>
-        </div>
-      </motion.div>
-    );
+    return null;
   };
 
   return (
