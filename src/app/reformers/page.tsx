@@ -61,8 +61,8 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                     transition={{ duration: 1 }}
                     className="absolute inset-0 z-0"
                 >
-                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
-                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse"></div>
+                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700"></div>
                 </motion.div>
 
                 <motion.div
@@ -85,7 +85,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                         className="pt-12 opacity-40"
                     >
                         <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center p-1">
-                            <div className="w-1 h-2 bg-white rounded-full" />
+                        <div className="w-1 h-2 bg-white rounded-full"></div>
                         </div>
                     </motion.div>
                 </motion.div>
@@ -119,7 +119,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                     </div>
 
                     <div className="relative aspect-square rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-2xl p-8 group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent"></div>
                         {/* Mock Task List Animation */}
                         <div className="relative space-y-4">
                             {[
@@ -136,7 +136,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                                 >
                                     <div>
                                         <div className="font-bold flex items-center gap-2">
-                                            {task.status === 'Completed' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <div className="w-4 h-4 rounded-full border border-white/20" />}
+                                            {task.status === 'Completed' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <div className="w-4 h-4 rounded-full border border-white/20"></div>}
                                             {task.name}
                                         </div>
                                         <div className="text-xs text-slate-500">{task.time}</div>
@@ -176,7 +176,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                     </div>
 
                     <div className="md:order-1 relative aspect-square rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-3xl overflow-hidden shadow-2xl flex items-center justify-center">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent"></div>
                         <div className="relative">
                             <motion.div
                                 animate={{ rotateY: 360 }}
@@ -276,7 +276,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                 </div>
             </motion.div>
 
-            <div className="h-32" />
+            <div className="h-32"></div>
         </div>
     );
 }
@@ -1465,14 +1465,15 @@ function ReformersPageContent() {
                     })()}
 
                     <div className="grid grid-cols-1 gap-3">
-                        {liveMembers.map(member => (
-                            <Dialog key={member.id} open={selectedUser?.id === member.id} onOpenChange={(open) => {
-                                if (!open) {
-                                    setSelectedUser(null);
-                                    setChatMode(false);
-                                }
-                            }}>
-                                <DialogTrigger asChild>
+                        {liveMembers.map(member => {
+                            return (
+                                <Dialog key={member.id} open={selectedUser?.id === member.id} onOpenChange={(open) => {
+                                    if (!open) {
+                                        setSelectedUser(null);
+                                        setChatMode(false);
+                                    }
+                                }}>
+                                    <DialogTrigger asChild>
                                     <div onClick={() => setSelectedUser(member)} className="cursor-pointer bg-[#1a1a1a] border border-border p-4 rounded-xl flex items-center justify-between hover:border-[#10b981]/50 transition-all duration-300 shadow-md group">
                                         <div className="flex items-center gap-4">
                                             <div className="relative shrink-0">
@@ -1740,7 +1741,8 @@ function ReformersPageContent() {
                                     )}
                                 </DialogContent>
                             </Dialog>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
