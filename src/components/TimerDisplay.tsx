@@ -577,17 +577,17 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
   const InfoDisplay = () => (
-    <div className="flex items-center gap-6 text-foreground/90">
+    <div className="flex items-center gap-3 sm:gap-6 text-foreground/90 scale-90 sm:scale-100 origin-top">
       <div className="flex flex-col items-center">
-        <span className="text-3xl font-bold font-headline">{currentDate ? format(currentDate, 'p') : '--:--'}</span>
-        <span className="text-xs uppercase tracking-widest opacity-60">{currentDate ? format(currentDate, 'EEEE, MMM d') : '---'}</span>
+        <span className="text-xl sm:text-3xl font-bold font-headline">{currentDate ? format(currentDate, 'p') : '--:--'}</span>
+        <span className="text-[10px] sm:text-xs uppercase tracking-widest opacity-60">{currentDate ? format(currentDate, 'EEEE, MMM d') : '---'}</span>
       </div>
       {weatherData && (
-        <div className="flex items-center gap-2 pl-6 border-l border-white/20">
-          <WeatherIcon className="h-8 w-8 text-primary" />
+        <div className="flex items-center gap-2 pl-3 sm:pl-6 border-l border-white/20">
+          <WeatherIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <div className="flex flex-col">
-            <span className="text-xl font-bold">{weatherData.temp}°</span>
-            <span className="text-[10px] uppercase opacity-60 tracking-tighter">{location}</span>
+            <span className="text-lg sm:text-xl font-bold">{weatherData.temp}°</span>
+            <span className="text-[9px] sm:text-[10px] uppercase opacity-60 tracking-tighter max-w-[60px] sm:max-w-none truncate">{location}</span>
           </div>
         </div>
       )}
@@ -677,14 +677,17 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     >
       <CoOpDisplay />
       <div className={cn(
-        "absolute top-4 transition-opacity duration-300",
+        "absolute top-4 sm:top-8 transition-opacity duration-300",
         !isUIVisible && "opacity-30"
       )}>
         <InfoDisplay />
       </div>
-      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <h2 className="mb-2 text-xl font-medium tracking-wide text-foreground/80">{category || 'Focus Session'}</h2>
-        <h1 className="mb-8 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl font-headline">
+      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center mt-20 sm:mt-0">
+        <h2 className="mb-2 text-sm sm:text-xl font-medium tracking-wide text-foreground/80 uppercase tracking-[0.2em] opacity-50">{category || 'Focus Session'}</h2>
+        <h1 className={cn(
+            "mb-8 font-bold tracking-tight text-foreground font-headline transition-all duration-300 px-4",
+            taskName.length > 20 ? "text-2xl sm:text-4xl md:text-5xl" : "text-3xl sm:text-5xl md:text-6xl lg:text-7xl"
+        )}>
           {taskName}
         </h1>
 
@@ -698,7 +701,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           ) : (
             <CircularProgress progress={progress} isUIVisible={isUIVisible}>
             <div className="flex flex-col items-center justify-center gap-2">
-              <div className="font-code text-5xl font-bold sm:text-6xl md:text-7xl text-white">
+              <div className="font-code text-4xl font-bold sm:text-6xl md:text-7xl text-white">
                 {formatTime(timeRemaining)}
               </div>
               <div className={cn(

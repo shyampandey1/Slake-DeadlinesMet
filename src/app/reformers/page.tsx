@@ -1742,7 +1742,9 @@ function ReformersPageContent() {
                             </Dialog>
                         ))}
                     </div>
-                    </TabsContent>
+                </div>
+            </div>
+        </TabsContent>
 
                     <TabsContent value="rewards">
                         <RewardsContent />
