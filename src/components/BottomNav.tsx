@@ -11,7 +11,6 @@ import { useTimerUI } from "@/hooks/useTimerUI";
 const navItems: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/routine", label: "Routine", icon: ClipboardList },
-  { href: "/rewards", label: "Rewards", icon: Trophy },
   { href: "/reformers", label: "Reformers", icon: Globe2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

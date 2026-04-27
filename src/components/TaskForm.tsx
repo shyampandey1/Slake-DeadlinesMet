@@ -382,7 +382,7 @@ export default function TaskForm() {
 
   return (
     <>
-      <div className="space-y-6 sm:space-y-8">
+      <div className="space-y-4 sm:space-y-6">
         {incomingSession && (
           <div className="bg-[#10b981] text-black p-4 rounded-2xl shadow-xl flex flex-col gap-3 animate-in slide-in-from-top-4 duration-500 border-2 border-white/20">
             <div className="flex items-center gap-3">

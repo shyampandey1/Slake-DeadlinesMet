@@ -22,6 +22,8 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy,
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
+import { RewardsContent } from "@/components/RewardsContent";
+import { Trophy } from "lucide-react";
 
 function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, enrolling: boolean }) {
     const movers = [
@@ -1150,7 +1152,17 @@ function ReformersPageContent() {
 
                 </div>
 
-                {/* My Dashboard View (Editable) */}
+                <Tabs defaultValue="league" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-8 bg-card/80 backdrop-blur-md h-12 rounded-2xl border border-border/50 p-1">
+                        <TabsTrigger value="league" className="rounded-xl font-bold flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-black">
+                            <Globe2 className="w-4 h-4" /> League
+                        </TabsTrigger>
+                        <TabsTrigger value="rewards" className="rounded-xl font-bold flex items-center gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-black">
+                            <Trophy className="w-4 h-4" /> Rewards
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="league" className="space-y-6">
                 <div className="pt-2">
                     <Card className="bg-[#1a1a1a] border border-border shadow-2xl relative overflow-hidden transition-all duration-300 hover:border-[#10b981]/30">
                         <div className="absolute top-0 left-0 w-full h-28 bg-gradient-to-br from-[#10b981]/20 to-transparent"></div>
@@ -1730,9 +1742,12 @@ function ReformersPageContent() {
                             </Dialog>
                         ))}
                     </div>
-                </div>
+                    </TabsContent>
 
-
+                    <TabsContent value="rewards">
+                        <RewardsContent />
+                    </TabsContent>
+                </Tabs>
 
                 <Dialog open={showTunedPopup} onOpenChange={setShowTunedPopup}>
                     <DialogContent className="bg-slate-950/95 border-emerald-500/50 text-white text-center p-12 rounded-[2.5rem] backdrop-blur-xl shadow-[0_0_50px_rgba(16,185,129,0.2)] sm:max-w-md">
