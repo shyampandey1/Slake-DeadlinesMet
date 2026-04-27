@@ -182,7 +182,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
     return (
-        <div className="relative w-full h-80 sm:h-96 lg:h-[28rem] min-h-[320px]">
+        <div className="relative w-full h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[30rem] min-h-[320px]">
              {activeTimer && activeTimer.taskName && (
                 <Link 
                     href={`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}`} 
@@ -242,7 +242,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]">
-                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-start gap-y-6 sm:gap-y-8 p-8 sm:p-10 md:p-12 pb-24 sm:pb-32">
+                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-start gap-y-6 sm:gap-y-8 p-8 sm:p-10 md:p-12 pb-24 sm:pb-32 lg:pb-40">
                      <div className="flex justify-between items-start text-white">
                          <div className="space-y-1">
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
