@@ -1461,7 +1461,7 @@ function ReformersPageContent() {
                                     </Button>
                                 </div>
                             </div>
-                        );
+                        )
                     })()}
 
                     <div className="grid grid-cols-1 gap-3">
@@ -1741,12 +1741,12 @@ function ReformersPageContent() {
                                     )}
                                 </DialogContent>
                             </Dialog>
-                            );
-                        })}
-                    </div>
+                        )
+                    })}
                 </div>
             </div>
-        </TabsContent>
+        </div>
+    </TabsContent>
 
                     <TabsContent value="rewards">
                         <RewardsContent />
