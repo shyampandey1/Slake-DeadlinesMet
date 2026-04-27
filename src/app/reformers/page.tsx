@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut, Utensils, Gamepad2, Loader2, ArrowRight, BrainCircuit, Wind, Dumbbell, BookOpen, PenSquare, Sparkles } from "lucide-react";
+import { Users, Globe2, ShieldCheck, MapPin, Activity, CheckCircle2, MessageSquare, LayoutDashboard, Lock, Unlock, Phone, Linkedin, Instagram, LockKeyhole, ArrowLeft, Send, Edit, Save, Camera, TrendingUp, Share2, Copy, Zap, Gift, LogOut, Utensils, Gamepad2, Loader2, ArrowRight, BrainCircuit, Wind, Dumbbell, BookOpen, PenSquare, Sparkles, Trophy, Award, Medal } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +19,11 @@ import { useWeather } from "@/hooks/useWeather";
 import { useCoOpSession } from "@/hooks/useCoOpSession";
 
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc, writeBatch, increment } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, getDocs, limit, DocumentData, updateDoc, doc, setDoc, writeBatch, increment, getDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { RewardsContent } from "@/components/RewardsContent";
-import { Trophy } from "lucide-react";
 
 function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, enrolling: boolean }) {
     const movers = [
@@ -329,6 +329,8 @@ function ReformersPageContent() {
         isEnrolled: boolean;
         reformersStatus: string | null;
         isReformersAdmin: boolean;
+        pendingCoWorkerId?: string;
+        activeSession?: any;
     }[]>([]);
 
     const [referralModalOpen, setReferralModalOpen] = useState(false);
@@ -442,7 +444,9 @@ function ReformersPageContent() {
                     totalWaterGlasses: data.totalWaterGlasses || 0,
                     isEnrolled: data.isReformersEnrolled || false,
                     reformersStatus: data.reformersStatus || null,
-                    isReformersAdmin: data.isReformersAdmin || false
+                    isReformersAdmin: data.isReformersAdmin || false,
+                    pendingCoWorkerId: data.pendingCoWorkerId,
+                    activeSession: data.activeSession
                 });
             });
             members.sort((a, b) => {
@@ -513,8 +517,8 @@ function ReformersPageContent() {
                 const msgs: any[] = [];
                 snap.forEach(doc => {
                     const d = doc.data();
-                    if ((d.senderId === profileData.userId && d.receiverId === selectedUser.id) ||
-                        (d.senderId === selectedUser.id && d.receiverId === profileData.userId)) {
+                    if ((d.senderId === profileData?.userId && d.receiverId === selectedUser.id) ||
+                        (d.senderId === selectedUser.id && d.receiverId === profileData?.userId)) {
                         msgs.push({ id: doc.id, ...d });
                     }
                 });
@@ -703,7 +707,7 @@ function ReformersPageContent() {
 
         try {
             await addDoc(collection(db, "messages"), {
-                senderId: profileData.userId,
+                senderId: profileData?.userId || user.uid,
                 receiverId: selectedUser.id,
                 text: messageText.trim(),
                 timestamp: serverTimestamp()
@@ -1745,7 +1749,6 @@ function ReformersPageContent() {
                     })}
                 </div>
             </div>
-        </div>
     </TabsContent>
 
                     <TabsContent value="rewards">

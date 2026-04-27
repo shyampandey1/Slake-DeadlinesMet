@@ -1,0 +1,33 @@
+.next/types/app/[id]/page.ts(2,24): error TS2306: File '/var/home/shyamp028/Slake-DeadlinesMet/src/app/[id]/page.tsx' is not a module.
+.next/types/app/[id]/page.ts(5,29): error TS2306: File '/var/home/shyamp028/Slake-DeadlinesMet/src/app/[id]/page.tsx' is not a module.
+.next/types/app/api/sync/whatsapp/route.ts(2,24): error TS2306: File '/var/home/shyamp028/Slake-DeadlinesMet/src/app/api/sync/whatsapp/route.ts' is not a module.
+.next/types/app/api/sync/whatsapp/route.ts(5,29): error TS2306: File '/var/home/shyamp028/Slake-DeadlinesMet/src/app/api/sync/whatsapp/route.ts' is not a module.
+.next/types/validator.ts(53,39): error TS2306: File '/var/home/shyamp028/Slake-DeadlinesMet/src/app/[id]/page.tsx' is not a module.
+.next/types/validator.ts(188,39): error TS2306: File '/var/home/shyamp028/Slake-DeadlinesMet/src/app/api/sync/whatsapp/route.ts' is not a module.
+src/app/reformers/page.tsx(516,41): error TS18047: 'profileData' is possibly 'null'.
+src/app/reformers/page.tsx(517,77): error TS18047: 'profileData' is possibly 'null'.
+src/app/reformers/page.tsx(706,27): error TS18047: 'profileData' is possibly 'null'.
+src/app/reformers/page.tsx(850,19): error TS2339: Property 'pendingCoWorkerId' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1155,18): error TS2304: Cannot find name 'Tabs'.
+src/app/reformers/page.tsx(1156,22): error TS2304: Cannot find name 'TabsList'.
+src/app/reformers/page.tsx(1157,26): error TS2304: Cannot find name 'TabsTrigger'.
+src/app/reformers/page.tsx(1159,27): error TS2304: Cannot find name 'TabsTrigger'.
+src/app/reformers/page.tsx(1160,26): error TS2304: Cannot find name 'TabsTrigger'.
+src/app/reformers/page.tsx(1162,27): error TS2304: Cannot find name 'TabsTrigger'.
+src/app/reformers/page.tsx(1163,23): error TS2304: Cannot find name 'TabsList'.
+src/app/reformers/page.tsx(1165,22): error TS2304: Cannot find name 'TabsContent'.
+src/app/reformers/page.tsx(1281,54): error TS2304: Cannot find name 'Award'.
+src/app/reformers/page.tsx(1291,70): error TS2304: Cannot find name 'Medal'.
+src/app/reformers/page.tsx(1334,44): error TS2339: Property 'pendingCoWorkerId' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1341,56): error TS2339: Property 'pendingCoWorkerId' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1393,52): error TS2339: Property 'activeSession' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1395,44): error TS2339: Property 'activeSession' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1436,64): error TS2339: Property 'activeSession' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1572,104): error TS2304: Cannot find name 'getDoc'.
+src/app/reformers/page.tsx(1719,120): error TS2339: Property 'pendingCoWorkerId' does not exist on type '{ id: string; name: string; location: string; status: string; online: boolean; avatar: string; streak: number; profession: string; isPrivate: boolean; bio: string; gender: string; permissions: any; socialUrls: any; ... 6 more ...; isReformersAdmin: boolean; }'.
+src/app/reformers/page.tsx(1748,7): error TS2304: Cannot find name 'TabsContent'.
+src/app/reformers/page.tsx(1750,22): error TS2304: Cannot find name 'TabsContent'.
+src/app/reformers/page.tsx(1752,23): error TS2304: Cannot find name 'TabsContent'.
+src/app/reformers/page.tsx(1753,19): error TS2304: Cannot find name 'Tabs'.
+src/components/ui/menubar.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-menubar' or its corresponding type declarations.
+src/components/ui/tooltip.tsx(4,35): error TS2307: Cannot find module '@radix-ui/react-tooltip' or its corresponding type declarations.
