@@ -61,6 +61,68 @@ export default function NotificationScheduler() {
           }
         }
       }
+      
+      // 6. Schedule Hydration Reminders (Fallback)
+      if (offlineEnabled) {
+        const hydrationTimes = [10, 13, 16, 19]; // 10 AM, 1 PM, 4 PM, 7 PM
+        for (const hour of hydrationTimes) {
+          const reminderTime = new Date();
+          reminderTime.setHours(hour, 0, 0, 0);
+          
+          if (isAfter(reminderTime, now)) {
+             try {
+                // @ts-ignore
+                const trigger = (typeof TimestampTrigger !== 'undefined') ? new TimestampTrigger(reminderTime.getTime()) : null;
+                
+                await registration.showNotification("💧 Hydration Break", {
+                    body: "Time for glass #8! Keep your daily discipline.",
+                    icon: "/icon.svg",
+                    tag: `hydration-${hour}`,
+                    // @ts-ignore
+                    showTrigger: trigger,
+                    data: { url: "/", type: "HYDRATION" }
+                });
+             } catch(e) {}
+          }
+        }
+      }
+
+      // 7. Schedule MOVERS Protocol (Local)
+      if (offlineEnabled) {
+        const morningMovers = new Date();
+        morningMovers.setHours(7, 0, 0, 0);
+        if (isAfter(morningMovers, now)) {
+           try {
+             // @ts-ignore
+             const trigger = (typeof TimestampTrigger !== 'undefined') ? new TimestampTrigger(morningMovers.getTime()) : null;
+
+             await registration.showNotification("🌅 MOVERS: Morning Primer", {
+               body: "Time for your M-O-V-E sequence. Get ready to win the day!",
+               icon: "/icon.svg",
+               // @ts-ignore
+               showTrigger: trigger,
+               data: { url: "/routine", type: "MOVERS_MORNING" }
+             });
+           } catch(e) {}
+        }
+
+        const eveningMovers = new Date();
+        eveningMovers.setHours(21, 0, 0, 0);
+        if (isAfter(eveningMovers, now)) {
+           try {
+             // @ts-ignore
+             const trigger = (typeof TimestampTrigger !== 'undefined') ? new TimestampTrigger(eveningMovers.getTime()) : null;
+
+             await registration.showNotification("🌙 MOVERS: Evening Protocol", {
+               body: "Time for your R+S wind down. Reflect and restore.",
+               icon: "/icon.svg",
+               // @ts-ignore
+               showTrigger: trigger,
+               data: { url: "/routine", type: "MOVERS_EVENING" }
+             });
+           } catch(e) {}
+        }
+      }
     };
 
     scheduleEvents();

@@ -74,7 +74,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { tasks, addTask } = useTasks();
   const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
-  const { playFinish, playTick } = useAudioSettings();
+  const { playFinish, playTick, controlBackgroundAudio } = useAudioSettings();
   const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
@@ -111,6 +111,19 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     isFinishedRef.current = isFinished;
     showMotivationalDialogRef.current = showMotivationalDialog;
   }, [isFinished, showMotivationalDialog]);
+
+  // Control Background Audio
+  useEffect(() => {
+    if (syncComplete) {
+      controlBackgroundAudio(!isPaused && !isFinished);
+    }
+  }, [isPaused, isFinished, syncComplete, controlBackgroundAudio]);
+
+  useEffect(() => {
+    return () => {
+      controlBackgroundAudio(false);
+    };
+  }, [controlBackgroundAudio]);
 
   // Monitor Co-op Partner Session
   useEffect(() => {

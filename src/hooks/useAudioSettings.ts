@@ -15,11 +15,42 @@ const finishSounds = [
     { name: 'Bugle Chime', src: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg' },
 ];
 
+const AMBIENT_ENABLED_KEY = 'timerAmbientEnabled';
+const SELECTED_AMBIENT_KEY = 'timerSelectedAmbient';
+const AMBIENT_VOLUME_KEY = 'timerAmbientVolume';
+
+const SOUNDTRACK_ENABLED_KEY = 'timerSoundtrackEnabled';
+const SELECTED_SOUNDTRACK_KEY = 'timerSelectedSoundtrack';
+const SOUNDTRACK_VOLUME_KEY = 'timerSoundtrackVolume';
+
+const ambientSounds = [
+    { name: 'Rain', src: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg' },
+    { name: 'Forest', src: 'https://actions.google.com/sounds/v1/ambiences/forest_morning_with_birds.ogg' },
+    { name: 'Cafe', src: 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg' },
+];
+
+const soundtracks = [
+    { name: 'Deep Focus (Ocean)', src: 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg' },
+];
+
+
 export function useAudioSettings() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [selectedSound, setSelectedSound] = useState(finishSounds[0].name);
   const [volume, setVolumeState] = useState([1.0]); // higher default for "loud" chime
+  
+  const [isAmbientEnabled, setIsAmbientEnabled] = useState(false);
+  const [selectedAmbient, setSelectedAmbient] = useState(ambientSounds[0].name);
+  const [ambientVolume, setAmbientVolumeState] = useState([0.5]);
+  
+  const [isSoundtrackEnabled, setIsSoundtrackEnabled] = useState(false);
+  const [selectedSoundtrack, setSelectedSoundtrack] = useState(soundtracks[0].name);
+  const [soundtrackVolume, setSoundtrackVolumeState] = useState([0.3]);
+
   const soundInstances = useRef<{ [key: string]: Howl }>({});
+  const ambientInstances = useRef<{ [key: string]: Howl }>({});
+  const soundtrackInstances = useRef<{ [key: string]: Howl }>({});
+  
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Define synthesis functions outside of the return to keep them stable
@@ -132,6 +163,12 @@ export function useAudioSettings() {
   useEffect(() => {
     let initialVolume = 1.0;
     let initialSound = 'Digital Alarm';
+    let initAmbEnabled = false;
+    let initAmbSound = ambientSounds[0].name;
+    let initAmbVol = 0.5;
+    let initStEnabled = false;
+    let initStSound = soundtracks[0].name;
+    let initStVol = 0.3;
 
     try {
       const storedEnabled = localStorage.getItem(AUDIO_ENABLED_KEY);
@@ -141,15 +178,35 @@ export function useAudioSettings() {
       if (storedSound && finishSounds.some(s => s.name === storedSound)) {
           initialSound = storedSound;
       }
-
       const storedVolume = localStorage.getItem(VOLUME_KEY);
       if (storedVolume !== null) initialVolume = parseFloat(storedVolume);
+
+      const storedAmbEnabled = localStorage.getItem(AMBIENT_ENABLED_KEY);
+      if (storedAmbEnabled !== null) initAmbEnabled = JSON.parse(storedAmbEnabled);
+      const storedAmbSound = localStorage.getItem(SELECTED_AMBIENT_KEY);
+      if (storedAmbSound && ambientSounds.some(s => s.name === storedAmbSound)) initAmbSound = storedAmbSound;
+      const storedAmbVol = localStorage.getItem(AMBIENT_VOLUME_KEY);
+      if (storedAmbVol !== null) initAmbVol = parseFloat(storedAmbVol);
+
+      const storedStEnabled = localStorage.getItem(SOUNDTRACK_ENABLED_KEY);
+      if (storedStEnabled !== null) initStEnabled = JSON.parse(storedStEnabled);
+      const storedStSound = localStorage.getItem(SELECTED_SOUNDTRACK_KEY);
+      if (storedStSound && soundtracks.some(s => s.name === storedStSound)) initStSound = storedStSound;
+      const storedStVol = localStorage.getItem(SOUNDTRACK_VOLUME_KEY);
+      if (storedStVol !== null) initStVol = parseFloat(storedStVol);
+
     } catch (error) {
       console.warn("Could not access localStorage for audio settings.");
     }
     
     setSelectedSound(initialSound);
     setVolumeState([initialVolume]);
+    setIsAmbientEnabled(initAmbEnabled);
+    setSelectedAmbient(initAmbSound);
+    setAmbientVolumeState([initAmbVol]);
+    setIsSoundtrackEnabled(initStEnabled);
+    setSelectedSoundtrack(initStSound);
+    setSoundtrackVolumeState([initStVol]);
     
     // Initialize Finish Sounds (only those that are URLs)
     finishSounds.forEach(sound => {
@@ -163,10 +220,32 @@ export function useAudioSettings() {
       }
     });
 
+    ambientSounds.forEach(sound => {
+      ambientInstances.current[sound.name] = new Howl({
+        src: [sound.src],
+        html5: true,
+        volume: initAmbVol,
+        loop: true,
+        preload: true,
+      });
+    });
+
+    soundtracks.forEach(sound => {
+      soundtrackInstances.current[sound.name] = new Howl({
+        src: [sound.src],
+        html5: true,
+        volume: initStVol,
+        loop: true,
+        preload: true,
+      });
+    });
+
     setIsInitialized(true);
     
     return () => {
       Object.values(soundInstances.current).forEach(howl => howl.unload());
+      Object.values(ambientInstances.current).forEach(howl => howl.unload());
+      Object.values(soundtrackInstances.current).forEach(howl => howl.unload());
     };
   }, []);
 
@@ -198,6 +277,41 @@ export function useAudioSettings() {
       console.warn("Could not access localStorage for audio settings.");
     }
   }, []);
+
+  const setAmbientEnabledCallback = useCallback((enabled: boolean) => {
+    setIsAmbientEnabled(enabled);
+    try { localStorage.setItem(AMBIENT_ENABLED_KEY, JSON.stringify(enabled)); } catch (e) {}
+  }, []);
+
+  const setSelectedAmbientCallback = useCallback((soundName: string) => {
+    setSelectedAmbient(soundName);
+    try { localStorage.setItem(SELECTED_AMBIENT_KEY, soundName); } catch (e) {}
+  }, []);
+
+  const setAmbientVolumeCallback = useCallback((newVolume: number[]) => {
+    const vol = newVolume[0];
+    setAmbientVolumeState([vol]);
+    Object.values(ambientInstances.current).forEach(howl => howl.volume(vol));
+    try { localStorage.setItem(AMBIENT_VOLUME_KEY, JSON.stringify(vol)); } catch (e) {}
+  }, []);
+
+  const setSoundtrackEnabledCallback = useCallback((enabled: boolean) => {
+    setIsSoundtrackEnabled(enabled);
+    try { localStorage.setItem(SOUNDTRACK_ENABLED_KEY, JSON.stringify(enabled)); } catch (e) {}
+  }, []);
+
+  const setSelectedSoundtrackCallback = useCallback((soundName: string) => {
+    setSelectedSoundtrack(soundName);
+    try { localStorage.setItem(SELECTED_SOUNDTRACK_KEY, soundName); } catch (e) {}
+  }, []);
+
+  const setSoundtrackVolumeCallback = useCallback((newVolume: number[]) => {
+    const vol = newVolume[0];
+    setSoundtrackVolumeState([vol]);
+    Object.values(soundtrackInstances.current).forEach(howl => howl.volume(vol));
+    try { localStorage.setItem(SOUNDTRACK_VOLUME_KEY, JSON.stringify(vol)); } catch (e) {}
+  }, []);
+
   
   const playFinish = useCallback(() => {
     if (!isAudioEnabled || !isInitialized) return;
@@ -233,6 +347,28 @@ export function useAudioSettings() {
     }
   }, [selectedSound, isInitialized, volume, playSynthesizedChime, playSynthesizedDigitalAlarm]);
 
+  const controlBackgroundAudio = useCallback((isPlaying: boolean) => {
+    if (!isInitialized) return;
+
+    if (isPlaying) {
+      if (isAmbientEnabled) {
+        const amb = ambientInstances.current[selectedAmbient];
+        if (amb && !amb.playing()) amb.play();
+      }
+      if (isSoundtrackEnabled) {
+        const st = soundtrackInstances.current[selectedSoundtrack];
+        if (st && !st.playing()) st.play();
+      }
+    } else {
+      Object.values(ambientInstances.current).forEach(h => h.pause());
+      Object.values(soundtrackInstances.current).forEach(h => h.pause());
+    }
+  }, [isInitialized, isAmbientEnabled, selectedAmbient, isSoundtrackEnabled, selectedSoundtrack]);
+
+  // If settings change while we expect it to be playing, we should update what's playing,
+  // but it's simpler to just let the timer re-trigger controlBackgroundAudio(true) if it's active.
+
+
   return { 
     isAudioEnabled, 
     setAudioEnabled: setAudioEnabledCallback,
@@ -241,8 +377,26 @@ export function useAudioSettings() {
     setSelectedSound: setSelectedSoundCallback,
     volume,
     setVolume: setVolumeCallback,
+    
+    isAmbientEnabled,
+    setAmbientEnabled: setAmbientEnabledCallback,
+    ambientSounds,
+    selectedAmbient,
+    setSelectedAmbient: setSelectedAmbientCallback,
+    ambientVolume,
+    setAmbientVolume: setAmbientVolumeCallback,
+
+    isSoundtrackEnabled,
+    setSoundtrackEnabled: setSoundtrackEnabledCallback,
+    soundtracks,
+    selectedSoundtrack,
+    setSelectedSoundtrack: setSelectedSoundtrackCallback,
+    soundtrackVolume,
+    setSoundtrackVolume: setSoundtrackVolumeCallback,
+
     playFinish, 
     playTick,
-    testSound 
+    testSound,
+    controlBackgroundAudio
   };
 }

@@ -38,7 +38,11 @@ function SettingsPageComponent() {
     const { user, updateUserDisplayName, isSyncEnabled, setIsSyncEnabled } = useAuth();
     const { profileData, updateUserProfileData } = useProfile();
     const { clearTasks } = useTasks();
-    const { isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound } = useAudioSettings();
+    const { 
+        isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound,
+        isAmbientEnabled, setAmbientEnabled, ambientSounds, selectedAmbient, setSelectedAmbient, ambientVolume, setAmbientVolume,
+        isSoundtrackEnabled, setSoundtrackEnabled, soundtracks, selectedSoundtrack, setSelectedSoundtrack, soundtrackVolume, setSoundtrackVolume
+    } = useAudioSettings();
     const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForCurrentUserLocation } = useWeather();
     
     const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
@@ -66,6 +70,12 @@ function SettingsPageComponent() {
     const [googleFitConnected, setGoogleFitConnected] = useState(profileData?.googleFitConnected || false);
     const [isSavingHealth, setIsSavingHealth] = useState(false);
 
+    // Notification Preferences
+    const [streakExpiryWarning, setStreakExpiryWarning] = useState(profileData?.notificationSettings?.streakExpiryWarning ?? true);
+    const [hydrationReminders, setHydrationReminders] = useState(profileData?.notificationSettings?.hydrationReminders ?? true);
+    const [dailySummary, setDailySummary] = useState(profileData?.notificationSettings?.dailySummary ?? true);
+    const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+
     useEffect(() => {
         if (profileData) {
             setElitePhone(profileData.phone || "");
@@ -77,6 +87,9 @@ function SettingsPageComponent() {
             setHeight(profileData.height || 0);
             setAvgBP(profileData.averageBP || "120/80");
             setGoogleFitConnected(profileData.googleFitConnected || false);
+            setStreakExpiryWarning(profileData.notificationSettings?.streakExpiryWarning ?? true);
+            setHydrationReminders(profileData.notificationSettings?.hydrationReminders ?? true);
+            setDailySummary(profileData.notificationSettings?.dailySummary ?? true);
         }
     }, [profileData]);
 
@@ -223,6 +236,24 @@ function SettingsPageComponent() {
         await handleSaveHealthRegional();
     };
 
+    const handleSaveNotificationPreferences = async () => {
+        setIsSavingNotifications(true);
+        try {
+            await updateUserProfileData({
+                notificationSettings: {
+                    streakExpiryWarning,
+                    hydrationReminders,
+                    dailySummary
+                }
+            });
+            toast({ title: "Preferences Saved", description: "Your notification settings have been updated." });
+        } catch(e: any) {
+            toast({ title: "Error Saving", description: e.message, variant: "destructive" });
+        } finally {
+            setIsSavingNotifications(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen">
             <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
@@ -341,15 +372,68 @@ function SettingsPageComponent() {
                                     />
                                 </div>
                             </div>
+
+                            <div className="pt-4 border-t border-border/50 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <Label className="font-medium flex items-center gap-2">
+                                            🔥 Streak Expiry Warning
+                                        </Label>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Get a nudge if your streak is about to expire today.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={streakExpiryWarning}
+                                        onCheckedChange={setStreakExpiryWarning}
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <Label className="font-medium flex items-center gap-2">
+                                            💧 Hydration Reminders
+                                        </Label>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Receive periodic reminders to drink water.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={hydrationReminders}
+                                        onCheckedChange={setHydrationReminders}
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <Label className="font-medium flex items-center gap-2">
+                                            📊 Daily Summary
+                                        </Label>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Get a morning briefing of your planned routine.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={dailySummary}
+                                        onCheckedChange={setDailySummary}
+                                    />
+                                </div>
+
+                                <Button className="w-full" onClick={handleSaveNotificationPreferences} disabled={isSavingNotifications}>
+                                    {isSavingNotifications ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    Save Notification Settings
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline text-lg">Audio</CardTitle>
-                            <CardDescription>Manage audio cues and volume for the timer.</CardDescription>
+                            <CardTitle className="font-headline text-lg">Immersive Soundscapes</CardTitle>
+                            <CardDescription>Manage audio cues, ambient noise, and background music for your timer.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {/* Timer Cues */}
                             <div className="flex items-center justify-between">
                                 <label htmlFor="audio-switch" className="font-medium flex items-center gap-2">
                                     <Bell className="h-4 w-4" />
@@ -362,32 +446,113 @@ function SettingsPageComponent() {
                                 />
                             </div>
                             
-                            <div className="space-y-2">
-                                <Label>Sound</Label>
-                                <RadioGroup value={selectedSound} onValueChange={setSelectedSound} className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {sounds.map((sound) => (
-                                        <Label key={sound.name} htmlFor={sound.name} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary">
-                                            <RadioGroupItem value={sound.name} id={sound.name}/>
-                                            {sound.name}
-                                        </Label>
-                                    ))}
-                                </RadioGroup>
+                            {isAudioEnabled && (
+                              <div className="space-y-4 pl-6 border-l-2 border-border/50">
+                                <div className="space-y-2">
+                                    <Label>Sound</Label>
+                                    <RadioGroup value={selectedSound} onValueChange={setSelectedSound} className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {sounds.map((sound) => (
+                                            <Label key={sound.name} htmlFor={sound.name} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
+                                                <RadioGroupItem value={sound.name} id={sound.name}/>
+                                                {sound.name}
+                                            </Label>
+                                        ))}
+                                    </RadioGroup>
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label>Volume</Label>
+                                    <Slider
+                                        value={volume}
+                                        onValueChange={setVolume}
+                                        max={1}
+                                        step={0.1}
+                                    />
+                                </div>
+                                <Button variant="outline" onClick={testSound}>
+                                    <Volume2 className="mr-2 h-4 w-4" />
+                                    Test Sound
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Ambient Noise */}
+                            <div className="pt-4 border-t border-border/50 space-y-4">
+                              <div className="flex items-center justify-between">
+                                  <label htmlFor="ambient-switch" className="font-medium flex items-center gap-2">
+                                      <Cloud className="h-4 w-4" />
+                                      Ambient Noise
+                                  </label>
+                                  <Switch
+                                      id="ambient-switch"
+                                      checked={isAmbientEnabled}
+                                      onCheckedChange={setAmbientEnabled}
+                                  />
+                              </div>
+                              {isAmbientEnabled && (
+                                <div className="space-y-4 pl-6 border-l-2 border-border/50">
+                                  <div className="space-y-2">
+                                      <Label>Soundscape</Label>
+                                      <RadioGroup value={selectedAmbient} onValueChange={setSelectedAmbient} className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                          {ambientSounds.map((sound) => (
+                                              <Label key={sound.name} htmlFor={`amb-${sound.name}`} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
+                                                  <RadioGroupItem value={sound.name} id={`amb-${sound.name}`}/>
+                                                  {sound.name}
+                                              </Label>
+                                          ))}
+                                      </RadioGroup>
+                                  </div>
+                                   <div className="space-y-2">
+                                      <Label>Volume</Label>
+                                      <Slider
+                                          value={ambientVolume}
+                                          onValueChange={setAmbientVolume}
+                                          max={1}
+                                          step={0.1}
+                                      />
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
-                             <div className="space-y-2">
-                                <Label>Volume</Label>
-                                <Slider
-                                    value={volume}
-                                    onValueChange={setVolume}
-                                    max={1}
-                                    step={0.1}
-                                />
+                            {/* Soundtrack */}
+                            <div className="pt-4 border-t border-border/50 space-y-4">
+                              <div className="flex items-center justify-between">
+                                  <label htmlFor="soundtrack-switch" className="font-medium flex items-center gap-2">
+                                      <Volume2 className="h-4 w-4" />
+                                      Focus Soundtrack
+                                  </label>
+                                  <Switch
+                                      id="soundtrack-switch"
+                                      checked={isSoundtrackEnabled}
+                                      onCheckedChange={setSoundtrackEnabled}
+                                  />
+                              </div>
+                              {isSoundtrackEnabled && (
+                                <div className="space-y-4 pl-6 border-l-2 border-border/50">
+                                  <div className="space-y-2">
+                                      <Label>Music Track</Label>
+                                      <RadioGroup value={selectedSoundtrack} onValueChange={setSelectedSoundtrack} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {soundtracks.map((sound) => (
+                                              <Label key={sound.name} htmlFor={`st-${sound.name}`} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
+                                                  <RadioGroupItem value={sound.name} id={`st-${sound.name}`}/>
+                                                  {sound.name}
+                                              </Label>
+                                          ))}
+                                      </RadioGroup>
+                                  </div>
+                                   <div className="space-y-2">
+                                      <Label>Volume</Label>
+                                      <Slider
+                                          value={soundtrackVolume}
+                                          onValueChange={setSoundtrackVolume}
+                                          max={1}
+                                          step={0.1}
+                                      />
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            
-                            <Button variant="outline" onClick={testSound}>
-                                <Volume2 className="mr-2 h-4 w-4" />
-                                Test Sound
-                            </Button>
+
                         </CardContent>
                     </Card>
 

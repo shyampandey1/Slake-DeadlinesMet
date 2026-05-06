@@ -199,6 +199,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                 daysOff: [] as Day[], 
                 customProfessions: [], 
                 routineVersions: {},
+                notificationSettings: {
+                    streakExpiryWarning: true,
+                    hydrationReminders: true,
+                    dailySummary: true
+                },
                 displayName: user.displayName || undefined,
                 email: user.email || undefined,
                 displayPicture: 'photoURL' in user ? user.photoURL || undefined : undefined,

@@ -163,6 +163,12 @@ export type UserProfile = {
         duration: number;
         coOpSessionId?: string;
     };
+    notificationSettings?: {
+        streakExpiryWarning: boolean;
+        hydrationReminders: boolean;
+        dailySummary: boolean;
+    };
+    fcmTokens?: string[];
 };
 
 export type UserEvent = {

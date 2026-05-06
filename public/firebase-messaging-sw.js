@@ -23,7 +23,8 @@ messaging.onBackgroundMessage((payload) => {
     icon: '/icon.png',
     requireInteraction: true,
     vibrate: [200, 100, 200],
-    tag: payload.notification?.tag || payload.data?.tag || 'default'
+    tag: payload.notification?.tag || payload.data?.tag || 'default',
+    data: payload.data || {}
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
@@ -33,19 +34,27 @@ self.addEventListener('notificationclick', (event) => {
   console.log('[firebase-messaging-sw.js] Notification click received.');
   event.notification.close();
 
+  const notificationData = event.notification.data || {};
+  let targetUrl = notificationData.url || '/';
+
+  // Ensure absolute URL
+  if (targetUrl.startsWith('/')) {
+    targetUrl = self.location.origin + targetUrl;
+  }
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Check if there is already a window/tab open with the target URL
+      // 1. Try to find an existing window and focus it
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
-        // If so, just focus it.
-        if (client.url && 'focus' in client) {
+        if (client.url === targetUrl && 'focus' in client) {
           return client.focus();
         }
       }
-      // If not, open a new window
+      
+      // 2. If not found, open new window
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow(targetUrl);
       }
     })
   );
