@@ -387,7 +387,7 @@ export function useAudioSettings() {
       setIsPreviewingSoundtrack(true);
     }
   }, [selectedSoundtrack, isInitialized]);
-
+  const controlBackgroundAudio = useCallback((isPlaying: boolean) => {
     if (!isInitialized) return;
 
     if (isPlaying) {
