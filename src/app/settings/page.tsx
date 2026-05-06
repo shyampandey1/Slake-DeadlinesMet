@@ -40,8 +40,8 @@ function SettingsPageComponent() {
     const { clearTasks } = useTasks();
     const { 
         isAudioEnabled, setAudioEnabled, sounds, selectedSound, setSelectedSound, volume, setVolume, testSound,
-        isAmbientEnabled, setAmbientEnabled, ambientSounds, selectedAmbient, setSelectedAmbient, ambientVolume, setAmbientVolume,
-        isSoundtrackEnabled, setSoundtrackEnabled, soundtracks, selectedSoundtrack, setSelectedSoundtrack, soundtrackVolume, setSoundtrackVolume
+        isAmbientEnabled, setAmbientEnabled, ambientSounds, selectedAmbient, setSelectedAmbient, ambientVolume, setAmbientVolume, testAmbient, isPreviewingAmbient,
+        isSoundtrackEnabled, setSoundtrackEnabled, soundtracks, selectedSoundtrack, setSelectedSoundtrack, soundtrackVolume, setSoundtrackVolume, testSoundtrack, isPreviewingSoundtrack
     } = useAudioSettings();
     const { location, setLocation, unit, setUnit, loading: weatherLoading, fetchWeatherForCurrentUserLocation } = useWeather();
     
@@ -510,6 +510,10 @@ function SettingsPageComponent() {
                                           step={0.1}
                                       />
                                   </div>
+                                  <Button variant="outline" onClick={testAmbient} className={isPreviewingAmbient ? "border-primary text-primary" : ""}>
+                                      <Cloud className="mr-2 h-4 w-4" />
+                                      {isPreviewingAmbient ? "Stop Preview" : "Test Ambient"}
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -549,6 +553,10 @@ function SettingsPageComponent() {
                                           step={0.1}
                                       />
                                   </div>
+                                  <Button variant="outline" onClick={testSoundtrack} className={isPreviewingSoundtrack ? "border-primary text-primary" : ""}>
+                                      <Volume2 className="mr-2 h-4 w-4" />
+                                      {isPreviewingSoundtrack ? "Stop Preview" : "Test Soundtrack"}
+                                  </Button>
                                 </div>
                               )}
                             </div>

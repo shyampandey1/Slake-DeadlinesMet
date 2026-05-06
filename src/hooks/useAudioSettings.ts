@@ -23,13 +23,13 @@ const SOUNDTRACK_ENABLED_KEY = 'timerSoundtrackEnabled';
 const SELECTED_SOUNDTRACK_KEY = 'timerSelectedSoundtrack';
 const SOUNDTRACK_VOLUME_KEY = 'timerSoundtrackVolume';
 
-const ambientSounds = [
+export const ambientSounds = [
     { name: 'Rain', src: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg' },
     { name: 'Forest', src: 'https://actions.google.com/sounds/v1/ambiences/forest_morning_with_birds.ogg' },
     { name: 'Cafe', src: 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg' },
 ];
 
-const soundtracks = [
+export const soundtracks = [
     { name: 'Deep Focus (Ocean)', src: 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg' },
 ];
 
@@ -347,7 +347,47 @@ export function useAudioSettings() {
     }
   }, [selectedSound, isInitialized, volume, playSynthesizedChime, playSynthesizedDigitalAlarm]);
 
-  const controlBackgroundAudio = useCallback((isPlaying: boolean) => {
+  const [isPreviewingAmbient, setIsPreviewingAmbient] = useState(false);
+  const [isPreviewingSoundtrack, setIsPreviewingSoundtrack] = useState(false);
+
+  const testAmbient = useCallback(() => {
+    if (!isInitialized) return;
+    const amb = ambientInstances.current[selectedAmbient];
+    if (!amb) return;
+
+    if (amb.playing()) {
+      amb.stop();
+      setIsPreviewingAmbient(false);
+    } else {
+      // Stop all others first
+      Object.values(ambientInstances.current).forEach(h => h.stop());
+      Object.values(soundtrackInstances.current).forEach(h => h.stop());
+      setIsPreviewingSoundtrack(false);
+      
+      amb.play();
+      setIsPreviewingAmbient(true);
+    }
+  }, [selectedAmbient, isInitialized]);
+
+  const testSoundtrack = useCallback(() => {
+    if (!isInitialized) return;
+    const st = soundtrackInstances.current[selectedSoundtrack];
+    if (!st) return;
+
+    if (st.playing()) {
+      st.stop();
+      setIsPreviewingSoundtrack(false);
+    } else {
+      // Stop all others first
+      Object.values(ambientInstances.current).forEach(h => h.stop());
+      Object.values(soundtrackInstances.current).forEach(h => h.stop());
+      setIsPreviewingAmbient(false);
+
+      st.play();
+      setIsPreviewingSoundtrack(true);
+    }
+  }, [selectedSoundtrack, isInitialized]);
+
     if (!isInitialized) return;
 
     if (isPlaying) {
@@ -397,6 +437,10 @@ export function useAudioSettings() {
     playFinish, 
     playTick,
     testSound,
+    testAmbient,
+    testSoundtrack,
+    isPreviewingAmbient,
+    isPreviewingSoundtrack,
     controlBackgroundAudio
   };
 }

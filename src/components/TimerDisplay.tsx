@@ -42,6 +42,20 @@ import { useTimerUI } from "@/hooks/useTimerUI";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetDescription,
+  SheetTrigger
+} from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Music, Settings2 } from "lucide-react";
+import { ambientSounds, soundtracks } from "@/hooks/useAudioSettings";
 
 
 interface TimerDisplayProps {
@@ -74,7 +88,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { tasks, addTask } = useTasks();
   const { presetTasks } = usePresetTasks();
   const { isUIVisible, showUI } = useTimerUI();
-  const { playFinish, playTick, controlBackgroundAudio } = useAudioSettings();
+  const { 
+    playFinish, playTick, controlBackgroundAudio,
+    isAmbientEnabled, setAmbientEnabled, selectedAmbient, setSelectedAmbient, ambientVolume, setAmbientVolume,
+    isSoundtrackEnabled, setSoundtrackEnabled, selectedSoundtrack, setSelectedSoundtrack, soundtrackVolume, setSoundtrackVolume
+  } = useAudioSettings();
   const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
@@ -709,6 +727,117 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
           </CircularProgress>
           )}
+        </div>
+
+        {/* Live Soundscape Controls */}
+        <div className={cn(
+          "fixed bottom-8 right-8 z-50 transition-all duration-300",
+          !isUIVisible && "opacity-0 pointer-events-none translate-y-4"
+        )}>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-12 w-12 rounded-full bg-background/50 backdrop-blur-md border-primary/20 shadow-lg hover:scale-110 transition-transform"
+              >
+                <Music className="h-6 w-6 text-primary" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] border-l-primary/10 bg-background/95 backdrop-blur-xl">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2 font-headline text-2xl">
+                  <Settings2 className="h-6 w-6 text-primary" />
+                  Live Soundscape
+                </SheetTitle>
+                <SheetDescription>
+                  Adjust your focus environment in real-time.
+                </SheetDescription>
+              </SheetHeader>
+              
+              <div className="mt-8 space-y-8">
+                {/* Ambient Noise */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="live-ambient-switch" className="text-lg font-medium flex items-center gap-2">
+                      <Cloud className="h-5 w-5 text-primary" />
+                      Ambient Noise
+                    </Label>
+                    <Switch
+                      id="live-ambient-switch"
+                      checked={isAmbientEnabled}
+                      onCheckedChange={setAmbientEnabled}
+                    />
+                  </div>
+                  {isAmbientEnabled && (
+                    <div className="space-y-6 pl-4 border-l-2 border-primary/20 py-2">
+                      <div className="space-y-3">
+                        <Label className="text-xs uppercase tracking-widest opacity-60">Soundscape</Label>
+                        <RadioGroup value={selectedAmbient} onValueChange={setSelectedAmbient} className="grid grid-cols-2 gap-2">
+                          {ambientSounds.map((sound) => (
+                            <Label key={sound.name} htmlFor={`live-amb-${sound.name}`} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
+                              <RadioGroupItem value={sound.name} id={`live-amb-${sound.name}`}/>
+                              {sound.name}
+                            </Label>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-xs uppercase tracking-widest opacity-60">Volume</Label>
+                        <Slider
+                          value={ambientVolume}
+                          onValueChange={setAmbientVolume}
+                          max={1}
+                          step={0.1}
+                          className="py-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Soundtrack */}
+                <div className="space-y-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="live-soundtrack-switch" className="text-lg font-medium flex items-center gap-2">
+                      <Volume2 className="h-5 w-5 text-primary" />
+                      Focus Soundtrack
+                    </Label>
+                    <Switch
+                      id="live-soundtrack-switch"
+                      checked={isSoundtrackEnabled}
+                      onCheckedChange={setSoundtrackEnabled}
+                    />
+                  </div>
+                  {isSoundtrackEnabled && (
+                    <div className="space-y-6 pl-4 border-l-2 border-primary/20 py-2">
+                      <div className="space-y-3">
+                        <Label className="text-xs uppercase tracking-widest opacity-60">Track</Label>
+                        <RadioGroup value={selectedSoundtrack} onValueChange={setSelectedSoundtrack} className="grid grid-cols-1 gap-2">
+                          {soundtracks.map((sound) => (
+                            <Label key={sound.name} htmlFor={`live-st-${sound.name}`} className="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent data-[state=checked]:border-primary text-xs">
+                              <RadioGroupItem value={sound.name} id={`live-st-${sound.name}`}/>
+                              {sound.name}
+                            </Label>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-xs uppercase tracking-widest opacity-60">Volume</Label>
+                        <Slider
+                          value={soundtrackVolume}
+                          onValueChange={setSoundtrackVolume}
+                          max={1}
+                          step={0.1}
+                          className="py-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
