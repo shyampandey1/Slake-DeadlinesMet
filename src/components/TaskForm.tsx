@@ -28,6 +28,7 @@ import { useRoutineStore } from "@/hooks/useRoutineStore";
 import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask, Preset } from "@/types";
 import { cn } from "@/lib/utils";
+import { categoryConfig } from "@/lib/routines";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
