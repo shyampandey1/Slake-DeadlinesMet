@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy, Volume2 } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
 import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
@@ -145,13 +145,19 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Monitor Co-op Partner Session
   useEffect(() => {
-    if (!profileData?.coWorkerId) return;
-    const unsub = onSnapshot(doc(db, "users", profileData.coWorkerId), (snap) => {
-      if (snap.exists()) {
-        setPeerData(snap.data() as UserProfile);
-      }
-    });
-    return () => unsub();
+    if (!profileData?.coWorkerId || !db) return;
+    try {
+        const unsub = onSnapshot(doc(db, "users", profileData.coWorkerId), (snap) => {
+          if (snap.exists()) {
+            setPeerData(snap.data() as UserProfile);
+          }
+        }, (error) => {
+            console.error("Failed to sync coworker presence:", error);
+        });
+        return () => unsub();
+    } catch (e) {
+        console.warn("Could not establish coworker presence listener", e);
+    }
   }, [profileData?.coWorkerId]);
 
   // Real-time League Status Ping & Active Session Sync
@@ -224,7 +230,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     };
 
     if (isScheduled) {
-      if (offlineNotificationsEnabled && 'showTrigger' in Notification.prototype) {
+      const isTriggerSupported = typeof window !== 'undefined' && 'Notification' in window && 'showTrigger' in Notification.prototype;
+      if (offlineNotificationsEnabled && isTriggerSupported && typeof TimestampTrigger !== 'undefined') {
         const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
         // @ts-ignore
         notificationOptions.showTrigger = new TimestampTrigger(triggerTime);
@@ -330,39 +337,47 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         // WAIT until the global context is initialized from localStorage before deciding
         if (!isInitialized) return;
 
-        // Reset state when task params change
-        if (hasInitializedRef.current && (activeTimer?.taskName === taskName)) return;
+        try {
+            // Reset state when task params change
+            if (hasInitializedRef.current && (activeTimer?.taskName === taskName)) {
+                setSyncComplete(true);
+                return;
+            }
 
-        setFlashState('none');
-        setTaskCategory(category);
-        
-        // START our persistent global background timer when the page mounts!
-        // But ONLY if one isn't already running for this task or if the task changed
-        if (!activeTimer || activeTimer.taskName !== taskName) {
-          startTimer({
-            taskName,
-            initialDuration,
-            category,
-            color,
-            expectedEndTime,
-            coOpSessionId
-          });
-          setTimeRemaining(initialDuration * 60);
-          setIsPaused(false);
-          showCompletionNotification(true); // Schedule it!
-        } else {
-          // RESTORE from active timer
-          setIsPaused(activeTimer.isPaused);
-          if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused) {
-            setTimeRemaining(activeTimer.timeLeftWhenPaused);
-          } else {
-            const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
-            setTimeRemaining(diff);
-            if (!activeTimer.isPaused) showCompletionNotification(true); // Re-schedule it!
-          }
+            setFlashState('none');
+            setTaskCategory(category);
+            
+            // START our persistent global background timer when the page mounts!
+            // But ONLY if one isn't already running for this task or if the task changed
+            if (!activeTimer || activeTimer.taskName !== taskName) {
+              startTimer({
+                taskName,
+                initialDuration,
+                category,
+                color,
+                expectedEndTime,
+                coOpSessionId
+              });
+              setTimeRemaining(initialDuration * 60);
+              setIsPaused(false);
+              showCompletionNotification(true); // Schedule it!
+            } else {
+              // RESTORE from active timer
+              setIsPaused(activeTimer.isPaused);
+              if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
+                setTimeRemaining(activeTimer.timeLeftWhenPaused);
+              } else if (activeTimer.expectedEndTime) {
+                const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
+                setTimeRemaining(diff);
+                if (!activeTimer.isPaused) showCompletionNotification(true); // Re-schedule it!
+              }
+            }
+            hasInitializedRef.current = true;
+            setSyncComplete(true);
+        } catch (e) {
+            console.error("Timer initialization failed:", e);
+            setSyncComplete(true); // Allow UI to show even if recovery happened
         }
-        hasInitializedRef.current = true;
-        setSyncComplete(true);
     }, [taskName, initialDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId]); // Removed activeTimer from deps to prevent re-init loop
 
     // CO-OP SYNC ENGINE
@@ -552,12 +567,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       duration: actualDuration,
       initialDuration: initialDuration,
       completed: finalCompleted,
-      category: finalCategory,
+      category: finalCategory || "Work & Focus",
       earnedCoins: earnedCoins,
       isFalseEntry: isFalse,
     };
 
-    await addTask(newTask);
+    try {
+        await addTask(newTask);
+    } catch (e) {
+        console.error("Failed to save task to history:", e);
+    }
 
     if (finalCompleted) {
       setIsLoadingAI(true);
@@ -635,7 +654,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
 
   const CoOpDisplay = () => {
-    return null;
+    if (!peerData) return null;
+    return null; // For now, hidden but kept for logic
   };
 
   return (
@@ -731,7 +751,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
         {/* Live Soundscape Controls */}
         <div className={cn(
-          "fixed bottom-8 right-8 z-50 transition-all duration-300",
+          "fixed bottom-24 right-8 z-50 transition-all duration-300",
           !isUIVisible && "opacity-0 pointer-events-none translate-y-4"
         )}>
           <Sheet>

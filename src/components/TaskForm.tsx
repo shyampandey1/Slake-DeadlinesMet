@@ -185,7 +185,18 @@ export default function TaskForm() {
     const sortedCategoryNames = Object.keys(newPresetTasks).sort((a, b) => {
       if (a === "Today's Events") return -1;
       if (b === "Today's Events") return 1;
-      return (categoryTimeRanges[a]?.start.getTime() || 0) - (categoryTimeRanges[b]?.start.getTime() || 0);
+      
+      const timeA = categoryTimeRanges[a]?.start.getTime() || 0;
+      const timeB = categoryTimeRanges[b]?.start.getTime() || 0;
+      
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      
+      // Secondary sort by order if times are equal or both 0
+      const orderA = categoryConfig[a]?.order ?? 99;
+      const orderB = categoryConfig[b]?.order ?? 99;
+      return orderA - orderB;
     });
 
     const sortedPreset: Preset = {};
@@ -397,13 +408,17 @@ export default function TaskForm() {
             <div className="flex gap-2">
               <Button 
                 onClick={async () => {
-                  await joinSession(incomingSession.id);
-                  const params = new URLSearchParams({
-                    task: incomingSession.taskName,
-                    duration: incomingSession.initialDuration.toString(),
-                    coOpSessionId: incomingSession.id
-                  });
-                  window.location.href = `/timer?${params.toString()}`;
+                  try {
+                    await joinSession(incomingSession.id);
+                    const params = new URLSearchParams({
+                      task: incomingSession.taskName,
+                      duration: incomingSession.initialDuration.toString(),
+                      coOpSessionId: incomingSession.id
+                    });
+                    router.push(`/timer?${params.toString()}`);
+                  } catch (e) {
+                    console.error("Failed to join session:", e);
+                  }
                 }}
                 className="flex-1 bg-black text-[#10b981] hover:bg-black/80 font-black h-10"
               >

@@ -52,11 +52,30 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const saveTimer = (timer: ActiveTimer | null) => {
         setActiveTimer(timer);
         if (timer) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(timer));
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(timer));
+            } catch (e) {
+                console.warn("Failed to save timer to localStorage", e);
+            }
         } else {
             localStorage.removeItem(STORAGE_KEY);
         }
     };
+
+    // Auto-persist changes to localStorage
+    useEffect(() => {
+        if (isInitialized) {
+            if (activeTimer) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(activeTimer));
+                } catch (e) {
+                    console.warn("Failed to sync timer to localStorage", e);
+                }
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        }
+    }, [activeTimer, isInitialized]);
 
     const startTimer = useCallback((timerData: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string }) => {
         const expectedEndTime = timerData.expectedEndTime || Date.now() + (timerData.initialDuration * 60 * 1000);
@@ -84,7 +103,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 updated.expectedEndTime = Date.now() + (remaining * 1000);
             }
 
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
             return updated;
         });
     }, []);

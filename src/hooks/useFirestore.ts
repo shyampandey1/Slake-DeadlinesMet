@@ -66,87 +66,116 @@ export function useTasks() {
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const userTasks: Task[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const createdAt = (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString();
-        userTasks.push({ id: doc.id, ...data, createdAt } as Task);
-      });
-      setTasks(userTasks);
-
-      // --- LOGBOOK STREAK SYNC ---
-      const activeDates = new Set<string>();
-      let totalTasks = 0;
-      let totalWaterGlasses = 0;
-      userTasks.filter(t => t.completed).forEach(t => {
-          if (t.createdAt) activeDates.add(new Date(t.createdAt).toISOString().split('T')[0]);
-          totalTasks++;
-          if (t.name.toLowerCase().includes('water')) {
-              totalWaterGlasses++;
-          }
-      });
-      const dates = Array.from(activeDates).sort((a,b) => b.localeCompare(a));
-      let currentStreak = 0;
-      let highestStreak = 0;
-      
-      const today = new Date().toISOString().split('T')[0];
-      const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      
-      if (dates.length > 0) {
-          highestStreak = 1;
-          let tempStreak = 1;
-          for (let i = 0; i < dates.length - 1; i++) {
-              const diffTime = new Date(dates[i]).getTime() - new Date(dates[i+1]).getTime();
-              if (Math.abs(diffTime - 86400000) < 3600000) { // accounting for DST
-                  tempStreak++;
-                  if (tempStreak > highestStreak) highestStreak = tempStreak;
-              } else {
-                  tempStreak = 1;
+      try {
+          const userTasks: Task[] = [];
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            let createdAt = new Date().toISOString();
+            if (data.createdAt) {
+                if (typeof data.createdAt.toDate === 'function') {
+                    createdAt = data.createdAt.toDate().toISOString();
+                } else if (typeof data.createdAt === 'string') {
+                    createdAt = data.createdAt;
+                } else if (data.createdAt instanceof Date) {
+                    createdAt = data.createdAt.toISOString();
+                }
+            }
+            userTasks.push({ id: doc.id, ...data, createdAt } as Task);
+          });
+          setTasks(userTasks);
+    
+          // --- LOGBOOK STREAK SYNC ---
+          const activeDates = new Set<string>();
+          let totalTasks = 0;
+          let totalWaterGlasses = 0;
+          userTasks.filter(t => t.completed).forEach(t => {
+              if (t.createdAt) {
+                  try {
+                    activeDates.add(new Date(t.createdAt).toISOString().split('T')[0]);
+                  } catch(e) {}
+              }
+              totalTasks++;
+              if (t.name?.toLowerCase().includes('water')) {
+                  totalWaterGlasses++;
+              }
+          });
+          const dates = Array.from(activeDates).sort((a,b) => b.localeCompare(a));
+          let currentStreak = 0;
+          let highestStreak = 0;
+          
+          const today = new Date().toISOString().split('T')[0];
+          const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+          
+          if (dates.length > 0) {
+              highestStreak = 1;
+              let tempStreak = 1;
+              for (let i = 0; i < dates.length - 1; i++) {
+                  const d1 = new Date(dates[i]).getTime();
+                  const d2 = new Date(dates[i+1]).getTime();
+                  if (!isNaN(d1) && !isNaN(d2)) {
+                      const diffTime = d1 - d2;
+                      if (Math.abs(diffTime - 86400000) < 3600000) { // accounting for DST
+                          tempStreak++;
+                          if (tempStreak > highestStreak) highestStreak = tempStreak;
+                      } else {
+                          tempStreak = 1;
+                      }
+                  }
               }
           }
-      }
-      
-      if (dates.includes(today) || dates.includes(yesterdayStr)) {
-          let checkDate = new Date(dates[0]);
-          while (true) {
-             const c = checkDate.toISOString().split('T')[0];
-             if (activeDates.has(c)) {
-                 currentStreak++;
-                 checkDate = new Date(checkDate.getTime() - 86400000);
-             } else {
-                 break;
-             }
+          
+          if (dates.includes(today) || dates.includes(yesterdayStr)) {
+              if (dates.length > 0) {
+                  let checkDate = new Date(dates[0]);
+                  while (!isNaN(checkDate.getTime())) {
+                     const c = checkDate.toISOString().split('T')[0];
+                     if (activeDates.has(c)) {
+                         currentStreak++;
+                         checkDate = new Date(checkDate.getTime() - 86400000);
+                     } else {
+                         break;
+                     }
+                  }
+              }
           }
-      }
-
-      let appAge = 0;
-      if (userTasks.length > 0) {
-          const oldestTaskDate = new Date(userTasks[userTasks.length - 1].createdAt).getTime();
-          appAge = Math.floor((new Date().getTime() - oldestTaskDate) / 86400000);
-      }
-
-      // Update native profile silently if out of sync
-      const pStreak = profileDataRef.current?.streak;
-      if (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profileDataRef.current as any)?.totalTasks !== totalTasks || (profileDataRef.current as any)?.totalWaterGlasses !== totalWaterGlasses || (profileDataRef.current as any)?.appAge !== appAge) {
-         updateUserProfileData({ 
-            streak: { 
-               ...pStreak, 
-               currentStreak, 
-               highestStreak, 
-               lastActiveDate: today, 
-               dailyHistory: pStreak?.dailyHistory || [] 
-            },
-            totalTasks,
-            totalWaterGlasses,
-            appAge
-         } as any);
-      }
-      // --- END STREAK SYNC ---
-
-       try {
-        localStorage.setItem(cacheKey, JSON.stringify(userTasks));
-      } catch (error) {
-        console.warn("Couldn't access localStorage for tasks");
+    
+          let appAge = 0;
+          if (userTasks.length > 0) {
+              const lastTask = userTasks[userTasks.length - 1];
+              if (lastTask && lastTask.createdAt) {
+                  const oldestTaskDate = new Date(lastTask.createdAt).getTime();
+                  if (!isNaN(oldestTaskDate)) {
+                      appAge = Math.floor((new Date().getTime() - oldestTaskDate) / 86400000);
+                  }
+              }
+          }
+    
+          // Update native profile silently if out of sync
+          const profile = profileDataRef.current;
+          const pStreak = profile?.streak;
+          if (profile && (pStreak?.currentStreak !== currentStreak || pStreak?.highestStreak !== highestStreak || (profile as any)?.totalTasks !== totalTasks || (profile as any)?.totalWaterGlasses !== totalWaterGlasses || (profile as any)?.appAge !== appAge)) {
+             updateUserProfileData({ 
+                streak: { 
+                   ...(pStreak || {}), 
+                   currentStreak, 
+                   highestStreak, 
+                   lastActiveDate: today, 
+                   dailyHistory: pStreak?.dailyHistory || [] 
+                },
+                totalTasks,
+                totalWaterGlasses,
+                appAge
+             } as any);
+          }
+          // --- END STREAK SYNC ---
+    
+           try {
+            localStorage.setItem(cacheKey, JSON.stringify(userTasks));
+          } catch (error) {
+            console.warn("Couldn't access localStorage for tasks");
+          }
+      } catch (err) {
+          console.error("Critical error in onSnapshot processing:", err);
       }
       setLoading(false);
     }, (error) => {
@@ -718,12 +747,39 @@ export function usePresetTasks() {
         'Morning Recovery': { start: 7, end: 12 },
         'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
         'Evening & Bedtime Reset': { start: 18, end: 24 },
+        // Protocol & Missing Categories
+        'Morning Protocol': { start: 8, end: 9 },
+        'MOVERS Protocol': { start: 8, end: 9 },
+        'Late Hustle': { start: 20, end: 22 },
+        'Entertainment & Gaming': { start: 21, end: 23 },
+        'Evening Protocol': { start: 22.5, end: 23.5 },
     };
     
     Object.keys(presetTasks).forEach(category => {
         const categoryLookup = category as keyof typeof timeBlocks;
-        if (timeBlocks[categoryLookup]) {
-            const block = timeBlocks[categoryLookup];
+        let block = timeBlocks[categoryLookup];
+
+        // Fallback for categories not in timeBlocks
+        if (!block) {
+            const config = categoryConfig[category];
+            if (config) {
+                let hour = 12;
+                if (config.order === 1) hour = 7;
+                else if (config.order === 2) hour = 9;
+                else if (config.order === 3) hour = 13;
+                else if (config.order === 4) hour = 16;
+                else if (config.order === 5) hour = 19;
+                else if (config.order >= 6 && config.order < 90) hour = 21;
+                else if (config.order >= 90) hour = 23;
+                
+                block = { start: hour, end: hour + 1 };
+            } else {
+                // Absolute fallback
+                block = { start: 12, end: 13 };
+            }
+        }
+
+        if (block) {
             const startHour = Math.floor(block.start);
             const startMin = Math.round((block.start % 1) * 60);
             const endHour = Math.floor(block.end);

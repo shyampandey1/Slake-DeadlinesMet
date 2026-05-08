@@ -48,7 +48,7 @@ export default function NotificationScheduler() {
               tag: `event-${event.id}`,
               timestamp: eventDate.getTime(),
               // @ts-ignore
-              showTrigger: new TimestampTrigger(eventDate.getTime()),
+              showTrigger: (typeof TimestampTrigger !== 'undefined') ? new TimestampTrigger(eventDate.getTime()) : null,
               data: {
                  url: "/calendar",
                  type: "CALENDAR",

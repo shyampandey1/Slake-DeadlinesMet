@@ -27,13 +27,31 @@ export default function ErrorBoundary({
         <p className="text-white/60 mb-8 max-w-sm">
             We encountered a temporary sync issue. Don't worry, your data is safe!
         </p>
-        <div className="flex gap-4">
-            <Button variant="outline" onClick={() => router.push('/')}>
-                Back to Dashboard
-            </Button>
-            <Button onClick={() => window.location.reload()}>
-                Try again
-            </Button>
+        <div className="bg-zinc-900/50 p-4 rounded-lg mb-8 text-left max-w-md w-full overflow-hidden">
+          <p className="text-xs font-code text-rose-400 break-all mb-2">
+            Error: {error.message || "Unknown error"}
+          </p>
+          {error.digest && (
+            <p className="text-[10px] font-code text-zinc-500">
+              Digest: {error.digest}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 w-full max-w-[200px]">
+          <Button
+            onClick={() => reset()}
+            className="w-full bg-primary hover:bg-primary/90 text-white font-bold"
+          >
+            Try Again
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.location.href = "/"}
+            className="w-full border-white/10 hover:bg-white/5 text-zinc-400"
+          >
+            Back to Dashboard
+          </Button>
         </div>
     </div>
   );

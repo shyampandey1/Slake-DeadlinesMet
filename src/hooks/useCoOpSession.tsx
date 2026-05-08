@@ -36,6 +36,9 @@ export const useCoOpSession = (sessionId?: string) => {
                 setSession(null);
             }
             setLoading(false);
+        }, (error) => {
+            console.error("Co-op session sync failed:", error);
+            setLoading(false);
         });
 
         return () => unsub();
@@ -43,11 +46,15 @@ export const useCoOpSession = (sessionId?: string) => {
 
     const updateSession = useCallback(async (updates: Partial<CoOpSession>) => {
         if (!sessionId || !user) return;
-        await updateDoc(doc(db, "coop_sessions", sessionId), {
-            ...updates,
-            lastActionBy: user.uid,
-            lastActionAt: serverTimestamp()
-        });
+        try {
+            await updateDoc(doc(db, "coop_sessions", sessionId), {
+                ...updates,
+                lastActionBy: user.uid,
+                lastActionAt: serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Failed to update Co-op session:", error);
+        }
     }, [sessionId, user]);
 
     const createSession = useCallback(async (data: Omit<CoOpSession, 'id' | 'lastActionBy' | 'lastActionAt' | 'startTime' | 'expectedEndTime' | 'isPaused' | 'timeLeftWhenPaused' | 'status'>) => {
@@ -63,21 +70,31 @@ export const useCoOpSession = (sessionId?: string) => {
             lastActionBy: user.uid,
             lastActionAt: serverTimestamp()
         };
-        await setDoc(doc(db, "coop_sessions", id), newSession);
-        return id;
+        try {
+            await setDoc(doc(db, "coop_sessions", id), newSession);
+            return id;
+        } catch (error) {
+            console.error("Failed to create Co-op session:", error);
+            return null;
+        }
     }, [user]);
 
     const joinSession = useCallback(async (id: string) => {
-        if (!user) return;
-        const sessionRef = doc(db, "coop_sessions", id);
-        const snap = await getDoc(sessionRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            if (!data.participants.includes(user.uid)) {
-                await updateDoc(sessionRef, {
-                    participants: [...data.participants, user.uid]
-                });
+        if (!user || !id) return;
+        try {
+            const sessionRef = doc(db, "coop_sessions", id);
+            const snap = await getDoc(sessionRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                if (!data.participants.includes(user.uid)) {
+                    await updateDoc(sessionRef, {
+                        participants: [...data.participants, user.uid]
+                    });
+                }
             }
+        } catch (error) {
+            console.error("Failed to join Co-op session:", error);
+            throw error; // Rethrow to let UI handle it
         }
     }, [user]);
 

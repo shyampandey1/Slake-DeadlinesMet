@@ -487,8 +487,8 @@ export const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines.
 
 export const categoryConfig: { [key: string]: { color: string, order: number } } = {
     // MOVERS Protocol
-    'MOVERS Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 0 },
-    'Morning Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 0 },
+    'MOVERS Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 2 },
+    'Morning Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 2 },
     'Evening Protocol': { color: 'bg-indigo-950 text-indigo-100 border-indigo-500/50', order: 98 },
     
     // Creative Professional
