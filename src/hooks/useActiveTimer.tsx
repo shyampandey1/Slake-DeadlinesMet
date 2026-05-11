@@ -40,16 +40,17 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     // Initial load from storage (as fallback/immediate load)
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
+        if (stored && stored !== 'undefined' && stored !== 'null') {
             try {
                 const parsed = JSON.parse(stored);
-                if (parsed.isPaused || parsed.expectedEndTime > Date.now()) {
+                if (parsed && (parsed.isPaused || parsed.expectedEndTime > Date.now())) {
                     setActiveTimer(parsed);
                 } else {
                     localStorage.removeItem(STORAGE_KEY);
                 }
             } catch (e) {
                 console.error("Failed to parse stored timer", e);
+                localStorage.removeItem(STORAGE_KEY);
             }
         }
         setIsInitialized(true);
@@ -86,15 +87,17 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                 activeTimer.isPaused !== session.isPaused;
 
             if (isDifferent) {
+                const now = Date.now();
+                const expectedEndTime = session.expectedEndTime || now;
                 const newTimer: ActiveTimer = {
-                    taskName: session.taskName,
-                    expectedEndTime: session.expectedEndTime,
-                    initialDuration: session.duration,
+                    taskName: session.taskName || 'Untitled Task',
+                    expectedEndTime: expectedEndTime,
+                    initialDuration: session.duration || 25,
                     category: session.category,
                     color: session.color,
-                    isPaused: session.isPaused,
+                    isPaused: !!session.isPaused,
                     coOpSessionId: session.coOpSessionId,
-                    timeLeftWhenPaused: session.isPaused ? (session.expectedEndTime - Date.now()) / 1000 : undefined
+                    timeLeftWhenPaused: session.isPaused ? Math.max(0, (expectedEndTime - now) / 1000) : undefined
                 };
                 
                 setActiveTimer(newTimer);

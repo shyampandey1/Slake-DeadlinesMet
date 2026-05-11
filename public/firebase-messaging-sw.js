@@ -44,16 +44,28 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // 1. Try to find an existing window and focus it
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
+      console.log('[firebase-messaging-sw.js] Found windows:', windowClients.length);
+      
+      // 1. Try to find an existing window with the exact URL
+      for (const client of windowClients) {
         if (client.url === targetUrl && 'focus' in client) {
+          console.log('[firebase-messaging-sw.js] Found exact match, focusing...');
           return client.focus();
         }
       }
+
+      // 2. If no exact match, try to find any window on the same origin
+      for (const client of windowClients) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client && 'navigate' in client) {
+          console.log('[firebase-messaging-sw.js] Found origin match, navigating and focusing...');
+          client.focus();
+          return client.navigate(targetUrl);
+        }
+      }
       
-      // 2. If not found, open new window
+      // 3. If not found, open new window
       if (clients.openWindow) {
+        console.log('[firebase-messaging-sw.js] Opening new window for:', targetUrl);
         return clients.openWindow(targetUrl);
       }
     })
