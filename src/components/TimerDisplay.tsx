@@ -160,19 +160,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     }
   }, [profileData?.coWorkerId]);
 
-  // Real-time League Status Ping & Active Session Sync
+  // Real-time League Status Ping (Presence)
   useEffect(() => {
      if (profileData?.isReformersEnrolled) {
          updateUserProfileData({ 
             currentTaskStatus: taskName, 
-            isOnline: true,
-            activeSession: {
-               taskName,
-               expectedEndTime: activeTimer?.expectedEndTime || (Date.now() + timeRemaining * 1000),
-               isPaused: isPaused,
-               duration: initialDuration,
-               coOpSessionId: coOpSessionId || activeTimer?.coOpSessionId
-            }
+            isOnline: true
          });
      }
      return () => {
@@ -180,12 +173,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
          if (profileData?.isReformersEnrolled) {
              updateUserProfileData({ 
                 currentTaskStatus: "Reviewing metrics...", 
-                isOnline: false,
-                activeSession: null as any 
+                isOnline: false
              });
          }
      };
-  }, [taskName, profileData?.isReformersEnrolled, updateUserProfileData, isPaused, initialDuration, activeTimer?.expectedEndTime, coOpSessionId, activeTimer?.coOpSessionId]);
+  }, [taskName, profileData?.isReformersEnrolled, updateUserProfileData]);
 
   useEffect(() => {
     const saved = localStorage.getItem('deadlinesmet_offline_notifications');

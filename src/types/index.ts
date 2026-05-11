@@ -161,6 +161,8 @@ export type UserProfile = {
         expectedEndTime: number;
         isPaused: boolean;
         duration: number;
+        category?: string;
+        color?: string;
         coOpSessionId?: string;
     };
     notificationSettings?: {
