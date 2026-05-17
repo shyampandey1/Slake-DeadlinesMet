@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy, Volume2 } from "lucide-react";
+import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy, Volume2, Bell, Clock } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
 import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
@@ -108,6 +108,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
+  const [focusInterval, setFocusInterval] = useState<number | null>(null);
+  const [customIntervalInput, setCustomIntervalInput] = useState<string>("");
   const [taskCategory, setTaskCategory] = useState(category);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [syncComplete, setSyncComplete] = useState(false);
@@ -120,6 +122,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const isFinishedRef = useRef(isFinished);
   const showMotivationalDialogRef = useRef(showMotivationalDialog);
   const lastTickRef = useRef<number | null>(null);
+  const lastIntervalTriggerRef = useRef<number | null>(null);
 
   useEffect(() => {
     timeRemainingRef.current = timeRemaining;
@@ -409,6 +412,21 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
       setTimeRemaining(difference);
 
+      // Task 3: Interval Alerts - wrap checks within steady interval loops
+      if (focusInterval && difference > 0 && expectedEndTimeRef.current) {
+        const elapsedSeconds = initialDuration * 60 - difference;
+        const intervalSeconds = focusInterval * 60;
+        const currentIntervalIndex = Math.floor(elapsedSeconds / intervalSeconds);
+        
+        // Trigger exact once when the interval milestone passes
+        if (currentIntervalIndex > 0 && currentIntervalIndex !== lastIntervalTriggerRef.current && elapsedSeconds >= currentIntervalIndex * intervalSeconds) {
+            lastIntervalTriggerRef.current = currentIntervalIndex;
+            playTick(); // Play a distinct chime
+            setFlashState('three-times');
+            setTimeout(() => setFlashState('none'), 3000);
+        }
+      }
+
       if (difference <= 0) {
         setIsFinished(true);
         setFlashState('none');
@@ -642,7 +660,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
       className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8 transition-colors duration-500 text-foreground bg-background",
+        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-foreground bg-background",
         {
           'animate-flash-breathing': flashState === 'breathing',
           'animate-flash-three-times': flashState === 'three-times',
@@ -747,14 +765,33 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2 font-headline text-2xl">
                   <Settings2 className="h-6 w-6 text-primary" />
-                  Live Soundscape
+                  Live Customization
                 </SheetTitle>
                 <SheetDescription>
-                  Adjust your focus environment in real-time.
+                  Adjust your focus environment and interval alerts in real-time.
                 </SheetDescription>
               </SheetHeader>
               
               <div className="mt-8 space-y-8">
+                {/* Interval Alerts */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-lg font-medium flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-primary" />
+                      Focus Interval Alerts
+                    </Label>
+                  </div>
+                  <div className="space-y-3 pl-4 border-l-2 border-primary/20 py-2">
+                    <Label className="text-xs uppercase tracking-widest opacity-60">Notify me every:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant={focusInterval === null ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(null)}>Off</Button>
+                      <Button variant={focusInterval === 10 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(10)}>10m</Button>
+                      <Button variant={focusInterval === 15 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(15)}>15m</Button>
+                      <Button variant={focusInterval === 30 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(30)}>30m</Button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Ambient Noise */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">

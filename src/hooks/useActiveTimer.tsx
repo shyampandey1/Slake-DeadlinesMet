@@ -2,8 +2,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { useProfile } from './useProfile';
 import { useAuth } from './useAuth';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 interface ActiveTimer {
     taskName: string;
@@ -31,7 +32,6 @@ const STORAGE_KEY = 'deadlinesmet_active_timer';
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
-    const { profileData, updateUserProfileData } = useProfile();
     const { user } = useAuth();
     
     // Use a ref to track the last synced Firestore state to avoid loops
@@ -58,53 +58,61 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
     // Sync from Firestore (for other devices)
     useEffect(() => {
-        if (!profileData?.activeSession) {
-            // If Firestore has no session but we have one, it might mean it was cleared on another device
-            if (activeTimer && isInitialized) {
-                // Wait a bit to ensure it's not just a loading delay
-                const checkClear = setTimeout(() => {
-                    if (!profileData?.activeSession) {
+        if (!user) return;
+
+        const unsubscribe = onSnapshot(doc(db, 'active_sessions', user.uid), (docSnap) => {
+            if (!docSnap.exists()) {
+                // If Firestore has no session but we have one
+                if (activeTimer && isInitialized) {
+                    const checkClear = setTimeout(() => {
                         setActiveTimer(null);
                         localStorage.removeItem(STORAGE_KEY);
-                    }
-                }, 2000);
-                return () => clearTimeout(checkClear);
+                    }, 2000);
+                    return () => clearTimeout(checkClear);
+                }
+                return;
             }
-            return;
-        }
 
-        const session = profileData.activeSession;
-        const sessionString = JSON.stringify(session);
+            const data = docSnap.data();
+            const sessionString = JSON.stringify(data);
 
-        // If this session is different from what we last saw from Firestore
-        if (sessionString !== lastSyncedFirestore.current) {
-            lastSyncedFirestore.current = sessionString;
+            if (sessionString !== lastSyncedFirestore.current) {
+                lastSyncedFirestore.current = sessionString;
 
-            // Only update if it's actually different from our current local state
-            const isDifferent = !activeTimer || 
-                activeTimer.taskName !== session.taskName ||
-                Math.abs(activeTimer.expectedEndTime - session.expectedEndTime) > 2000 || // 2s tolerance
-                activeTimer.isPaused !== session.isPaused;
-
-            if (isDifferent) {
+                // Client-side timers must calculate remaining time dynamically against the synchronized server timestamps
                 const now = Date.now();
-                const expectedEndTime = session.expectedEndTime || now;
+                const startedAt = data.startedAt?.toMillis() || now;
+                const status = data.status || 'running';
+                const durationMillis = data.durationMillis || 25 * 60 * 1000;
+                const pausedAtMillis = data.pausedAtMillis || null;
+                const isPaused = status === 'paused';
+                
+                let expectedEndTime = startedAt + durationMillis;
+                let timeLeftWhenPaused = undefined;
+                
+                if (isPaused && pausedAtMillis) {
+                    timeLeftWhenPaused = Math.max(0, (expectedEndTime - pausedAtMillis) / 1000);
+                    expectedEndTime = now + (timeLeftWhenPaused * 1000); // Shift expected end time if it resumes now
+                }
+
                 const newTimer: ActiveTimer = {
-                    taskName: session.taskName || 'Untitled Task',
+                    taskName: data.currentTaskId || 'Untitled Task',
                     expectedEndTime: expectedEndTime,
-                    initialDuration: session.duration || 25,
-                    category: session.category,
-                    color: session.color,
-                    isPaused: !!session.isPaused,
-                    coOpSessionId: session.coOpSessionId,
-                    timeLeftWhenPaused: session.isPaused ? Math.max(0, (expectedEndTime - now) / 1000) : undefined
+                    initialDuration: Math.round(durationMillis / 60000),
+                    category: data.category,
+                    color: data.color,
+                    isPaused: isPaused,
+                    coOpSessionId: data.coOpSessionId,
+                    timeLeftWhenPaused: timeLeftWhenPaused
                 };
                 
                 setActiveTimer(newTimer);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(newTimer));
             }
-        }
-    }, [profileData?.activeSession, activeTimer, isInitialized]);
+        });
+
+        return () => unsubscribe();
+    }, [user, activeTimer, isInitialized]);
 
     const saveTimer = useCallback((timer: ActiveTimer | null) => {
         setActiveTimer(timer);
@@ -117,25 +125,33 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             
             // Sync to Firestore immediately
             if (user) {
-                updateUserProfileData({
-                    activeSession: {
-                        taskName: timer.taskName,
-                        expectedEndTime: timer.expectedEndTime,
-                        isPaused: timer.isPaused,
-                        duration: timer.initialDuration,
-                        category: timer.category,
-                        color: timer.color,
-                        coOpSessionId: timer.coOpSessionId
-                    }
-                }).catch(console.error);
+                const now = Date.now();
+                const durationMillis = timer.initialDuration * 60 * 1000;
+                // Reverse engineering startedAt from expectedEndTime
+                const startedAtMillis = timer.isPaused 
+                    ? now - (durationMillis - (timer.timeLeftWhenPaused || 0) * 1000)
+                    : timer.expectedEndTime - durationMillis;
+                
+                const payload = {
+                    currentTaskId: timer.taskName,
+                    status: timer.isPaused ? 'paused' : 'running',
+                    startedAt: new Date(startedAtMillis), // Firestore handles JS Dates natively when setting docs
+                    durationMillis: durationMillis,
+                    pausedAtMillis: timer.isPaused ? now : null,
+                    category: timer.category || null,
+                    color: timer.color || null,
+                    coOpSessionId: timer.coOpSessionId || null
+                };
+
+                setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
             }
         } else {
             localStorage.removeItem(STORAGE_KEY);
             if (user) {
-                updateUserProfileData({ activeSession: null as any }).catch(console.error);
+                deleteDoc(doc(db, 'active_sessions', user.uid)).catch(console.error);
             }
         }
-    }, [user, updateUserProfileData]);
+    }, [user]);
 
     // Auto-persist changes to localStorage
     useEffect(() => {
@@ -184,21 +200,28 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             
             // Sync to Firestore
             if (user) {
-                updateUserProfileData({
-                    activeSession: {
-                        taskName: updated.taskName,
-                        expectedEndTime: updated.expectedEndTime,
-                        isPaused: updated.isPaused,
-                        duration: updated.initialDuration,
-                        category: updated.category,
-                        color: updated.color,
-                        coOpSessionId: updated.coOpSessionId
-                    }
-                }).catch(console.error);
+                const now = Date.now();
+                const durationMillis = updated.initialDuration * 60 * 1000;
+                const startedAtMillis = updated.isPaused 
+                    ? now - (durationMillis - (updated.timeLeftWhenPaused || 0) * 1000)
+                    : updated.expectedEndTime - durationMillis;
+                
+                const payload = {
+                    currentTaskId: updated.taskName,
+                    status: updated.isPaused ? 'paused' : 'running',
+                    startedAt: new Date(startedAtMillis),
+                    durationMillis: durationMillis,
+                    pausedAtMillis: updated.isPaused ? now : null,
+                    category: updated.category || null,
+                    color: updated.color || null,
+                    coOpSessionId: updated.coOpSessionId || null
+                };
+
+                setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
             }
             return updated;
         });
-    }, [user, updateUserProfileData]);
+    }, [user]);
 
     return (
         <TimerContext.Provider value={{ activeTimer, isInitialized, startTimer, clearTimer, updateTimer }}>

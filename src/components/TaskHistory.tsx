@@ -6,6 +6,7 @@ import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, 
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
+import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { DateRange } from "react-day-picker";
 import { Pie, PieChart as RechartsPieChart, ResponsiveContainer, Cell, Label as RechartsLabel } from 'recharts';
 import { useProfile } from "@/hooks/useProfile";
@@ -44,6 +45,7 @@ function TaskLogBookContent() {
     const { tasks, loading: tasksLoading } = useTasks();
     const { profile, loading: profileLoading } = useProfile();
     const router = useRouter();
+    const { activeTimer } = useActiveTimer();
     const [filter, setFilter] = useState("today");
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -625,6 +627,44 @@ function TaskLogBookContent() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                    {activeTimer && activeTimer.taskName && (
+                                        <div className="mb-4 p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-4 animate-in fade-in duration-300">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className={cn(
+                                                            "animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75",
+                                                            activeTimer.isPaused && "bg-amber-500"
+                                                        )}></span>
+                                                        <span className={cn(
+                                                            "relative inline-flex rounded-full h-2 w-2 bg-primary",
+                                                            activeTimer.isPaused && "bg-amber-500"
+                                                        )}></span>
+                                                    </span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                                        {activeTimer.isPaused ? "Paused Focus Session" : "Running Focus Session"}
+                                                    </span>
+                                                </div>
+                                                <p className="font-bold text-foreground truncate">{activeTimer.taskName}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Initial duration: {formatDuration(activeTimer.initialDuration)}
+                                                </p>
+                                            </div>
+                                            <div className="flex-shrink-0">
+                                                <Button 
+                                                    size="sm" 
+                                                    onClick={() => {
+                                                        router.push(`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}&color=${activeTimer.color || ''}`);
+                                                    }} 
+                                                    className="h-auto py-1.5 px-3 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-sm transition-all active:scale-95"
+                                                >
+                                                    <Play className="mr-1.5 h-3.5 w-3.5 fill-current" />
+                                                    Resume
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {sortedGroupKeys.length > 0 ? sortedGroupKeys.map((day) => (
                                         <div key={day}>
                                             <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
