@@ -849,7 +849,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       </div>
 
       <AlertDialog open={showExitWarning} onOpenChange={setShowExitWarning}>
-        <AlertDialogContent>
+        <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl">End task early?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -884,7 +884,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       </AlertDialog>
 
       <AlertDialog open={isFinished}>
-        <AlertDialogContent>
+        <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
             <AlertDialogDescription>
@@ -911,7 +911,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       </AlertDialog>
 
       <Dialog open={showMotivationalDialog} onOpenChange={handleMotivationalDialogChange}>
-        <DialogContent onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }} className="sm:max-w-md">
+        <DialogContent 
+          onOpenAutoFocus={(e) => e.preventDefault()} 
+          onCloseAutoFocus={(e) => e.preventDefault()} 
+          onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }} 
+          className="sm:max-w-md"
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
               <PartyPopper className="text-primary" />
