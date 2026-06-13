@@ -199,18 +199,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     notifications.forEach(n => n.close());
   }, []);
 
-  const showStartNotification = useCallback(async () => {
-    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-    
-    const registration = await navigator.serviceWorker.ready;
-    registration.showNotification("Timer Started", {
-      body: `Focusing on: ${taskName}`,
-      icon: "/icon.svg",
-      tag: "timer-start",
-      silent: true
-    });
-  }, [taskName]);
-
   const showCompletionNotification = useCallback(async (isScheduled = false) => {
     if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
 
@@ -231,7 +219,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
     if (isScheduled) {
       const isTriggerSupported = typeof window !== 'undefined' && 'Notification' in window && 'showTrigger' in Notification.prototype;
-      if (offlineNotificationsEnabled && isTriggerSupported && typeof TimestampTrigger !== 'undefined') {
+      if (offlineNotificationsEnabled && isTriggerSupported && typeof (window as any).TimestampTrigger !== 'undefined') {
         const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
         // @ts-ignore
         notificationOptions.showTrigger = new TimestampTrigger(triggerTime);
@@ -261,7 +249,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   useEffect(() => {
     setCurrentDate(new Date());
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
-    showStartNotification();
     if (document.body) document.body.style.overflow = 'hidden';
 
     let wakeLock: any = null;
@@ -328,7 +315,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       }
       document.removeEventListener('visibilitychange', handleVisibilityChangeForWakeLock);
     };
-  }, [showStartNotification]);
+  }, []);
 
     const hasInitializedRef = useRef(false);
 
