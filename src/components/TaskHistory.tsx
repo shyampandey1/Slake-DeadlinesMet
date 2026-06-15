@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, Play, ThumbsUp, X, Calendar as CalendarIcon, Wand2, Loader2, Sparkles, TrendingUp, Lightbulb, Target as TargetIcon } from "lucide-react";
+import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, Play, ThumbsUp, X, Calendar as CalendarIcon, Wand2, Loader2, Sparkles, TrendingUp, Lightbulb, Target as TargetIcon, Dumbbell, BrainCircuit, ShowerHead, Palette, Laptop } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";
 import { useRouter } from "next/navigation";
@@ -39,11 +39,24 @@ function formatDuration(minutes: number): string {
     return `${minutes}m`;
 }
 
+const getCategoryIcon = (category?: string) => {
+    const cat = category || 'Default';
+    switch (cat) {
+        case 'Hydration': return <Droplets className="h-5 w-5 text-blue-400" />;
+        case 'Fitness': return <Dumbbell className="h-5 w-5 text-red-400" />;
+        case 'Meditation': return <BrainCircuit className="h-5 w-5 text-emerald-400" />;
+        case 'Hygiene': return <ShowerHead className="h-5 w-5 text-cyan-400" />;
+        case 'Creativity': return <Palette className="h-5 w-5 text-pink-400" />;
+        case 'Productivity': return <Laptop className="h-5 w-5 text-purple-400" />;
+        default: return <BookText className="h-5 w-5 text-slate-400" />;
+    }
+};
+
 const allCategories = Object.keys(categoryColors);
 
 function TaskLogBookContent() {
     const { tasks, loading: tasksLoading } = useTasks();
-    const { profile, loading: profileLoading } = useProfile();
+    const { profile, profileData, loading: profileLoading } = useProfile();
     const router = useRouter();
     const { activeTimer } = useActiveTimer();
     const [filter, setFilter] = useState("today");
@@ -159,6 +172,30 @@ function TaskLogBookContent() {
         })).sort((a, b) => b.value - a.value);
     }, [filteredTasksByDate, profile]);
 
+    const categoryStats = useMemo(() => {
+        const statsObj: { [key: string]: { duration: number; coins: number; taskCount: number } } = {
+            'Productivity': { duration: 0, coins: 0, taskCount: 0 },
+            'Hydration': { duration: 0, coins: 0, taskCount: 0 },
+            'Fitness': { duration: 0, coins: 0, taskCount: 0 },
+            'Meditation': { duration: 0, coins: 0, taskCount: 0 },
+            'Hygiene': { duration: 0, coins: 0, taskCount: 0 },
+            'Creativity': { duration: 0, coins: 0, taskCount: 0 }
+        };
+        
+        filteredTasksByDate.forEach(task => {
+            const cat = getTaskCategoryDetails(task.name, profile as ProfileType).mainCategory;
+            if (statsObj[cat]) {
+                statsObj[cat].duration += task.duration;
+                statsObj[cat].coins += task.earnedCoins || 0;
+                if (task.completed) {
+                    statsObj[cat].taskCount += 1;
+                }
+            }
+        });
+        
+        return statsObj;
+    }, [filteredTasksByDate, profile]);
+
     const stats = useMemo(() => {
         const sourceTasks = selectedCategory ? filteredTasks : filteredTasksByDate;
         if (loading || sourceTasks.length === 0) {
@@ -260,16 +297,25 @@ function TaskLogBookContent() {
         if (filteredTasksByDate.length === 0) return;
         setInsightsLoading(true);
         try {
-            const result = await getProductivityInsights({
-                tasks: filteredTasksByDate.map(t => ({
-                    name: t.name,
-                    duration: t.duration,
-                    completed: t.completed,
-                    category: getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory,
-                    createdAt: t.createdAt
-                })),
-                profile
+            const response = await fetch('/api/analytics/insights', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tasks: filteredTasksByDate.map(t => ({
+                        name: t.name,
+                        duration: t.duration,
+                        completed: t.completed,
+                        category: getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory,
+                        createdAt: t.createdAt
+                    })),
+                    profile,
+                    streak: profileData?.streak || {}
+                })
             });
+            if (!response.ok) throw new Error('Failed to fetch insights');
+            const result = await response.json();
             setInsights(result);
         } catch (e) {
             console.error("Failed to generate insights:", e);
@@ -332,11 +378,11 @@ function TaskLogBookContent() {
                 <div>
                     <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                        <div className="flex items-center gap-2 w-full">
+                        <div className="flex items-center gap-2 w-full flex-1">
                             <Select value={filter} onValueChange={handleFilterChange}>
-                                <SelectTrigger className="w-full sm:w-[180px]">
+                                <SelectTrigger className="flex-1 sm:w-[180px] bg-card/40 border-white/5 shadow-sm text-foreground">
                                     <SelectValue placeholder="Select a range" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -353,7 +399,7 @@ function TaskLogBookContent() {
                                 <Button
                                     id="date"
                                     variant={"outline"}
-                                    className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+                                    className={cn("flex-1 justify-start text-left font-normal bg-card/40 border-white/5 shadow-sm", !date && "text-muted-foreground")}
                                     onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -376,7 +422,7 @@ function TaskLogBookContent() {
                     </Popover>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full sm:w-auto">
+                            <Button variant="outline" className="w-full sm:w-auto bg-card/40 border-white/5 shadow-sm">
                                 <Download className="mr-2 h-4 w-4" />
                                 Download
                             </Button>
@@ -398,45 +444,45 @@ function TaskLogBookContent() {
             {loading ? renderSkeleton() : (
                 <>
                     <div ref={reportRef}>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Tasks Logged</CardTitle>
-                                    <BookText className="h-4 w-4 text-muted-foreground" />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                                    <CardTitle className="text-xs sm:text-sm font-medium truncate">Tasks Logged</CardTitle>
+                                    <BookText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{stats.totalTasks}</div>
-                                    <p className="text-xs text-muted-foreground">{stats.completedTasks} completed</p>
+                                <CardContent className="p-4 pt-0">
+                                    <div className="text-xl sm:text-2xl font-bold">{stats.totalTasks}</div>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stats.completedTasks} completed</p>
                                 </CardContent>
                             </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                                    <CardTitle className="text-xs sm:text-sm font-medium truncate">Completion Rate</CardTitle>
+                                    <CheckCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{stats.completionRate}%</div>
-                                    <p className="text-xs text-muted-foreground">of all logged tasks</p>
+                                <CardContent className="p-4 pt-0">
+                                    <div className="text-xl sm:text-2xl font-bold">{stats.completionRate}%</div>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">of logged tasks</p>
                                 </CardContent>
                             </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Time Focused</CardTitle>
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                                    <CardTitle className="text-xs sm:text-sm font-medium truncate">Time Focused</CardTitle>
+                                    <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{formatDuration(stats.totalTime)}</div>
-                                    <p className="text-xs text-muted-foreground">across all sessions</p>
+                                <CardContent className="p-4 pt-0">
+                                    <div className="text-xl sm:text-2xl font-bold truncate">{formatDuration(stats.totalTime)}</div>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">all sessions</p>
                                 </CardContent>
                             </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Hydration Goal</CardTitle>
-                                    <Droplets className="h-4 w-4 text-muted-foreground" />
+                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                                    <CardTitle className="text-xs sm:text-sm font-medium truncate">Hydration Goal</CardTitle>
+                                    <Droplets className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{stats.hydrationProgress}%</div>
-                                    <p className="text-xs text-muted-foreground">{stats.glassesDrunk} of {stats.hydrationGoal} glasses</p>
+                                <CardContent className="p-4 pt-0">
+                                    <div className="text-xl sm:text-2xl font-bold">{stats.hydrationProgress}%</div>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stats.glassesDrunk}/{stats.hydrationGoal} glasses</p>
                                 </CardContent>
                             </Card>
                         </div>
@@ -554,56 +600,137 @@ function TaskLogBookContent() {
                             </CardHeader>
                             <CardContent>
                                 {filteredTasksByDate.length > 0 ? (
-                                    <div className="grid md:grid-cols-2 gap-6 items-center">
-                                        <div className="h-64 w-full">
-                                            <ResponsiveContainer>
-                                                <RechartsPieChart>
-                                                    <Pie
-                                                        data={categoryData}
-                                                        dataKey="value"
-                                                        nameKey="name"
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={60}
-                                                        outerRadius={80}
-                                                        labelLine={false}
-                                                        paddingAngle={2}
-                                                    >
-                                                        {categoryData.map((entry, index) => (
-                                                            <Cell
-                                                                key={`cell-${index}`}
-                                                                fill={entry.color}
-                                                                stroke={entry.color}
-                                                                className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                                    <div className="space-y-6">
+                                        <div className="grid md:grid-cols-2 gap-6 items-center">
+                                            <div className="h-64 w-full">
+                                                <ResponsiveContainer>
+                                                    <RechartsPieChart>
+                                                        <Pie
+                                                            data={categoryData}
+                                                            dataKey="value"
+                                                            nameKey="name"
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            innerRadius={60}
+                                                            outerRadius={80}
+                                                            labelLine={false}
+                                                            paddingAngle={2}
+                                                        >
+                                                            {categoryData.map((entry, index) => (
+                                                                <Cell
+                                                                    key={`cell-${index}`}
+                                                                    fill={entry.color}
+                                                                    stroke={entry.color}
+                                                                    className={cn("transition-opacity outline-none", selectedCategory && selectedCategory !== entry.name && "opacity-30")}
+                                                                />
+                                                            ))}
+                                                            <RechartsLabel
+                                                                value={formatDuration(stats.totalTime)}
+                                                                position="center"
+                                                                className="fill-foreground text-2xl font-bold"
                                                             />
-                                                        ))}
-                                                        <RechartsLabel
-                                                            value={formatDuration(stats.totalTime)}
-                                                            position="center"
-                                                            className="fill-foreground text-2xl font-bold"
-                                                        />
-                                                    </Pie>
-                                                </RechartsPieChart>
-                                            </ResponsiveContainer>
+                                                        </Pie>
+                                                    </RechartsPieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                {categoryData.map(cat => (
+                                                    cat.value > 0 && (
+                                                        <button
+                                                            key={cat.name}
+                                                            onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                                                            className={cn(
+                                                                "flex items-center gap-3 p-2 rounded-md transition-colors w-full",
+                                                                selectedCategory === cat.name && 'bg-accent'
+                                                            )}
+                                                        >
+                                                            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                                                            <span className={cn("text-sm text-muted-foreground", selectedCategory === cat.name && "text-accent-foreground")}>{cat.name}</span>
+                                                            <span className={cn("ml-auto text-sm font-semibold text-foreground", selectedCategory === cat.name && "text-accent-foreground")}>{formatDuration(cat.value)}</span>
+                                                        </button>
+                                                    )
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        <div className="flex flex-col gap-2">
-                                            {categoryData.map(cat => (
-                                                cat.value > 0 && (
+                                        <Separator className="bg-white/5" />
+
+                                        {/* TASK 2: Sleek Responsive Glassmorphic Cards Grid */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {Object.keys(categoryStats).map((catName) => {
+                                                const stat = categoryStats[catName];
+                                                const color = categoryColors[catName as keyof typeof categoryColors] || '#64748b';
+                                                const isSelected = selectedCategory === catName;
+                                                
+                                                // Map categories to Lucide icons
+                                                let Icon = Laptop;
+                                                if (catName === 'Hydration') Icon = Droplets;
+                                                else if (catName === 'Fitness') Icon = Dumbbell;
+                                                else if (catName === 'Meditation') Icon = BrainCircuit;
+                                                else if (catName === 'Hygiene') Icon = ShowerHead;
+                                                else if (catName === 'Creativity') Icon = Palette;
+                                                
+                                                return (
                                                     <button
-                                                        key={cat.name}
-                                                        onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+                                                        key={catName}
+                                                        onClick={() => setSelectedCategory(isSelected ? null : catName)}
                                                         className={cn(
-                                                            "flex items-center gap-3 p-2 rounded-md transition-colors w-full",
-                                                            selectedCategory === cat.name && 'bg-accent'
+                                                            "flex flex-col text-left p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group select-none cursor-pointer",
+                                                            isSelected 
+                                                                ? "bg-slate-900/60 border-blue-500/50 shadow-lg shadow-blue-500/5 scale-[1.02]" 
+                                                                : "bg-slate-950/20 hover:bg-slate-900/40 border-white/5 hover:border-white/10 hover:scale-[1.01]"
                                                         )}
+                                                        style={{
+                                                            boxShadow: isSelected ? `0 4px 20px -2px ${color}20` : undefined
+                                                        }}
                                                     >
-                                                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                                                        <span className={cn("text-sm text-muted-foreground", selectedCategory === cat.name && "text-accent-foreground")}>{cat.name}</span>
-                                                        <span className={cn("ml-auto text-sm font-semibold text-foreground", selectedCategory === cat.name && "text-accent-foreground")}>{formatDuration(cat.value)}</span>
+                                                        {/* Gradient glow bg effect */}
+                                                        <div 
+                                                            className="absolute -top-10 -right-10 w-24 h-24 rounded-full opacity-[0.08] blur-xl group-hover:scale-125 transition-transform duration-500"
+                                                            style={{ backgroundColor: color }}
+                                                        />
+                                                        
+                                                        <div className="flex items-center gap-3 mb-4">
+                                                            <div 
+                                                                className="p-2.5 rounded-xl border transition-colors"
+                                                                style={{ 
+                                                                    backgroundColor: `${color}15`, 
+                                                                    borderColor: `${color}30`,
+                                                                    color: color 
+                                                                }}
+                                                            >
+                                                                <Icon className="w-5 h-5" />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-sm tracking-tight text-white/90">{catName}</h4>
+                                                                <p className="text-[10px] text-muted-foreground">{stat.taskCount} completed</p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="mt-auto space-y-2 w-full">
+                                                            <div className="flex justify-between items-baseline">
+                                                                <span className="text-2xl font-black font-headline text-white">{formatDuration(stat.duration)}</span>
+                                                                <span className="text-[10px] font-bold text-amber-500 flex items-center gap-0.5">
+                                                                    🪙 {stat.coins}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            {/* HSL dynamic glow progress bar */}
+                                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className="h-full rounded-full transition-all duration-500"
+                                                                    style={{ 
+                                                                        backgroundColor: color,
+                                                                        width: `${stats.totalTime > 0 ? Math.min(100, Math.round((stat.duration / stats.totalTime) * 100)) : 0}%`,
+                                                                        boxShadow: `0 0 8px ${color}`
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </button>
-                                                )
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ) : (
@@ -670,24 +797,30 @@ function TaskLogBookContent() {
                                             <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
                                             <div className="space-y-3">
                                                 {groupedTasks[day].map((task) => (
-                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-card border">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-semibold block truncate">{task.name}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Time spent: {formatDuration(task.duration)}
-                                                                {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
-                                                                {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
-                                                            </p>
+                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/60 border border-white/5 backdrop-blur-md shadow-sm hover:border-white/10 transition-colors">
+                                                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                                                            {/* Visual Category Icon Container */}
+                                                            <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex-shrink-0 flex items-center justify-center">
+                                                                {getCategoryIcon(task.category)}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 text-left">
+                                                                <p className="font-semibold block truncate text-foreground text-sm sm:text-base">{task.name}</p>
+                                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                                    Time spent: {formatDuration(task.duration)}
+                                                                    {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
+                                                                    {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                         <div className="flex-shrink-0">
                                                             {task.completed ? (
-                                                                <div className="flex items-center gap-1.5 text-green-500">
-                                                                    <ThumbsUp className="h-4 w-4" />
-                                                                    <span className="text-sm font-medium">Done</span>
+                                                                <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full text-xs font-bold">
+                                                                    <ThumbsUp className="h-3.5 w-3.5" />
+                                                                    <span>Done</span>
                                                                 </div>
                                                             ) : (
-                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3">
-                                                                    <Play className="mr-2 h-3 w-3" />
+                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3 rounded-full text-xs shadow-sm">
+                                                                    <Play className="mr-1.5 h-3 w-3 fill-current" />
                                                                     Continue
                                                                 </Button>
                                                             )}

@@ -24,7 +24,7 @@ const CircularProgress = ({ progress, children, isUIVisible }: CircularProgressP
     const dotY = center + normalizedRadius * Math.sin(angleInRadians);
 
     return (
-        <div className="relative w-72 h-72 sm:w-[400px] sm:h-[400px]">
+        <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-[360px] lg:h-[360px]">
             <svg
                 height="100%"
                 width="100%"

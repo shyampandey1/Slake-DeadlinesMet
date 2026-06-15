@@ -7,7 +7,8 @@ import Link from "next/link";
 import { Play, Pause, Square, Loader2, PartyPopper, ArrowRight, Sun, Moon, Cloud, LucideIcon, CloudSun, CloudMoon, CloudDrizzle, CloudRain, CloudLightning, CloudSnow, Wind, CloudFog, Cloudy, Volume2, Bell, Clock } from "lucide-react";
 import { generateMotivationalMessage } from "@/ai/flows/generate-motivational-message";
 import { categorizeTask } from "@/ai/flows/categorize-task";
-import { useTasks, usePresetTasks, getAvailableCategories } from "@/hooks/useFirestore";
+import { useTasks, getAvailableCategories } from "@/hooks/useFirestore";
+import { useRoutineStore } from "@/hooks/useRoutineStore";
 import { useProfile } from "@/hooks/useProfile";
 import type { Task, UserPresetTask, UserProfile } from "@/types";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ import { db } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useCoOpSession } from "@/hooks/useCoOpSession";
 import { useAuth } from "@/hooks/useAuth";
+import { defaultRoutines, categoryConfig } from "@/lib/routines";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +44,14 @@ import { useTimerUI } from "@/hooks/useTimerUI";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
+import { getTaskCategoryDetails } from "@/lib/categorization";
+import { useToast } from "@/hooks/use-toast";
+import { SkipForward } from "lucide-react";
+import { useHydrationAudio } from "@/hooks/useHydrationAudio";
+import { useBreathingAudio } from "@/hooks/useBreathingAudio";
+import { useEyeExerciseAudio } from "@/hooks/useEyeExerciseAudio";
+import HydrationBackground from "./HydrationBackground";
+import GazeTracker from "./GazeTracker";
 import { 
   Sheet, 
   SheetContent, 
@@ -85,8 +95,9 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 
 export default function TimerDisplay({ taskName, initialDuration, category, color, expectedEndTime, coOpSessionId }: TimerDisplayProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const { tasks, addTask } = useTasks();
-  const { presetTasks } = usePresetTasks();
+  const { presetTasks } = useRoutineStore();
   const { isUIVisible, showUI } = useTimerUI();
   const { 
     playFinish, playTick, controlBackgroundAudio,
@@ -115,6 +126,53 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [syncComplete, setSyncComplete] = useState(false);
   const [offlineNotificationsEnabled, setOfflineNotificationsEnabled] = useState(false);
   const [peerData, setPeerData] = useState<UserProfile | null>(null);
+
+  const userRoutine = useMemo(() => {
+    const routine: any[] = [];
+    Object.keys(presetTasks).forEach(cat => {
+      presetTasks[cat].tasks.forEach(t => {
+        routine.push({ ...t, category: cat });
+      });
+    });
+    return routine.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [presetTasks]);
+
+  // Task-Specific Environment Detection
+  const isHydrationTask = taskCategory === "Hydration" || taskName.toLowerCase().includes("water") || taskName.toLowerCase().includes("drink") || taskName.toLowerCase().includes("hydrate");
+  const isBreathingTask = taskCategory === "Meditation" || taskCategory === "Health & Wellness" || taskName.toLowerCase().includes("breathe") || taskName.toLowerCase().includes("meditat") || taskName.toLowerCase().includes("oxygen");
+  const isEyeExerciseTask = taskCategory === "Eye Care" || taskName.toLowerCase().includes("eye") || taskName.toLowerCase().includes("gaze") || taskName.toLowerCase().includes("vision");
+
+  // Audio Hooks
+  const { startHydrationAudio, stopHydrationAudio, setHydrationVolume } = useHydrationAudio();
+  const { initBreathingAudio, playBreathingChime, stopBreathingAudio } = useBreathingAudio();
+  const { initEyeAudio, playEyeChime, stopEyeAudio } = useEyeExerciseAudio();
+
+  // Breathing & Eye Exercise States
+  const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
+  const [eyePhase, setEyePhase] = useState<'look-up' | 'look-down' | 'look-left' | 'look-right' | 'roll' | 'blink' | 'focus-near-far' | 'close-eyes'>('look-up');
+
+  // Haptics Helper
+  const triggerHaptic = useCallback((pattern: number | number[]) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate(pattern);
+      } catch (err) {
+        console.warn("Haptic feedback failed:", err);
+      }
+    }
+  }, []);
+
+  const ensureAudioInitialized = useCallback(() => {
+    if (isHydrationTask && isAmbientEnabled) {
+      startHydrationAudio();
+    }
+    if (isBreathingTask) {
+      initBreathingAudio();
+    }
+    if (isEyeExerciseTask) {
+      initEyeAudio();
+    }
+  }, [isHydrationTask, isBreathingTask, isEyeExerciseTask, isAmbientEnabled, startHydrationAudio, initBreathingAudio, initEyeAudio]);
 
   // Move refs to the top to avoid ReferenceErrors in effects
   const expectedEndTimeRef = useRef<number | null>(null);
@@ -187,6 +245,193 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     setOfflineNotificationsEnabled(saved === 'true');
   }, []);
 
+  const handleSkipTask = useCallback(() => {
+    const currentIndex = userRoutine.findIndex(t => t.name.toLowerCase() === taskName.toLowerCase());
+    const nextTask = currentIndex !== -1 && currentIndex < userRoutine.length - 1 ? userRoutine[currentIndex + 1] : null;
+    
+    clearTimer();
+    setFlashState('none');
+    if (session) {
+      updateSession({ status: "finished" });
+    }
+
+    if (nextTask) {
+      toast({
+        title: "Task Skipped ⏭️",
+        description: `Moving to next task: ${nextTask.name}`,
+      });
+      const params = new URLSearchParams({
+        task: nextTask.name,
+        duration: String(nextTask.duration),
+      });
+      if (nextTask.category) params.set("category", nextTask.category);
+      
+      let colorVal = undefined;
+      if (nextTask.category && presetTasks[nextTask.category]?.color) {
+        const colorClassMatch = presetTasks[nextTask.category].color.match(/bg-[a-z]+-\d+/);
+        if (colorClassMatch && colorClassMatch[0]) {
+          colorVal = colorClassMatch[0];
+        }
+      }
+      if (colorVal) params.set("color", colorVal);
+      
+      router.push(`/timer?${params.toString()}`);
+    } else {
+      toast({
+        title: "No more tasks 🏁",
+        description: "Returning to home screen.",
+      });
+      router.push("/");
+    }
+  }, [taskName, userRoutine, session, updateSession, clearTimer, router, toast, presetTasks]);
+
+  // Sync Hydration Audio with play state and volume settings
+  useEffect(() => {
+    if (syncComplete && isHydrationTask) {
+      if (!isPaused && !isFinished && isAmbientEnabled) {
+        startHydrationAudio();
+        const diff = timeRemainingRef.current;
+        const fadeFactor = Math.min(1.0, diff / 15.0);
+        setHydrationVolume(fadeFactor * ambientVolume[0]);
+      } else {
+        stopHydrationAudio();
+      }
+    }
+    return () => {
+      stopHydrationAudio();
+    };
+  }, [isPaused, isFinished, syncComplete, isHydrationTask, isAmbientEnabled, ambientVolume, startHydrationAudio, stopHydrationAudio, setHydrationVolume]);
+
+  // Sync Breathing Audio & State Machine
+  useEffect(() => {
+    if (syncComplete && isBreathingTask) {
+      if (!isPaused && !isFinished) {
+        initBreathingAudio();
+      } else {
+        stopBreathingAudio();
+      }
+    }
+    return () => {
+      stopBreathingAudio();
+    };
+  }, [isPaused, isFinished, syncComplete, isBreathingTask, initBreathingAudio, stopBreathingAudio]);
+
+  // Breathing Phase Pacer (ticks every 4 seconds)
+  useEffect(() => {
+    if (!isBreathingTask || isPaused || isFinished || timeRemainingRef.current <= 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setBreathingPhase((prev) => {
+        if (prev === 'inhale') return 'hold';
+        if (prev === 'hold') return 'exhale';
+        return 'inhale';
+      });
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isBreathingTask, isPaused, isFinished]);
+
+  // Handle Breathing Audio & Haptics Transitions
+  useEffect(() => {
+    if (!isBreathingTask || isPaused || isFinished) {
+      return;
+    }
+
+    // Play breathing audio chimes
+    playBreathingChime(breathingPhase);
+
+    // Trigger native hardware haptic patterns
+    if (breathingPhase === 'inhale') {
+      triggerHaptic(150); // Single medium pulse (150ms) for inhalation
+    } else if (breathingPhase === 'hold') {
+      triggerHaptic([80, 100, 80]); // Double quick pulse for holding
+    } else if (breathingPhase === 'exhale') {
+      triggerHaptic(350); // Single longer pulse (350ms) for exhalation
+    }
+  }, [isBreathingTask, isPaused, isFinished, breathingPhase, playBreathingChime, triggerHaptic]);
+
+  // Sync Eye Exercise Audio
+  useEffect(() => {
+    if (syncComplete && isEyeExerciseTask) {
+      if (!isPaused && !isFinished) {
+        initEyeAudio();
+      } else {
+        stopEyeAudio();
+      }
+    }
+    return () => {
+      stopEyeAudio();
+    };
+  }, [isPaused, isFinished, syncComplete, isEyeExerciseTask, initEyeAudio, stopEyeAudio]);
+
+  // Eye Exercise Phase Pacer
+  useEffect(() => {
+    if (!isEyeExerciseTask || isPaused || isFinished || timeRemainingRef.current <= 0) {
+      return;
+    }
+
+    const phases: ('look-up' | 'look-down' | 'look-left' | 'look-right' | 'roll' | 'blink' | 'focus-near-far' | 'close-eyes')[] = [
+      'look-up', 'look-down', 'look-left', 'look-right', 'roll', 'blink', 'focus-near-far', 'close-eyes'
+    ];
+
+    const getPhaseDuration = (phase: string) => {
+      return phase === 'close-eyes' ? 12000 : 6000;
+    };
+
+    let timerId: any = null;
+
+    const runPacer = (currentPhase: typeof eyePhase) => {
+      const duration = getPhaseDuration(currentPhase);
+      
+      timerId = setTimeout(() => {
+        setEyePhase((prev) => {
+          const currentIndex = phases.indexOf(prev);
+          const nextIndex = (currentIndex + 1) % phases.length;
+          const nextPhase = phases[nextIndex];
+          runPacer(nextPhase);
+          return nextPhase;
+        });
+      }, duration);
+    };
+
+    runPacer(eyePhase);
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [isEyeExerciseTask, isPaused, isFinished, eyePhase]);
+
+  // Handle Eye Exercise Audio & Haptics Transitions
+  useEffect(() => {
+    if (!isEyeExerciseTask || isPaused || isFinished) {
+      return;
+    }
+
+    // Play synthesized stereo-panned sound cue or drone
+    playEyeChime(eyePhase);
+
+    // Trigger physical haptic guidance patterns
+    if (eyePhase === 'look-up') {
+      triggerHaptic(100); // 1 short pulse
+    } else if (eyePhase === 'look-down') {
+      triggerHaptic([100, 100, 100]); // 3 short pulses
+    } else if (eyePhase === 'look-left') {
+      triggerHaptic(180); // 1 medium pulse
+    } else if (eyePhase === 'look-right') {
+      triggerHaptic([180, 100, 180]); // 2 medium pulses
+    } else if (eyePhase === 'roll') {
+      triggerHaptic(500); // 1 long sweeping vibration
+    } else if (eyePhase === 'blink') {
+      triggerHaptic([50, 50, 50, 50, 50, 50]); // rapid flutter
+    } else if (eyePhase === 'focus-near-far') {
+      triggerHaptic([100, 300, 100]); // alternating focus pulses
+    } else if (eyePhase === 'close-eyes') {
+      triggerHaptic([300, 150, 300]); // double grounding pulse
+    }
+  }, [isEyeExerciseTask, isPaused, isFinished, eyePhase, playEyeChime, triggerHaptic]);
+
   const cancelScheduledNotification = useCallback(async () => {
     if (!('serviceWorker' in navigator)) return;
     const registration = await navigator.serviceWorker.ready;
@@ -217,7 +462,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       if (offlineNotificationsEnabled && isTriggerSupported && typeof (window as any).TimestampTrigger !== 'undefined') {
         const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
         // @ts-ignore
-        notificationOptions.showTrigger = new TimestampTrigger(triggerTime);
+        notificationOptions.showTrigger = new (window as any).TimestampTrigger(triggerTime);
       } else {
         return; // Browser doesn't support background triggers or they are disabled
       }
@@ -229,16 +474,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       console.warn("Failed to show/schedule notification", e);
     }
   }, [taskName, offlineNotificationsEnabled]);
-
-  const userRoutine = useMemo(() => {
-    const routine: any[] = [];
-    Object.keys(presetTasks).forEach(cat => {
-      presetTasks[cat].tasks.forEach(t => {
-        routine.push({ ...t, category: cat });
-      });
-    });
-    return routine.sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [presetTasks]);
 
   // Handle initialization and global side effects once
   useEffect(() => {
@@ -412,6 +647,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
       setTimeRemaining(difference);
 
+      if (isHydrationTask) {
+        const fadeFactor = Math.min(1.0, difference / 15.0);
+        setHydrationVolume(fadeFactor);
+      }
+
       // Task 3: Interval Alerts - wrap checks within steady interval loops
       if (focusInterval && difference > 0 && expectedEndTimeRef.current) {
         const elapsedSeconds = initialDuration * 60 - difference;
@@ -422,6 +662,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         if (currentIntervalIndex > 0 && currentIntervalIndex !== lastIntervalTriggerRef.current && elapsedSeconds >= currentIntervalIndex * intervalSeconds) {
             lastIntervalTriggerRef.current = currentIntervalIndex;
             playTick(); // Play a distinct chime
+            triggerHaptic([100]); // Interval reminder vibration
             setFlashState('three-times');
             setTimeout(() => setFlashState('none'), 3000);
         }
@@ -429,8 +670,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
       if (difference <= 0) {
         setIsFinished(true);
-        setFlashState('none');
+        setFlashState('continuous');
         playFinish();
+        triggerHaptic([300, 100, 300]); // Expiration Burst vibration
         showCompletionNotification(false); // Immediate one
         clearTimer(); // End background tracking
       } else if (difference <= 10 && difference > 0) {
@@ -440,6 +682,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         if (lastTickRef.current !== difference) {
             lastTickRef.current = difference;
             playTick();
+            
+            // Accelerating / Heartbeat haptics in final stretch (stronger tactile pulses)
+            if (difference <= 10) {
+              triggerHaptic([120, 80, 120]);
+            }
         }
       } else if (difference <= 11 && difference > 10) {
         setFlashState('none');
@@ -457,7 +704,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         setTimeRemaining(difference);
         if (difference <= 0) {
           setIsFinished(true);
-          setFlashState('none');
+          setFlashState('continuous');
           playFinish();
           showCompletionNotification(false);
           clearTimer();
@@ -488,10 +735,81 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   const handleStartSuggestedTask = () => {
     if (!suggestedTask) return;
+    
+    // 1. Find the task in the user's routine to get its actual duration and category/color
+    let matchedTask: any = userRoutine.find(
+      (t) => t.name.toLowerCase() === suggestedTask.toLowerCase()
+    );
+
+    let durationVal = "25";
+    let categoryVal = category; // default to current category if any
+    let colorVal = color; // default to current color if any
+
+    // 2. Secondary fallback: Search in all default routines if not found in local userRoutine
+    if (!matchedTask) {
+      for (const profile in defaultRoutines.routines) {
+        const taskList = defaultRoutines.routines[profile as any];
+        const found = taskList.find(
+          (t) => t.name.toLowerCase() === suggestedTask.toLowerCase()
+        );
+        if (found) {
+          matchedTask = found;
+          break;
+        }
+      }
+    }
+
+    if (matchedTask) {
+      durationVal = String(matchedTask.duration);
+      categoryVal = matchedTask.category || category;
+      
+      // Resolve color class from presetTasks if available, else try categoryConfig fallback
+      if (matchedTask.category) {
+        let colorAssigned = false;
+        if (presetTasks[matchedTask.category]) {
+          const categoryData = presetTasks[matchedTask.category];
+          if (categoryData && categoryData.color) {
+            const colorClassMatch = categoryData.color.match(/bg-[a-z]+-\d+/);
+            if (colorClassMatch && colorClassMatch[0]) {
+              colorVal = colorClassMatch[0];
+              colorAssigned = true;
+            }
+          }
+        }
+        if (!colorAssigned && categoryConfig[matchedTask.category]) {
+          const colorClassMatch = categoryConfig[matchedTask.category].color.match(/bg-[a-z]+-\d+/);
+          if (colorClassMatch && colorClassMatch[0]) {
+            colorVal = colorClassMatch[0];
+          }
+        }
+      }
+    } else {
+      // 3. Intelligent fallback for common wellness / hydration tasks
+      const nameLower = suggestedTask.toLowerCase();
+      if (nameLower.includes("glass of water") || nameLower === "drink a glass of water") {
+        durationVal = "1";
+        categoryVal = "Hydration";
+      } else if (nameLower.includes("water") || nameLower.includes("hydration") || nameLower.includes("hydrate") || nameLower.includes("drink")) {
+        durationVal = "5";
+        categoryVal = "Hydration";
+      } else if (nameLower.includes("stretch") || nameLower.includes("breathe") || nameLower.includes("meditat") || nameLower.includes("eye")) {
+        durationVal = "5";
+        categoryVal = "Health & Wellness";
+      }
+    }
+
     const params = new URLSearchParams({
       task: suggestedTask,
-      duration: "25",
+      duration: durationVal,
     });
+    
+    if (categoryVal) {
+      params.set("category", categoryVal);
+    }
+    if (colorVal) {
+      params.set("color", colorVal);
+    }
+
     // Explicitly hide the dialog and ensure no more home redirect happens.
     // By setting this to false here, we prevent handleMotivationalDialogChange 
     // from potentially being called by Radix with the home redirect side effect.
@@ -501,31 +819,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   const handleInteraction = () => {
     showUI();
+    ensureAudioInitialized();
   };
 
   const handleSaveTask = async (completed: boolean) => {
     setIsFinished(false);
     clearTimer();
+    setFlashState('none');
     if (session) {
       updateSession({ status: "finished" });
     }
     const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
-    let finalCategory = taskCategory;
-    if (!finalCategory) {
-      try {
-        const result = await categorizeTask({
-          taskName: taskName,
-          availableCategories: getAvailableCategories(),
-        });
-        finalCategory = result.category;
-        setTaskCategory(result.category);
-      } catch (error) {
-        console.error("Failed to categorize task, using default:", error);
-        finalCategory = "Work & Focus";
-      }
-    }
+    const finalCategory = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
 
     let finalCompleted = completed;
     let earnedCoins = 0;
@@ -538,24 +845,23 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
            finalCompleted = false;
            alert("False Entry Detected: Completion time was unnaturally fast. No rewards added.");
        } else {
-           // Optimum coin addition calculation
-           const durationRatio = (timeSpentInSeconds / 60) / initialDuration;
-           let baseCoins = 50 + (actualDuration * 10);
-           
-           // Optimum Match Bonus (finished between 80% and 120% of planned time)
-           if (durationRatio >= 0.8 && durationRatio <= 1.2) {
-               baseCoins += 100;
+           // Task 3: Granular lifestyle disciplines scoring matrix
+           let baseCoins = 15; // default fallback
+           const catLower = (finalCategory || '').toLowerCase();
+           if (catLower === 'productivity') {
+               baseCoins = 50;
+           } else if (catLower === 'fitness') {
+               baseCoins = 40;
+           } else if (catLower === 'meditation') {
+               baseCoins = 30;
+           } else if (catLower === 'creativity') {
+               baseCoins = 30;
+           } else if (catLower === 'hydration') {
+               baseCoins = 15;
+           } else if (catLower === 'hygiene') {
+               baseCoins = 15;
            }
-           
-           // Hydration/Health multipliers
-           if (taskName.toLowerCase().includes('water')) {
-               baseCoins += 50; 
-           }
-           if (['workout', 'exercise', 'gym'].some(w => taskName.toLowerCase().includes(w))) {
-               baseCoins += 150;
-           }
-           
-           earnedCoins = Math.floor(baseCoins);
+           earnedCoins = baseCoins;
        }
     }
 
@@ -564,10 +870,22 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       duration: actualDuration,
       initialDuration: initialDuration,
       completed: finalCompleted,
-      category: finalCategory || "Work & Focus",
+      category: finalCategory,
       earnedCoins: earnedCoins,
       isFalseEntry: isFalse,
     };
+
+    if (finalCompleted && earnedCoins > 0) {
+       // Optimistic daily coins cache write
+       try {
+           const { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } = require('@/lib/dailyCoins');
+           const todayStr = getLocalDateString();
+           const { amount: cachedAmount } = getCachedDailyCoins();
+           setCachedDailyCoins(cachedAmount + earnedCoins, todayStr);
+       } catch (e) {
+           console.warn("Failed to write daily coins optimistically", e);
+       }
+    }
 
     try {
         await addTask(newTask);
@@ -578,18 +896,31 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     if (finalCompleted) {
       setIsLoadingAI(true);
       setShowMotivationalDialog(true);
+      
+      // In-App Reward dynamic toast
+      toast({
+        title: "Task Conquered! 🎉",
+        description: `+${earnedCoins} Slake Coins Rewarded for this task!`,
+        className: "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-bold rounded-2xl border-none shadow-2xl shadow-orange-500/20",
+      });
+
       // Let's also update profile credits live so it feels immediate
       if (profileData && earnedCoins > 0) {
          updateUserProfileData({ slakeCredits: (profileData.slakeCredits || 0) + earnedCoins });
       }
       try {
         const pastTasks = tasks.slice(0, 5).map(t => ({ taskName: t.name, duration: t.duration, completionStatus: t.completed }));
+        const now = new Date();
+        const localHour = now.getHours() + now.getMinutes() / 60;
         const result = await generateMotivationalMessage({
           taskName: newTask.name,
           duration: newTask.duration,
           completionStatus: true,
           userRoutine: userRoutine,
           pastTasks: pastTasks,
+          currentCategory: newTask.category,
+          localTime: now.toISOString(),
+          localHour: localHour,
         });
         setMotivationalMessage(result.message);
         setSuggestedTask(result.suggestedNextTask);
@@ -655,94 +986,289 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     return null; // For now, hidden but kept for logic
   };
 
+  const isContinuousFlashing = flashState === 'continuous' || (isFinished && timeRemaining <= 0 && !showMotivationalDialog);
+
   return (
     <main
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
-      className={cn(
-        "relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-foreground bg-background",
-        {
-          'animate-flash-breathing': flashState === 'breathing',
-          'animate-flash-three-times': flashState === 'three-times',
-          'animate-flash-continuous': flashState === 'continuous',
-        }
-      )}
+      className="relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-foreground bg-background overflow-hidden"
       style={{
         '--timer-primary-color': timerColor,
-        '--flash-color': 'hsl(0 0% 100% / 0.9)',
+        '--flash-color': isContinuousFlashing 
+          ? 'hsl(0 0% 100% / 0.95)' 
+          : 'hsl(var(--primary) / 0.45)',
       } as React.CSSProperties}
     >
+      {/* Elegant ambient alert vignette / full bright breathing overlay */}
+      <div 
+        className={cn(
+          "absolute inset-0 pointer-events-none transition-opacity duration-1000 ease-in-out opacity-0 z-0",
+          {
+            "animate-flash-continuous": isContinuousFlashing,
+            "animate-flash-three-times": flashState === 'three-times',
+            "animate-flash-breathing": flashState === 'breathing',
+          }
+        )}
+        style={{
+          background: isContinuousFlashing
+            ? "radial-gradient(circle, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.9) 70%, #ffffff 100%)"
+            : "radial-gradient(circle, hsl(var(--background) / 0.15) 0%, var(--flash-color) 70%, var(--flash-color) 100%)",
+        }}
+      />
       <CoOpDisplay />
       <div className={cn(
-        "absolute top-4 sm:top-8 transition-opacity duration-300",
+        "w-full max-w-4xl flex justify-center py-2 sm:py-4 transition-opacity duration-300 z-10",
         !isUIVisible && "opacity-30"
       )}>
         <InfoDisplay />
       </div>
-      <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center mt-20 sm:mt-0">
-        <h2 className="mb-2 text-sm sm:text-xl font-medium tracking-wide text-foreground/80 uppercase tracking-[0.2em] opacity-50">{category || 'Focus Session'}</h2>
+      <div className="flex-1 flex w-full max-w-4xl flex-col items-center justify-center text-center py-2 sm:py-6">
+        <h2 className="mb-2 text-sm sm:text-xl font-medium tracking-wide text-foreground/80 uppercase tracking-[0.2em] opacity-50"
+            style={{ textShadow: isContinuousFlashing ? '0 2px 10px rgba(0,0,0,0.6)' : undefined }}>
+          {category || 'Focus Session'}
+        </h2>
         <h1 className={cn(
             "mb-8 font-bold tracking-tight text-foreground font-headline transition-all duration-300 px-4",
             taskName.length > 20 ? "text-3xl sm:text-5xl md:text-6xl" : "text-4xl sm:text-6xl md:text-7xl lg:text-8xl"
-        )}>
+        )}
+            style={{ textShadow: isContinuousFlashing ? '0 4px 20px rgba(0,0,0,0.8)' : undefined }}>
           {taskName}
         </h1>
 
-
-        <div className="mb-12">
+        <div className="mb-12 flex flex-col items-center justify-center w-full">
           {!syncComplete ? (
             <div className="flex flex-col items-center justify-center p-12">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-50" />
                 <p className="text-xs mt-4 opacity-50 font-code tracking-widest">SYNCING SESSION...</p>
             </div>
           ) : (
-            <CircularProgress progress={progress} isUIVisible={isUIVisible}>
-            <div className="flex flex-col items-center justify-center gap-2">
-              <div className="font-code text-4xl font-bold sm:text-6xl md:text-7xl text-white">
-                {formatTime(timeRemaining)}
-              </div>
-              <div className={cn(
-                "flex items-center justify-center gap-2 transition-opacity duration-300",
-                isUIVisible ? "opacity-100" : "opacity-0"
-              )}>
-                <Button
-                  onClick={() => {
-                    const newPaused = !isPaused;
-                    setIsPaused(newPaused);
-                    updateTimer({ isPaused: newPaused }, timeRemaining);
-                    
-                    if (session) {
-                        updateSession({ 
-                            isPaused: newPaused, 
-                            timeLeftWhenPaused: timeRemaining,
-                            status: newPaused ? "waiting" : "running",
-                            expectedEndTime: newPaused ? null : Date.now() + (timeRemaining * 1000)
-                        });
-                    }
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 w-full max-w-4xl px-4">
+              {/* Specialized Task HUD Panel (Lungs or Eyeball Assist) */}
+              {(isBreathingTask || isEyeExerciseTask) && (
+                <div className="w-64 sm:w-72 md:w-80 lg:w-[360px] h-36 md:h-44 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col items-center justify-between p-4 relative overflow-hidden">
+                  {/* Digital blueprint grid layer */}
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:16px_16px] opacity-75" />
+                  
+                  {isBreathingTask && (
+                    <>
+                      {/* Breathing Phase Label */}
+                      <div className="text-xs font-bold uppercase tracking-[0.25em] text-primary z-10 animate-pulse mt-1">
+                        {breathingPhase === "inhale" && "Inhale 💨"}
+                        {breathingPhase === "hold" && "Hold 🧘"}
+                        {breathingPhase === "exhale" && "Exhale 🌬️"}
+                      </div>
 
-                    if (newPaused) {
-                      cancelScheduledNotification();
-                    } else {
-                      showCompletionNotification(true); // Re-schedule for new end time
-                    }
-                  }}
-                  size="icon"
-                  variant="ghost"
-                  className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20"
-                >
-                  {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
-                </Button>
-                <Button
-                  onClick={handleEndEarly}
-                  variant="ghost"
-                  size="icon"
-                  className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60"
-                >
-                  <Square className="h-6 w-6 text-white" />
-                </Button>
-              </div>
+                      {/* Lungs Graphic HUD */}
+                      <div className="relative w-full h-[65%] flex items-center justify-between px-8 z-0">
+                        {/* Central Airway / Trachea schematic */}
+                        <div className="absolute left-1/2 top-[10%] bottom-[30%] w-[2px] -translate-x-1/2 pointer-events-none">
+                          <div 
+                            style={{ transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+                            className={cn(
+                              "w-full h-2/3 transition-all duration-300",
+                              breathingPhase === 'inhale' && "bg-gradient-to-b from-primary/80 via-primary/55 to-primary/30",
+                              breathingPhase === 'hold' && "bg-primary/60 shadow-[0_0_10px_rgba(245,158,11,0.5)]",
+                              breathingPhase === 'exhale' && "bg-primary/5"
+                            )} 
+                          />
+                          <div 
+                            style={{ transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+                            className={cn(
+                              "absolute bottom-1/3 left-1/2 -translate-x-1/2 w-8 h-[2px]",
+                              breathingPhase === 'exhale' ? "bg-primary/5" : "bg-primary/35"
+                            )} 
+                          />
+                        </div>
+
+                        {/* Left Lung Lobe */}
+                        <div 
+                          style={{
+                            transform: breathingPhase === 'inhale' 
+                              ? 'scale(1.2) rotate(-12deg)' 
+                              : breathingPhase === 'hold' 
+                              ? 'scale(1.25) rotate(-14deg)' 
+                              : 'scale(0.85) rotate(-6deg)',
+                            opacity: breathingPhase === 'inhale' ? 0.85 : breathingPhase === 'hold' ? 1.0 : 0.22,
+                            transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
+                          }}
+                          className={cn(
+                            "w-[38%] h-[90%] rounded-[40%_60%_35%_65%_/_48%_40%_60%_52%] border border-primary/20 transition-all duration-300 relative overflow-hidden",
+                            breathingPhase === 'hold' && "border-primary/40 shadow-[0_0_30px_8px_rgba(245,158,11,0.25),inset_0_0_15px_4px_rgba(245,158,11,0.15)] ring-1 ring-primary/20 bg-primary/10",
+                            breathingPhase === 'inhale' && "bg-primary/10 shadow-[0_0_20px_4px_rgba(245,158,11,0.15),inset_0_0_10px_2px_rgba(245,158,11,0.1)]",
+                            breathingPhase === 'exhale' && "bg-primary/5"
+                          )}
+                        >
+                          <div className="absolute inset-[15%] rounded-full border border-primary/10 opacity-45 dashed-border" />
+                          <div className="absolute top-[25%] left-[25%] w-1 h-1 rounded-full bg-primary opacity-50 animate-ping" />
+                        </div>
+
+                        {/* Right Lung Lobe */}
+                        <div 
+                          style={{
+                            transform: breathingPhase === 'inhale' 
+                              ? 'scale(1.2) rotate(12deg)' 
+                              : breathingPhase === 'hold' 
+                              ? 'scale(1.25) rotate(14deg)' 
+                              : 'scale(0.85) rotate(6deg)',
+                            opacity: breathingPhase === 'inhale' ? 0.85 : breathingPhase === 'hold' ? 1.0 : 0.22,
+                            transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
+                          }}
+                          className={cn(
+                            "w-[38%] h-[90%] rounded-[60%_40%_65%_35%_/_40%_48%_52%_60%] border border-primary/20 transition-all duration-300 relative overflow-hidden",
+                            breathingPhase === 'hold' && "border-primary/40 shadow-[0_0_30px_8px_rgba(245,158,11,0.25),inset_0_0_15px_4px_rgba(245,158,11,0.15)] ring-1 ring-primary/20 bg-primary/10",
+                            breathingPhase === 'inhale' && "bg-primary/10 shadow-[0_0_20px_4px_rgba(245,158,11,0.15),inset_0_0_10px_2px_rgba(245,158,11,0.1)]",
+                            breathingPhase === 'exhale' && "bg-primary/5"
+                          )}
+                        >
+                          <div className="absolute inset-[15%] rounded-full border border-primary/10 opacity-45 dashed-border" />
+                          <div className="absolute top-[35%] right-[25%] w-1 h-1 rounded-full bg-primary opacity-50 animate-ping" />
+                        </div>
+                      </div>
+
+                      {/* HUD Label */}
+                      <div className="text-[9px] font-code tracking-[0.2em] text-primary/40 uppercase mb-1">
+                        HUD RESPIRATORY ACTIVE
+                      </div>
+                    </>
+                  )}
+
+                  {isEyeExerciseTask && (
+                    <>
+                      {/* Eye Phase Label */}
+                      <div className="text-xs font-bold uppercase tracking-[0.25em] text-primary z-10 animate-pulse mt-1">
+                        {eyePhase === "look-up" && "Look Up ⬆️"}
+                        {eyePhase === "look-down" && "Look Down ⬇️"}
+                        {eyePhase === "look-left" && "Look Left ⬅️"}
+                        {eyePhase === "look-right" && "Look Right ➡️"}
+                        {eyePhase === "roll" && "Roll Eyes 🔄"}
+                        {eyePhase === "blink" && "Blink Rapidly 👁️"}
+                        {eyePhase === "focus-near-far" && "Focus Near & Far 🔍"}
+                        {eyePhase === "close-eyes" && "Close Eyes & Rest 💤"}
+                      </div>
+
+                      {/* Eyeball Graphic HUD */}
+                      <div className="relative w-full h-[60%] flex items-center justify-center z-0">
+                        {/* Outer tracking reticles / calibration lines */}
+                        <div className="absolute inset-0 rounded-full border border-primary/10 border-dashed scale-75" />
+                        <div className="absolute w-[80%] h-[1px] bg-primary/10" />
+                        <div className="absolute h-[80%] w-[1px] bg-primary/10" />
+                        
+                        {/* Sclera / Outer Eye shape */}
+                        <div className="absolute w-[65%] h-[75%] rounded-[50%] border-2 border-primary/20 bg-slate-950/40 flex items-center justify-center overflow-hidden">
+                          {/* Eyelids (close/blink animation) */}
+                          <div 
+                            style={{
+                              height: (eyePhase === 'close-eyes') ? '50%' : (eyePhase === 'blink') ? '25%' : '0%',
+                              transition: 'height 0.15s ease-in-out',
+                            }}
+                            className="absolute top-0 left-0 right-0 bg-slate-950/95 border-b border-primary/30 z-20"
+                          />
+                          <div 
+                            style={{
+                              height: (eyePhase === 'close-eyes') ? '50%' : (eyePhase === 'blink') ? '25%' : '0%',
+                              transition: 'height 0.15s ease-in-out',
+                            }}
+                            className="absolute bottom-0 left-0 right-0 bg-slate-950/95 border-t border-primary/30 z-20"
+                          />
+                          
+                          {/* Iris + Pupil Container */}
+                          <div 
+                            style={{
+                              transform: 
+                                eyePhase === 'look-up'
+                                  ? 'translateY(-14px)'
+                                  : eyePhase === 'look-down'
+                                  ? 'translateY(14px)'
+                                  : eyePhase === 'look-left'
+                                  ? 'translateX(-22px)'
+                                  : eyePhase === 'look-right'
+                                  ? 'translateX(22px)'
+                                  : 'none',
+                              scale: eyePhase === 'focus-near-far' ? 1.3 : 1.0,
+                              transition: 'all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                            }}
+                            className={cn(
+                              "w-16 h-16 rounded-full border border-primary/30 flex items-center justify-center bg-primary/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] relative",
+                              eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
+                            )}
+                          >
+                            <div className="absolute inset-1.5 rounded-full border border-primary/20 border-dashed" />
+                            <div 
+                              style={{
+                                scale: eyePhase === 'focus-near-far' ? 0.5 : 1.0,
+                                transition: 'scale 0.5s ease-in-out',
+                              }}
+                              className="w-5.5 h-5.5 rounded-full bg-primary border border-primary/50 shadow-[0_0_10px_rgba(245,158,11,0.6)] relative flex items-center justify-center"
+                            >
+                              <div className="w-1 h-1 rounded-full bg-white opacity-70 absolute top-[25%] left-[25%]" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* HUD Label */}
+                      <div className="text-[9px] font-code tracking-[0.2em] text-primary/40 uppercase mb-1">
+                        HUD EYE ASSIST ACTIVE
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Minimal Clean Timer Dial */}
+              <CircularProgress progress={progress} isUIVisible={isUIVisible}>
+                <div className="relative flex flex-col items-center justify-center gap-4 transition-all duration-300">
+                  <div className="font-code text-5xl font-bold sm:text-7xl text-white"
+                       style={{ textShadow: '0 4px 24px rgba(0,0,0,0.95)' }}>
+                    {formatTime(timeRemaining)}
+                  </div>
+                  <div className={cn(
+                    "flex items-center justify-center gap-4 transition-opacity duration-300",
+                    isUIVisible ? "opacity-100" : "opacity-0"
+                  )}>
+                    <Button
+                      onClick={() => {
+                        const newPaused = !isPaused;
+                        setIsPaused(newPaused);
+                        updateTimer({ isPaused: newPaused }, timeRemaining);
+                        ensureAudioInitialized();
+                        
+                        if (session) {
+                            updateSession({ 
+                                isPaused: newPaused, 
+                                timeLeftWhenPaused: timeRemaining,
+                                status: newPaused ? "waiting" : "running",
+                                expectedEndTime: newPaused ? null : Date.now() + (timeRemaining * 1000)
+                            });
+                        }
+
+                        if (newPaused) {
+                          cancelScheduledNotification();
+                        } else {
+                          showCompletionNotification(true);
+                        }
+                      }}
+                      id="gaze-pause-btn"
+                      size="icon"
+                      variant="ghost"
+                      className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-transform"
+                    >
+                      {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
+                    </Button>
+                    <Button
+                      onClick={handleEndEarly}
+                      id="gaze-stop-btn"
+                      variant="ghost"
+                      size="icon"
+                      className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60 active:scale-95 transition-transform"
+                    >
+                      <Square className="h-6 w-6 text-white" />
+                    </Button>
+                  </div>
+                </div>
+              </CircularProgress>
             </div>
-          </CircularProgress>
           )}
         </div>
 
@@ -944,11 +1470,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           onOpenAutoFocus={(e) => e.preventDefault()} 
           onCloseAutoFocus={(e) => e.preventDefault()} 
           onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }} 
-          className="sm:max-w-md"
+          className="w-[92vw] sm:max-w-md overflow-hidden bg-background/90 backdrop-blur-md border border-amber-500/20 shadow-2xl"
         >
+          {showMotivationalDialog && <CoinParticles />}
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
-              <PartyPopper className="text-primary" />
+            <DialogTitle className="flex items-center gap-2 font-headline text-2xl text-amber-500">
+              <PartyPopper className="text-amber-500 animate-bounce" />
               Task Completed!
             </DialogTitle>
           </DialogHeader>
@@ -969,9 +1496,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             )}
           </div>
 
-          <DialogFooter className="flex flex-col gap-3 sm:flex-col sm:justify-start">
+          <div className="flex flex-col gap-3 mt-6">
             {!isLoadingAI && suggestedTask && (
-              <Button onClick={handleStartSuggestedTask} className="w-full h-12 text-md shadow-lg transition-all active:scale-95">
+              <Button onClick={handleStartSuggestedTask} className="w-full h-12 text-md shadow-lg transition-all active:scale-95 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-none text-white">
                 Start: {suggestedTask}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -986,9 +1513,93 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             >
               Back to Home
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dynamic Hydration Water-Level Background Simulation */}
+      {isHydrationTask && <HydrationBackground progress={progress} />}
+
+      {/* Eye-Tracking Camera Gaze Control Interface */}
+      <GazeTracker
+        isUIVisible={isUIVisible}
+        onPauseToggle={() => {
+          const newPaused = !isPaused;
+          setIsPaused(newPaused);
+          updateTimer({ isPaused: newPaused }, timeRemaining);
+          ensureAudioInitialized();
+          
+          if (session) {
+              updateSession({ 
+                  isPaused: newPaused, 
+                  timeLeftWhenPaused: timeRemaining,
+                  status: newPaused ? "waiting" : "running",
+                  expectedEndTime: newPaused ? null : Date.now() + (timeRemaining * 1000)
+              });
+          }
+
+          if (newPaused) {
+            cancelScheduledNotification();
+          } else {
+            showCompletionNotification(true);
+          }
+        }}
+        onStop={handleEndEarly}
+        onSkip={handleSkipTask}
+        isPaused={isPaused}
+      />
     </main>
+  );
+}
+
+// Premium dynamic floating gold coins particle animation
+function CoinParticles({ count = 16 }: { count?: number }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+      {Array.from({ length: count }).map((_, i) => {
+        const left = Math.random() * 100; // %
+        const duration = Math.random() * 2 + 2.5; // seconds
+        const delay = Math.random() * 1.5; // seconds
+        const size = Math.random() * 20 + 12; // px
+        return (
+          <div
+            key={i}
+            className="absolute bottom-[-50px] text-amber-400 select-none animate-coin-float"
+            style={{
+              left: `${left}%`,
+              fontSize: `${size}px`,
+              animationDuration: `${duration}s`,
+              animationDelay: `${delay}s`,
+              filter: 'drop-shadow(0 2px 8px rgba(245, 158, 11, 0.6))',
+            }}
+          >
+            🪙
+          </div>
+        );
+      })}
+      <style jsx global>{`
+        @keyframes coin-float {
+          0% {
+            transform: translateY(0) rotate(0deg) scale(0.6);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          85% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(-450px) rotate(360deg) scale(1.3);
+            opacity: 0;
+          }
+        }
+        .animate-coin-float {
+          animation-name: coin-float;
+          animation-timing-function: cubic-bezier(0.1, 0.8, 0.2, 1);
+          animation-fill-mode: forwards;
+        }
+      `}</style>
+    </div>
   );
 }

@@ -3,6 +3,8 @@
 import { z } from 'zod';
 import { LucideIcon } from 'lucide-react';
 
+export type LifestyleCategory = 'Productivity' | 'Hydration' | 'Fitness' | 'Meditation' | 'Hygiene' | 'Creativity';
+
 export type Task = {
     id: string;
     userId: string;
@@ -11,7 +13,7 @@ export type Task = {
     initialDuration: number; // in minutes, original planned duration
     completed: boolean;
     createdAt: any; // Can be a server timestamp
-    category?: string;
+    category?: LifestyleCategory;
     earnedCoins?: number;
     isFalseEntry?: boolean;
 };

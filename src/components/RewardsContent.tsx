@@ -260,31 +260,69 @@ export function RewardsContent() {
                 </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="border-border/50 shadow-lg">
-                        <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-purple-500" /> Goal Progress</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="flex items-start gap-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                                <Flame className="w-6 h-6 text-orange-500" />
-                                <div className="w-full">
+                    <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300">
+                        <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="w-5 h-5 text-purple-500" /> Goal Progress</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-start gap-4 p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/15 transition-all">
+                                <Flame className="w-6 h-6 text-orange-500 flex-shrink-0" />
+                                <div className="w-full min-w-0">
                                     <div className="flex justify-between items-center">
-                                       <h4 className="font-bold text-sm">Consistent Login</h4>
-                                       <span className="text-xs font-bold text-orange-500">{highestStreak} / 30 Days</span>
+                                       <h4 className="font-bold text-sm text-white/95">Consistent Login</h4>
+                                       <span className="text-xs font-bold text-orange-500 flex-shrink-0">{highestStreak} / 30 Days</span>
                                     </div>
                                     <Progress value={Math.min((highestStreak / 30)*100, 100)} className="h-1.5 mt-2 bg-background" />
                                 </div>
                             </div>
+                            <div className="flex items-start gap-4 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15 transition-all">
+                                <Droplet className="w-6 h-6 text-blue-400 flex-shrink-0" />
+                                <div className="w-full min-w-0">
+                                    <div className="flex justify-between items-center">
+                                       <h4 className="font-bold text-sm text-white/95">Hydration Target</h4>
+                                       <span className="text-xs font-bold text-blue-400 flex-shrink-0">{waterGlasses} / 100 Glasses</span>
+                                    </div>
+                                    <Progress value={Math.min((waterGlasses / 100)*100, 100)} className="h-1.5 mt-2 bg-background" />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/50 shadow-lg">
-                        <CardHeader><CardTitle className="flex items-center gap-2"><Award className="w-5 h-5 text-yellow-500" /> Quick Stats</CardTitle></CardHeader>
+                    <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300">
+                        <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Award className="w-5 h-5 text-yellow-500" /> Quick Stats</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-2 gap-4">
-                            <div className="bg-muted/30 p-3 rounded-xl">
-                                <p className="text-[10px] text-muted-foreground font-black uppercase">Tasks Done</p>
-                                <p className="text-xl font-black">{totalAllTasks}</p>
+                            <div className="bg-muted/30 p-3 rounded-xl flex items-center justify-between gap-2 border border-white/5 hover:bg-muted/40 transition-all">
+                                <div className="space-y-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider truncate">Tasks Done</p>
+                                    <p className="text-xl font-black text-white">{totalAllTasks}</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-green-500/10 text-green-500 border border-green-500/20 flex-shrink-0">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                </div>
                             </div>
-                            <div className="bg-muted/30 p-3 rounded-xl">
-                                <p className="text-[10px] text-muted-foreground font-black uppercase">Water Glasses</p>
-                                <p className="text-xl font-black text-blue-400">{waterGlasses}</p>
+                            <div className="bg-muted/30 p-3 rounded-xl flex items-center justify-between gap-2 border border-white/5 hover:bg-muted/40 transition-all">
+                                <div className="space-y-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider truncate">Hydration</p>
+                                    <p className="text-xl font-black text-blue-400">{waterGlasses}</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
+                                    <Droplet className="w-4 h-4" />
+                                </div>
+                            </div>
+                            <div className="bg-muted/30 p-3 rounded-xl flex items-center justify-between gap-2 border border-white/5 hover:bg-muted/40 transition-all">
+                                <div className="space-y-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider truncate">Days Active</p>
+                                    <p className="text-xl font-black text-purple-400">{appAgeDays}</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex-shrink-0">
+                                    <Zap className="w-4 h-4" />
+                                </div>
+                            </div>
+                            <div className="bg-muted/30 p-3 rounded-xl flex items-center justify-between gap-2 border border-white/5 hover:bg-muted/40 transition-all">
+                                <div className="space-y-1 min-w-0">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider truncate">Badges</p>
+                                    <p className="text-xl font-black text-yellow-500">{certificates.filter(c => c.progress >= 100).length}</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 flex-shrink-0">
+                                    <Trophy className="w-4 h-4" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -297,17 +335,17 @@ export function RewardsContent() {
                     const progress = Math.min((credits / item.credits) * 100, 100);
                     return (
                         <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
-                            <Card className={`border-border/50 shadow-md h-full flex flex-col ${isUnlocked ? 'border-primary/50 bg-primary/5' : ''}`}>
+                            <Card className={`bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 h-full flex flex-col ${isUnlocked ? 'border-primary/40 bg-primary/5' : ''}`}>
                                 <CardHeader className="pb-2 flex-grow">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-card border shadow-sm rounded-xl text-3xl font-bold">{item.img}</div>
-                                        <Badge variant={isUnlocked ? "default" : "secondary"} className="font-mono font-bold">{item.credits.toLocaleString()} DM</Badge>
+                                        <div className="p-3 bg-muted/40 border border-white/5 shadow-sm rounded-xl text-3xl font-bold flex items-center justify-center w-14 h-14">{item.img}</div>
+                                        <Badge variant={isUnlocked ? "default" : "secondary"} className="font-mono font-bold bg-white/5 border-white/5 text-foreground">{item.credits.toLocaleString()} DM</Badge>
                                     </div>
-                                    <CardTitle className="text-lg leading-tight">{item.name}</CardTitle>
-                                    <CardDescription className="text-sm mt-1">{item.desc}</CardDescription>
+                                    <CardTitle className="text-lg leading-tight font-bold">{item.name}</CardTitle>
+                                    <CardDescription className="text-sm mt-1 text-muted-foreground">{item.desc}</CardDescription>
                                 </CardHeader>
                                 <CardFooter className="pt-2">
-                                    <Button className="w-full font-bold" variant={isUnlocked ? "default" : "secondary"} disabled={!isUnlocked} onClick={() => handleRedeemClick(item)}>
+                                    <Button className="w-full font-bold h-11 rounded-xl transition-all" variant={isUnlocked ? "default" : "secondary"} disabled={!isUnlocked} onClick={() => handleRedeemClick(item)}>
                                         {isUnlocked ? "Redeem Now" : `Progress: ${Math.floor(progress)}%`}
                                     </Button>
                                 </CardFooter>
@@ -317,13 +355,13 @@ export function RewardsContent() {
                 })}
             </TabsContent>
 
-            <TabsContent value="certificates" className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TabsContent value="certificates" className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {certificates.map((cert, idx) => {
                     const IconComponent = cert.icon;
                     const isUnlocked = cert.progress >= 100;
                     return (
                         <motion.div key={cert.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.1 }} className="flex flex-col gap-3">
-                            <div id={cert.id} className={`relative overflow-hidden rounded-2xl p-6 border-2 shadow-2xl flex flex-col justify-between min-h-[200px] ${isUnlocked ? `border-transparent bg-gradient-to-br ${cert.color} text-white` : 'border-border bg-card/60 text-muted-foreground grayscale'}`}>
+                            <div id={cert.id} className={`relative overflow-hidden rounded-2xl p-6 border-2 shadow-2xl flex flex-col justify-between min-h-[200px] ${isUnlocked ? `border-transparent bg-gradient-to-br ${cert.color} text-white` : 'border-white/5 bg-card/40 backdrop-blur-md text-muted-foreground grayscale'}`}>
                                 <div className="absolute top-0 right-0 -mt-6 -mr-6 opacity-20 rotate-12 pointer-events-none mix-blend-overlay">
                                     <IconComponent className="w-48 h-48" />
                                 </div>
@@ -340,10 +378,10 @@ export function RewardsContent() {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs" onClick={() => exportCertificate(cert.id, cert.title)}>
+                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs h-10 rounded-xl bg-card/40 border-white/5 hover:bg-card/60 hover:text-white" onClick={() => exportCertificate(cert.id, cert.title)}>
                                     {downloading === cert.id ? "Rendering..." : "Export"}
                                 </Button>
-                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs" onClick={() => pinCertificate(cert.id, cert.title)}>
+                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs h-10 rounded-xl bg-card/40 border-white/5 hover:bg-card/60 hover:text-white" onClick={() => pinCertificate(cert.id, cert.title)}>
                                     {(profileData?.pinnedCertificateIds || []).includes(cert.id) ? 'Pinned' : 'Pin to Profile'}
                                 </Button>
                             </div>

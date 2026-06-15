@@ -27,9 +27,18 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info, LogOut, X, Layers, Zap, StickyNote, Users2, Cloud, Palette, Bug, Sun, PieChart, Trophy, HeartPulse, BrainCircuit } from 'lucide-react';
+import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info, LogOut, X, Layers, Zap, StickyNote, Users2, Cloud, Palette, Bug, Sun, PieChart, Trophy, HeartPulse, BrainCircuit, Camera } from 'lucide-react';
 
 const changelog = [
+  {
+      version: "v1.7",
+      date: "Day 8",
+      features: [
+        { name: "Off-Thread Gaze Control", description: "Hands-free navigation powered by a background Web Worker and BlazeFace camera eye-tracking.", icon: "camera" },
+        { name: "Native Tactile Haptics", description: "Physical device vibrations for milestones, final 10s heartbeat, and expiration bursts.", icon: "zap" },
+        { name: "Hydration & Breathing Ambient Synth", description: "Draining wave canvas backgrounds and Web Audio API synthesized liquid and meditation chimes.", icon: "brain-circuit" },
+      ]
+  },
   {
       version: "v1.6",
       date: "Day 7",
@@ -113,6 +122,7 @@ const iconMap: { [key: string]: React.ElementType } = {
   "trophy": Trophy,
   "heart-pulse": HeartPulse,
   "brain-circuit": BrainCircuit,
+  camera: Camera,
 };
 
 

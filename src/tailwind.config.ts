@@ -161,15 +161,15 @@ export default {
           },
         },
         flash: {
-            '0%, 100%': { backgroundColor: 'var(--timer-background-color)' },
-            '50%': { backgroundColor: 'var(--flash-color)' },
+            '0%, 100%': { opacity: '0.15' },
+            '50%': { opacity: '0.95' },
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'flash-continuous': 'flash 0.5s ease-in-out infinite',
-        'flash-breathing': 'flash 2s ease-in-out infinite',
+        'flash-continuous': 'flash 2s ease-in-out infinite',
+        'flash-breathing': 'flash 3s ease-in-out infinite',
         'flash-three-times': 'flash 1s ease-in-out 3',
       },
     },

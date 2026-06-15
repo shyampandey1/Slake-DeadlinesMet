@@ -1,4 +1,4 @@
-import type { ProfileType } from "@/types";
+import type { ProfileType, LifestyleCategory } from "@/types";
 
 const professionalGroups = {
     'Creative Professional': ["Artist", "Designer", "Writer", "Content Creator"],
@@ -60,13 +60,13 @@ const categorizationMap = {
 };
 
 
-export const categoryColors: { [key: string]: string } = {
+export const categoryColors: { [key in LifestyleCategory]: string } & { Default: string; Uncategorized: string } = {
   'Productivity': '#3b82f6', // blue-500
-  'Health': '#22c55e', // green-500
   'Hydration': '#38bdf8', // sky-400
-  'Mindfulness & Meditation': '#a855f7', // purple-500
-  'Entertainment & Hobbies': '#f97316', // orange-500
-  'Well-being & Social': '#f59e0b', // amber-500
+  'Fitness': '#10b981', // emerald-500
+  'Meditation': '#8b5cf6', // violet-500
+  'Hygiene': '#ec4899', // pink-500
+  'Creativity': '#f59e0b', // amber-500
   'Default': '#64748b', // slate-500
   'Uncategorized': '#94a3b8' // slate-400
 };
@@ -83,26 +83,46 @@ function findProfessionalGroup(profile: ProfileType): keyof typeof categorizatio
     return 'General/Other';
 }
 
-export function getTaskCategoryDetails(taskName: string, profile: ProfileType): { mainCategory: string; subCategory: string; } {
-    const group = findProfessionalGroup(profile);
-    const categories = categorizationMap[group];
-
-    if (!categories) {
-        return { mainCategory: 'Uncategorized', subCategory: 'Uncategorized' };
-    }
-
-    for (const mainCategory in categories) {
-        const subCategories = categories[mainCategory as keyof typeof categories];
-        if (subCategories.some(sub => taskName.toLowerCase().includes(sub.toLowerCase()))) {
-            return { mainCategory, subCategory: taskName };
-        }
-    }
-
-    // A special check for hydration as it's a common task
-    if (taskName.toLowerCase().includes('hydration') || taskName.toLowerCase().includes('rehydrate') || taskName.toLowerCase().includes('water')) {
+export function getTaskCategoryDetails(taskName: string, profile: ProfileType): { mainCategory: LifestyleCategory; subCategory: string; } {
+    const nameLower = taskName.toLowerCase();
+    
+    // 1. Hydration (water, hydration, rehydrate, drink, tea, coffee, etc.)
+    if (nameLower.includes('water') || nameLower.includes('hydration') || nameLower.includes('rehydrate') || nameLower.includes('glass of water') || nameLower.includes('drink')) {
         return { mainCategory: 'Hydration', subCategory: taskName };
     }
     
-    // Default fallback
+    // 2. Fitness (workouts, exercises, stretching, cardio, morning flow, run, gym, flow, yoga, dumbbell, sports, physical)
+    if (nameLower.includes('workout') || nameLower.includes('exercise') || nameLower.includes('gym') || nameLower.includes('stretching') || nameLower.includes('cardio') || nameLower.includes('morning flow') || nameLower.includes('stretch') || nameLower.includes('run') || nameLower.includes('walk') || nameLower.includes('yoga') || nameLower.includes('dumbbell') || nameLower.includes('sports') || nameLower.includes('physical') || nameLower.includes('oxygenation') || nameLower.includes('mobility')) {
+        return { mainCategory: 'Fitness', subCategory: taskName };
+    }
+    
+    // 3. Meditation (mindfulness, breathing, mental reset, deep breathing, breathing & relax, breath, journaling, idea dump, calm, relax, sleep, meditation, wind-down, bedtime, wind down)
+    if (nameLower.includes('meditation') || nameLower.includes('breathing') || nameLower.includes('mindful') || nameLower.includes('reset') || nameLower.includes('journaling') || nameLower.includes('idea dump') || nameLower.includes('calm') || nameLower.includes('relax') || nameLower.includes('sleep') || nameLower.includes('wind-down') || nameLower.includes('wind down') || nameLower.includes('bedtime') || nameLower.includes('scribing') || nameLower.includes('breath') || nameLower.includes('reflection')) {
+        return { mainCategory: 'Meditation', subCategory: taskName };
+    }
+
+    // 4. Hygiene (self-care, domestic setup, personal organization, set the bed, setting bed, freshen up, shower, wash, clean, tidy, meals, breakfast, lunch, dinner, eat, table, tidy up, kitchen, skincare, hygiene)
+    if (nameLower.includes('self-care') || nameLower.includes('domestic') || nameLower.includes('hygiene') || nameLower.includes('skincare') || nameLower.includes('bed') || nameLower.includes('shower') || nameLower.includes('wash') || nameLower.includes('clean') || nameLower.includes('tidy') || nameLower.includes('meal') || nameLower.includes('breakfast') || nameLower.includes('lunch') || nameLower.includes('dinner') || nameLower.includes('eat') || nameLower.includes('table') || nameLower.includes('freshen') || nameLower.includes('kitchen') || nameLower.includes('grooming') || nameLower.includes('organization')) {
+        return { mainCategory: 'Hygiene', subCategory: taskName };
+    }
+
+    // 5. Creativity (brainstorming, design, writing, dynamic writing, art, painting, drawing, sketching, creative, inspiration, storyboard, video editing, recording, filming, thumbnails, ideation, script, script writing, mood board, brainstorming)
+    if (nameLower.includes('brainstorm') || nameLower.includes('design') || nameLower.includes('writing') || nameLower.includes('creative') || nameLower.includes('art') || nameLower.includes('paint') || nameLower.includes('draw') || nameLower.includes('sketch') || nameLower.includes('inspiration') || nameLower.includes('storyboard') || nameLower.includes('editing') || nameLower.includes('recording') || nameLower.includes('filming') || nameLower.includes('thumbnail') || nameLower.includes('ideation') || nameLower.includes('script') || nameLower.includes('mood') || nameLower.includes('craft') || nameLower.includes('concept') || nameLower.includes('music')) {
+        return { mainCategory: 'Creativity', subCategory: taskName };
+    }
+
+    // 6. Productivity (core work, coding, deep focus, analysis, sprint, architecture, code, deployment, logic, debug, test, programming, report, inbox, presentation, meeting, PR review, lead, pitch, call, check network, learn, study, assignment, admin, emails, outreach)
+    if (nameLower.includes('work') || nameLower.includes('focus') || nameLower.includes('code') || nameLower.includes('coding') || nameLower.includes('program') || nameLower.includes('analysis') || nameLower.includes('sprint') || nameLower.includes('architecture') || nameLower.includes('deploy') || nameLower.includes('logic') || nameLower.includes('debug') || nameLower.includes('test') || nameLower.includes('report') || nameLower.includes('inbox') || nameLower.includes('presentation') || nameLower.includes('meeting') || nameLower.includes('review') || nameLower.includes('lead') || nameLower.includes('pitch') || nameLower.includes('call') || nameLower.includes('learn') || nameLower.includes('study') || nameLower.includes('assignment') || nameLower.includes('admin') || nameLower.includes('email') || nameLower.includes('outreach') || nameLower.includes('crm') || nameLower.includes('audit') || nameLower.includes('billing') || nameLower.includes('document') || nameLower.includes('planning') || nameLower.includes('task') || nameLower.includes('errand')) {
+        return { mainCategory: 'Productivity', subCategory: taskName };
+    }
+
+    // Fallbacks based on profiles if taskName didn't hit any keyword
+    if (profile) {
+        const group = findProfessionalGroup(profile);
+        if (group === 'Creative Professional') {
+            return { mainCategory: 'Creativity', subCategory: taskName };
+        }
+    }
+
     return { mainCategory: 'Productivity', subCategory: taskName };
 }

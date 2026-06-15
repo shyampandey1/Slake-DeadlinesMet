@@ -168,6 +168,37 @@ export function useTasks() {
              } as any);
           }
           // --- END STREAK SYNC ---
+
+          // --- LOGBOOK DAILY COINS SYNC ---
+          try {
+              const { getLocalDateString } = require('@/lib/dailyCoins');
+              const localTodayStr = getLocalDateString();
+              
+              const dbDailyCoins = userTasks
+                .filter(t => t.completed && t.earnedCoins && t.createdAt)
+                .reduce((sum, t) => {
+                  try {
+                    const taskLocalDate = new Date(t.createdAt);
+                    if (getLocalDateString(taskLocalDate) === localTodayStr) {
+                      return sum + (t.earnedCoins || 0);
+                    }
+                  } catch (e) {}
+                  return sum;
+                }, 0);
+
+              const storedCoinsStr = localStorage.getItem('slake_daily_coins_amount');
+              const storedDate = localStorage.getItem('slake_daily_coins_date');
+              const storedCoins = storedCoinsStr ? parseInt(storedCoinsStr, 10) : 0;
+              
+              if (storedDate !== localTodayStr || dbDailyCoins > storedCoins) {
+                  localStorage.setItem('slake_daily_coins_amount', String(dbDailyCoins));
+                  localStorage.setItem('slake_daily_coins_date', localTodayStr);
+                  window.dispatchEvent(new Event('slake-daily-coins-updated'));
+              }
+          } catch (e) {
+              console.warn("Failed to sync daily coins in snapshot", e);
+          }
+          // --- END DAILY COINS SYNC ---
     
            try {
             localStorage.setItem(cacheKey, JSON.stringify(userTasks));

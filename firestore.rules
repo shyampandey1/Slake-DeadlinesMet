@@ -12,9 +12,28 @@ service cloud.firestore {
     // Leaderboard access: any logged-in user can read profiles, but only write their own OR if admin
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow update: if request.auth != null && (
+        request.auth.uid == userId || 
+        isAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followersCount', 'coWorkerId', 'pendingCoWorkerId'])
+      );
+      allow delete: if isAdmin();
       
-      // Strict access to subcollections (sensitive tasks, calendar events, streaks mapping)
+      // Specific exceptions for follow feature:
+      // Allow any logged-in user to write their own follower record in another user's followers subcollection
+      match /user_followers/{followerId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && (request.auth.uid == followerId || isAdmin());
+      }
+
+      // Allow any logged-in user to write their own following record in their own following subcollection
+      match /user_following/{followingId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
+      
+      // Strict access to all other subcollections (sensitive tasks, calendar events, streaks mapping)
       match /{allSubcollections=**} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
