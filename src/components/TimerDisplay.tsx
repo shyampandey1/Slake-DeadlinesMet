@@ -479,6 +479,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   useEffect(() => {
     setCurrentDate(new Date());
     const dateInterval = setInterval(() => setCurrentDate(new Date()), 1000);
+
     if (document.body) document.body.style.overflow = 'hidden';
 
     let wakeLock: any = null;
