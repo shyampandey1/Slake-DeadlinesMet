@@ -37,13 +37,6 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   useEffect(() => {
     if (!loading && user && !isLoadedRef.current) {
       isLoadedRef.current = true;
-      
-      // 1. App Loads Notification
-      toast({
-        title: "System Active ⚡",
-        description: `Environment initialized. Welcome back, ${user.displayName || "Movers"}!`,
-        className: "bg-slate-900/90 border-emerald-500/20 text-emerald-400 font-medium rounded-2xl shadow-xl backdrop-blur-md",
-      });
 
       // 2. App Updates Notification
       const currentVersion = "v1.7";
