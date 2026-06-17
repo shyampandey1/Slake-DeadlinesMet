@@ -537,7 +537,7 @@ function ReformersPageContent() {
             // Automatically tune schedule to MOVERS
             const moversTasks: any[] = [
                 { name: "M: Meditation", duration: 15, icon: "BrainCircuit", category: "Morning Kickstart", order: 0 },
-                { name: "O: Oxygenation (Deep Breathing)", duration: 10, icon: "Wind", category: "Morning Kickstart", order: 1 },
+                { name: "O: Oxygenation (Deep Breathing)", duration: 3, icon: "Wind", category: "Morning Kickstart", order: 1 },
                 { name: "V: Visualization", duration: 10, icon: "Sparkles", category: "Morning Kickstart", order: 2 },
                 { name: "E: Exercise & Morning Warm-up", duration: 20, icon: "Dumbbell", category: "Morning Kickstart", order: 3 },
                 { name: "R: Reading Positive Content", duration: 20, icon: "BookOpen", category: "Morning Kickstart", order: 4 },

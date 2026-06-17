@@ -5,7 +5,7 @@ export const ROUTINE_TEMPLATE_VERSION = 9.0;
 const commonEveningWindDown: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Evening Snacks & Hydration", duration: 15, icon: "Coffee", category: "Evening Wind-down" },
     { name: "Dinner", duration: 35, icon: "Utensils", category: "Evening Wind-down" },
-    { name: "Deep Breathing & Relax", duration: 15, icon: "Wind", category: "Evening Wind-down" },
+    { name: "Deep Breathing & Relax", duration: 3, icon: "Wind", category: "Evening Wind-down" },
 ];
 
 const commonBedtimeRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
@@ -17,7 +17,7 @@ const commonBedtimeRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[
 
 const contentCreatorRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
-    { name: "Deep Breathing & Morning Hydration", duration: 4, icon: "Wind", category: "Morning Kickstart" },
+    { name: "Deep Breathing & Morning Hydration", duration: 3, icon: "Wind", category: "Morning Kickstart" },
     { name: "Meditation", duration: 10, icon: "BrainCircuit", category: "Morning Kickstart" },
     { name: "Morning warm-up workout", duration: 15, icon: "Dumbbell", category: "Morning Kickstart" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
@@ -40,7 +40,7 @@ const designerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Morning warm-up & Hydration", duration: 11, icon: "Dumbbell", category: "Morning Kickstart" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
     { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
-    { name: "Meditation & Breathing", duration: 13, icon: "Wind", category: "Pre-Production" },
+    { name: "Meditation & Breathing", duration: 3, icon: "Wind", category: "Pre-Production" },
     { name: "Mood Boarding & Color Theory", duration: 60, icon: "Palette", category: "Pre-Production" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Pre-Production" },
     { name: "UI/UX Wireframing Block", duration: 120, icon: "PenTool", category: "Production Block" },
@@ -54,7 +54,7 @@ const designerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
 
 const artistRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
-    { name: "Breathing & Morning Hydration", duration: 16, icon: "Wind", category: "Morning Kickstart" },
+    { name: "Breathing & Morning Hydration", duration: 3, icon: "Wind", category: "Morning Kickstart" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
     { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
     { name: "Sketching & Composition", duration: 90, icon: "Palette", category: "Pre-Production" },
@@ -86,7 +86,7 @@ const writerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
 
 const softwareEngineerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "System Initialization" },
-    { name: "Breathing & Morning Hydration", duration: 14, icon: "Wind", category: "System Initialization" },
+    { name: "Breathing & Morning Hydration", duration: 3, icon: "Wind", category: "System Initialization" },
     { name: "Morning warm-up", duration: 10, icon: "Dumbbell", category: "System Initialization" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "System Initialization" },
     { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "System Initialization" },
@@ -198,7 +198,7 @@ const salesRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
 
 const studentRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Retention" },
-    { name: "Morning Hydration & Breathing", duration: 6, icon: "Wind", category: "Retention" },
+    { name: "Morning Hydration & Breathing", duration: 3, icon: "Wind", category: "Retention" },
     { name: "Morning warm-up", duration: 15, icon: "Dumbbell", category: "Retention" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Retention" },
     { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Retention" },
@@ -261,7 +261,7 @@ const generalDetailedRoutine: Omit<UserPresetTask, "id" | "order" | "profession"
 
 const dayOffRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Prep" },
-    { name: "Meditation & Deep Breathing", duration: 15, icon: "Wind", category: "Morning Prep" },
+    { name: "Meditation & Deep Breathing", duration: 3, icon: "Wind", category: "Morning Prep" },
     { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Prep" },
     { name: "Set the table & Breakfast", duration: 30, icon: "Coffee", category: "Morning Prep" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Prep" },
@@ -275,7 +275,7 @@ const dayOffRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
 
 const dayOffRoutineHealthcare: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Prep" },
-    { name: "Deep Breathing & Meditation", duration: 15, icon: "Wind", category: "Morning Prep" },
+    { name: "Deep Breathing & Meditation", duration: 3, icon: "Wind", category: "Morning Prep" },
     { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Prep" },
     { name: "Set the table & Breakfast", duration: 30, icon: "Coffee", category: "Morning Prep" },
     { name: "Personal projects or errands", duration: 90, icon: "ShoppingCart", category: "Work & Focus" },
@@ -287,7 +287,7 @@ const dayOffRoutineHealthcare: Omit<UserPresetTask, "id" | "order" | "profession
 
 const healthcareProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Preparation" },
-    { name: "Morning Hydration & Breathing", duration: 5, icon: "Wind", category: "Preparation" },
+    { name: "Morning Hydration & Breathing", duration: 3, icon: "Wind", category: "Preparation" },
     { name: "Morning warm-up", duration: 15, icon: "Dumbbell", category: "Preparation" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Preparation" },
     { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Preparation" },
@@ -318,7 +318,7 @@ const itProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">
 
 const researcherRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
     { name: "Set the bed", duration: 5, icon: "Bed", category: "Hypothesis" },
-    { name: "Morning Hydration & Breathing", duration: 5, icon: "Wind", category: "Hypothesis" },
+    { name: "Morning Hydration & Breathing", duration: 3, icon: "Wind", category: "Hypothesis" },
     { name: "Morning warm-up", duration: 15, icon: "Dumbbell", category: "Hypothesis" },
     { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Hypothesis" },
     { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Hypothesis" },
@@ -394,7 +394,7 @@ export const wrapRoutineWithMOVERS = (
 
     // Protocol Tasks
     const M = { name: "Meditation (M)", duration: 10, icon: "BrainCircuit", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
-    const O = { name: "Oxygenation (O)", duration: 10, icon: "Wind", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
+    const O = { name: "Oxygenation (O)", duration: 3, icon: "Wind", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
     
     let vName = "Visualization (V)";
     if (isCognitive) vName = "Strategic Planning (V)";

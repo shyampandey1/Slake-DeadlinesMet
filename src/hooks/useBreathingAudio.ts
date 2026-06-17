@@ -5,6 +5,7 @@ import { useEffect, useRef, useCallback } from "react";
 class BreathingSynth {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private noiseBuffer: AudioBuffer | null = null;
 
   constructor() {}
 
@@ -21,86 +22,133 @@ class BreathingSynth {
     }
   }
 
+  private getNoiseBuffer(): AudioBuffer {
+    if (this.noiseBuffer) return this.noiseBuffer;
+    if (!this.ctx) return {} as AudioBuffer;
+    const bufferSize = this.ctx.sampleRate * 4; // 4 seconds of noise
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    this.noiseBuffer = buffer;
+    return buffer;
+  }
+
   playChime(type: "inhale" | "hold" | "exhale") {
     this.init();
     if (!this.ctx || this.ctx.state === "suspended") return;
 
     try {
       const time = this.ctx.currentTime;
+      const duration = 4.0; // Phase length is 4.0 seconds
+
+      // Tone Oscillators
       const osc1 = this.ctx.createOscillator();
       const osc2 = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const delay = this.ctx.createDelay();
-      const feedback = this.ctx.createGain();
+      const toneGain = this.ctx.createGain();
 
-      let baseFreq = 440;
-      let duration = 1.6;
+      // Noise Source (for breath simulation)
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = this.getNoiseBuffer();
+      noise.loop = true;
+      const noiseFilter = this.ctx.createBiquadFilter();
+      const noiseGain = this.ctx.createGain();
+
+      // Master connections
+      toneGain.connect(this.masterGain!);
+      noiseGain.connect(this.masterGain!);
 
       if (type === "inhale") {
-        // C5 (523.25 Hz) -> Rising, airy tone for inspiration
-        baseFreq = 523.25;
+        // --- INHALE ---
+        // Rising pitch: 220Hz (A3) -> 440Hz (A4)
         osc1.type = "sine";
+        osc1.frequency.setValueAtTime(220, time);
+        osc1.frequency.exponentialRampToValueAtTime(440, time + duration);
+
         osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(330, time); // perfect fifth overtone
+        osc2.frequency.exponentialRampToValueAtTime(660, time + duration);
 
-        osc1.frequency.setValueAtTime(baseFreq, time);
-        osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, time + 0.8);
-        
-        osc2.frequency.setValueAtTime(baseFreq * 1.5, time);
-        osc2.frequency.exponentialRampToValueAtTime(baseFreq * 1.5 * 1.25, time + 0.8);
-        duration = 1.4;
+        // Tone envelope: quiet to loud (breathing in)
+        toneGain.gain.setValueAtTime(0.001, time);
+        toneGain.gain.exponentialRampToValueAtTime(0.18, time + duration - 0.1);
+        toneGain.gain.setValueAtTime(0.18, time + duration);
+
+        // Filtered air-rush noise (simulating inhaling breath)
+        noiseFilter.type = "bandpass";
+        noiseFilter.Q.value = 3.0;
+        noiseFilter.frequency.setValueAtTime(250, time);
+        noiseFilter.frequency.exponentialRampToValueAtTime(950, time + duration);
+
+        // Noise envelope: build up volume
+        noiseGain.gain.setValueAtTime(0.001, time);
+        noiseGain.gain.exponentialRampToValueAtTime(0.25, time + duration - 0.1);
+        noiseGain.gain.setValueAtTime(0.25, time + duration);
+
+        // Connect noise
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+
       } else if (type === "hold") {
-        // G4 (392.00 Hz) -> Perfect fifth stability, bell-like grounding chime
-        baseFreq = 392.00;
+        // --- HOLD ---
+        // Steady calming major triad chord (grounding stability)
         osc1.type = "sine";
-        osc2.type = "sine";
+        osc1.frequency.setValueAtTime(440, time); // A4
 
-        osc1.frequency.setValueAtTime(baseFreq, time);
-        // Add a higher bell harmonic (octave + major third)
-        osc2.frequency.setValueAtTime(baseFreq * 2.5, time);
-        duration = 2.0;
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(554.37, time); // C#5 (Major third)
+
+        // Steady quiet volume, with a release at the end
+        toneGain.gain.setValueAtTime(0.14, time);
+        toneGain.gain.setValueAtTime(0.14, time + duration - 0.3);
+        toneGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        // No noise/breath sound during hold (holding breath)
+        noiseGain.gain.setValueAtTime(0, time);
+
       } else if (type === "exhale") {
-        // E4 (329.63 Hz) -> Warmer, lower tone descending slowly to simulate relaxation
-        baseFreq = 329.63;
+        // --- EXHALE ---
+        // Descending pitch: 440Hz (A4) -> 220Hz (A3)
         osc1.type = "triangle";
+        osc1.frequency.setValueAtTime(440, time);
+        osc1.frequency.linearRampToValueAtTime(220, time + duration);
+
         osc2.type = "sine";
+        osc2.frequency.setValueAtTime(587.33, time); // D5 (Subdominant resolve)
+        osc2.frequency.linearRampToValueAtTime(293.66, time + duration);
 
-        osc1.frequency.setValueAtTime(baseFreq, time);
-        osc1.frequency.linearRampToValueAtTime(baseFreq * 0.85, time + 1.0);
+        // Tone envelope: loud to quiet (breathing out)
+        toneGain.gain.setValueAtTime(0.18, time);
+        toneGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
 
-        osc2.frequency.setValueAtTime(baseFreq * 1.33, time); // perfect fourth overtone
-        osc2.frequency.linearRampToValueAtTime(baseFreq * 1.33 * 0.85, time + 1.0);
-        duration = 1.8;
+        // Filtered air-rush noise (simulating exhaling breath)
+        noiseFilter.type = "lowpass";
+        noiseFilter.Q.value = 1.5;
+        noiseFilter.frequency.setValueAtTime(1000, time);
+        noiseFilter.frequency.linearRampToValueAtTime(180, time + duration);
+
+        // Noise envelope: fade out
+        noiseGain.gain.setValueAtTime(0.25, time);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        // Connect noise
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
       }
 
-      // Amplitude Envelope
-      gain.gain.setValueAtTime(0.001, time);
-      gain.gain.exponentialRampToValueAtTime(0.12, time + 0.05); // quick attack
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration); // exponential decay
-
-      // Delay / Echo effect for ambient spaciousness
-      delay.delayTime.value = 0.35; // 350ms delay
-      feedback.gain.value = 0.3; // 30% feedback
-
-      // Connections: oscs -> gain -> delay feedback loop & master
-      osc1.connect(gain);
-      osc2.connect(gain);
-
-      // Connect dry signal to master
-      gain.connect(this.masterGain!);
-
-      // Connect wet signal through delay feedback loop
-      gain.connect(delay);
-      delay.connect(feedback);
-      feedback.connect(delay); // feedback loop
-      delay.connect(this.masterGain!); // delay to master
-
+      // Start sound sources
       osc1.start(time);
       osc2.start(time);
-      
-      osc1.stop(time + duration + 1.0);
-      osc2.stop(time + duration + 1.0);
+      osc1.stop(time + duration);
+      osc2.stop(time + duration);
+
+      if (type === "inhale" || type === "exhale") {
+        noise.start(time);
+        noise.stop(time + duration);
+      }
     } catch (e) {
-      // Audio node failure fallback
+      console.warn("Error playing breathing synth phase:", e);
     }
   }
 
