@@ -76,11 +76,11 @@ export default function HydrationBackground({ progress }: HydrationBackgroundPro
       };
 
       // Draw two overlapping wave layers with different frequencies and speeds
-      // Layer 1: Back, slower deep teal wave
-      drawWave(offset * 0.7, 16, 0.004, "rgba(14, 116, 144, 0.22)"); // Teal 700 tone
+      // Layer 1: Back, slower deep blue wave
+      drawWave(offset * 0.7, 16, 0.004, "rgba(29, 78, 216, 0.25)"); // Blue 700 tone
       
-      // Layer 2: Front, faster cyan/blue wave
-      drawWave(-offset, 24, 0.006, "rgba(6, 182, 212, 0.14)"); // Cyan 500 tone
+      // Layer 2: Front, faster sky/dodger blue wave
+      drawWave(-offset, 24, 0.006, "rgba(96, 165, 250, 0.18)"); // Blue 400 tone
 
       // Increment wave offset
       offset += 0.025;
