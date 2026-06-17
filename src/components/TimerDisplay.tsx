@@ -572,7 +572,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             
             // START our persistent global background timer when the page mounts!
             // But ONLY if one isn't already running for this task or if the task changed
-            if (!activeTimer || activeTimer.taskName !== taskName) {
+            if (!activeTimer || activeTimer.taskName !== taskName || activeTimer.coOpSessionId !== coOpSessionId) {
               startTimer({
                 taskName,
                 initialDuration: effectiveDuration,
@@ -611,17 +611,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 // Update local state from shared session
                 if (session.isPaused !== isPaused) {
                     setIsPaused(session.isPaused);
+                    updateTimer({ isPaused: session.isPaused }, session.timeLeftWhenPaused || undefined);
                 }
                 if (session.status === "running" && session.expectedEndTime) {
                     const diff = Math.max(0, Math.round((session.expectedEndTime - Date.now()) / 1000));
                     if (Math.abs(diff - timeRemaining) > 2) { // Only sync if drift > 2s
                         setTimeRemaining(diff);
+                        updateTimer({ isPaused: false, expectedEndTime: session.expectedEndTime }, diff);
                     }
                     // Crucial: Update the ref used by the local timer engine
                     expectedEndTimeRef.current = session.expectedEndTime;
                 } else if (session.status === "waiting") {
                     if (session.timeLeftWhenPaused !== undefined && session.timeLeftWhenPaused !== null) {
                         setTimeRemaining(session.timeLeftWhenPaused);
+                        updateTimer({ isPaused: true, timeLeftWhenPaused: session.timeLeftWhenPaused }, session.timeLeftWhenPaused);
                     }
                     expectedEndTimeRef.current = null;
                 } else if (session.status === "finished" && !isFinishedRef.current) {
@@ -632,7 +635,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 }
             }
         }
-    }, [session, syncComplete, user?.uid]);
+    }, [session, syncComplete, user?.uid, isPaused, timeRemaining, updateTimer, clearTimer]);
 
   // Main stable timer engine resilient to background throttling
   useEffect(() => {
