@@ -378,6 +378,13 @@ export function usePresetTasks() {
                         if (task.name === "Eye strain exercise" && task.duration !== 2) {
                             task.duration = 2;
                         }
+                        const isBreathingName = (name: string) => {
+                            const n = name.toLowerCase();
+                            return n.includes("breath") || n.includes("oxygen");
+                        };
+                        if (isBreathingName(task.name) && task.duration !== 3) {
+                            task.duration = 3;
+                        }
 
                         if (task.id && !seenIds.has(task.id)) {
                             uniqueTasks.push(task);
@@ -462,6 +469,14 @@ export function usePresetTasks() {
                     if (task.name === "Eye strain exercise" && task.duration !== 2) {
                         task.duration = 2;
                         updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', task.id!), { duration: 2 }).catch(console.error);
+                    }
+                    const isBreathingName = (name: string) => {
+                        const n = name.toLowerCase();
+                        return n.includes("breath") || n.includes("oxygen");
+                    };
+                    if (isBreathingName(task.name) && task.duration !== 3) {
+                        task.duration = 3;
+                        updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', task.id!), { duration: 3 }).catch(console.error);
                     }
 
                     acc[category].tasks.push(task);

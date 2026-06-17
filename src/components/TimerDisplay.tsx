@@ -109,7 +109,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
   const { session, updateSession } = useCoOpSession(coOpSessionId || activeTimer?.coOpSessionId);
-  const [timeRemaining, setTimeRemaining] = useState(initialDuration * 60);
+
+  // Check if this task is a breathing/oxygenation task
+  const isBreathingTask = taskName.toLowerCase().includes("breath") || taskName.toLowerCase().includes("oxygen");
+  const effectiveDuration = isBreathingTask ? 3 : initialDuration;
+
+  const [timeRemaining, setTimeRemaining] = useState(effectiveDuration * 60);
   
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -139,7 +144,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Task-Specific Environment Detection
   const isHydrationTask = taskCategory === "Hydration" || taskName.toLowerCase().includes("water") || taskName.toLowerCase().includes("drink") || taskName.toLowerCase().includes("hydrate");
-  const isBreathingTask = taskCategory === "Meditation" || taskCategory === "Health & Wellness" || taskName.toLowerCase().includes("breathe") || taskName.toLowerCase().includes("meditat") || taskName.toLowerCase().includes("oxygen");
+  // isBreathingTask is defined at the top of the function
   const isEyeExerciseTask = taskCategory === "Eye Care" || taskName.toLowerCase().includes("eye") || taskName.toLowerCase().includes("gaze") || taskName.toLowerCase().includes("vision");
 
   // Audio Hooks
@@ -570,13 +575,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             if (!activeTimer || activeTimer.taskName !== taskName) {
               startTimer({
                 taskName,
-                initialDuration,
+                initialDuration: effectiveDuration,
                 category,
                 color,
                 expectedEndTime,
                 coOpSessionId
               });
-              setTimeRemaining(initialDuration * 60);
+              setTimeRemaining(effectiveDuration * 60);
               setIsPaused(false);
               showCompletionNotification(true); // Schedule it!
             } else {
@@ -596,7 +601,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             console.error("Timer initialization failed:", e);
             setSyncComplete(true); // Allow UI to show even if recovery happened
         }
-    }, [taskName, initialDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId]); // Removed activeTimer from deps to prevent re-init loop
+    }, [taskName, effectiveDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId]); // Removed activeTimer from deps to prevent re-init loop
 
     // CO-OP SYNC ENGINE
     useEffect(() => {
@@ -655,7 +660,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
       // Task 3: Interval Alerts - wrap checks within steady interval loops
       if (focusInterval && difference > 0 && expectedEndTimeRef.current) {
-        const elapsedSeconds = initialDuration * 60 - difference;
+        const elapsedSeconds = effectiveDuration * 60 - difference;
         const intervalSeconds = focusInterval * 60;
         const currentIntervalIndex = Math.floor(elapsedSeconds / intervalSeconds);
         
@@ -830,7 +835,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     if (session) {
       updateSession({ status: "finished" });
     }
-    const timeSpentInSeconds = (initialDuration * 60) - timeRemaining;
+    const timeSpentInSeconds = (effectiveDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
     const finalCategory = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
@@ -869,7 +874,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
       duration: actualDuration,
-      initialDuration: initialDuration,
+      initialDuration: effectiveDuration,
       completed: finalCompleted,
       category: finalCategory,
       earnedCoins: earnedCoins,
@@ -956,7 +961,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = (timeRemaining / (initialDuration * 60)) * 100;
+  const progress = (timeRemaining / (effectiveDuration * 60)) * 100;
   const timerColor = 'hsl(var(--primary))';
 
   const hour = currentDate ? currentDate.getHours() : 12;
@@ -1049,7 +1054,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               {(isBreathingTask || isEyeExerciseTask) && (
                 <div className="w-64 sm:w-72 md:w-80 lg:w-[360px] h-36 md:h-44 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col items-center justify-between p-4 relative overflow-hidden">
                   {/* Digital blueprint grid layer */}
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:16px_16px] opacity-75" />
+                  {!isBreathingTask && (
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:16px_16px] opacity-75" />
+                  )}
+                  {isBreathingTask && (
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(circle at center, rgba(245, 158, 11, 0.12) 0%, transparent 65%)',
+                        opacity: breathingPhase === 'hold' ? 1.0 : breathingPhase === 'inhale' ? 0.75 : 0.2,
+                        transform: breathingPhase === 'hold' ? 'scale(1.2)' : breathingPhase === 'inhale' ? 'scale(1.1)' : 'scale(0.85)',
+                        transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    />
+                  )}
                   
                   {isBreathingTask && (
                     <>
@@ -1060,76 +1078,58 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                         {breathingPhase === "exhale" && "Exhale 🌬️"}
                       </div>
 
-                      {/* Lungs Graphic HUD */}
-                      <div className="relative w-full h-[65%] flex items-center justify-between px-8 z-0">
-                        {/* Central Airway / Trachea schematic */}
-                        <div className="absolute left-1/2 top-[10%] bottom-[30%] w-[2px] -translate-x-1/2 pointer-events-none">
-                          <div 
-                            style={{ transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)' }}
-                            className={cn(
-                              "w-full h-2/3 transition-all duration-300",
-                              breathingPhase === 'inhale' && "bg-gradient-to-b from-primary/80 via-primary/55 to-primary/30",
-                              breathingPhase === 'hold' && "bg-primary/60 shadow-[0_0_10px_rgba(245,158,11,0.5)]",
-                              breathingPhase === 'exhale' && "bg-primary/5"
-                            )} 
-                          />
-                          <div 
-                            style={{ transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)' }}
-                            className={cn(
-                              "absolute bottom-1/3 left-1/2 -translate-x-1/2 w-8 h-[2px]",
-                              breathingPhase === 'exhale' ? "bg-primary/5" : "bg-primary/35"
-                            )} 
-                          />
-                        </div>
+                      {/* Modern Flower Mandala Breathing Graphic */}
+                      <div className="relative w-full h-[65%] flex items-center justify-center z-0 overflow-visible">
+                        <div className="relative w-20 h-20 flex items-center justify-center">
+                          {Array.from({ length: 12 }).map((_, i) => {
+                            let translateY = 8;
+                            let scale = 0.75;
+                            let opacity = 0.15;
+                            let rotateExtra = 0;
 
-                        {/* Left Lung Lobe */}
-                        <div 
-                          style={{
-                            transform: breathingPhase === 'inhale' 
-                              ? 'scale(1.2) rotate(-12deg)' 
-                              : breathingPhase === 'hold' 
-                              ? 'scale(1.25) rotate(-14deg)' 
-                              : 'scale(0.85) rotate(-6deg)',
-                            opacity: breathingPhase === 'inhale' ? 0.85 : breathingPhase === 'hold' ? 1.0 : 0.22,
-                            transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
-                          }}
-                          className={cn(
-                            "w-[38%] h-[90%] rounded-[40%_60%_35%_65%_/_48%_40%_60%_52%] border border-primary/20 transition-all duration-300 relative overflow-hidden",
-                            breathingPhase === 'hold' && "border-primary/40 shadow-[0_0_30px_8px_rgba(245,158,11,0.25),inset_0_0_15px_4px_rgba(245,158,11,0.15)] ring-1 ring-primary/20 bg-primary/10",
-                            breathingPhase === 'inhale' && "bg-primary/10 shadow-[0_0_20px_4px_rgba(245,158,11,0.15),inset_0_0_10px_2px_rgba(245,158,11,0.1)]",
-                            breathingPhase === 'exhale' && "bg-primary/5"
-                          )}
-                        >
-                          <div className="absolute inset-[15%] rounded-full border border-primary/10 opacity-45 dashed-border" />
-                          <div className="absolute top-[25%] left-[25%] w-1 h-1 rounded-full bg-primary opacity-50 animate-ping" />
-                        </div>
+                            if (breathingPhase === 'inhale') {
+                              translateY = 32;
+                              scale = 1.25;
+                              opacity = 0.65;
+                              rotateExtra = 30;
+                            } else if (breathingPhase === 'hold') {
+                              translateY = 36;
+                              scale = 1.35;
+                              opacity = 0.85;
+                              rotateExtra = 45;
+                            } else if (breathingPhase === 'exhale') {
+                              translateY = 8;
+                              scale = 0.75;
+                              opacity = 0.15;
+                              rotateExtra = 0;
+                            }
 
-                        {/* Right Lung Lobe */}
-                        <div 
-                          style={{
-                            transform: breathingPhase === 'inhale' 
-                              ? 'scale(1.2) rotate(12deg)' 
-                              : breathingPhase === 'hold' 
-                              ? 'scale(1.25) rotate(14deg)' 
-                              : 'scale(0.85) rotate(6deg)',
-                            opacity: breathingPhase === 'inhale' ? 0.85 : breathingPhase === 'hold' ? 1.0 : 0.22,
-                            transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
-                          }}
-                          className={cn(
-                            "w-[38%] h-[90%] rounded-[60%_40%_65%_35%_/_40%_48%_52%_60%] border border-primary/20 transition-all duration-300 relative overflow-hidden",
-                            breathingPhase === 'hold' && "border-primary/40 shadow-[0_0_30px_8px_rgba(245,158,11,0.25),inset_0_0_15px_4px_rgba(245,158,11,0.15)] ring-1 ring-primary/20 bg-primary/10",
-                            breathingPhase === 'inhale' && "bg-primary/10 shadow-[0_0_20px_4px_rgba(245,158,11,0.15),inset_0_0_10px_2px_rgba(245,158,11,0.1)]",
-                            breathingPhase === 'exhale' && "bg-primary/5"
-                          )}
-                        >
-                          <div className="absolute inset-[15%] rounded-full border border-primary/10 opacity-45 dashed-border" />
-                          <div className="absolute top-[35%] right-[25%] w-1 h-1 rounded-full bg-primary opacity-50 animate-ping" />
+                            const angle = i * (360 / 12) + rotateExtra;
+
+                            return (
+                              <div
+                                key={i}
+                                className="absolute w-12 h-12 rounded-full"
+                                style={{
+                                  transform: `rotate(${angle}deg) translateY(-${translateY}px) scale(${scale})`,
+                                  background: 'radial-gradient(circle at center, rgba(245, 222, 190, 0.28) 0%, rgba(245, 158, 11, 0.08) 60%, rgba(245, 158, 11, 0.01) 100%)',
+                                  border: '1px solid rgba(245, 222, 190, 0.2)',
+                                  mixBlendMode: 'screen',
+                                  opacity: opacity,
+                                  boxShadow: breathingPhase === 'hold' ? '0 0 15px rgba(245, 222, 190, 0.25)' : 'none',
+                                  transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                              />
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {/* HUD Label */}
-                      <div className="text-[9px] font-code tracking-[0.2em] text-primary/40 uppercase mb-1">
-                        HUD RESPIRATORY ACTIVE
+                      {/* Guidance Text */}
+                      <div className="text-[11px] font-medium tracking-wide text-primary/70 animate-pulse mb-1">
+                        {breathingPhase === 'inhale' && "Inhale slowly and deeply..."}
+                        {breathingPhase === 'hold' && "Hold and find stillness..."}
+                        {breathingPhase === 'exhale' && "Release all tension..."}
                       </div>
                     </>
                   )}
