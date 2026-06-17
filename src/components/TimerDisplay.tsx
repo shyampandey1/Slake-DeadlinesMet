@@ -1220,7 +1220,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
               {/* Minimal Clean Timer Dial */}
               <CircularProgress progress={progress} isUIVisible={isUIVisible}>
                 <div className="relative flex flex-col items-center justify-center gap-4 transition-all duration-300">
-                  <div className="font-code text-5xl font-bold sm:text-7xl text-white"
+                  <div className={cn(
+                    "font-code font-bold text-white transition-all duration-300 tracking-tight leading-none",
+                    timeRemaining >= 3600
+                      ? "text-3xl sm:text-4xl md:text-5xl"
+                      : "text-4xl sm:text-5xl md:text-6xl"
+                  )}
                        style={{ textShadow: '0 4px 24px rgba(0,0,0,0.95)' }}>
                     {formatTime(timeRemaining)}
                   </div>
