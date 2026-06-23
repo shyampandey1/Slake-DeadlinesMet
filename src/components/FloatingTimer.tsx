@@ -60,13 +60,16 @@ export default function FloatingTimer() {
   };
 
   const handlePillClick = () => {
-    router.push(
-      `/timer?task=${encodeURIComponent(
-        activeTimer.taskName
-      )}&duration=${activeTimer.initialDuration}&category=${
-        activeTimer.category || ""
-      }&color=${activeTimer.color || ""}`
-    );
+    const params = new URLSearchParams({
+      task: activeTimer.taskName,
+      duration: activeTimer.initialDuration.toString(),
+    });
+    if (activeTimer.category) params.set("category", activeTimer.category);
+    if (activeTimer.color) params.set("color", activeTimer.color);
+    if (activeTimer.coOpSessionId) params.set("coOpSessionId", activeTimer.coOpSessionId);
+    if (activeTimer.expectedEndTime) params.set("expectedEndTime", activeTimer.expectedEndTime.toString());
+
+    router.push(`/timer?${params.toString()}`);
   };
 
   const handlePlayPause = (e: React.MouseEvent) => {

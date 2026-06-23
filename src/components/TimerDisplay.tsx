@@ -572,14 +572,17 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             
             // START our persistent global background timer when the page mounts!
             // But ONLY if one isn't already running for this task or if the task changed
-            if (!activeTimer || activeTimer.taskName !== taskName || activeTimer.coOpSessionId !== coOpSessionId) {
+            const activeCoOpSessionId = activeTimer?.coOpSessionId || undefined;
+            const targetCoOpSessionId = coOpSessionId || undefined;
+
+            if (!activeTimer || activeTimer.taskName !== taskName || activeCoOpSessionId !== targetCoOpSessionId) {
               startTimer({
                 taskName,
                 initialDuration: effectiveDuration,
                 category,
                 color,
                 expectedEndTime,
-                coOpSessionId
+                coOpSessionId: targetCoOpSessionId
               });
               setTimeRemaining(effectiveDuration * 60);
               setIsPaused(false);
