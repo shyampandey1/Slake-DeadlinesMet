@@ -560,12 +560,22 @@ export default function TaskForm() {
                                         size="icon" 
                                         variant="secondary"
                                         className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors"
-                                        onClick={() => {
-                                          form.setValue("taskName", task.name);
-                                          form.setValue("duration", task.duration);
-                                          form.setValue("category", category);
-                                          form.handleSubmit(onSubmit)();
-                                        }}
+                                         onClick={() => {
+                                           let colorVal = undefined;
+                                           const categoryData = mergedTasks[category];
+                                           if (categoryData && categoryData.color) {
+                                             const colorClassMatch = categoryData.color.match(/bg-[a-z]+-\d+/);
+                                             if (colorClassMatch && colorClassMatch[0]) {
+                                               colorVal = colorClassMatch[0];
+                                             }
+                                           }
+                                           triggerTaskStart({
+                                             task: task.name,
+                                             duration: task.duration.toString(),
+                                             category: category,
+                                             color: colorVal
+                                           });
+                                         }}
                                       >
                                         <Play className="w-4 h-4" />
                                       </Button>
