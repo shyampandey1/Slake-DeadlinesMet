@@ -197,6 +197,7 @@ export default function TaskForm() {
     const urlParams = new URLSearchParams({
       task: params.task,
       duration: params.duration,
+      forceRestart: "true",
     });
     if (params.category) urlParams.append("category", params.category);
     if (params.color) urlParams.append("color", params.color);

@@ -75,6 +75,7 @@ interface TimerDisplayProps {
   color?: string;
   expectedEndTime?: number;
   coOpSessionId?: string;
+  forceRestart?: boolean;
 }
 
 type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
@@ -93,7 +94,7 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 };
 
 
-export default function TimerDisplay({ taskName, initialDuration, category, color, expectedEndTime, coOpSessionId }: TimerDisplayProps) {
+export default function TimerDisplay({ taskName, initialDuration, category, color, expectedEndTime, coOpSessionId, forceRestart }: TimerDisplayProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { tasks, addTask } = useTasks();
@@ -562,7 +563,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
         try {
             // Reset state when task params change
-            if (hasInitializedRef.current && (activeTimer?.taskName === taskName)) {
+            if (!forceRestart && hasInitializedRef.current && (activeTimer?.taskName === taskName)) {
                 setSyncComplete(true);
                 return;
             }
@@ -574,8 +575,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             // But ONLY if one isn't already running for this task or if the task changed
             const activeCoOpSessionId = activeTimer?.coOpSessionId || undefined;
             const targetCoOpSessionId = coOpSessionId || undefined;
+            const isExpired = activeTimer && (
+              activeTimer.isPaused 
+                ? (activeTimer.timeLeftWhenPaused !== undefined && activeTimer.timeLeftWhenPaused <= 0)
+                : (activeTimer.expectedEndTime && activeTimer.expectedEndTime <= Date.now())
+            );
 
-            if (!activeTimer || activeTimer.taskName !== taskName || activeCoOpSessionId !== targetCoOpSessionId) {
+            if (forceRestart || !activeTimer || activeTimer.taskName !== taskName || activeCoOpSessionId !== targetCoOpSessionId || isExpired) {
               startTimer({
                 taskName,
                 initialDuration: effectiveDuration,
@@ -604,7 +610,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             console.error("Timer initialization failed:", e);
             setSyncComplete(true); // Allow UI to show even if recovery happened
         }
-    }, [taskName, effectiveDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId]); // Removed activeTimer from deps to prevent re-init loop
+    }, [taskName, effectiveDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId, forceRestart]); // Removed activeTimer from deps to prevent re-init loop
 
     // CO-OP SYNC ENGINE
     useEffect(() => {
