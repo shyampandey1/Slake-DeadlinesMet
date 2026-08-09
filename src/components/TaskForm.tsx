@@ -38,6 +38,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCoOpSession } from "@/hooks/useCoOpSession";
 import { Skeleton } from "./ui/skeleton";
 import TaskDeletion from "./TaskDeletion";
+import { useActiveTimer } from "@/hooks/useActiveTimer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -136,6 +147,64 @@ export default function TaskForm() {
   const { profileData } = useProfile();
   const { createSession, joinSession } = useCoOpSession();
   const [incomingSession, setIncomingSession] = useState<any>(null);
+  const { activeTimer, clearTimer } = useActiveTimer();
+  const [showActiveTimerAlert, setShowActiveTimerAlert] = useState(false);
+  const [pendingStartParams, setPendingStartParams] = useState<{
+    task: string;
+    duration: string;
+    category?: string;
+    color?: string;
+    coOpSessionId?: string;
+    joinSessionId?: string;
+  } | null>(null);
+
+  const triggerTaskStart = (params: {
+    task: string;
+    duration: string;
+    category?: string;
+    color?: string;
+    coOpSessionId?: string;
+    joinSessionId?: string;
+  }) => {
+    if (activeTimer) {
+      setPendingStartParams(params);
+      setShowActiveTimerAlert(true);
+    } else {
+      executeTaskStart(params);
+    }
+  };
+
+  const executeTaskStart = async (params: {
+    task: string;
+    duration: string;
+    category?: string;
+    color?: string;
+    coOpSessionId?: string;
+    joinSessionId?: string;
+  }) => {
+    if (activeTimer) {
+      clearTimer();
+    }
+
+    if (params.joinSessionId) {
+      try {
+        await joinSession(params.joinSessionId);
+      } catch (e) {
+        console.error("Failed to join session:", e);
+      }
+    }
+
+    const urlParams = new URLSearchParams({
+      task: params.task,
+      duration: params.duration,
+    });
+    if (params.category) urlParams.append("category", params.category);
+    if (params.color) urlParams.append("color", params.color);
+    if (params.coOpSessionId) urlParams.append("coOpSessionId", params.coOpSessionId);
+    if (params.joinSessionId && !params.coOpSessionId) urlParams.append("coOpSessionId", params.joinSessionId);
+
+    router.push(`/timer?${urlParams.toString()}`);
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -319,11 +388,7 @@ export default function TaskForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const params = new URLSearchParams({
-      task: values.taskName,
-      duration: values.duration.toString(),
-    });
-
+    let coOpSessionId = undefined;
     if (profileData?.coWorkerId) {
       try {
         const sessionId = await createSession({
@@ -333,26 +398,31 @@ export default function TaskForm() {
           createdBy: user?.uid!
         });
         if (sessionId) {
-          params.append("coOpSessionId", sessionId);
+          coOpSessionId = sessionId;
         }
       } catch (e) {
         console.error("Co-op session creation failed:", e);
       }
     }
 
+    let color = undefined;
     if (values.category) {
       const categoryData = mergedTasks[values.category];
       if (categoryData && categoryData.color) {
         const colorClassMatch = categoryData.color.match(/bg-[a-z]+-\d+/);
         if (colorClassMatch && colorClassMatch[0]) {
-          params.append("color", colorClassMatch[0]);
+          color = colorClassMatch[0];
         }
       }
-      params.append("category", values.category);
     }
-    
-    // Using router.push for smoother SPA-style navigation
-    router.push(`/timer?${params.toString()}`);
+
+    triggerTaskStart({
+      task: values.taskName,
+      duration: values.duration.toString(),
+      category: values.category,
+      color,
+      coOpSessionId,
+    });
   }
 
   const categoriesWithColors = Object.entries(mergedTasks).map(([name, { color }]) => ({ name, color }));
@@ -408,18 +478,12 @@ export default function TaskForm() {
             </div>
             <div className="flex gap-2">
               <Button 
-                onClick={async () => {
-                  try {
-                    await joinSession(incomingSession.id);
-                    const params = new URLSearchParams({
-                      task: incomingSession.taskName,
-                      duration: incomingSession.initialDuration.toString(),
-                      coOpSessionId: incomingSession.id
-                    });
-                    router.push(`/timer?${params.toString()}`);
-                  } catch (e) {
-                    console.error("Failed to join session:", e);
-                  }
+                onClick={() => {
+                  triggerTaskStart({
+                    task: incomingSession.taskName,
+                    duration: incomingSession.initialDuration.toString(),
+                    joinSessionId: incomingSession.id
+                  });
                 }}
                 className="flex-1 bg-black text-[#10b981] hover:bg-black/80 font-black h-10"
               >
@@ -633,6 +697,43 @@ export default function TaskForm() {
         initialTask={taskToEdit}
         categories={categoriesWithColors}
       />
+
+      <AlertDialog open={showActiveTimerAlert} onOpenChange={setShowActiveTimerAlert}>
+        <AlertDialogContent className="bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-6 max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-500 animate-pulse" />
+              Active Session in Progress
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70 text-sm mt-2 leading-relaxed">
+              You are currently focusing on <strong className="text-white font-bold">{activeTimer?.taskName}</strong>. Starting a new task will end this session. Do you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-6">
+            <AlertDialogCancel 
+              className="bg-transparent border border-white/10 hover:bg-white/5 text-white/80 hover:text-white rounded-xl h-11"
+              onClick={() => {
+                setShowActiveTimerAlert(false);
+                setPendingStartParams(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 font-bold shadow-lg shadow-red-600/20"
+              onClick={() => {
+                if (pendingStartParams) {
+                  executeTaskStart(pendingStartParams);
+                }
+                setShowActiveTimerAlert(false);
+                setPendingStartParams(null);
+              }}
+            >
+              Start New Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
