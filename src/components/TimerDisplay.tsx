@@ -51,7 +51,6 @@ import { useHydrationAudio } from "@/hooks/useHydrationAudio";
 import { useBreathingAudio } from "@/hooks/useBreathingAudio";
 import { useEyeExerciseAudio } from "@/hooks/useEyeExerciseAudio";
 import HydrationBackground from "./HydrationBackground";
-import GazeTracker from "./GazeTracker";
 import { 
   Sheet, 
   SheetContent, 
@@ -1267,7 +1266,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                           showCompletionNotification(true);
                         }
                       }}
-                      id="gaze-pause-btn"
                       size="icon"
                       variant="ghost"
                       className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-transform"
@@ -1276,7 +1274,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     </Button>
                     <Button
                       onClick={handleEndEarly}
-                      id="gaze-stop-btn"
                       variant="ghost"
                       size="icon"
                       className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60 active:scale-95 transition-transform"
@@ -1537,35 +1534,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
       {/* Dynamic Hydration Water-Level Background Simulation */}
       {isHydrationTask && <HydrationBackground progress={progress} />}
-
-      {/* Eye-Tracking Camera Gaze Control Interface */}
-      <GazeTracker
-        isUIVisible={isUIVisible}
-        onPauseToggle={() => {
-          const newPaused = !isPaused;
-          setIsPaused(newPaused);
-          updateTimer({ isPaused: newPaused }, timeRemaining);
-          ensureAudioInitialized();
-          
-          if (session) {
-              updateSession({ 
-                  isPaused: newPaused, 
-                  timeLeftWhenPaused: timeRemaining,
-                  status: newPaused ? "waiting" : "running",
-                  expectedEndTime: newPaused ? null : Date.now() + (timeRemaining * 1000)
-              });
-          }
-
-          if (newPaused) {
-            cancelScheduledNotification();
-          } else {
-            showCompletionNotification(true);
-          }
-        }}
-        onStop={handleEndEarly}
-        onSkip={handleSkipTask}
-        isPaused={isPaused}
-      />
     </main>
   );
 }
