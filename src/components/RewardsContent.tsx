@@ -187,14 +187,10 @@ export function RewardsContent() {
   };
 
   const handleRedeemClick = (item: any) => {
-      if (item.id === 1) {
-          setSelectedReward(item);
-          setRedemptionModalOpen(true);
-          setRedemptionSuccess(false);
-          setUpiId("");
-      } else {
-          alert(`Redemption for ${item.name} is coming soon!`);
-      }
+      setSelectedReward(item);
+      setRedemptionModalOpen(true);
+      setRedemptionSuccess(false);
+      setUpiId("");
   };
 
   const submitRedemption = async () => {
@@ -202,10 +198,14 @@ export function RewardsContent() {
       setIsRedeeming(true);
       try {
           const { addDoc, collection, serverTimestamp, doc, updateDoc, increment } = await import("firebase/firestore");
+          
+          const userName = profileData?.displayName || user.displayName || "Anonymous";
+          const userEmail = profileData?.email || user.email || "No Email";
+
           await addDoc(collection(db, "redemption_requests"), {
               userId: user.uid,
-              userName: profileData?.displayName || "Anonymous",
-              userEmail: profileData?.email || user.email,
+              userName,
+              userEmail,
               amount: selectedReward.credits / 1000,
               creditsRedeemed: selectedReward.credits,
               upiId: upiId.trim(),
@@ -213,6 +213,46 @@ export function RewardsContent() {
               timestamp: serverTimestamp(),
               rewardName: selectedReward.name
           });
+
+          // Add to admin_notifications collection in Firestore
+          try {
+              await addDoc(collection(db, "admin_notifications"), {
+                  type: "REDEMPTION_REQUEST",
+                  title: `🎁 Redemption: ${selectedReward.name}`,
+                  message: `${userName} (${userEmail}) redeemed ${selectedReward.name} for ${selectedReward.credits.toLocaleString()} DM Coins. UPI ID: ${upiId.trim()}`,
+                  userId: user.uid,
+                  userName,
+                  userEmail,
+                  rewardName: selectedReward.name,
+                  creditsRedeemed: selectedReward.credits,
+                  amount: selectedReward.credits / 1000,
+                  upiId: upiId.trim(),
+                  timestamp: serverTimestamp(),
+                  read: false
+              });
+          } catch (e) {
+              console.error("Error creating admin_notification doc:", e);
+          }
+
+          // Trigger server API to send FCM Push Notification & chat message to Admin Shyam Pandey
+          try {
+              fetch("/api/notify-admin-redemption", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                      userId: user.uid,
+                      userName,
+                      userEmail,
+                      rewardName: selectedReward.name,
+                      amount: selectedReward.credits / 1000,
+                      creditsRedeemed: selectedReward.credits,
+                      upiId: upiId.trim()
+                  })
+              }).catch(err => console.error("API notification error:", err));
+          } catch (apiErr) {
+              console.error("Failed to trigger admin notification API:", apiErr);
+          }
+
           const newBalance = credits - selectedReward.credits;
           setCredits(newBalance);
           updateUserProfileData({ slakeCredits: newBalance, slakeBalance: newBalance });

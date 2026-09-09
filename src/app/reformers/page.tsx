@@ -652,6 +652,30 @@ function ReformersPageContent() {
     const reformersStatus = profileData?.reformersStatus || null;
     const isAdmin = profileData?.displayName?.toLowerCase() === "shyam pandey" || profileData?.email === "shyamp028@gmail.com" || user?.email === "shyamp028@gmail.com" || profileData?.isReformersAdmin;
     const [adminModalOpen, setAdminModalOpen] = useState(false);
+    const [redemptionRequests, setRedemptionRequests] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+        try {
+            const q = query(collection(db, "redemption_requests"), orderBy("timestamp", "desc"));
+            const unsub = onSnapshot(q, (snap) => {
+                const reqs: any[] = [];
+                snap.forEach(d => reqs.push({ id: d.id, ...d.data() }));
+                setRedemptionRequests(reqs);
+            });
+            return () => unsub();
+        } catch (e) {
+            console.error("Failed to load redemption requests:", e);
+        }
+    }, [isAdmin]);
+
+    const markRedemptionCompleted = async (reqId: string) => {
+        try {
+            await updateDoc(doc(db, "redemption_requests", reqId), { status: "completed" });
+        } catch (e) {
+            console.error("Error marking redemption as completed:", e);
+        }
+    };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -1001,6 +1025,33 @@ function ReformersPageContent() {
                                             </div>
                                         ))}
                                         {liveMembers.filter(m => m.reformersStatus === 'pending').length === 0 && <p className="text-sm text-gray-500 bg-muted/20 p-4 rounded-lg">No pending requests.</p>}
+
+                                        <h3 className="font-bold text-sm text-yellow-400 uppercase tracking-widest mt-6 flex items-center gap-2">
+                                            <Gift className="w-4 h-4 text-amber-400" /> Reward Redemption Requests ({redemptionRequests.filter(r => r.status !== 'completed').length} Pending)
+                                        </h3>
+                                        {redemptionRequests.length > 0 ? (
+                                            redemptionRequests.map(r => (
+                                                <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-border rounded-xl bg-muted/20 gap-2">
+                                                    <div>
+                                                        <p className="font-bold text-sm text-white">{r.userName || "Anonymous"} <span className="text-xs font-normal text-gray-400">({r.userEmail || "No Email"})</span></p>
+                                                        <p className="text-xs text-amber-400 font-semibold">{r.rewardName} • {r.creditsRedeemed ? Number(r.creditsRedeemed).toLocaleString() : (r.amount * 1000).toLocaleString()} Coins</p>
+                                                        {r.upiId && <p className="text-xs font-mono text-emerald-400 mt-0.5">UPI ID: {r.upiId}</p>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <Badge variant={r.status === 'completed' ? 'default' : 'secondary'} className={r.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}>
+                                                            {r.status === 'completed' ? 'Paid' : 'Pending'}
+                                                        </Badge>
+                                                        {r.status !== 'completed' && (
+                                                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs" onClick={() => markRedemptionCompleted(r.id)}>
+                                                                Mark Paid
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-gray-500 bg-muted/20 p-4 rounded-lg">No redemption requests recorded yet.</p>
+                                        )}
 
                                         <h3 className="font-bold text-sm text-gray-400 uppercase tracking-widest mt-6">Manage Members (Enrolled)</h3>
                                         {liveMembers.filter(m => m.isEnrolled).map(m => (
