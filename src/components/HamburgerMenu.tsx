@@ -31,6 +31,15 @@ import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info
 
 const changelog = [
   {
+      version: "v1.8",
+      date: "Day 9",
+      features: [
+        { name: "Admin Redemption Alerts", description: "Real-time FCM push & system notifications sent to Shyam Pandey upon reward redemption.", icon: "trophy" },
+        { name: "Native App UI Feel", description: "Disabled webpage-style text selection and drag callouts for a clean native app experience.", icon: "palette" },
+        { name: "Timer Interface Refinement", description: "Streamlined timer screen interface and optimized control bindings.", icon: "layers" },
+      ]
+  },
+  {
       version: "v1.7",
       date: "Day 8",
       features: [
