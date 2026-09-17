@@ -171,6 +171,7 @@ export type UserProfile = {
         streakExpiryWarning: boolean;
         hydrationReminders: boolean;
         dailySummary: boolean;
+        taskReminders?: boolean;
     };
     fcmTokens?: string[];
 };

@@ -43,6 +43,18 @@ DeadlinesMet (Slake) is not just a timer; it's a comprehensive discipline ecosys
 *   **Profession-Specific Routines:** Specialized templates for Software Engineers, Creatives, Doctors, Entrepreneurs, Students, and more.
 *   **Routine Enrichment:** Automatic injection of critical health breaks, including hydration reminders and eye-strain exercises.
 
+### 🛡️ Zero-Knowledge Data Privacy & End-to-End Encryption (E2EE)
+*   **Client-Side AES-GCM 256-Bit Encryption:** All personal task names, calendar events, active focus sessions, and direct messages are encrypted directly on the client using the browser's native Web Crypto API before being transmitted to the cloud.
+*   **Complete Admin Inaccessibility:** Cloud Firestore only ever stores encrypted ciphertexts (`enc:v1:...`). Even Firebase Console viewers, project owners, and database administrators cannot read what users are working on, scheduling, or discussing.
+*   **Pairwise Encrypted Messaging:** Direct messages between Reformers League members are encrypted using derived shared conversation secrets, ensuring only the two participants in a chat can read the messages.
+*   **Strict Security Rules:** Granular Firestore security rules restrict all private subcollections (`/tasks`, `/userEvents`, `/userPresetTasks`) strictly to the authenticated document owner.
+
+### 🔔 Multi-Tier Task Notification Engine
+*   **Guaranteed Notification Delivery:** Tri-layer notification architecture designed to work reliably across all modern browsers and operating systems (Chrome, Safari, Firefox, Edge, iOS, Android).
+*   **In-App Precision Scheduler:** Real-time client scheduler that tracks today's upcoming calendar events with a periodic 30-second sweep to fire alerts right when tasks begin.
+*   **Service Worker Background Timers:** Active focus sessions communicate directly with `sw.js` to trigger "Session Complete!" notifications accurately, even when tabs are throttled, backgrounded, or minimized.
+*   **Hourly Server-Side Cloud Push:** Automated hourly cron triggers via GitHub Actions and Vercel Cron query upcoming deadlines and dispatch FCM multicast notifications directly to user devices.
+
 ### 🎧 Immersive Experience
 *   **Focus Soundscapes:** High-fidelity ambient audio (White Noise, Nature, Deep Space) powered by **Tone.js** and **Howler.js**.
 *   **Dynamic UI:** A fluid, premium interface built with **Framer Motion** and **Shadcn UI**.

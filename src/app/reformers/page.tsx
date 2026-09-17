@@ -1,3 +1,4 @@
+import { encryptText, decryptText } from '@/lib/crypto';
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
@@ -513,21 +514,25 @@ function ReformersPageContent() {
     useEffect(() => {
         if (chatMode && selectedUser && user?.uid) {
             const qMerge = query(collection(db, "messages"), orderBy("timestamp", "asc"));
-            const unsubMerge = onSnapshot(qMerge, (snap) => {
+            const currentUid = profileData?.userId || user.uid;
+            const sharedSeed = [currentUid, selectedUser.id].sort().join(':');
+
+            const unsubMerge = onSnapshot(qMerge, async (snap) => {
                 const msgs: any[] = [];
-                snap.forEach(doc => {
+                for (const doc of snap.docs) {
                     const d = doc.data();
-                    if ((d.senderId === profileData?.userId && d.receiverId === selectedUser.id) ||
-                        (d.senderId === selectedUser.id && d.receiverId === profileData?.userId)) {
-                        msgs.push({ id: doc.id, ...d });
+                    if ((d.senderId === currentUid && d.receiverId === selectedUser.id) ||
+                        (d.senderId === selectedUser.id && d.receiverId === currentUid)) {
+                        const plainText = await decryptText(d.text, sharedSeed);
+                        msgs.push({ id: doc.id, ...d, text: plainText });
                     }
-                });
+                }
                 setConversation(msgs);
             });
 
             return () => unsubMerge();
         }
-    }, [chatMode, selectedUser, user?.uid]);
+    }, [chatMode, selectedUser, user?.uid, profileData?.userId]);
 
     const handleEnroll = async () => {
         if (!user) return;
@@ -729,11 +734,14 @@ function ReformersPageContent() {
         e.preventDefault();
         if (!messageText.trim() || !selectedUser || !user?.uid) return;
 
+        const currentUid = profileData?.userId || user.uid;
+        const sharedSeed = [currentUid, selectedUser.id].sort().join(':');
         try {
+            const encryptedText = await encryptText(messageText.trim(), sharedSeed);
             await addDoc(collection(db, "messages"), {
-                senderId: profileData?.userId || user.uid,
+                senderId: currentUid,
                 receiverId: selectedUser.id,
-                text: messageText.trim(),
+                text: encryptedText,
                 timestamp: serverTimestamp()
             });
             setMessageText("");

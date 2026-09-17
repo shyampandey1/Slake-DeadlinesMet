@@ -439,22 +439,25 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   const cancelScheduledNotification = useCallback(async () => {
     if (!('serviceWorker' in navigator)) return;
-    const registration = await navigator.serviceWorker.ready;
-    const notifications = await registration.getNotifications({ tag: 'timer-done' });
-    notifications.forEach(n => n.close());
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_TIMER' });
+    }
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const notifications = await registration.getNotifications({ tag: 'timer-done' });
+      notifications.forEach(n => n.close());
+    } catch (e) {}
   }, []);
 
   const showCompletionNotification = useCallback(async (isScheduled = false) => {
     if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
 
-    const registration = await navigator.serviceWorker.ready;
-    
     const notificationOptions: any = {
       body: `Time's up! You've finished: ${taskName}`,
       icon: "/icon.svg",
       badge: "/icon.svg",
       tag: "timer-done",
-      vibrate: [200, 100, 200],
+      vibrate: [300, 100, 300],
       data: {
         url: window.location.href.includes('?') ? `${window.location.href}&from_notification=true` : `${window.location.href}?from_notification=true`,
         type: "TIMER",
@@ -463,20 +466,43 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     };
 
     if (isScheduled) {
+      const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SCHEDULE_TIMER',
+          taskName: taskName,
+          endTime: triggerTime
+        });
+      }
+
       const isTriggerSupported = typeof window !== 'undefined' && 'Notification' in window && 'showTrigger' in Notification.prototype;
       if (offlineNotificationsEnabled && isTriggerSupported && typeof (window as any).TimestampTrigger !== 'undefined') {
-        const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
-        // @ts-ignore
-        notificationOptions.showTrigger = new (window as any).TimestampTrigger(triggerTime);
-      } else {
-        return; // Browser doesn't support background triggers or they are disabled
+        try {
+          // @ts-ignore
+          notificationOptions.showTrigger = new (window as any).TimestampTrigger(triggerTime);
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification("Session Complete!", notificationOptions);
+        } catch (e) {
+          console.warn("Native TimestampTrigger failed", e);
+        }
       }
+      return;
     }
 
     try {
-      await registration.showNotification("Session Complete!", notificationOptions);
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification("Session Complete!", notificationOptions);
+        return;
+      }
     } catch (e) {
-      console.warn("Failed to show/schedule notification", e);
+      console.warn("Service worker showNotification fallback", e);
+    }
+
+    try {
+      new Notification("Session Complete!", notificationOptions);
+    } catch (fallbackErr) {
+      console.warn("Notification constructor fallback failed", fallbackErr);
     }
   }, [taskName, offlineNotificationsEnabled]);
 

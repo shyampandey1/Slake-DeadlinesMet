@@ -1,4 +1,5 @@
 const CACHE_NAME = 'slake-offline-cache-v2';
+const scheduledTimers = new Map();
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -19,19 +20,88 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Communication channel for background timers & task schedules
+self.addEventListener("message", (event) => {
+  if (!event.data) return;
+
+  // 1. Active Focus Session Timer Scheduling
+  if (event.data.type === "SCHEDULE_TIMER") {
+    const { taskName, endTime } = event.data;
+    if (scheduledTimers.has("active-timer")) {
+      clearTimeout(scheduledTimers.get("active-timer"));
+    }
+    const delay = Math.max(0, endTime - Date.now());
+    const timerId = setTimeout(() => {
+      self.registration.showNotification("Session Complete!", {
+        body: `Time's up! You've finished: ${taskName || 'Focus Session'}`,
+        icon: "/icon.svg",
+        badge: "/icon.svg",
+        tag: "timer-done",
+        vibrate: [200, 100, 200],
+        data: {
+          url: "/timer?from_notification=true",
+          type: "TIMER",
+        },
+        requireInteraction: true,
+      });
+      scheduledTimers.delete("active-timer");
+    }, delay);
+    scheduledTimers.set("active-timer", timerId);
+  }
+
+  // 2. Cancel Active Timer Notification
+  if (event.data.type === "CANCEL_TIMER") {
+    if (scheduledTimers.has("active-timer")) {
+      clearTimeout(scheduledTimers.get("active-timer"));
+      scheduledTimers.delete("active-timer");
+    }
+  }
+
+  // 3. Scheduled Calendar Task Alert
+  if (event.data.type === "SCHEDULE_TASK") {
+    const { id, name, time, duration } = event.data;
+    const tag = `task-${id}`;
+    if (scheduledTimers.has(tag)) {
+      clearTimeout(scheduledTimers.get(tag));
+    }
+    const delay = Math.max(0, time - Date.now());
+    const timerId = setTimeout(() => {
+      self.registration.showNotification(`Upcoming Task: ${name}`, {
+        body: `Your scheduled task "${name}" (${duration || 25} min) starts now!`,
+        icon: "/icon.svg",
+        badge: "/icon.svg",
+        tag: tag,
+        vibrate: [200, 100, 200],
+        data: {
+          url: "/calendar?from_notification=true",
+          type: "CALENDAR",
+        },
+        requireInteraction: true,
+      });
+      scheduledTimers.delete(tag);
+    }, delay);
+    scheduledTimers.set(tag, timerId);
+  }
+});
+
+// Incoming Web Push Notifications (including Firebase Cloud Messaging)
 self.addEventListener("push", (event) => {
   if (event.data) {
     try {
       const payload = event.data.json();
       
-      const title = payload.title || "DeadlinesMet Notifications";
+      const title = payload.notification?.title || payload.data?.title || payload.title || "DeadlinesMet Notifications";
+      const body = payload.notification?.body || payload.data?.body || payload.body || "Time to focus!";
+      const targetUrl = payload.data?.url || payload.url || "/";
+
       const options = {
-        body: payload.body || "Time to focus!",
-        icon: "/icon", // Using the new clock icon
-        badge: "/icon",
+        body: body,
+        icon: "/icon.svg",
+        badge: "/icon.svg",
+        vibrate: [200, 100, 200],
         data: {
-          // If the payload contains a 'url', we store it entirely here to navigate the client on click
-          url: payload.url || "/",
+          url: targetUrl,
+          type: payload.data?.type || payload.type || "DEFAULT",
         },
       };
 

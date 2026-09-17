@@ -9,7 +9,7 @@ service cloud.firestore {
       );
     }
 
-    // Leaderboard access: any logged-in user can read profiles, but only write their own OR if admin
+    // Leaderboard & User Profiles
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && (request.auth.uid == userId || isAdmin());
@@ -20,23 +20,33 @@ service cloud.firestore {
       );
       allow delete: if isAdmin();
       
-      // Specific exceptions for follow feature:
-      // Allow any logged-in user to write their own follower record in another user's followers subcollection
+      // Follow feature exceptions:
       match /user_followers/{followerId} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && (request.auth.uid == followerId || isAdmin());
       }
 
-      // Allow any logged-in user to write their own following record in their own following subcollection
       match /user_following/{followingId} {
         allow read: if request.auth != null;
         allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
       }
       
-      // Strict access to all other subcollections (sensitive tasks, calendar events, streaks mapping)
+      // Strict access to private subcollections (tasks, calendar events, routines)
+      // Only the authenticated owner can read or write their personal productivity data
+      match /tasks/{taskId} {
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
+
+      match /userEvents/{eventId} {
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
+
+      match /userPresetTasks/{presetTaskId} {
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
+
       match /{allSubcollections=**} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
       }
     }
 
@@ -46,9 +56,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Direct Messages system
+    // Direct Messages: Only conversation participants can access
     match /messages/{messageId} {
-      allow read, write: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.senderId;
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.senderId || 
+        request.auth.uid == resource.data.receiverId ||
+        isAdmin()
+      );
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == resource.data.senderId ||
+        isAdmin()
+      );
     }
 
     // Cross-Device Active Sessions
@@ -66,6 +85,16 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
       );
       allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+    }
+
+    // Reward Redemption Requests
+    match /redemption_requests/{requestId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Admin Notifications
+    match /admin_notifications/{notifId} {
+      allow read, write: if request.auth != null;
     }
     
     // Deny access to everything else by default

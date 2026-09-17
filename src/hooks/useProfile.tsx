@@ -1,3 +1,4 @@
+import { decryptText } from '@/lib/crypto';
 
 "use client";
 
@@ -249,17 +250,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
          snap.docChanges().forEach((change) => {
              if (change.type === 'added') {
                  const msgData = change.doc.data();
-                 if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-                     navigator.serviceWorker.ready.then((reg) => {
-                         reg.showNotification("New Reformers Message", {
-                             body: msgData.text ? (msgData.text.length > 40 ? msgData.text.substring(0, 40) + "..." : msgData.text) : "Someone sent you a text.",
-                             icon: "/icon.svg",
-                             badge: "/icon.svg",
-                             tag: `msg-${change.doc.id}`,
-                             data: { url: "/reformers?from_notification=true" }
-                         });
-                     }).catch(e => console.warn(e));
-                 }
+                 const sharedSeed = [user.uid, msgData.senderId].sort().join(':');
+                 decryptText(msgData.text, sharedSeed).then((decryptedText) => {
+                     const displayBody = decryptedText ? (decryptedText.length > 40 ? decryptedText.substring(0, 40) + "..." : decryptedText) : "Someone sent you a text.";
+                     if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+                         navigator.serviceWorker.ready.then((reg) => {
+                             reg.showNotification("New Reformers Message", {
+                                 body: displayBody,
+                                 icon: "/icon.svg",
+                                 badge: "/icon.svg",
+                                 tag: `msg-${change.doc.id}`,
+                                 data: { url: "/reformers?from_notification=true" }
+                             });
+                         }).catch(e => console.warn(e));
+                     }
+                 });
              }
          });
      });

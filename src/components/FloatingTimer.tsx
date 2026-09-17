@@ -41,6 +41,26 @@ export default function FloatingTimer() {
       setTimeRemaining(remaining);
       if (remaining <= 0) {
         clearInterval(interval);
+        const dedupeKey = `notified_floating_${activeTimer.expectedEndTime}`;
+        if (sessionStorage.getItem(dedupeKey) !== "true") {
+          sessionStorage.setItem(dedupeKey, "true");
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            const taskTitle = activeTimer.taskName;
+            if ("serviceWorker" in navigator) {
+              navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification("Session Complete!", {
+                  body: `Time's up! You've finished: ${taskTitle}`,
+                  icon: "/icon.svg",
+                  badge: "/icon.svg",
+                  tag: "timer-done",
+                  vibrate: [300, 100, 300],
+                  data: { url: "/timer?from_notification=true", type: "TIMER" },
+                  requireInteraction: true,
+                });
+              }).catch(() => {});
+            }
+          }
+        }
       }
     }, 1000);
 

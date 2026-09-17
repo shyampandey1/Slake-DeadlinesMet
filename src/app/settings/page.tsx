@@ -71,6 +71,7 @@ function SettingsPageComponent() {
     const [isSavingHealth, setIsSavingHealth] = useState(false);
 
     // Notification Preferences
+    const [taskReminders, setTaskReminders] = useState(profileData?.notificationSettings?.taskReminders ?? true);
     const [streakExpiryWarning, setStreakExpiryWarning] = useState(profileData?.notificationSettings?.streakExpiryWarning ?? true);
     const [hydrationReminders, setHydrationReminders] = useState(profileData?.notificationSettings?.hydrationReminders ?? true);
     const [dailySummary, setDailySummary] = useState(profileData?.notificationSettings?.dailySummary ?? true);
@@ -87,6 +88,7 @@ function SettingsPageComponent() {
             setHeight(profileData.height || 0);
             setAvgBP(profileData.averageBP || "120/80");
             setGoogleFitConnected(profileData.googleFitConnected || false);
+            setTaskReminders(profileData.notificationSettings?.taskReminders ?? true);
             setStreakExpiryWarning(profileData.notificationSettings?.streakExpiryWarning ?? true);
             setHydrationReminders(profileData.notificationSettings?.hydrationReminders ?? true);
             setDailySummary(profileData.notificationSettings?.dailySummary ?? true);
@@ -243,7 +245,8 @@ function SettingsPageComponent() {
                 notificationSettings: {
                     streakExpiryWarning,
                     hydrationReminders,
-                    dailySummary
+                    dailySummary,
+                    taskReminders
                 }
             });
             toast({ title: "Preferences Saved", description: "Your notification settings have been updated." });
@@ -374,6 +377,21 @@ function SettingsPageComponent() {
                             </div>
 
                             <div className="pt-4 border-t border-border/50 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <Label className="font-medium flex items-center gap-2">
+                                            ⏰ Task Reminders & Deadlines
+                                        </Label>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Receive notifications when scheduled tasks and focus sessions are starting.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={taskReminders}
+                                        onCheckedChange={setTaskReminders}
+                                    />
+                                </div>
+
                                 <div className="flex items-center justify-between">
                                     <div className="flex flex-col gap-1">
                                         <Label className="font-medium flex items-center gap-2">

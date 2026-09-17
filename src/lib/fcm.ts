@@ -1,6 +1,6 @@
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 import { app, db } from "./firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 
 export const requestFirebaseNotificationPermission = async (userId: string) => {
   try {
@@ -13,15 +13,28 @@ export const requestFirebaseNotificationPermission = async (userId: string) => {
     const messaging = getMessaging(app);
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
+      let swRegistration: ServiceWorkerRegistration | undefined;
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        try {
+          swRegistration = await navigator.serviceWorker.ready;
+        } catch (e) {
+          console.warn("Could not retrieve ready service worker registration", e);
+        }
+      }
+
       const token = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "YOUR_VAPID_KEY", 
+        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+        serviceWorkerRegistration: swRegistration,
       });
 
       if (token) {
-        // Save the token to Firestore
+        // Save token to Firestore in both fcmTokens (array) and fcmToken (legacy string)
         const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, { fcmToken: token });
-        console.log("FCM Token registered:", token);
+        await updateDoc(userRef, {
+          fcmToken: token,
+          fcmTokens: arrayUnion(token),
+        });
+        console.log("FCM Token registered and synchronized:", token);
         return token;
       }
     }

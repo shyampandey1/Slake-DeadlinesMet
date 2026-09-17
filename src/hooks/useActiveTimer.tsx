@@ -1,3 +1,4 @@
+import { encryptText, decryptText } from '@/lib/crypto';
 
 "use client";
 
@@ -95,19 +96,21 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                     expectedEndTime = now + (timeLeftWhenPaused * 1000); // Shift expected end time if it resumes now
                 }
 
-                const newTimer: ActiveTimer = {
-                    taskName: data.currentTaskId || 'Untitled Task',
-                    expectedEndTime: expectedEndTime,
-                    initialDuration: Math.round(durationMillis / 60000),
-                    category: data.category,
-                    color: data.color,
-                    isPaused: isPaused,
-                    coOpSessionId: data.coOpSessionId,
-                    timeLeftWhenPaused: timeLeftWhenPaused
-                };
+                decryptText(data.currentTaskId, user.uid).then(decryptedName => {
+                    const newTimer: ActiveTimer = {
+                        taskName: decryptedName || 'Untitled Task',
+                        expectedEndTime: expectedEndTime,
+                        initialDuration: Math.round(durationMillis / 60000),
+                        category: data.category,
+                        color: data.color,
+                        isPaused: isPaused,
+                        coOpSessionId: data.coOpSessionId,
+                        timeLeftWhenPaused: timeLeftWhenPaused
+                    };
 
-                setActiveTimer(newTimer);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(newTimer));
+                    setActiveTimer(newTimer);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(newTimer));
+                }).catch(() => {});
             }
         });
 
@@ -132,18 +135,20 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                     ? now - (durationMillis - (timer.timeLeftWhenPaused || 0) * 1000)
                     : timer.expectedEndTime - durationMillis;
 
-                const payload = {
-                    currentTaskId: timer.taskName,
-                    status: timer.isPaused ? 'paused' : 'running',
-                    startedAt: new Date(startedAtMillis), // Firestore handles JS Dates natively when setting docs
-                    durationMillis: durationMillis,
-                    pausedAtMillis: timer.isPaused ? now : null,
-                    category: timer.category || null,
-                    color: timer.color || null,
-                    coOpSessionId: timer.coOpSessionId || null
-                };
+                encryptText(timer.taskName, user.uid).then(encryptedName => {
+                    const payload = {
+                        currentTaskId: encryptedName,
+                        status: timer.isPaused ? 'paused' : 'running',
+                        startedAt: new Date(startedAtMillis), // Firestore handles JS Dates natively when setting docs
+                        durationMillis: durationMillis,
+                        pausedAtMillis: timer.isPaused ? now : null,
+                        category: timer.category || null,
+                        color: timer.color || null,
+                        coOpSessionId: timer.coOpSessionId || null
+                    };
 
-                setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
+                    setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
+                }).catch(() => {});
             }
         } else {
             localStorage.removeItem(STORAGE_KEY);
@@ -206,18 +211,20 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                     ? now - (durationMillis - (updated.timeLeftWhenPaused || 0) * 1000)
                     : updated.expectedEndTime - durationMillis;
 
-                const payload = {
-                    currentTaskId: updated.taskName,
-                    status: updated.isPaused ? 'paused' : 'running',
-                    startedAt: new Date(startedAtMillis),
-                    durationMillis: durationMillis,
-                    pausedAtMillis: updated.isPaused ? now : null,
-                    category: updated.category || null,
-                    color: updated.color || null,
-                    coOpSessionId: updated.coOpSessionId || null
-                };
+                encryptText(updated.taskName, user.uid).then(encryptedName => {
+                    const payload = {
+                        currentTaskId: encryptedName,
+                        status: updated.isPaused ? 'paused' : 'running',
+                        startedAt: new Date(startedAtMillis),
+                        durationMillis: durationMillis,
+                        pausedAtMillis: updated.isPaused ? now : null,
+                        category: updated.category || null,
+                        color: updated.color || null,
+                        coOpSessionId: updated.coOpSessionId || null
+                    };
 
-                setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
+                    setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
+                }).catch(() => {});
             }
             return updated;
         });

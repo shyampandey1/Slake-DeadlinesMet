@@ -1,3 +1,4 @@
+import { encryptText, decryptText } from '@/lib/crypto';
 
 
 
@@ -65,11 +66,11 @@ export function useTasks() {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       try {
           const userTasks: Task[] = [];
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
+          for (const docSnapshot of querySnapshot.docs) {
+            const data = docSnapshot.data();
             let createdAt = new Date().toISOString();
             if (data.createdAt) {
                 if (typeof data.createdAt.toDate === 'function') {
@@ -80,8 +81,9 @@ export function useTasks() {
                     createdAt = data.createdAt.toISOString();
                 }
             }
-            userTasks.push({ id: doc.id, ...data, createdAt } as Task);
-          });
+            const decryptedName = await decryptText(data.name, user.uid);
+            userTasks.push({ id: docSnapshot.id, ...data, name: decryptedName, createdAt } as Task);
+          }
           setTasks(userTasks);
     
           // --- LOGBOOK STREAK SYNC ---
@@ -242,7 +244,8 @@ export function useTasks() {
       return;
     }
 
-    await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, createdAt: Timestamp.now()});
+    const encryptedName = await encryptText(task.name, user.uid);
+    await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
   };
 
   const clearTasks = async () => {
@@ -285,11 +288,12 @@ export function useTasks() {
             const batch = writeBatch(db);
             const ref = collection(db, 'users', user.uid, 'tasks');
             
-            tasksToSync.forEach(task => {
+            for (const task of tasksToSync) {
               const docRef = doc(ref);
-              const { id, createdAt, ...data } = task as any; 
-              batch.set(docRef, { ...data, createdAt: Timestamp.now() });
-            });
+              const { id, createdAt, ...data } = task as any;
+              const encryptedName = await encryptText(data.name, user.uid);
+              batch.set(docRef, { ...data, name: encryptedName, createdAt: Timestamp.now() });
+            }
             
             await batch.commit();
             
@@ -453,8 +457,13 @@ export function usePresetTasks() {
                 
                 setPresetTasks(sortedPreset);
             } else {
-                const newPreset = snapshot.docs.reduce((acc: Preset, docSnapshot) => {
+                const decryptedDocs = await Promise.all(snapshot.docs.map(async docSnapshot => {
                     const task = { id: docSnapshot.id, ...docSnapshot.data() } as UserPresetTask;
+                    task.name = await decryptText(task.name, user.uid);
+                    return task;
+                }));
+
+                const newPreset = decryptedDocs.reduce((acc: Preset, task) => {
                     const category = task.category || 'Default';
                     if (!acc[category]) {
                         acc[category] = { color: categoryConfig[category]?.color || categoryConfig['Default'].color, tasks: [] };
@@ -588,9 +597,10 @@ export function usePresetTasks() {
         return;
     }
 
-    // Strip temp ID before sending to Firebase
+    // Strip temp ID and encrypt name before sending to Firebase
     const { id, ...firebaseTask } = newTask;
-    await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), firebaseTask);
+    const encryptedName = await encryptText(firebaseTask.name, user.uid);
+    await addDoc(collection(db, 'users', user.uid, 'userPresetTasks'), { ...firebaseTask, name: encryptedName });
   };
 
   const updatePresetTask = async (taskId: string, taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }) => {
@@ -646,7 +656,11 @@ export function usePresetTasks() {
         return;
     }
 
-    await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), taskData);
+    const payload = { ...taskData };
+    if (payload.name) {
+      payload.name = await encryptText(payload.name, user.uid);
+    }
+    await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), payload);
   };
 
   const deletePresetTask = async (taskId: string) => {
@@ -956,12 +970,13 @@ export function useCalendarEvents() {
       orderBy('date', 'asc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const userEvents = snapshot.docs.map(doc => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const userEvents = await Promise.all(snapshot.docs.map(async doc => {
         const data = doc.data();
         const eventDate = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
-        return { id: doc.id, ...data, date: eventDate } as UserEvent
-      });
+        const decryptedName = await decryptText(data.name, user.uid);
+        return { id: doc.id, ...data, name: decryptedName, date: eventDate } as UserEvent;
+      }));
       setEvents(userEvents);
       try {
         localStorage.setItem(cacheKey, JSON.stringify(userEvents));
@@ -994,7 +1009,9 @@ export function useCalendarEvents() {
       return;
     }
 
-    await addDoc(collection(db, 'users', user.uid, 'userEvents'), newEventData);
+    const encryptedName = await encryptText(eventData.name, user.uid);
+    const finalEventData = { ...newEventData, name: encryptedName };
+    await addDoc(collection(db, 'users', user.uid, 'userEvents'), finalEventData);
   };
 
   const deleteEvent = async (eventId: string) => {
@@ -1027,11 +1044,12 @@ export function useCalendarEvents() {
           if (eventsToSync.length > 0) {
             const batch = writeBatch(db);
             const ref = collection(db, 'users', user.uid, 'userEvents');
-            eventsToSync.forEach(ev => {
+            for (const ev of eventsToSync) {
               const docRef = doc(ref);
               const { id, ...data } = ev as any;
-              batch.set(docRef, data);
-            });
+              const encryptedName = await encryptText(data.name, user.uid);
+              batch.set(docRef, { ...data, name: encryptedName });
+            }
             await batch.commit();
             
             const cleanEvents = cachedEvents.filter(e => !e.id.startsWith('local_'));

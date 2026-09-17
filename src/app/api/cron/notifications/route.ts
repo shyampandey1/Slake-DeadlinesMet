@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 import { UserProfile } from '@/types';
+import { decryptText } from '@/lib/crypto';
 
 function initAdmin() {
   if (!admin.apps.length) {
@@ -27,21 +28,79 @@ export async function GET(req: Request) {
     const usersSnap = await db.collection('users').get();
     
     const now = new Date();
-    const currentHour = now.getUTCHours(); // We'll adjust per user's region
-
     const results: any[] = [];
 
     for (const userDoc of usersSnap.docs) {
-      const userData = userDoc.data() as UserProfile;
-      const { notificationSettings, fcmTokens, region, userId } = userData;
+      const userData = userDoc.data() as UserProfile & { fcmToken?: string };
+      const { notificationSettings, region, userId } = userData;
       
-      if (!fcmTokens || fcmTokens.length === 0) continue;
+      // Harmonize tokens: support both fcmTokens (array) and fcmToken (legacy string)
+      const userTokens: string[] = Array.from(
+        new Set([...(userData.fcmTokens || []), ...(userData.fcmToken ? [userData.fcmToken] : [])])
+      ).filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+
+      if (userTokens.length === 0) continue;
 
       // 1. Determine local time for user
       const userTimeZone = region || 'UTC';
-      const userLocalTime = new Date(now.toLocaleString('en-US', { timeZone: userTimeZone }));
+      let userLocalTime = now;
+      try {
+        userLocalTime = new Date(now.toLocaleString('en-US', { timeZone: userTimeZone }));
+      } catch (e) {
+        userLocalTime = now;
+      }
       const userLocalHour = userLocalTime.getHours();
       const todayStr = userLocalTime.toISOString().split('T')[0];
+
+      // --- SCHEDULED TASKS & CALENDAR DEADLINES ---
+      const taskRemindersEnabled = notificationSettings?.taskReminders !== false;
+      if (taskRemindersEnabled) {
+        try {
+          const eventsSnap = await db.collection('users').doc(userId).collection('userEvents').get();
+          for (const eventDoc of eventsSnap.docs) {
+            const eventData = eventDoc.data();
+            if (!eventData.date) continue;
+
+            const eventDate = new Date(eventData.date);
+            if (isNaN(eventDate.getTime())) continue;
+
+            // Check if event is scheduled for around now (e.g. starting within next 60m or started within past 15m)
+            const diffMinutes = (eventDate.getTime() - now.getTime()) / (1000 * 60);
+            const isUpcoming = diffMinutes >= -15 && diffMinutes <= 60;
+
+            // Deduplicate: check lastNotifiedAt
+            const lastNotified = eventData.lastNotifiedAt?.toDate 
+              ? eventData.lastNotifiedAt.toDate().getTime() 
+              : (eventData.lastNotifiedAt ? new Date(eventData.lastNotifiedAt).getTime() : 0);
+            const alreadyNotifiedRecently = (now.getTime() - lastNotified) < 1000 * 60 * 90; // within 90 mins
+
+            if (isUpcoming && !alreadyNotifiedRecently) {
+              const plainTaskName = await decryptText(eventData.name, userId);
+              const taskDuration = eventData.duration || 25;
+              const message = {
+                notification: {
+                  title: `Upcoming Task: ${plainTaskName}`,
+                  body: `Your scheduled task "${plainTaskName}" (${taskDuration} min) starts soon! Time to conquer your deadline.`,
+                },
+                tokens: userTokens,
+                data: {
+                  url: "/calendar?from_notification=true",
+                  type: "CALENDAR",
+                  eventId: eventDoc.id
+                }
+              };
+
+              await admin.messaging().sendEachForMulticast(message);
+              await eventDoc.ref.update({
+                lastNotifiedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+              results.push({ userId, type: 'task_reminder', taskName: plainTaskName });
+            }
+          }
+        } catch (taskErr) {
+          console.error(`Failed to process task notifications for user ${userId}:`, taskErr);
+        }
+      }
 
       // --- HYDRATION REMINDERS ---
       if (notificationSettings?.hydrationReminders) {
@@ -53,7 +112,7 @@ export async function GET(req: Request) {
               title: "💧 Hydration Goal: 8 Glasses",
               body: `Time for glass #${glassNumber}! Staying hydrated is key to your 8-glass daily discipline.`,
             },
-            tokens: fcmTokens,
+            tokens: userTokens,
             data: { url: "/", type: "HYDRATION" }
           };
           await admin.messaging().sendEachForMulticast(message);
@@ -71,7 +130,7 @@ export async function GET(req: Request) {
             title: "🌅 MOVERS: Morning Primer",
             body: "Start your M-O-V-E sequence: Meditation, Oxygenation, Visualization, and Exercise.",
           },
-          tokens: fcmTokens,
+          tokens: userTokens,
           data: { url: "/routine", type: "MOVERS_MORNING" }
         };
         await admin.messaging().sendEachForMulticast(message);
@@ -89,7 +148,7 @@ export async function GET(req: Request) {
             title: "🌙 MOVERS: Evening Protocol",
             body: body,
           },
-          tokens: fcmTokens,
+          tokens: userTokens,
           data: { url: "/routine", type: "MOVERS_EVENING" }
         };
         await admin.messaging().sendEachForMulticast(message);
@@ -118,7 +177,7 @@ export async function GET(req: Request) {
                 title: "🔥 Streak at Risk!",
                 body: "You haven't completed any tasks today. Complete one now to save your streak!",
               },
-              tokens: fcmTokens,
+              tokens: userTokens,
               data: { url: "/", type: "STREAK_WARNING" }
             };
             await admin.messaging().sendEachForMulticast(message);
@@ -136,7 +195,7 @@ export async function GET(req: Request) {
               title: "📊 Your Morning Briefing",
               body: "Ready for a productive day? Your routine is waiting for you in Slake.",
             },
-            tokens: fcmTokens,
+            tokens: userTokens,
             data: { url: "/", type: "DAILY_SUMMARY" }
           };
           await admin.messaging().sendEachForMulticast(message);

@@ -31,6 +31,15 @@ import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info
 
 const changelog = [
   {
+      version: "v1.9",
+      date: "Day 10",
+      features: [
+        { name: "Zero-Knowledge Data Privacy (E2EE)", description: "Client-side AES-GCM 256-bit encryption for all personal tasks, calendar events, focus sessions, and direct messages. Stored ciphertexts are unreadable even to database admins and Firebase console viewers.", icon: "zap" },
+        { name: "Reliable Multi-Tier Task Notifications", description: "Guaranteed notifications across all modern browsers via smart in-app scheduling, Service Worker background timers, and hourly server-side cloud push.", icon: "trophy" },
+        { name: "Active Focus Session Alerts", description: "Background timer alerts reliably notify you when your focus session ends, even if you switch tabs, minimize the browser, or navigate elsewhere.", icon: "layers" },
+      ]
+  },
+  {
       version: "v1.8",
       date: "Day 9",
       features: [
