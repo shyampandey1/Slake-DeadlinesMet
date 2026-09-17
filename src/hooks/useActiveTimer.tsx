@@ -1,6 +1,6 @@
-import { encryptText, decryptText } from '@/lib/crypto';
-
 "use client";
+
+import { encryptText, decryptText } from '@/lib/crypto';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { useAuth } from './useAuth';

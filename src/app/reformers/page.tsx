@@ -1,5 +1,6 @@
-import { encryptText, decryptText } from '@/lib/crypto';
 "use client";
+
+import { encryptText, decryptText } from '@/lib/crypto';
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";

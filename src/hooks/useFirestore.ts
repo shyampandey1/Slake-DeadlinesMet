@@ -1,8 +1,6 @@
-import { encryptText, decryptText } from '@/lib/crypto';
-
-
-
 "use client";
+
+import { encryptText, decryptText } from '@/lib/crypto';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from './useAuth';
@@ -438,7 +436,7 @@ export function usePresetTasks() {
             orderBy('order', 'asc')
         );
 
-        unsubscribe = onSnapshot(q, (snapshot) => {
+        unsubscribe = onSnapshot(q, async (snapshot) => {
             if (snapshot.empty) {
                  const routineKey = profileToRoutineMap[effectiveProfile];
                  const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];

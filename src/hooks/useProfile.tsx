@@ -1,6 +1,6 @@
-import { decryptText } from '@/lib/crypto';
-
 "use client";
+
+import { decryptText } from '@/lib/crypto';
 
 import {
   createContext,
