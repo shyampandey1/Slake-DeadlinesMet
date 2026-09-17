@@ -183,7 +183,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
     return (
-        <div className="relative w-full h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[30rem] min-h-[320px]">
+        <div className="relative w-full h-[14rem] sm:h-[15rem] md:h-[16rem] min-h-[220px]">
              <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  {isClient ? (
                      <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>
@@ -227,7 +227,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]">
-                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-start gap-y-6 sm:gap-y-8 p-8 sm:p-10 md:p-12 pb-24 sm:pb-32 lg:pb-40">
+                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-start gap-y-3 sm:gap-y-4 px-6 sm:px-8 pt-5 sm:pt-6 pb-14 sm:pb-16">
                      <div className="flex justify-between items-start text-white">
                          <div className="space-y-1">
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
@@ -240,7 +240,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     </div>
 
                     <div className="flex flex-col items-start text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
                             <LiveClock />
                             {profileData?.coWorkerId && (
                                 <motion.div 
