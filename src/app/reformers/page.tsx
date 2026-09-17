@@ -514,9 +514,15 @@ function ReformersPageContent() {
     // Load chat messages when entering chatMode
     useEffect(() => {
         if (chatMode && selectedUser && user?.uid) {
-            const qMerge = query(collection(db, "messages"), orderBy("timestamp", "asc"));
             const currentUid = profileData?.userId || user.uid;
             const sharedSeed = [currentUid, selectedUser.id].sort().join(':');
+
+            // Constrain query to current conversation to avoid scanning global messages collection
+            const qMerge = query(
+                collection(db, "messages"), 
+                where("senderId", "in", [currentUid, selectedUser.id]),
+                orderBy("timestamp", "asc")
+            );
 
             const unsubMerge = onSnapshot(qMerge, async (snap) => {
                 const msgs: any[] = [];
