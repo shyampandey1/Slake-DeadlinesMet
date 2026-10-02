@@ -971,7 +971,7 @@ function ReformersPageContent() {
 
     return (
         <div className="min-h-screen bg-background pb-24 text-foreground selection:bg-[#10b981]/30">
-            <div className="p-4 pt-12 max-w-4xl mx-auto space-y-6">
+            <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 pt-12 space-y-6">
 
                 {/* Live Activity Feed / Ticker */}
                 <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2 flex items-center gap-4 overflow-hidden shadow-inner group">
