@@ -162,10 +162,10 @@ function RoutinePageComponent() {
     <>
     <div className="flex flex-col h-screen">
       <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
-        <div className="container mx-auto flex h-20 max-w-4xl items-center justify-between p-4 sm:p-6 md:p-8">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-xl font-bold font-headline text-foreground/80">Sync Routine</h1>
-                <p className="text-sm text-muted-foreground">Select a profession to see the recommended routine.</p>
+        <div className="w-full flex h-20 items-center justify-between px-4 sm:px-6 md:px-8 lg:px-12">
+            <div className="flex flex-col gap-1">
+                <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90">Sync Routine</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">Select a profession to see the recommended routine.</p>
             </div>
             <HamburgerMenu />
         </div>

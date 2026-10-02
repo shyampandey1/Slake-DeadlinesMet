@@ -227,8 +227,8 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]">
-                <div className="container mx-auto flex h-full max-w-4xl flex-col justify-start gap-y-6 sm:gap-y-8 p-8 sm:p-10 md:p-12 pb-24 sm:pb-32 lg:pb-40">
-                     <div className="flex justify-between items-start text-white">
+                <div className="w-full flex h-full flex-col justify-start gap-y-6 sm:gap-y-8 p-4 sm:p-6 md:p-8 lg:px-12 pb-24 sm:pb-32 lg:pb-40">
+                     <div className="flex justify-between items-start text-white w-full">
                          <div className="space-y-1">
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
                             <p className="text-sm text-white/80 hidden sm:block max-w-xs leading-relaxed" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>Focus on one task at a time. Set your goal and go.</p>

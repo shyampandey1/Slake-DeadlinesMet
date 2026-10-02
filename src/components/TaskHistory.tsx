@@ -657,7 +657,7 @@ function TaskLogBookContent() {
                                         <Separator className="bg-white/5" />
 
                                         {/* TASK 2: Sleek Responsive Glassmorphic Cards Grid */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                             {Object.keys(categoryStats).map((catName) => {
                                                 const stat = categoryStats[catName];
                                                 const color = categoryColors[catName as keyof typeof categoryColors] || '#64748b';
@@ -753,7 +753,7 @@ function TaskLogBookContent() {
                                 )}
                             </CardHeader>
                             <CardContent>
-                                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                <div className="space-y-4 max-h-[350px] md:max-h-[500px] lg:max-h-[650px] overflow-y-auto pr-2">
                                     {activeTimer && activeTimer.taskName && (
                                         <div className="mb-4 p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-4 animate-in fade-in duration-300">
                                             <div className="flex-1 min-w-0">
