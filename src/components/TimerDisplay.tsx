@@ -1035,7 +1035,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     <main
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
-      className="relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-foreground bg-background overflow-hidden"
+      className="dark relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-white bg-[#0c0d0e] overflow-hidden"
       style={{
         '--timer-primary-color': timerColor,
         '--flash-color': isContinuousFlashing 

@@ -14,14 +14,14 @@ function TimerPage() {
 
 function TimerSkeleton() {
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+    <main className="dark flex min-h-screen w-full flex-col items-center justify-center bg-[#0c0d0e] text-white p-4">
        <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
-        <Skeleton className="mb-2 h-8 w-1/2" />
-        <Skeleton className="mb-8 h-12 w-3/4" />
-        <Skeleton className="mb-12 h-[400px] w-[400px] rounded-full" />
+        <Skeleton className="mb-2 h-8 w-1/2 bg-white/10" />
+        <Skeleton className="mb-8 h-12 w-3/4 bg-white/10" />
+        <Skeleton className="mb-12 h-[400px] w-[400px] rounded-full bg-white/5" />
         <div className="flex gap-4">
-          <Skeleton className="h-14 w-32" />
-          <Skeleton className="h-14 w-32" />
+          <Skeleton className="h-14 w-32 bg-white/10" />
+          <Skeleton className="h-14 w-32 bg-white/10" />
         </div>
       </div>
     </main>
