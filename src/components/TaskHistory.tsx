@@ -27,6 +27,7 @@ import { Badge } from "./ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 import { Separator } from "./ui/separator";
 import { getProductivityInsights, type ProductivityInsightsOutput } from "@/ai/flows/get-productivity-insights";
+import type { InsightsPayload } from "@/app/api/analytics/insights/route";
 
 function formatDuration(minutes: number): string {
     if (minutes === 0) return "0m";
@@ -297,12 +298,66 @@ function TaskLogBookContent() {
         if (filteredTasksByDate.length === 0) return;
         setInsightsLoading(true);
         try {
+            const periodDays = filter === 'today' ? 1 : filter === 'week' ? 7 : filter === 'month' ? 30 : 7;
+            const completedTasks = filteredTasksByDate.filter(t => t.completed);
+            const completedTasksCount = completedTasks.length;
+
+            const categoryDistribution = {
+                Productivity: 0,
+                Hydration: 0,
+                Fitness: 0,
+                Meditation: 0,
+                Hygiene: 0,
+                Creativity: 0,
+            };
+
+            filteredTasksByDate.forEach(t => {
+                const cat = getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory;
+                if (cat in categoryDistribution) {
+                    categoryDistribution[cat as keyof typeof categoryDistribution]++;
+                } else {
+                    categoryDistribution.Productivity++;
+                }
+            });
+
+            const hourCounts: { [key: number]: number } = {};
+            completedTasks.forEach((t) => {
+                try {
+                    if (t.createdAt) {
+                        const hour = new Date(t.createdAt).getHours();
+                        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+                    }
+                } catch {}
+            });
+            let mostProductiveHour = 'None';
+            let maxHourCount = 0;
+            Object.keys(hourCounts).forEach((h) => {
+                const hourNum = parseInt(h, 10);
+                if (hourCounts[hourNum] > maxHourCount) {
+                    maxHourCount = hourCounts[hourNum];
+                    const ampm = hourNum >= 12 ? 'PM' : 'AM';
+                    const displayHour = hourNum % 12 === 0 ? 12 : hourNum % 12;
+                    mostProductiveHour = `${displayHour} ${ampm}`;
+                }
+            });
+
+            const payload: InsightsPayload = {
+                userId: profileData?.userId || 'anonymous',
+                periodDays,
+                completedTasksCount,
+                categoryDistribution,
+                streakCount: profileData?.streak?.currentStreak || 0,
+                mostProductiveHour,
+                totalCoinsEarned: profileData?.coins || (completedTasksCount * 10),
+            };
+
             const response = await fetch('/api/analytics/insights', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    ...payload,
                     tasks: filteredTasksByDate.map(t => ({
                         name: t.name,
                         duration: t.duration,
@@ -495,17 +550,20 @@ function TaskLogBookContent() {
                                     className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-none flex items-center justify-center gap-2 group transition-all duration-300 active:scale-[0.98]"
                                 >
                                     <Sparkles className="w-5 h-5 text-blue-200 group-hover:animate-pulse" />
-                                    <span className="font-headline text-lg font-bold tracking-tight">Generate AI Productivity Insights</span>
+                                    <span className="font-headline text-lg font-bold tracking-tight">Generate JEV TypeSafe Insights</span>
                                 </Button>
                             ) : (
                                 <Card className="border-blue-500/30 bg-blue-900/10 overflow-hidden">
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 bg-blue-500/5">
                                         <div>
-                                            <CardTitle className="text-lg font-headline flex items-center gap-2">
+                                            <CardTitle className="text-lg font-headline flex items-center gap-2 flex-wrap">
                                                 <Sparkles className="w-5 h-5 text-blue-400" />
-                                                AI Productivity Coach
+                                                JEV TypeSafe Decision Engine
+                                                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                    TypeSafe Inference
+                                                </span>
                                             </CardTitle>
-                                            <CardDescription>Based on your {dateFilterLabel} log</CardDescription>
+                                            <CardDescription>Dynamic behavioral insights & MOVERS protocol evaluation ({dateFilterLabel})</CardDescription>
                                         </div>
                                         <Button variant="ghost" size="sm" onClick={() => setInsights(null)} disabled={insightsLoading}>
                                             <X className="w-4 h-4" />
@@ -578,6 +636,41 @@ function TaskLogBookContent() {
                                                     </div>
                                                     <p className="text-xs text-center font-medium text-muted-foreground leading-tight">Focus Score based on consistency and output</p>
                                                 </div>
+                                                {insights.moversEvaluation && (
+                                                    <div className="col-span-full mt-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur-sm space-y-3">
+                                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                                                    MOVERS Protocol Evaluation
+                                                                </span>
+                                                                <span className="text-xs font-semibold text-emerald-400">
+                                                                    Rating: {insights.moversEvaluation.overallRating}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-mono">
+                                                                <span>Adherence:</span>
+                                                                <span className="font-bold text-sm text-emerald-400">{insights.moversEvaluation.adherenceScore}%</span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-xs text-emerald-100/90 leading-relaxed">
+                                                            {insights.moversEvaluation.feedback}
+                                                        </p>
+                                                        {insights.moversEvaluation.pillarBreakdown && (
+                                                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                                                                {Object.entries(insights.moversEvaluation.pillarBreakdown).map(([pillar, status]) => (
+                                                                    <div key={pillar} className="px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5 text-[11px] flex flex-col items-center">
+                                                                        <span className="capitalize text-muted-foreground truncate w-full text-center text-[10px]">
+                                                                            {pillar.replace(/([A-Z])/g, ' ').trim()}
+                                                                        </span>
+                                                                        <span className={status === 'Active' ? 'text-emerald-400 font-semibold' : 'text-zinc-500'}>
+                                                                            {status}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : null}
                                     </CardContent>

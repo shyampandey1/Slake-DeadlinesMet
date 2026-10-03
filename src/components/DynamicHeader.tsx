@@ -227,7 +227,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]">
-                <div className="w-full flex h-full flex-col justify-start gap-y-6 sm:gap-y-8 p-4 sm:p-6 md:p-8 lg:px-12 pb-24 sm:pb-32 lg:pb-40">
+                <div className="w-full flex h-full flex-col justify-start gap-y-6 sm:gap-y-8 px-6 sm:px-10 md:px-14 lg:px-16 xl:px-20 pt-4 sm:pt-6 md:pt-8 pb-24 sm:pb-32 lg:pb-40">
                      <div className="flex justify-between items-start text-white w-full">
                          <div className="space-y-1">
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>

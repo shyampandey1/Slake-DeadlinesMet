@@ -31,6 +31,15 @@ import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info
 
 const changelog = [
   {
+      version: "v2.0",
+      date: "Day 11",
+      features: [
+        { name: "JEV TypeSafe Decision Engine", description: "End-to-end type-safe inference pipeline with Zod runtime parsing and compile-time guarantees, replacing legacy model providers for zero-drift AI.", icon: "brain-circuit" },
+        { name: "Dynamic Insights & MOVERS Evaluation", description: "Deep behavioral analytics evaluating adherence to the MOVERS Protocol (Meditation, Oxygenation, Visualization, Exercise, Reading/Scribing) with personalized tactical coaching.", icon: "zap" },
+        { name: "Serverless Resilience Guard", description: "20-second AbortController timeout protection and instant deterministic fallback to ensure non-blocking, reliable insights execution on Vercel.", icon: "layers" },
+      ]
+  },
+  {
       version: "v1.9",
       date: "Day 10",
       features: [

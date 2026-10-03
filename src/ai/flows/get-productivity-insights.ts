@@ -1,13 +1,9 @@
-
 'use server';
 
+import { z } from 'zod';
+import { runJevInference } from '@/lib/jevClient';
 
-
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-// import { gemini15Flash } from '@genkit-ai/googleai';
-
-const ProductivityInsightsInputSchema = z.object({
+export const ProductivityInsightsInputSchema = z.object({
   tasks: z.array(z.object({
     name: z.string(),
     duration: z.number(),
@@ -16,96 +12,99 @@ const ProductivityInsightsInputSchema = z.object({
     createdAt: z.string().optional(),
   })),
   profile: z.string().optional(),
+  streak: z.any().optional(),
 });
 
 export type ProductivityInsightsInput = z.infer<typeof ProductivityInsightsInputSchema>;
 
-const ProductivityInsightsOutputSchema = z.object({
-  summary: z.string().describe('A 2-3 sentence summary of recent achievements.'),
-  strengths: z.array(z.string()).describe('Top 2-3 productive patterns identified.'),
-  suggestions: z.array(z.string()).describe('2-3 actionable tips to improve focus or balance.'),
+export const ProductivityInsightsOutputSchema = z.object({
+  summary: z.string().describe('A 2-3 sentence summary of recent achievements based on raw metrics and MOVERS protocol.'),
+  strengths: z.array(z.string()).describe('Top 2-3 productive patterns identified (specifically mentioning most productive hour or categories).'),
+  suggestions: z.array(z.string()).describe('2-3 actionable, highly tactical, specific tips to improve focus or balance (no generic motivational text).'),
   focusScore: z.number().min(0).max(100).describe('A score from 0-100 reflecting focus and consistency.'),
+  moversEvaluation: z.object({
+    overallRating: z.string().describe('Rating of MOVERS protocol execution (e.g. Optimal, Strong, Developing, Foundational)'),
+    adherenceScore: z.number().min(0).max(100).describe('Adherence score to MOVERS pillars'),
+    feedback: z.string().describe('Targeted feedback for MOVERS protocol adherence and lifestyle optimization'),
+    pillarBreakdown: z.object({
+      meditation: z.string(),
+      oxygenationHydration: z.string(),
+      visualizationPlanning: z.string(),
+      exerciseFitness: z.string(),
+      readingScribing: z.string(),
+    }).optional(),
+  }).optional(),
 });
 
 export type ProductivityInsightsOutput = z.infer<typeof ProductivityInsightsOutputSchema>;
 
-const prompt = ai.definePrompt({
-  name: 'productivityInsightsPrompt',
-  input: { schema: ProductivityInsightsInputSchema },
-  output: { schema: ProductivityInsightsOutputSchema },
-  prompt: `You are a world-class productivity coach and high-performance expert.
-  Analyze the provided task log for a user with the profile: {{{profile}}}.
-  
-  Task Log:
-  {{#each tasks}}
-  - Task: "{{{name}}}", Duration: {{{duration}}}m, Completed: {{{completed}}}, Category: {{{category}}}
-  {{/each}}
-
-  Based on this data:
-  1. Provide a concise, encouraging 2-3 sentence summary of their recent efforts.
-  2. Identify 2-3 clear strengths or positive patterns in their workflow.
-  3. Offer 2-3 highly actionable, specific suggestions to improve their focus, routine, or work-life balance.
-  4. Calculate a "Focus Score" (0-100) based on task completion rate, total focused time, and category variety.
-
-  Keep your tone professional, motivational, and insight-driven. If there are no tasks, encourage them to start their first session.
-  `,
-});
-
 export async function getProductivityInsights(input: ProductivityInsightsInput): Promise<ProductivityInsightsOutput> {
-  if (input.tasks.length === 0) {
+  const tasks = input.tasks || [];
+  if (tasks.length === 0) {
     return {
-      summary: "You haven't logged any tasks yet! Start your first focus session to receive personalized insights.",
+      summary: "You haven't logged any tasks yet! Start your first focus session to receive personalized JEV TypeSafe insights.",
       strengths: ["Clean slate for the week."],
-      suggestions: ["Pick one high-priority task to start with.", "Try a 25-minute Pomodoro session."],
-      focusScore: 0
+      suggestions: ["Pick one high-priority anchor task to start with.", "Try a 25-minute Pomodoro session with hydration."],
+      focusScore: 0,
+      moversEvaluation: {
+        overallRating: "Foundational",
+        adherenceScore: 0,
+        feedback: "Start your morning and evening MOVERS routines to build daily momentum.",
+      }
     };
   }
 
+  const prompt = `You are the JEV TypeSafe Decision Engine and High-Performance Behavioral Insights Architect.
+Analyze the user task log and evaluate MOVERS Protocol adherence (Meditation, Oxygenation/Hydration, Visualization/Planning, Exercise/Fitness, Reading/Scribing):
+Task Log: ${JSON.stringify(tasks)}
+User Profile: ${input.profile || 'General'}
+
+Provide:
+1. summary (2-3 sentences)
+2. strengths (2-3 items)
+3. suggestions (2-3 items)
+4. focusScore (0-100)
+5. moversEvaluation (overallRating, adherenceScore: 0-100, feedback)`;
+
   try {
-    const { output } = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
-      prompt: `You are a world-class productivity coach. Analyze the user task log:
-      
-      Task Log: ${JSON.stringify(input.tasks)}
-      User Profile: ${input.profile || 'General'}
-      
-      Provide a summary, strengths, suggestions, and a focus score (0-100).`,
-      output: {
-        schema: ProductivityInsightsOutputSchema
-      }
-    });
-
-    return output!;
+    return await runJevInference(prompt, ProductivityInsightsOutputSchema);
   } catch (error: any) {
-    console.error("AI Insights Error:", error.name, error.message);
-    // Native computation fallback
-    const totalTime = input.tasks.reduce((acc, t) => acc + t.duration, 0);
-    const completedCount = input.tasks.filter(t => t.completed).length;
-    let focusScore = Math.min(100, Math.round((completedCount / input.tasks.length) * 60 + (totalTime / 120) * 40));
-    
-    // Pattern detection
-    const catCounts: { [key:string]: number } = {};
-    input.tasks.forEach(t => { const c = t.category || "General"; catCounts[c] = (catCounts[c] || 0) + 1; });
-    const topCat = Object.keys(catCounts).sort((a,b) => catCounts[b] - catCounts[a])[0];
+    console.warn("JEV TypeSafe Flow Inference Fallback:", error?.message);
 
-    const summary = completedCount === input.tasks.length 
-        ? "Flawless execution! You completed every task you set out to do."
-        : `Strong effort. You logged ${totalTime} minutes of focus and completed ${completedCount} tasks.`;
+    const totalTime = tasks.reduce((acc, t) => acc + (t.duration || 0), 0);
+    const completedCount = tasks.filter(t => t.completed).length;
+    let focusScore = Math.min(100, Math.round((completedCount / (tasks.length || 1)) * 60 + (totalTime / 120) * 40));
+
+    const catCounts: { [key: string]: number } = {};
+    tasks.forEach(t => {
+      const c = t.category || "General";
+      catCounts[c] = (catCounts[c] || 0) + 1;
+    });
+    const topCat = Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a])[0] || "Productivity";
+
+    const summary = completedCount === tasks.length
+      ? "Flawless execution! You completed every task in your active focus schedule."
+      : `Solid consistency. You logged ${totalTime} minutes of focus across ${completedCount} completed tasks.`;
 
     const strengths = [
-        `You dedicated significant time towards ${topCat}.`,
-        completedCount > 3 ? "Excellent volume of task completions." : "Good foundational tracking habits."
+      `Dedicated significant focus towards ${topCat}.`,
+      completedCount > 3 ? "Excellent volume of task completions." : "Good foundational tracking habits."
     ];
     const suggestions = [
-      "Try to sequence your hardest tasks during your peak energy hours.",
-      "Ensure you're taking 5-minute breaks after every 30 minutes of deep focus."
+      "Sequence your hardest tasks during your peak cognitive window.",
+      "Integrate 5-minute hydration and breathwork resets after every 30 minutes of deep focus."
     ];
 
     return {
       summary,
       strengths,
       suggestions,
-      focusScore: isNaN(focusScore) ? 0 : focusScore
+      focusScore: isNaN(focusScore) ? 50 : focusScore,
+      moversEvaluation: {
+        overallRating: completedCount > 4 ? "Strong" : "Developing",
+        adherenceScore: Math.min(100, Math.round((completedCount / (tasks.length || 1)) * 90)),
+        feedback: "Continue reinforcing morning primer and evening restorer protocols.",
+      }
     };
   }
 }
