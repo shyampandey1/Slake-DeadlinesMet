@@ -1086,10 +1086,43 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 <p className="text-xs mt-4 opacity-50 font-code tracking-widest">SYNCING SESSION...</p>
             </div>
           ) : (
-            <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 w-full max-w-4xl px-4">
+            <div className="flex flex-col items-center justify-center w-full max-w-4xl px-4">
+              {/* Floating Ambient Mindfulness Telemetry Capsule (Replaces cramped top/bottom text) */}
+              {isBreathingTask && (
+                <div className="mb-6 inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/25 bg-black/40 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-all duration-700 animate-in fade-in zoom-in-95">
+                  <span className="relative flex h-2 w-2">
+                    <span className={cn(
+                      "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                      breathingPhase === 'inhale' ? "bg-amber-400" : breathingPhase === 'hold' ? "bg-emerald-400" : "bg-sky-400"
+                    )} />
+                    <span className={cn(
+                      "relative inline-flex rounded-full h-2 w-2",
+                      breathingPhase === 'inhale' ? "bg-amber-400" : breathingPhase === 'hold' ? "bg-emerald-400" : "bg-sky-400"
+                    )} />
+                  </span>
+                  <span className="font-bold tracking-[0.25em] uppercase font-mono text-xs text-primary">
+                    {breathingPhase === "inhale" && "INHALE"}
+                    {breathingPhase === "hold" && "HOLD"}
+                    {breathingPhase === "exhale" && "EXHALE"}
+                  </span>
+                  <span className="text-primary/30">•</span>
+                  <span className="text-xs font-medium text-foreground/90 tracking-wide">
+                    {breathingPhase === 'inhale' && "Inhale slowly and deeply..."}
+                    {breathingPhase === 'hold' && "Hold and find stillness..."}
+                    {breathingPhase === 'exhale' && "Release all tension..."}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 w-full">
               {/* Specialized Task HUD Panel (Lungs or Eyeball Assist) */}
               {(isBreathingTask || isEyeExerciseTask) && (
-                <div className="w-64 sm:w-72 md:w-80 lg:w-[360px] h-36 md:h-44 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col items-center justify-between p-4 relative overflow-hidden">
+                <div className={cn(
+                  isBreathingTask 
+                    ? "w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-[360px] lg:h-[360px] rounded-[2.5rem]" 
+                    : "w-64 sm:w-72 md:w-80 lg:w-[360px] h-36 md:h-44 rounded-3xl",
+                  "border border-primary/20 bg-primary/5 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-500"
+                )}>
                   {/* Digital blueprint grid layer */}
                   {!isBreathingTask && (
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:16px_16px] opacity-75" />
@@ -1098,9 +1131,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     <div 
                       className="absolute inset-0 pointer-events-none"
                       style={{
-                        background: 'radial-gradient(circle at center, rgba(245, 158, 11, 0.12) 0%, transparent 65%)',
-                        opacity: breathingPhase === 'hold' ? 1.0 : breathingPhase === 'inhale' ? 0.75 : 0.2,
-                        transform: breathingPhase === 'hold' ? 'scale(1.2)' : breathingPhase === 'inhale' ? 'scale(1.1)' : 'scale(0.85)',
+                        background: 'radial-gradient(circle at center, rgba(245, 158, 11, 0.16) 0%, transparent 70%)',
+                        opacity: breathingPhase === 'hold' ? 1.0 : breathingPhase === 'inhale' ? 0.75 : 0.25,
+                        transform: breathingPhase === 'hold' ? 'scale(1.25)' : breathingPhase === 'inhale' ? 'scale(1.15)' : 'scale(0.85)',
                         transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     />
@@ -1108,36 +1141,29 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                   
                   {isBreathingTask && (
                     <>
-                      {/* Breathing Phase Label */}
-                      <div className="text-xs font-bold uppercase tracking-[0.25em] text-primary z-10 animate-pulse mt-1">
-                        {breathingPhase === "inhale" && "Inhale 💨"}
-                        {breathingPhase === "hold" && "Hold 🧘"}
-                        {breathingPhase === "exhale" && "Exhale 🌬️"}
-                      </div>
-
-                      {/* Modern Flower Mandala Breathing Graphic */}
-                      <div className="relative w-full h-[65%] flex items-center justify-center z-0 overflow-visible">
-                        <div className="relative w-20 h-20 flex items-center justify-center">
+                      {/* Modern Flower Mandala Breathing Graphic with 100% Unobstructed Stage */}
+                      <div className="relative w-full h-full flex items-center justify-center z-0 overflow-visible">
+                        <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
                           {Array.from({ length: 12 }).map((_, i) => {
-                            let translateY = 8;
-                            let scale = 0.75;
-                            let opacity = 0.15;
+                            let translateY = 12;
+                            let scale = 0.85;
+                            let opacity = 0.18;
                             let rotateExtra = 0;
 
                             if (breathingPhase === 'inhale') {
-                              translateY = 32;
-                              scale = 1.25;
-                              opacity = 0.65;
+                              translateY = 44;
+                              scale = 1.35;
+                              opacity = 0.7;
                               rotateExtra = 30;
                             } else if (breathingPhase === 'hold') {
-                              translateY = 36;
-                              scale = 1.35;
-                              opacity = 0.85;
+                              translateY = 50;
+                              scale = 1.45;
+                              opacity = 0.9;
                               rotateExtra = 45;
                             } else if (breathingPhase === 'exhale') {
-                              translateY = 8;
-                              scale = 0.75;
-                              opacity = 0.15;
+                              translateY = 12;
+                              scale = 0.85;
+                              opacity = 0.18;
                               rotateExtra = 0;
                             }
 
@@ -1146,14 +1172,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                             return (
                               <div
                                 key={i}
-                                className="absolute w-12 h-12 rounded-full"
+                                className="absolute w-16 h-16 rounded-full"
                                 style={{
                                   transform: `rotate(${angle}deg) translateY(-${translateY}px) scale(${scale})`,
-                                  background: 'radial-gradient(circle at center, rgba(245, 222, 190, 0.28) 0%, rgba(245, 158, 11, 0.08) 60%, rgba(245, 158, 11, 0.01) 100%)',
-                                  border: '1px solid rgba(245, 222, 190, 0.2)',
+                                  background: 'radial-gradient(circle at center, rgba(245, 222, 190, 0.35) 0%, rgba(245, 158, 11, 0.12) 60%, rgba(245, 158, 11, 0.02) 100%)',
+                                  border: '1px solid rgba(245, 222, 190, 0.25)',
                                   mixBlendMode: 'screen',
                                   opacity: opacity,
-                                  boxShadow: breathingPhase === 'hold' ? '0 0 15px rgba(245, 222, 190, 0.25)' : 'none',
+                                  boxShadow: breathingPhase === 'hold' ? '0 0 20px rgba(245, 222, 190, 0.3)' : 'none',
                                   transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
                                 }}
                               />
@@ -1162,11 +1188,18 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                         </div>
                       </div>
 
-                      {/* Guidance Text */}
-                      <div className="text-[11px] font-medium tracking-wide text-primary/70 animate-pulse mb-1">
-                        {breathingPhase === 'inhale' && "Inhale slowly and deeply..."}
-                        {breathingPhase === 'hold' && "Hold and find stillness..."}
-                        {breathingPhase === 'exhale' && "Release all tension..."}
+                      {/* Subtle Bottom Rhythm Indicator Dock */}
+                      <div className="absolute bottom-5 inset-x-0 flex justify-center z-10 pointer-events-none">
+                        <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-black/40 border border-primary/20 backdrop-blur-md text-[10px] font-mono tracking-widest text-primary/70 uppercase">
+                          <span className={cn("w-1.5 h-1.5 rounded-full transition-colors duration-500", breathingPhase === 'inhale' ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" : "bg-white/20")} />
+                          <span>IN</span>
+                          <span className="text-white/20">•</span>
+                          <span className={cn("w-1.5 h-1.5 rounded-full transition-colors duration-500", breathingPhase === 'hold' ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "bg-white/20")} />
+                          <span>HOLD</span>
+                          <span className="text-white/20">•</span>
+                          <span className={cn("w-1.5 h-1.5 rounded-full transition-colors duration-500", breathingPhase === 'exhale' ? "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]" : "bg-white/20")} />
+                          <span>OUT</span>
+                        </div>
                       </div>
                     </>
                   )}
@@ -1309,6 +1342,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                   </div>
                 </div>
               </CircularProgress>
+              </div>
             </div>
           )}
         </div>
