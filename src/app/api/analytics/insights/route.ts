@@ -235,7 +235,7 @@ export async function POST(req: Request) {
 
     if (payload.completedTasksCount === 0 && Object.values(payload.categoryDistribution).every((v) => v === 0)) {
       return NextResponse.json({
-        summary: "You haven't logged any tasks yet! Start your first focus session to receive personalized JEV TypeSafe insights.",
+        summary: "You haven't logged any tasks yet! Complete your first focus session to receive personalized insights and routine coaching.",
         strengths: ["Clean slate for the week ahead."],
         suggestions: ["Pick one high-priority anchor task to start with.", "Try a 25-minute Pomodoro session with hydration."],
         focusScore: 0,

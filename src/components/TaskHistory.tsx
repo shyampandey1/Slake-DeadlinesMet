@@ -549,21 +549,21 @@ function TaskLogBookContent() {
                                     disabled={filteredTasksByDate.length === 0}
                                     className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-none flex items-center justify-center gap-2 group transition-all duration-300 active:scale-[0.98]"
                                 >
-                                    <Sparkles className="w-5 h-5 text-blue-200 group-hover:animate-pulse" />
-                                    <span className="font-headline text-lg font-bold tracking-tight">Generate JEV TypeSafe Insights</span>
+                                    <BrainCircuit className="w-5 h-5 text-blue-200 group-hover:scale-110 transition-transform" />
+                                    <span className="font-headline text-lg font-bold tracking-tight">Generate Productivity Insights</span>
                                 </Button>
                             ) : (
                                 <Card className="border-blue-500/30 bg-blue-900/10 overflow-hidden">
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 bg-blue-500/5">
                                         <div>
                                             <CardTitle className="text-lg font-headline flex items-center gap-2 flex-wrap">
-                                                <Sparkles className="w-5 h-5 text-blue-400" />
-                                                JEV TypeSafe Decision Engine
+                                                <BrainCircuit className="w-5 h-5 text-blue-400" />
+                                                Smart Productivity Coach
                                                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                                                    TypeSafe Inference
+                                                    Personalized Insights
                                                 </span>
                                             </CardTitle>
-                                            <CardDescription>Dynamic behavioral insights & MOVERS protocol evaluation ({dateFilterLabel})</CardDescription>
+                                            <CardDescription>Habit patterns, focus momentum & daily routine balance ({dateFilterLabel})</CardDescription>
                                         </div>
                                         <Button variant="ghost" size="sm" onClick={() => setInsights(null)} disabled={insightsLoading}>
                                             <X className="w-4 h-4" />
@@ -641,7 +641,7 @@ function TaskLogBookContent() {
                                                         <div className="flex items-center justify-between flex-wrap gap-2">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                                                    MOVERS Protocol Evaluation
+                                                                    Daily Routine & Habit Balance
                                                                 </span>
                                                                 <span className="text-xs font-semibold text-emerald-400">
                                                                     Rating: {insights.moversEvaluation.overallRating}

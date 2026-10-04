@@ -17,7 +17,7 @@ import HamburgerMenu from '@/components/HamburgerMenu';
 import { format } from 'date-fns';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import type { UserPresetTask } from '@/types';
-import { Plus, RotateCw, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, RotateCw, Trash2, Sparkles, Loader2, Wand2 } from 'lucide-react';
 import { generateAIRoutine } from '@/ai/flows/generate-routine';
 import {
   ContextMenu,
@@ -284,10 +284,10 @@ function RoutinePageComponent() {
                 variant="outline" 
                 onClick={handleGenerateAIRoutine} 
                 disabled={isGeneratingAI}
-                className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2"
+                className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2 transition-all hover:border-blue-400/50"
               >
-                {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {isGeneratingAI ? "Generating..." : "AI Routine"}
+                {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 text-blue-400" />}
+                {isGeneratingAI ? "Designing Schedule..." : "Auto-Plan Routine"}
               </Button>
             </div>
             

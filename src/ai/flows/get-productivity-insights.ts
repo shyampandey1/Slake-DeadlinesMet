@@ -42,7 +42,7 @@ export async function getProductivityInsights(input: ProductivityInsightsInput):
   const tasks = input.tasks || [];
   if (tasks.length === 0) {
     return {
-      summary: "You haven't logged any tasks yet! Start your first focus session to receive personalized JEV TypeSafe insights.",
+      summary: "You haven't logged any tasks yet! Complete your first focus session to receive personalized insights and routine coaching.",
       strengths: ["Clean slate for the week."],
       suggestions: ["Pick one high-priority anchor task to start with.", "Try a 25-minute Pomodoro session with hydration."],
       focusScore: 0,

@@ -288,8 +288,8 @@ export async function evaluateProductivityInsightsWithJev(payload: {
 
   const summary =
     payload.completedTasksCount > 0
-      ? `JEV TypeSafe Decision Engine evaluated ${payload.completedTasksCount} completed focus tasks across ${payload.periodDays} days with a ${payload.streakCount}-day streak. MOVERS rating is ${overallRating} with ${focusScore}/100 focus efficiency.`
-      : `Ready to initiate high-performance tracking. JEV TypeSafe Decision Engine is actively connected to evaluate your upcoming focus cycles.`;
+      ? `You completed ${payload.completedTasksCount} focus sessions across ${payload.periodDays} days with an active ${payload.streakCount}-day streak! Your routine balance is rated as ${overallRating} with a focus score of ${focusScore}/100.`
+      : `Ready to start tracking. Complete your first focus session to unlock your personalized productivity insights and daily habit breakdown.`;
 
   return {
     summary,
@@ -301,8 +301,8 @@ export async function evaluateProductivityInsightsWithJev(payload: {
       adherenceScore,
       feedback:
         overallRating === 'Optimal'
-          ? 'Superb integration across all key MOVERS protocol pillars powered by JEV TypeSafe Engine.'
-          : `Active in ${activePillarsCount} of 5 MOVERS pillars. JEV recommends expanding hydration, breathwork, and movement routines.`,
+          ? 'Superb balance across all key areas of your daily routine and focus habits.'
+          : `Active in ${activePillarsCount} of 5 daily wellness pillars. Consider balancing your schedule with more hydration, breathwork, and light movement.`,
       pillarBreakdown: {
         meditation: payload.categoryDistribution.Meditation > 0 ? 'Active' : 'Unscheduled',
         oxygenationHydration: payload.categoryDistribution.Hydration > 0 ? 'Active' : 'Unscheduled',
