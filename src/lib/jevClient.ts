@@ -291,26 +291,108 @@ export async function evaluateProductivityInsightsWithJev(payload: {
       ? `You completed ${payload.completedTasksCount} focus sessions across ${payload.periodDays} days with an active ${payload.streakCount}-day streak! Your routine balance is rated as ${overallRating} with a focus score of ${focusScore}/100.`
       : `Ready to start tracking. Complete your first focus session to unlock your personalized productivity insights and daily habit breakdown.`;
 
+  // Category breakdown analysis for all 6 disciplines
+  const categoryBreakdownAnalysis = [
+    {
+      category: 'Productivity' as const,
+      status: payload.categoryDistribution.Productivity >= 5 ? ('optimal' as const) : payload.categoryDistribution.Productivity >= 2 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: payload.categoryDistribution.Productivity >= 5
+        ? 'Deep work momentum is thriving with high task volume and strong task follow-through.'
+        : payload.categoryDistribution.Productivity >= 2
+        ? 'Moderate focus block frequency maintained. Keep single-tasking during peak hours.'
+        : 'Deep work blocks underrepresented. Schedule 1-2 uninterrupted priority sessions.',
+    },
+    {
+      category: 'Hydration' as const,
+      status: payload.categoryDistribution.Hydration >= 7 ? ('optimal' as const) : payload.categoryDistribution.Hydration >= 3 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: payload.categoryDistribution.Hydration >= 7
+        ? 'Superb cellular hydration rhythm sustaining steady cognitive energy.'
+        : payload.categoryDistribution.Hydration >= 3
+        ? 'Consistent water intervals logged. Aim for an additional glass during afternoon lull.'
+        : 'Hydration checkpoints missing. Set automatic hydration breaks between focus sessions.',
+    },
+    {
+      category: 'Fitness' as const,
+      status: payload.categoryDistribution.Fitness >= 3 ? ('optimal' as const) : payload.categoryDistribution.Fitness >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: payload.categoryDistribution.Fitness >= 3
+        ? 'Physical movement and endurance routines are active and well-balanced.'
+        : payload.categoryDistribution.Fitness >= 1
+        ? 'Physical activity present. Interleave light stretching before deep work blocks.'
+        : 'Physical fitness absent. Integrate a 10-minute morning primer walk or mobility circuit.',
+    },
+    {
+      category: 'Meditation' as const,
+      status: payload.categoryDistribution.Meditation >= 3 ? ('optimal' as const) : payload.categoryDistribution.Meditation >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: payload.categoryDistribution.Meditation >= 3
+        ? 'Mindfulness and box breathing anchors are actively preventing cognitive fatigue.'
+        : payload.categoryDistribution.Meditation >= 1
+        ? 'Mindfulness blocks present. Use 3-minute breathwork pauses during task switches.'
+        : 'Mental reset habits unscheduled. Add 5 minutes of box breathing to prime deep work.',
+    },
+    {
+      category: 'Hygiene' as const,
+      status: payload.categoryDistribution.Hygiene >= 3 ? ('optimal' as const) : payload.categoryDistribution.Hygiene >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: payload.categoryDistribution.Hygiene >= 3
+        ? 'Personal recovery, dining rhythm, and domestic setup habits are on track.'
+        : payload.categoryDistribution.Hygiene >= 1
+        ? 'Baseline domestic hygiene habits observed. Ensure dedicated table/bed prep.'
+        : 'Domestic discipline checkpoints unscheduled. Log routine wind-down recovery habits.',
+    },
+    {
+      category: 'Creativity' as const,
+      status: payload.categoryDistribution.Creativity >= 2 ? ('optimal' as const) : payload.categoryDistribution.Creativity >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: payload.categoryDistribution.Creativity >= 2
+        ? 'Creative synthesis and scribing active, balancing analytical problem solving.'
+        : payload.categoryDistribution.Creativity >= 1
+        ? 'Creative inspiration blocks present. Dedicate 15 minutes to free writing.'
+        : 'Creative reflection missing. Schedule a 10-minute evening scribing session.',
+    },
+  ];
+
+  // Exactly 3 concrete tactical recommendations
+  const allRecs = [...suggestions];
+  if (allRecs.length < 3) {
+    allRecs.push('Sequence demanding cognitive work to align directly with your peak window.');
+  }
+  if (allRecs.length < 3) {
+    allRecs.push('Maintain balanced pacing by interleaving breathwork pauses with execution.');
+  }
+  const tacticalRecommendations: [string, string, string] = [
+    allRecs[0] || 'Focus on single-tasking without multitasking during core hours.',
+    allRecs[1] || 'Maintain an unbroken daily hydration and movement cadence.',
+    allRecs[2] || 'Schedule an evening reflection block to consolidate cognitive gains.',
+  ];
+
+  const headline = `${overallRating} Velocity (${focusScore}/100) • ${adherenceScore}% MOVERS Balance`;
+
+  const alignmentWithMovers = {
+    overallRating: overallRating as 'Optimal' | 'Strong' | 'Developing' | 'Foundational',
+    adherenceScore,
+    feedback:
+      overallRating === 'Optimal'
+        ? 'Superb balance across all key areas of your daily routine and focus habits.'
+        : `Active in ${activePillarsCount} of 5 daily wellness pillars. Consider balancing your schedule with more hydration, breathwork, and light movement.`,
+    pillarBreakdown: {
+      meditation: payload.categoryDistribution.Meditation > 0 ? 'Active' : 'Unscheduled',
+      oxygenationHydration: payload.categoryDistribution.Hydration > 0 ? 'Active' : 'Unscheduled',
+      visualizationPlanning: payload.categoryDistribution.Productivity > 0 ? 'Active' : 'Unscheduled',
+      exerciseFitness: payload.categoryDistribution.Fitness > 0 ? 'Active' : 'Unscheduled',
+      readingScribing: payload.categoryDistribution.Creativity > 0 ? 'Active' : 'Unscheduled',
+    },
+  };
+
   return {
+    headline,
+    productivityScore: focusScore,
+    categoryBreakdownAnalysis,
+    tacticalRecommendations,
+    alignmentWithMovers,
+    // Backward compatibility adapters
     summary,
     strengths: strengths.slice(0, 3),
-    suggestions: suggestions.slice(0, 3),
+    suggestions: tacticalRecommendations,
     focusScore,
-    moversEvaluation: {
-      overallRating,
-      adherenceScore,
-      feedback:
-        overallRating === 'Optimal'
-          ? 'Superb balance across all key areas of your daily routine and focus habits.'
-          : `Active in ${activePillarsCount} of 5 daily wellness pillars. Consider balancing your schedule with more hydration, breathwork, and light movement.`,
-      pillarBreakdown: {
-        meditation: payload.categoryDistribution.Meditation > 0 ? 'Active' : 'Unscheduled',
-        oxygenationHydration: payload.categoryDistribution.Hydration > 0 ? 'Active' : 'Unscheduled',
-        visualizationPlanning: payload.categoryDistribution.Productivity > 0 ? 'Active' : 'Unscheduled',
-        exerciseFitness: payload.categoryDistribution.Fitness > 0 ? 'Active' : 'Unscheduled',
-        readingScribing: payload.categoryDistribution.Creativity > 0 ? 'Active' : 'Unscheduled',
-      },
-    },
+    moversEvaluation: alignmentWithMovers,
     usage: response.usage,
   };
 }
@@ -438,8 +520,22 @@ export async function runJevInference<T>(
       questions,
     });
 
-    return result as any;
+    // Enforce runtime Zod schema parsing with fallback attempts
+    const directParse = schema.safeParse(result);
+    if (directParse.success) {
+      return directParse.data;
+    }
+
+    const answersParse = schema.safeParse(result.answers);
+    if (answersParse.success) {
+      return answersParse.data;
+    }
+
+    return schema.parse(result);
   } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`JEV TypeSafe inference timed out after ${TIMEOUT_MS / 1000} seconds`);
+    }
     throw error;
   } finally {
     clearTimeout(timeoutId);

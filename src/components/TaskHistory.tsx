@@ -298,8 +298,19 @@ function TaskLogBookContent() {
         if (filteredTasksByDate.length === 0) return;
         setInsightsLoading(true);
         try {
-            const periodDays = filter === 'today' ? 1 : filter === 'week' ? 7 : filter === 'month' ? 30 : 7;
-            const completedTasks = filteredTasksByDate.filter(t => t.completed);
+            // 7-day completion histories calculation
+            const sevenDaysAgo = subDays(new Date(), 7);
+            const past7DaysTasks = tasks.filter(t => {
+                try {
+                    if (!t.createdAt) return false;
+                    return new Date(t.createdAt) >= sevenDaysAgo;
+                } catch {
+                    return false;
+                }
+            });
+            const analysisTasks = past7DaysTasks.length > 0 ? past7DaysTasks : filteredTasksByDate;
+            const periodDays = 7;
+            const completedTasks = analysisTasks.filter(t => t.completed);
             const completedTasksCount = completedTasks.length;
 
             const categoryDistribution = {
@@ -311,7 +322,7 @@ function TaskLogBookContent() {
                 Creativity: 0,
             };
 
-            filteredTasksByDate.forEach(t => {
+            analysisTasks.forEach(t => {
                 const cat = getTaskCategoryDetails(t.name, profile as ProfileType).mainCategory;
                 if (cat in categoryDistribution) {
                     categoryDistribution[cat as keyof typeof categoryDistribution]++;
@@ -571,25 +582,49 @@ function TaskLogBookContent() {
                                     </CardHeader>
                                     <CardContent className="pt-4 space-y-4">
                                         {insightsLoading ? (
-                                            <div className="py-8 flex flex-col items-center justify-center gap-4">
-                                                <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
-                                                <p className="text-sm italic animate-pulse">Analyzing your performance patterns...</p>
+                                            <div className="space-y-4 py-3 animate-pulse">
+                                                <div className="flex items-center gap-3">
+                                                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                                    <span className="text-sm font-medium text-muted-foreground italic">
+                                                        JEV Engine synthesizing 7-day completion histories & MOVERS alignment...
+                                                    </span>
+                                                </div>
+                                                <div className="grid gap-4 md:grid-cols-3">
+                                                    <div className="md:col-span-2 space-y-3">
+                                                        <Skeleton className="h-16 w-full rounded-xl bg-muted/60" />
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            <Skeleton className="h-28 w-full rounded-xl bg-muted/60" />
+                                                            <Skeleton className="h-28 w-full rounded-xl bg-muted/60" />
+                                                        </div>
+                                                    </div>
+                                                    <Skeleton className="h-44 w-full rounded-xl bg-muted/60" />
+                                                    <Skeleton className="h-28 col-span-full w-full rounded-xl bg-muted/60" />
+                                                </div>
                                             </div>
                                         ) : insights ? (
                                             <div className="grid gap-4 md:grid-cols-3">
                                                 <div className="md:col-span-2 space-y-4">
-                                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm">
-                                                        <p className="text-sm leading-relaxed italic text-blue-900 font-medium">"{insights.summary}"</p>
+                                                    {/* Headline Diagnosis */}
+                                                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-sm">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <Sparkles className="w-4 h-4 text-blue-500" />
+                                                            <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Diagnosis Headline</span>
+                                                        </div>
+                                                        <p className="text-sm leading-relaxed font-semibold text-blue-950 dark:text-blue-200">
+                                                            "{(insights as any).headline || insights.summary}"
+                                                        </p>
                                                     </div>
+
+                                                    {/* Tactical Recommendations & Strengths */}
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div className="space-y-2">
-                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
                                                                 <TrendingUp className="w-3.5 h-3.5" />
-                                                                Strengths
+                                                                Demonstrated Strengths
                                                             </h4>
                                                             <ul className="space-y-1.5">
                                                                 {insights.strengths.map((s, i) => (
-                                                                    <li key={i} className="text-sm flex items-start gap-2 text-foreground/80">
+                                                                    <li key={i} className="text-xs sm:text-sm flex items-start gap-2 text-foreground/80">
                                                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
                                                                         {s}
                                                                     </li>
@@ -597,13 +632,13 @@ function TaskLogBookContent() {
                                                             </ul>
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
                                                                 <Lightbulb className="w-3.5 h-3.5" />
-                                                                Suggestions
+                                                                Tactical Recommendations
                                                             </h4>
                                                             <ul className="space-y-1.5">
-                                                                {insights.suggestions.map((s, i) => (
-                                                                    <li key={i} className="text-sm flex items-start gap-2 text-foreground/80">
+                                                                {((insights as any).tacticalRecommendations || insights.suggestions).map((s: string, i: number) => (
+                                                                    <li key={i} className="text-xs sm:text-sm flex items-start gap-2 text-foreground/80">
                                                                         <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 flex-shrink-0" />
                                                                         {s}
                                                                     </li>
@@ -611,6 +646,33 @@ function TaskLogBookContent() {
                                                             </ul>
                                                         </div>
                                                     </div>
+
+                                                    {/* Category Breakdown Analysis if present */}
+                                                    {(insights as any).categoryBreakdownAnalysis && (
+                                                        <div className="space-y-2 pt-2 border-t border-border/40">
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/70">
+                                                                Category Breakdown Diagnostic
+                                                            </h4>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                {((insights as any).categoryBreakdownAnalysis as any[]).map((catItem: any, idx: number) => (
+                                                                    <div key={idx} className="p-2.5 rounded-lg border border-border/50 bg-background/50 flex flex-col gap-1 text-xs">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="font-bold text-foreground">{catItem.category}</span>
+                                                                            <span className={cn(
+                                                                                "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                                                                                catItem.status === 'optimal' ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" :
+                                                                                catItem.status === 'balanced' ? "bg-blue-500/20 text-blue-500 border border-blue-500/30" :
+                                                                                "bg-amber-500/20 text-amber-500 border border-amber-500/30"
+                                                                            )}>
+                                                                                {catItem.status.replace('_', ' ')}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-[11px] text-muted-foreground leading-snug">{catItem.insight}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-500/5 to-purple-500/5 rounded-xl border border-border">
                                                     <div className="relative w-24 h-24 mb-3">
@@ -620,7 +682,7 @@ function TaskLogBookContent() {
                                                                 className="text-blue-500 stroke-current"
                                                                 strokeWidth="8"
                                                                 strokeDasharray={251.2}
-                                                                strokeDashoffset={251.2 - (251.2 * insights.focusScore) / 100}
+                                                                strokeDashoffset={251.2 - (251.2 * ((insights as any).productivityScore ?? insights.focusScore)) / 100}
                                                                 strokeLinecap="round"
                                                                 fill="transparent"
                                                                 r="40"
@@ -630,11 +692,11 @@ function TaskLogBookContent() {
                                                             />
                                                         </svg>
                                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                            <span className="text-2xl font-bold">{insights.focusScore}</span>
-                                                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Focus</span>
+                                                            <span className="text-2xl font-bold">{(insights as any).productivityScore ?? insights.focusScore}</span>
+                                                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Productivity</span>
                                                         </div>
                                                     </div>
-                                                    <p className="text-xs text-center font-medium text-muted-foreground leading-tight">Focus Score based on consistency and output</p>
+                                                    <p className="text-xs text-center font-medium text-muted-foreground leading-tight">Productivity Score based on 7-day consistency and MOVERS balance</p>
                                                 </div>
                                                 {insights.moversEvaluation && (
                                                     <div className="col-span-full mt-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-950/20 backdrop-blur-sm space-y-3">

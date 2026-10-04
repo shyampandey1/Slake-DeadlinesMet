@@ -51,6 +51,7 @@ import { useHydrationAudio } from "@/hooks/useHydrationAudio";
 import { useBreathingAudio } from "@/hooks/useBreathingAudio";
 import { useEyeExerciseAudio } from "@/hooks/useEyeExerciseAudio";
 import HydrationBackground from "./HydrationBackground";
+import DwellButton from "./DwellButton";
 import { 
   Sheet, 
   SheetContent, 
@@ -726,9 +727,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             lastTickRef.current = difference;
             playTick();
             
-            // Accelerating / Heartbeat haptics in final stretch (stronger tactile pulses)
-            if (difference <= 10) {
-              triggerHaptic([120, 80, 120]);
+            // Rhythmic heartbeat [100, 400, 100, 400] when exactly 10 seconds remain
+            if (difference === 10) {
+              triggerHaptic([100, 400, 100, 400]);
+            } else if (difference < 10) {
+              triggerHaptic([100]);
             }
         }
       } else if (difference <= 11 && difference > 10) {
@@ -1035,7 +1038,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     <main
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
-      className="dark relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-white bg-[#0c0d0e] overflow-hidden"
+      className={cn("dark relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-white bg-[#0c0d0e] overflow-hidden", flashState === "three-times" && "ring-8 ring-emerald-500/60 ring-inset border-4 border-emerald-400")}
       style={{
         '--timer-primary-color': timerColor,
         '--flash-color': isContinuousFlashing 
@@ -1303,8 +1306,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     "flex items-center justify-center gap-4 transition-opacity duration-300",
                     isUIVisible ? "opacity-100" : "opacity-0"
                   )}>
-                    <Button
-                      onClick={() => {
+                    {/* Skip Action with 1.5s Gaze/Cursor Dwell */}
+                    <DwellButton
+                      onDwellTrigger={handleSkipTask}
+                      size="icon"
+                      variant="ghost"
+                      title="Skip Task (Dwell 1.5s or Click)"
+                      className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-transform"
+                    >
+                      <SkipForward className="h-5 w-5 text-white" />
+                    </DwellButton>
+
+                    {/* Pause / Resume Action with 1.5s Gaze/Cursor Dwell */}
+                    <DwellButton
+                      onDwellTrigger={() => {
                         const newPaused = !isPaused;
                         setIsPaused(newPaused);
                         updateTimer({ isPaused: newPaused }, timeRemaining);
@@ -1327,18 +1342,22 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                       }}
                       size="icon"
                       variant="ghost"
+                      title={isPaused ? "Resume (Dwell 1.5s or Click)" : "Pause (Dwell 1.5s or Click)"}
                       className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-transform"
                     >
                       {isPaused ? <Play className="h-6 w-6 text-white" /> : <Pause className="h-6 w-6 text-white" />}
-                    </Button>
-                    <Button
-                      onClick={handleEndEarly}
+                    </DwellButton>
+
+                    {/* Stop / End Early Action with 1.5s Gaze/Cursor Dwell */}
+                    <DwellButton
+                      onDwellTrigger={handleEndEarly}
                       variant="ghost"
                       size="icon"
+                      title="End Task (Dwell 1.5s or Click)"
                       className="w-12 h-12 rounded-full bg-destructive/40 hover:bg-destructive/60 active:scale-95 transition-transform"
                     >
                       <Square className="h-6 w-6 text-white" />
-                    </Button>
+                    </DwellButton>
                   </div>
                 </div>
               </CircularProgress>
@@ -1386,6 +1405,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     <Label className="text-xs uppercase tracking-widest opacity-60">Notify me every:</Label>
                     <div className="flex flex-wrap gap-2">
                       <Button variant={focusInterval === null ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(null)}>Off</Button>
+                      <Button variant={focusInterval === 5 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(5)}>5m</Button>
                       <Button variant={focusInterval === 10 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(10)}>10m</Button>
                       <Button variant={focusInterval === 15 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(15)}>15m</Button>
                       <Button variant={focusInterval === 30 ? "default" : "outline"} size="sm" onClick={() => setFocusInterval(30)}>30m</Button>

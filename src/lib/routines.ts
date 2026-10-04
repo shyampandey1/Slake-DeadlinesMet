@@ -621,3 +621,64 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
 
 export const getAvailableCategories = () => Object.keys(categoryConfig);
 export const getAvailableIcons = () => ["ListChecks", "Bed", "StretchHorizontal", "Dumbbell", "BrainCircuit", "Mail", "Users", "Coffee", "Footprints", "Wind", "Droplets", "BookOpen", "Utensils", "Target", "Wrench", "ShoppingBag", "Gamepad2", "Eye", "PenTool", "Smartphone", "Car", "Tv", "Apple", "ShowerHead", "Truck", "FileCode", "PenSquare", "Puzzle", "Lightbulb", "Presentation", "BarChart", "ShoppingCart", "Headphones", "Power", "Map", "Wand2", "Camera", "Briefcase", "Megaphone", "Stethoscope", "Laptop", "Code", "FlaskConical", "School", "Network", "GraduationCap", "TrendingUp", "Package", "ClipboardList"];
+
+
+export const applyMoversTemplate = (
+    baseTasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | "profession">>,
+    template: 'morning_primer' | 'evening_restorer' = 'morning_primer'
+): Omit<UserPresetTask, "id" | "order" | "profession">[] => {
+    // Filter out existing redundant morning/evening wrappers
+    const filteredBase = baseTasks.filter(t => {
+        const n = t.name.toLowerCase();
+        return !n.includes('morning kickstart') &&
+               !n.includes('morning primer') &&
+               !n.includes('evening restorer') &&
+               !n.includes('evening wind-down') &&
+               !n.includes('bedtime routine') &&
+               !n.includes('reading a book') &&
+               !n.includes('journaling') &&
+               !n.includes('deep breathing') &&
+               !n.includes('meditation');
+    });
+
+    if (template === 'evening_restorer') {
+        // Evening Restorer: (E) at wake-up; (M + O + V + R + S) in a consolidated recovery block before sleep
+        const morningActivation: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
+            { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Activation" },
+            { name: "Morning Exercise & Physical Activation (E)", duration: 20, icon: "Dumbbell", category: "Morning Activation" },
+            { name: "Morning Hydration & Shower", duration: 15, icon: "ShowerHead", category: "Morning Activation" },
+            { name: "Set table & Energizing Breakfast", duration: 25, icon: "Utensils", category: "Morning Activation" },
+        ];
+
+        const eveningRestorerBlock: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
+            { name: "Evening Unwind Meditation (M)", duration: 10, icon: "BrainCircuit", category: "Evening Restorer Block" },
+            { name: "Deep Box Breathing & Oxygenation (O)", duration: 5, icon: "Wind", category: "Evening Restorer Block" },
+            { name: "Tomorrow's Visualization & Intention Setting (V)", duration: 10, icon: "Target", category: "Evening Restorer Block" },
+            { name: "Reading Positive & Uplifting Books (R)", duration: 25, icon: "BookOpen", category: "Evening Restorer Block" },
+            { name: "Reflective Scribing & Gratitude Journal (S)", duration: 15, icon: "PenSquare", category: "Evening Restorer Block" },
+            { name: "Hygiene & Bed Preparation for Sleep", duration: 10, icon: "Bed", category: "Bedtime Routine" },
+        ];
+
+        return enrichTasks([...morningActivation, ...filteredBase, ...eveningRestorerBlock]);
+    } else {
+        // Morning Primer: (M + O + V + E) before core work; (R + S) at day's end
+        const morningPrimerBlock: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
+            { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Primer" },
+            { name: "Morning Centering Meditation (M)", duration: 10, icon: "BrainCircuit", category: "Morning Primer" },
+            { name: "Deep Breathing & Morning Hydration (O)", duration: 5, icon: "Wind", category: "Morning Primer" },
+            { name: "Daily Visualization & Mental Rehearsal (V)", duration: 10, icon: "Target", category: "Morning Primer" },
+            { name: "Energizing Exercise & Movement (E)", duration: 15, icon: "Dumbbell", category: "Morning Primer" },
+            { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Primer" },
+            { name: "Set table & Nutritious Breakfast", duration: 25, icon: "Utensils", category: "Morning Primer" },
+        ];
+
+        const daysEndRecovery: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
+            { name: "Evening Dinner & Hydration", duration: 35, icon: "Utensils", category: "Evening Wind-down" },
+            { name: "Reading Positive & Mindset Expansion (R)", duration: 25, icon: "BookOpen", category: "Day's End Recovery" },
+            { name: "Scribing & Evening Reflection Journal (S)", duration: 15, icon: "PenSquare", category: "Day's End Recovery" },
+            { name: "Setting bed & room prep for night", duration: 5, icon: "Bed", category: "Bedtime Routine" },
+        ];
+
+        return enrichTasks([...morningPrimerBlock, ...filteredBase, ...daysEndRecovery]);
+    }
+};

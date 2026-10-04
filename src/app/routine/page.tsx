@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { defaultRoutines, profileToRoutineMap } from '@/lib/routines';
+import { defaultRoutines, profileToRoutineMap, applyMoversTemplate } from '@/lib/routines';
 
 
 // This is the corrected Icon component
@@ -104,6 +104,16 @@ function RoutinePageComponent() {
   const handleDeleteTask = async (taskId: string) => {
     await deletePresetTask(taskId);
     setIsDialogOpen(false);
+  };
+
+  const handleTemplateChange = async (pref: 'morning_primer' | 'evening_restorer') => {
+    await setReformerPreference(pref);
+    if (!profile) return;
+    const routineKey = profileToRoutineMap[profile];
+    if (!routineKey) return;
+    const defaultTasksForProfile = defaultRoutines.routines[routineKey] || [];
+    const updatedTasks = applyMoversTemplate(defaultTasksForProfile, pref);
+    await clearAndSetPresetTasks(profile, updatedTasks);
   };
 
   const handleResetRoutine = async () => {
@@ -220,41 +230,43 @@ function RoutinePageComponent() {
                 </CardContent>
             </Card>
 
-            {profileData?.isReformersEnrolled && (
-                <Card className="border-emerald-500/30 bg-emerald-500/5">
-                    <CardHeader>
-                        <CardTitle className="font-headline text-lg flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-emerald-500" />
-                            MOVERS Protocol
-                        </CardTitle>
-                        <CardDescription>Select your preferred energy synchronization template.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Button 
-                            variant={reformerPreference === 'morning_primer' ? 'default' : 'outline'}
-                            onClick={() => setReformerPreference('morning_primer')}
-                            className={cn(
-                                "flex flex-col items-start gap-1 h-auto p-4 text-left",
-                                reformerPreference === 'morning_primer' && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            )}
-                        >
-                            <span className="font-bold">The Morning Primer</span>
-                            <span className="text-xs opacity-80">(M+O+V+E) at start; (R+S) at end.</span>
-                        </Button>
-                        <Button 
-                            variant={reformerPreference === 'evening_restorer' ? 'default' : 'outline'}
-                            onClick={() => setReformerPreference('evening_restorer')}
-                            className={cn(
-                                "flex flex-col items-start gap-1 h-auto p-4 text-left",
-                                reformerPreference === 'evening_restorer' && "bg-indigo-600 hover:bg-indigo-700 text-white"
-                            )}
-                        >
-                            <span className="font-bold">The Evening Restorer</span>
-                            <span className="text-xs opacity-80">(E) at start; (M+O+V+R+S) at end.</span>
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
+            <Card className="border-emerald-500/30 bg-emerald-500/5">
+                <CardHeader>
+                    <CardTitle className="font-headline text-lg flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-emerald-500" />
+                        18-Profession Universal MOVERS Wrapper
+                    </CardTitle>
+                    <CardDescription>Select your energy synchronization template for {profile || "your routine"}.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button 
+                        variant={reformerPreference === 'morning_primer' ? 'default' : 'outline'}
+                        onClick={() => handleTemplateChange('morning_primer')}
+                        className={cn(
+                            "flex flex-col items-start gap-1 h-auto p-4 text-left transition-all",
+                            reformerPreference === 'morning_primer' ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20" : "hover:border-emerald-500/50"
+                        )}
+                    >
+                        <span className="font-bold flex items-center gap-1.5">
+                            🌅 The Morning Primer
+                        </span>
+                        <span className="text-xs opacity-80">(M+O+V+E) before core work; (R+S) at day's end with 8 hydration reminders & visual breaks.</span>
+                    </Button>
+                    <Button 
+                        variant={reformerPreference === 'evening_restorer' ? 'default' : 'outline'}
+                        onClick={() => handleTemplateChange('evening_restorer')}
+                        className={cn(
+                            "flex flex-col items-start gap-1 h-auto p-4 text-left transition-all",
+                            reformerPreference === 'evening_restorer' ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20" : "hover:border-indigo-500/50"
+                        )}
+                    >
+                        <span className="font-bold flex items-center gap-1.5">
+                            🌙 The Evening Restorer
+                        </span>
+                        <span className="text-xs opacity-80">(E) at wake-up; (M+O+V+R+S) in a consolidated recovery block before sleep with 8 hydration reminders & visual breaks.</span>
+                    </Button>
+                </CardContent>
+            </Card>
 
             <div ref={routineRef} className="pt-4 scroll-mt-24">
               <div className="flex justify-between items-center mb-6">

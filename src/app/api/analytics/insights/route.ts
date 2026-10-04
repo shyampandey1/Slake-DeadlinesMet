@@ -206,25 +206,73 @@ function generateDeterministicInsights(payload: InsightsPayload): InsightsOutput
     ? `Maintained steady execution over the last ${periodDays} days with ${completedTasksCount} tasks completed and a ${streakCount}-day streak. Your routine shows strong affinity for ${topCategory}.`
     : `Ready to initiate high-performance tracking for the upcoming ${periodDays}-day cycle. Schedule your primary anchor habits to jumpstart momentum.`;
 
+  const categoryBreakdownAnalysis = [
+    {
+      category: 'Productivity' as const,
+      status: categoryDistribution.Productivity >= 5 ? ('optimal' as const) : categoryDistribution.Productivity >= 2 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: categoryDistribution.Productivity >= 5 ? 'High cognitive velocity and strong focus session execution.' : 'Deep work volume could be enhanced with an extra focus block.',
+    },
+    {
+      category: 'Hydration' as const,
+      status: categoryDistribution.Hydration >= 7 ? ('optimal' as const) : categoryDistribution.Hydration >= 3 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: categoryDistribution.Hydration >= 7 ? 'Optimal hydration intervals logged throughout the day.' : 'Hydration reminders needed between demanding sessions.',
+    },
+    {
+      category: 'Fitness' as const,
+      status: categoryDistribution.Fitness >= 3 ? ('optimal' as const) : categoryDistribution.Fitness >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: categoryDistribution.Fitness >= 3 ? 'Physical stamina and exercise routines are active.' : 'Incorporate light movement or recovery stretching.',
+    },
+    {
+      category: 'Meditation' as const,
+      status: categoryDistribution.Meditation >= 3 ? ('optimal' as const) : categoryDistribution.Meditation >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: categoryDistribution.Meditation >= 3 ? 'Mental decompression and box breathing anchors maintained.' : 'Add a 3-minute breathwork reset before peak focus.',
+    },
+    {
+      category: 'Hygiene' as const,
+      status: categoryDistribution.Hygiene >= 3 ? ('optimal' as const) : categoryDistribution.Hygiene >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: categoryDistribution.Hygiene >= 3 ? 'Healthy personal recovery and domestic setup rhythm.' : 'Maintain regular table and sleep environment preparation.',
+    },
+    {
+      category: 'Creativity' as const,
+      status: categoryDistribution.Creativity >= 2 ? ('optimal' as const) : categoryDistribution.Creativity >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      insight: categoryDistribution.Creativity >= 2 ? 'Creative synthesis active alongside analytical tasks.' : 'Dedicate 15 minutes to reflective scribing.',
+    },
+  ];
+
+  const recs = [...suggestions];
+  while (recs.length < 3) {
+    recs.push('Maintain balanced pacing by interleaving breathwork pauses with execution.');
+  }
+  const tacticalRecommendations: [string, string, string] = [recs[0], recs[1], recs[2]];
+
+  const alignmentWithMovers = {
+    overallRating: overallRating as 'Optimal' | 'Strong' | 'Developing' | 'Foundational',
+    adherenceScore,
+    feedback: adherenceScore >= 80
+      ? 'Superb integration across all key MOVERS protocol pillars.'
+      : `Active in ${moversCount} of 5 MOVERS protocol pillars. Focus on expanding hydration, breathing, and movement routines.`,
+    pillarBreakdown: {
+      meditation: categoryDistribution.Meditation > 0 ? 'Active' : 'Unscheduled',
+      oxygenationHydration: categoryDistribution.Hydration > 0 ? 'Active' : 'Unscheduled',
+      visualizationPlanning: categoryDistribution.Productivity > 0 ? 'Active' : 'Unscheduled',
+      exerciseFitness: categoryDistribution.Fitness > 0 ? 'Active' : 'Unscheduled',
+      readingScribing: categoryDistribution.Creativity > 0 ? 'Active' : 'Unscheduled',
+    },
+  };
+
+  const headline = `${overallRating} Discipline (${focusScore}/100) • ${adherenceScore}% MOVERS Balance`;
+
   return {
+    headline,
+    productivityScore: focusScore,
+    categoryBreakdownAnalysis,
+    tacticalRecommendations,
+    alignmentWithMovers,
     summary,
     strengths: strengths.slice(0, 3),
-    suggestions: suggestions.slice(0, 3),
+    suggestions: tacticalRecommendations,
     focusScore,
-    moversEvaluation: {
-      overallRating,
-      adherenceScore,
-      feedback: adherenceScore >= 80
-        ? 'Superb integration across all key MOVERS protocol pillars.'
-        : `Active in ${moversCount} of 5 MOVERS protocol pillars. Focus on expanding hydration, breathing, and movement routines.`,
-      pillarBreakdown: {
-        meditation: categoryDistribution.Meditation > 0 ? 'Active' : 'Unscheduled',
-        oxygenationHydration: categoryDistribution.Hydration > 0 ? 'Active' : 'Unscheduled',
-        visualizationPlanning: categoryDistribution.Productivity > 0 ? 'Active' : 'Unscheduled',
-        exerciseFitness: categoryDistribution.Fitness > 0 ? 'Active' : 'Unscheduled',
-        readingScribing: categoryDistribution.Creativity > 0 ? 'Active' : 'Unscheduled',
-      },
-    },
+    moversEvaluation: alignmentWithMovers,
   };
 }
 

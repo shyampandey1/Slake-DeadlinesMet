@@ -1296,36 +1296,39 @@ function ReformersPageContent() {
                                     <div className="flex-1 text-center sm:text-left space-y-1 sm:space-y-2 w-full pt-1 sm:pt-2">
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
                                             <div>
-                                                <h2 className="text-xl sm:text-2xl font-extrabold text-foreground flex justify-center sm:justify-start items-center gap-1 sm:gap-2">
-                                                    {profileData?.displayName || "Reformer"}
+                                                <h2 className="text-xl sm:text-2xl font-extrabold text-foreground flex flex-wrap justify-center sm:justify-start items-center gap-2">
+                                                    <span>{profileData?.displayName || "Reformer"}</span>
+                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                        Reformer: ACTIVE
+                                                    </Badge>
                                                     <Button onClick={() => setIsEditing(true)} variant="ghost" size="icon" className="w-5 h-5 sm:w-6 sm:h-6 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground"><Edit className="w-3 h-3" /></Button>
                                                 </h2>
                                                 <p className="text-[10px] sm:text-sm font-medium text-[#10b981] tracking-wider sm:tracking-wide uppercase">{profileData?.profile || "General"} | {profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global"}</p>
                                             </div>
-                                            <div className="grid grid-cols-3 gap-4 mt-6 w-full max-w-xl mx-auto sm:mx-0 min-h-[120px]">
-                                                <div className="text-center">
-                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Followers</p>
-                                                    <p className="text-xl font-bold text-foreground">{myFollowers}</p>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 mt-5 w-full p-3 rounded-2xl bg-muted/40 border border-border/50 shadow-inner">
+                                                <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">Followers</p>
+                                                    <p className="text-lg font-black text-foreground">{myFollowers}</p>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Following</p>
-                                                    <p className="text-xl font-bold text-foreground">{myFollowing}</p>
+                                                <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">Following</p>
+                                                    <p className="text-lg font-black text-foreground">{myFollowing}</p>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">Streak</p>
-                                                    <p className="text-xl font-bold text-foreground">{currentStreakLocal}</p>
+                                                <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">Streak</p>
+                                                    <p className="text-lg font-black text-foreground">{currentStreakLocal}D</p>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">App Days</p>
-                                                    <p className="text-xl font-bold text-foreground">{appAgeDays}</p>
+                                                <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">App Days</p>
+                                                    <p className="text-lg font-black text-foreground">{appAgeDays}D</p>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight">DM Coins</p>
-                                                    <p className="text-xl font-bold text-amber-500">{profileData?.slakeCredits || 0}</p>
+                                                <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">Coins</p>
+                                                    <p className="text-lg font-black text-amber-500">{profileData?.slakeCredits || profileData?.coins || 0}</p>
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm uppercase text-muted-foreground font-bold leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2 h-2 text-green-500" /></p>
-                                                    <p className="text-xl font-bold text-[#10b981]">#{myRank}</p>
+                                                <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight flex items-center gap-1 justify-center">Rank <TrendingUp className="w-2.5 h-2.5 text-emerald-400" /></p>
+                                                    <p className="text-lg font-black text-emerald-500">#{myRank}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1832,7 +1835,7 @@ function ReformersPageContent() {
                             <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-500/30">
                                 <Zap className="w-12 h-12 text-emerald-400 animate-pulse" />
                             </div>
-                            <h2 className="text-3xl font-black tracking-tight">SCHEDULE TUNED</h2>
+                            <h2 className="text-3xl font-black tracking-tight text-emerald-400">REFORMER ACTIVATED!</h2>
                             <p className="text-slate-400 leading-relaxed">
                                 Welcome, Reformer. Your routine has been automatically aligned with the
                                 <span className="text-emerald-400 font-bold"> MOVERS</span> protocol.
