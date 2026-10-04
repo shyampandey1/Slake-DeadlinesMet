@@ -1,120 +1,99 @@
 import { NextResponse } from 'next/server';
-import { VoiceIntentPayloadSchema, type VoiceIntentPayload, type VoiceCategory, type VoiceRoute } from '@/types/voice';
-import { callTypeSafeSystemOne, type TypeSafeQuestion } from '@/lib/jevClient';
+import { VoiceIntentPayloadSchema, VoiceIntentPayload, VoiceCategory, VoiceRoute } from '@/types/voice';
+import { callTypeSafeSystemOne, TypeSafeQuestion } from '@/lib/jevClient';
+import { VOICE_COMMAND_DICTIONARY } from '@/config/voiceCommandDictionary';
 
 /**
- * Natural language rule-based extractor to accurately parse duration and intent details.
+ * Parses transcripts against canonical dictionary and deterministic NLP
  */
-function parseVoiceCommandLocally(transcript: string, currentRoute?: string): VoiceIntentPayload | null {
+function parseVoiceCommand(transcript: string, currentRoute: string = '/'): VoiceIntentPayload {
   const lower = transcript.toLowerCase().trim();
 
-  // 1. MODAL DISMISS
-  if (/^(dismiss|close|cancel|nevermind|exit)$/i.test(lower)) {
-    return {
-      action: 'MODAL_DISMISS',
-      speechFeedback: 'Dismissed.',
-      confidence: 0.98,
-    };
+  // 1. Direct match against canonical voice command dictionary
+  for (const cmd of VOICE_COMMAND_DICTIONARY) {
+    // Check direct phrase matches
+    if (cmd.phrases.some(p => lower === p || lower.startsWith(p) || lower.endsWith(p))) {
+      return {
+        action: cmd.action,
+        taskName: cmd.category ? cmd.phrases[0] : undefined,
+        durationMinutes: cmd.durationMinutes,
+        extendMinutes: cmd.extendMinutes,
+        intervalMinutes: cmd.intervalMinutes,
+        category: cmd.category,
+        targetRoute: cmd.targetRoute,
+        earnedCoins: cmd.earnedCoins,
+        coopAction: cmd.coopAction,
+        rewardsAction: cmd.rewardsAction,
+        sensorType: cmd.sensorType,
+        sensorState: cmd.sensorState,
+        speechFeedback: cmd.speechFeedback,
+        confidence: 0.98,
+      };
+    }
+
+    // Check regex patterns
+    for (const pat of cmd.patterns) {
+      const match = lower.match(pat);
+      if (match) {
+        let duration = cmd.durationMinutes;
+        let extend = cmd.extendMinutes;
+        let interval = cmd.intervalMinutes;
+
+        if (match[1] && !isNaN(parseInt(match[1], 10))) {
+          const num = parseInt(match[1], 10);
+          if (cmd.action === 'TIMER_EXTEND') extend = num;
+          else if (cmd.action === 'TIMER_SET_INTERVAL') interval = num;
+          else duration = num;
+        }
+
+        return {
+          action: cmd.action,
+          taskName: cmd.category ? cmd.phrases[0] : undefined,
+          durationMinutes: duration,
+          extendMinutes: extend,
+          intervalMinutes: interval,
+          category: cmd.category,
+          targetRoute: cmd.targetRoute,
+          earnedCoins: cmd.earnedCoins,
+          coopAction: cmd.coopAction,
+          rewardsAction: cmd.rewardsAction,
+          sensorType: cmd.sensorType,
+          sensorState: cmd.sensorState,
+          speechFeedback: cmd.speechFeedback,
+          confidence: 0.95,
+        };
+      }
+    }
   }
 
-  // 2. NAVIGATION
-  if (lower.includes('routine')) {
-    return { action: 'NAVIGATE', targetRoute: '/routine', speechFeedback: 'Navigating to Routine.', confidence: 0.95 };
-  }
-  if (lower.includes('reformer') || lower.includes('league')) {
-    return { action: 'NAVIGATE', targetRoute: '/reformers', speechFeedback: 'Navigating to Reformers League.', confidence: 0.95 };
-  }
-  if (lower.includes('logbook') || lower.includes('history') || lower.includes('accomplishment')) {
-    return { action: 'NAVIGATE', targetRoute: '/logbook', speechFeedback: 'Opening Log Book.', confidence: 0.95 };
-  }
-  if (lower.includes('setting')) {
-    return { action: 'NAVIGATE', targetRoute: '/settings', speechFeedback: 'Opening Settings.', confidence: 0.95 };
-  }
-  if (lower.includes('reward') || lower.includes('redeem')) {
-    return { action: 'REDEEM_TRIGGER', targetRoute: '/rewards', speechFeedback: 'Opening Rewards and Redemption.', confidence: 0.95 };
-  }
-  if (lower.includes('home') || lower.includes('dashboard')) {
-    return { action: 'NAVIGATE', targetRoute: '/', speechFeedback: 'Taking you Home.', confidence: 0.95 };
-  }
-
-  // 3. TIMER CONTROL
-  if (/^(pause|hold on|pause timer|pause session)/i.test(lower)) {
-    return { action: 'TIMER_PAUSE', speechFeedback: 'Timer paused.', confidence: 0.95 };
-  }
-  if (/^(resume|continue|resume timer|keep going)/i.test(lower)) {
-    return { action: 'TIMER_RESUME', speechFeedback: 'Resuming timer.', confidence: 0.95 };
-  }
-  if (/^(stop|finish|done|end timer|stop timer|complete)/i.test(lower)) {
-    return { action: 'TIMER_STOP', speechFeedback: 'Ending focus session.', confidence: 0.95 };
-  }
-
-  // 4. TIMER EXTEND
-  const extendMatch = lower.match(/(?:extend|add|give me)\s*(?:by)?\s*(\d+)\s*(?:more)?\s*(?:min|minute|minutes|m)?/i);
-  if (extendMatch && extendMatch[1]) {
-    const mins = parseInt(extendMatch[1], 10);
-    return {
-      action: 'TIMER_EXTEND',
-      extendMinutes: mins,
-      speechFeedback: `Extending session by ${mins} minutes.`,
-      confidence: 0.95,
-    };
-  }
-
-  // 5. TIMER SET INTERVAL
-  const intervalMatch = lower.match(/(?:interval|alert|milestone|notify every|every)\s*(?:to|every|of)?\s*(\d+)\s*(?:min|minute|minutes|m)/i);
-  if (intervalMatch && intervalMatch[1]) {
-    const mins = parseInt(intervalMatch[1], 10);
-    return {
-      action: 'TIMER_SET_INTERVAL',
-      intervalMinutes: mins,
-      speechFeedback: `Milestone interval alert set to every ${mins} minutes.`,
-      confidence: 0.95,
-    };
-  }
-
-  // 6. QUICK LOG TASK (e.g. "quick log water", "drank a glass of water")
-  if (lower.includes('drink') && lower.includes('water') || lower.includes('quick log water') || lower.includes('log water')) {
-    return {
-      action: 'TASK_QUICK_LOG',
-      taskName: 'Drink a glass of water',
-      durationMinutes: 1,
-      category: 'Hydration',
-      speechFeedback: 'Logged 1 glass of water. 15 Slake Coins earned!',
-      confidence: 0.95,
-    };
-  }
-
-  // 7. TIMER START or TASK CREATE with duration extraction
-  // Handles examples like "set a timer of dinner in 20 mi", "start 30 min coding session"
-  const durationMatch = lower.match(/(\d+)\s*(?:min|minute|minutes|m\b|mi\b)/i);
+  // 2. Fallback pattern matching for dynamic task names and durations
+  const durationMatch = lower.match(/(\d+)\s*(?:min|minute|minutes|m|mi)/i);
   const duration = durationMatch ? parseInt(durationMatch[1], 10) : 15;
 
   let taskName = transcript;
-  // Clean prefixes like "set a timer of", "start a timer for", "start", "create task"
   taskName = taskName
     .replace(/^(?:set\s+a\s+timer\s+(?:of|for)?|start\s+(?:a)?\s*timer\s+(?:of|for)?|start\s+a\s+|start\s+|create\s+task\s+|create\s+)/i, '')
-    .replace(/(?:in|for)?\s*\d+\s*(?:min|minute|minutes|m\b|mi\b)/i, '')
+    .replace(/(?:in|for)?\s*\d+\s*(?:min|minute|minutes|m|mi)/i, '')
     .trim();
 
   if (!taskName) {
     taskName = 'Focus Session';
   } else {
-    // Capitalize first letter
     taskName = taskName.charAt(0).toUpperCase() + taskName.slice(1);
   }
 
-  // Categorization
+  // Categorize task dynamically
   let category: VoiceCategory = 'Productivity';
   const nameLower = taskName.toLowerCase();
   if (nameLower.includes('water') || nameLower.includes('hydrate') || nameLower.includes('drink')) {
     category = 'Hydration';
-  } else if (nameLower.includes('meditat') || nameLower.includes('breath') || nameLower.includes('mindful')) {
+  } else if (nameLower.includes('meditat') || nameLower.includes('breath') || nameLower.includes('mindful') || nameLower.includes('relax')) {
     category = 'Meditation';
-  } else if (nameLower.includes('exercise') || nameLower.includes('workout') || nameLower.includes('run') || nameLower.includes('fitness') || nameLower.includes('gym')) {
+  } else if (nameLower.includes('exercise') || nameLower.includes('workout') || nameLower.includes('run') || nameLower.includes('fitness') || nameLower.includes('gym') || nameLower.includes('stretch')) {
     category = 'Fitness';
-  } else if (nameLower.includes('draw') || nameLower.includes('write') || nameLower.includes('design') || nameLower.includes('art')) {
+  } else if (nameLower.includes('draw') || nameLower.includes('write') || nameLower.includes('design') || nameLower.includes('art') || nameLower.includes('read') || nameLower.includes('journal')) {
     category = 'Creativity';
-  } else if (nameLower.includes('brush') || nameLower.includes('shower') || nameLower.includes('bath') || nameLower.includes('dinner') || nameLower.includes('lunch') || nameLower.includes('breakfast')) {
+  } else if (nameLower.includes('brush') || nameLower.includes('shower') || nameLower.includes('bath') || nameLower.includes('bed') || nameLower.includes('table') || nameLower.includes('clean') || nameLower.includes('dinner') || nameLower.includes('lunch') || nameLower.includes('breakfast')) {
     category = 'Hygiene';
   }
 
@@ -128,7 +107,7 @@ function parseVoiceCommandLocally(transcript: string, currentRoute?: string): Vo
     speechFeedback: isTimerStart
       ? `Starting ${duration}-minute timer for ${taskName}.`
       : `Created task ${taskName} for ${duration} minutes.`,
-    confidence: 0.92,
+    confidence: 0.90,
   };
 }
 
@@ -143,62 +122,52 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Transcript is required' }, { status: 400 });
     }
 
-    // First attempt quick deterministic classification for ultra-fast response
-    const localResult = parseVoiceCommandLocally(transcript, currentRoute);
+    // 1. Check local canonical dictionary and fast deterministic parser
+    const localResult = parseVoiceCommand(transcript, currentRoute);
 
-    // If local result is very confident (or API call fallback), use it or enhance with JEV TypeSafe
+    // 2. Validate against JEV TypeSafe Decision Engine if ambiguity exists
     try {
-      const state = {
-        transcript,
-        currentRoute,
-        activeTimer: activeTimerState,
-      };
+      if (localResult.confidence && localResult.confidence < 0.95) {
+        const state = {
+          transcript,
+          currentRoute,
+          activeTimer: activeTimerState,
+        };
 
-      const questions: Record<string, TypeSafeQuestion> = {
-        intentAction: {
-          type: 'choice',
-          instructions: 'Classify the primary voice intent of the user transcript.',
-          criteria: {
-            TIMER_START: 'User wants to begin a countdown or focus session for a task',
-            TIMER_PAUSE: 'User wants to pause their running timer',
-            TIMER_RESUME: 'User wants to resume a paused timer',
-            TIMER_STOP: 'User wants to stop, end, or finish the active timer',
-            TIMER_EXTEND: 'User wants to add more minutes to the current timer',
-            TIMER_SET_INTERVAL: 'User wants to configure recurring milestone alert intervals',
-            TASK_QUICK_LOG: 'User explicitly logged an immediate habit like drinking water',
-            TASK_CREATE: 'User wants to schedule or add a new task to their routine',
-            NAVIGATE: 'User wants to transition to a different screen or page in the app',
-            REDEEM_TRIGGER: 'User wants to open rewards, certificates, or cash redemption',
-            MODAL_DISMISS: 'User wants to close, cancel, or dismiss the voice modal',
+        const questions: Record<string, TypeSafeQuestion> = {
+          intentAction: {
+            type: 'choice',
+            instructions: 'Classify the primary voice intent of the user transcript.',
+            criteria: {
+              TIMER_START: 'User wants to begin a countdown or focus session for a task',
+              TIMER_PAUSE: 'User wants to pause their running timer',
+              TIMER_RESUME: 'User wants to resume a paused timer',
+              TIMER_STOP: 'User wants to stop, end, or finish the active timer',
+              TIMER_EXTEND: 'User wants to add more minutes to the current timer',
+              TIMER_SET_INTERVAL: 'User wants to configure recurring milestone alert intervals',
+              TASK_LOG_QUICK: 'User logged a quick micro habit like drinking water or making bed',
+              TASK_CREATE: 'User wants to schedule or add a new task to their routine',
+              NAVIGATE: 'User wants to transition to a different screen or page in the app',
+              COOP_ACTION: 'User wants to manage co-op cluster sessions or invite peers',
+              REWARDS_ACTION: 'User wants to access rewards, cash redemption, or check coins',
+              SENSOR_ENVIRONMENT_TOGGLE: 'User wants to toggle sensors, dwell gaze, or ambient sounds',
+              MODAL_DISMISS: 'User wants to close, cancel, or dismiss the voice HUD',
+            },
           },
-        },
-      };
+        };
 
-      const jevResponse = await callTypeSafeSystemOne({ state, questions });
-      const chosenAction = jevResponse.answers?.intentAction?.choice as any;
+        const jevResponse = await callTypeSafeSystemOne({ state, questions });
+        const chosenAction = jevResponse.answers?.intentAction?.choice as any;
 
-      if (chosenAction && localResult && chosenAction === localResult.action) {
-        return NextResponse.json(VoiceIntentPayloadSchema.parse(localResult));
+        if (chosenAction) {
+          localResult.action = chosenAction;
+        }
       }
     } catch (jevErr) {
-      console.warn('[JEV Voice Parser] JEV SystemOne fallback to local deterministic NLP:', jevErr);
+      console.warn('[JEV Voice Intent] Upstream JEV TypeSafe fallback:', jevErr);
     }
 
-    // Default to the robust local parser result
-    if (localResult) {
-      return NextResponse.json(VoiceIntentPayloadSchema.parse(localResult));
-    }
-
-    // Fallback default
-    const fallback: VoiceIntentPayload = {
-      action: 'TIMER_START',
-      taskName: transcript,
-      durationMinutes: 15,
-      category: 'Productivity',
-      speechFeedback: `Starting 15-minute timer for ${transcript}.`,
-      confidence: 0.8,
-    };
-    return NextResponse.json(VoiceIntentPayloadSchema.parse(fallback));
+    return NextResponse.json(VoiceIntentPayloadSchema.parse(localResult));
   } catch (error: any) {
     console.error('Voice Intent API Error:', error);
     return NextResponse.json({ error: error.message || 'Internal voice parser error' }, { status: 500 });

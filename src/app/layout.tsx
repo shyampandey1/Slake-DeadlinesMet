@@ -12,6 +12,7 @@ import { TimerProvider } from "@/hooks/useActiveTimer";
 import HardwareBackHandler from "@/components/HardwareBackHandler";
 import NotificationScheduler from "@/components/NotificationScheduler";
 import FloatingTimer from "@/components/FloatingTimer";
+import AgentDM from "@/components/voice/AgentDM";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,6 +71,7 @@ export default function RootLayout({
                     <TimerUIProvider>
                         <TimerProvider>
                             <HardwareBackHandler />
+                            <AgentDM />
                             <PageTransitionWrapper>
                                 {children}
                             </PageTransitionWrapper>

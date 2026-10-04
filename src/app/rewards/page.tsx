@@ -14,7 +14,7 @@ export default function RewardsPage() {
             className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8"
         >
             <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight flex items-center justify-center sm:justify-start gap-3">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center justify-center sm:justify-start gap-3">
                     <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500 fill-current drop-shadow-md" />
                     Achievement Center
                 </h1>

@@ -1,0 +1,269 @@
+"use client";
+
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, MicOff, Sparkles, Volume2, CheckCircle2, ChevronDown, X, Play, Clock, Droplets, Dumbbell, BrainCircuit } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useVoiceController } from "@/hooks/useVoiceController";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+export default function AgentDM() {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const {
+    agentState,
+    isListening,
+    isThinking,
+    isExecuting,
+    isSpeaking,
+    transcript,
+    waveformAmplitudes,
+    detectedIntent,
+    startListening,
+    stopListening,
+    cancelListening,
+    executeIntent,
+    error,
+  } = useVoiceController();
+
+  const handlePillClick = () => {
+    if (isListening) {
+      stopListening();
+    } else if (agentState === 'IDLE') {
+      startListening();
+    } else {
+      setModalOpen(true);
+    }
+  };
+
+  const quickActions = [
+    { label: "Log Water (+15 SC)", icon: Droplets, phrase: "log water" },
+    { label: "Bed Made (+15 SC)", icon: CheckCircle2, phrase: "bed made" },
+    { label: "Quick Stretch (+40 SC)", icon: Dumbbell, phrase: "quick stretch done" },
+    { label: "Meditation 10m", icon: BrainCircuit, phrase: "start meditation for 10 minutes" },
+    { label: "Deep Work 45m", icon: Clock, phrase: "deep work 45 minutes" },
+  ];
+
+  return (
+    <>
+      {/* Viewport Floating HUD Capsule */}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 350, damping: 25 }}
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-pointer"
+        onClick={handlePillClick}
+      >
+        <div
+          className={cn(
+            "backdrop-blur-xl bg-slate-950/85 border border-emerald-500/20 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
+            "hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]",
+            isListening && "border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.35)] ring-2 ring-emerald-500/30",
+            isThinking && "border-blue-500/60 shadow-[0_0_30px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/30",
+            isSpeaking && "border-purple-500/60 shadow-[0_0_30px_rgba(168,85,247,0.35)] ring-2 ring-purple-500/30",
+            isExecuting && "border-emerald-400/80 shadow-[0_0_30px_rgba(52,211,153,0.4)]"
+          )}
+        >
+          {/* Status Indicator Icon */}
+          <div className="relative flex items-center justify-center">
+            {agentState === 'IDLE' && (
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
+                <Mic className="w-3.5 h-3.5 text-emerald-400/80" />
+              </div>
+            )}
+
+            {agentState === 'LISTENING' && (
+              <motion.div
+                animate={{ scale: [1, 1.25, 1] }}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+                className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]"
+              />
+            )}
+
+            {agentState === 'THINKING' && (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full shadow-[0_0_10px_#10b981]"
+              />
+            )}
+
+            {agentState === 'EXECUTING' && (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-bounce" />
+            )}
+
+            {agentState === 'SPEAKING' && (
+              <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
+            )}
+          </div>
+
+          {/* Central Label & Dynamic Waveform Equalizer */}
+          <div className="flex items-center gap-2">
+            {agentState === 'IDLE' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent font-headline">
+                  Agent DM
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                  • Click to Speak
+                </span>
+              </div>
+            )}
+
+            {agentState === 'LISTENING' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                  Listening...
+                </span>
+                {/* 16 Audio-Reactive Waveform Equalizer Bars */}
+                <div className="flex items-center gap-[2.5px] h-5 px-1">
+                  {waveformAmplitudes.map((amp, idx) => (
+                    <motion.div
+                      key={idx}
+                      className="w-[2.5px] bg-emerald-400 rounded-full"
+                      animate={{ height: `${Math.max(4, amp * 20)}px` }}
+                      transition={{ duration: 0.08 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {agentState === 'THINKING' && (
+              <span className="text-xs font-bold text-blue-300 font-mono tracking-wide animate-pulse">
+                Thinking...
+              </span>
+            )}
+
+            {agentState === 'EXECUTING' && (
+              <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                Executing...
+              </span>
+            )}
+
+            {agentState === 'SPEAKING' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-purple-300 font-mono tracking-wide">
+                  Agent DM
+                </span>
+                {/* Speaking Ripples */}
+                <div className="flex items-center gap-1">
+                  {[0, 1, 2, 3].map((bar) => (
+                    <motion.div
+                      key={bar}
+                      animate={{ scaleY: [0.3, 1.2, 0.3] }}
+                      transition={{ repeat: Infinity, duration: 0.6, delay: bar * 0.15 }}
+                      className="w-1 h-3.5 bg-purple-400 rounded-full"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Expansion Trigger */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setModalOpen(true);
+            }}
+            className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors ml-1"
+            title="Expand Agent DM Commands"
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Expanded Interactive Command Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="bg-slate-950/95 border border-emerald-500/30 text-white p-6 rounded-3xl backdrop-blur-2xl shadow-2xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-headline text-lg text-emerald-400">
+              <Sparkles className="w-5 h-5 text-emerald-400" />
+              Agent DM • Voice Intelligence HUD
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Hands-free voice execution powered by JEV TypeSafe Decision Engine.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* Live Transcript / Speech Feedback */}
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 uppercase font-mono tracking-wider">
+                <span>Active Speech Status</span>
+                <span className="text-emerald-400 font-bold">{agentState}</span>
+              </div>
+              <p className="text-sm font-medium text-slate-200 min-h-[24px] italic">
+                {transcript ? `"${transcript}"` : detectedIntent?.speechFeedback || "Ready for voice command..."}
+              </p>
+            </div>
+
+            {/* Quick Action Chips */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                Suggested Commands
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {quickActions.map((action, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setModalOpen(false);
+                      startListening();
+                    }}
+                    className="justify-start gap-2 h-9 text-xs bg-white/5 border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-slate-200 hover:text-white"
+                  >
+                    <action.icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">{action.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Controller Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={() => {
+                  if (isListening) stopListening();
+                  else startListening();
+                }}
+                className={cn(
+                  "flex-1 font-bold h-11 text-xs gap-2 rounded-xl transition-all",
+                  isListening
+                    ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40"
+                    : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                )}
+              >
+                {isListening ? (
+                  <>
+                    <MicOff className="w-4 h-4" /> Stop Listening
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-4 h-4" /> Speak Command
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setModalOpen(false)}
+                className="h-11 px-4 text-xs font-bold rounded-xl border-white/10 hover:bg-white/10"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

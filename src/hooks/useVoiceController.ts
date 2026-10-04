@@ -1,179 +1,79 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import type { VoiceIntentPayload, VoiceCommandRequest } from '@/types/voice';
+import { VoiceIntentPayload, VoiceCommandRequest, VoiceAgentState } from '@/types/voice';
+import { useTasks } from '@/hooks/useFirestore';
 import { useAuth } from '@/hooks/useAuth';
-import { usePresetTasks } from '@/hooks/useFirestore';
+import { useActiveTimer } from '@/hooks/useActiveTimer';
 import { useToast } from '@/hooks/use-toast';
+import { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } from '@/lib/dailyCoins';
 
-export interface UseVoiceControllerReturn {
-  isListening: boolean;
-  transcript: string;
-  waveformAmplitudes: number[];
-  detectedIntent: VoiceIntentPayload | null;
-  isProcessing: boolean;
-  startListening: () => void;
-  stopListening: () => void;
-  cancelListening: () => void;
-  executeIntent: (intent: VoiceIntentPayload) => Promise<void>;
-  error: string | null;
+interface UseVoiceControllerProps {
+  onActionComplete?: () => void;
+  onStateChange?: (state: VoiceAgentState) => void;
 }
 
-export function useVoiceController(onActionComplete?: () => void): UseVoiceControllerReturn {
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [waveformAmplitudes, setWaveformAmplitudes] = useState<number[]>(new Array(16).fill(0.1));
-  const [detectedIntent, setDetectedIntent] = useState<VoiceIntentPayload | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+export function useVoiceController({ onActionComplete, onStateChange }: UseVoiceControllerProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { addTask } = usePresetTasks(user?.uid);
+  const { addTask } = useTasks();
+  const { startTimer, updateTimer, clearTimer, activeTimer } = useActiveTimer();
   const { toast } = useToast();
 
-  const recognitionRef = useRef<any>(null);
+  const [agentState, setAgentStateInternal] = useState<VoiceAgentState>('IDLE');
+  const [transcript, setTranscript] = useState('');
+  const [detectedIntent, setDetectedIntent] = useState<VoiceIntentPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [waveformAmplitudes, setWaveformAmplitudes] = useState<number[]>(new Array(16).fill(0.15));
+
+  // Audio Context & Analyser references
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Vocalize speech feedback
+  // Speech Recognition reference
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<any>(null);
+
+  const setAgentState = useCallback((newState: VoiceAgentState) => {
+    setAgentStateInternal(newState);
+    onStateChange?.(newState);
+  }, [onStateChange]);
+
+  // Haptic pulse helper
+  const triggerHaptic = useCallback((pattern: number | number[]) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate(pattern);
+      } catch (e) {}
+    }
+  }, []);
+
+  // Text-To-Speech with state updates
   const speakFeedback = useCallback((text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.05;
       utterance.pitch = 1.0;
+
+      setAgentState('SPEAKING');
+
+      utterance.onend = () => {
+        setAgentState('IDLE');
+      };
+      utterance.onerror = () => {
+        setAgentState('IDLE');
+      };
+
       window.speechSynthesis.speak(utterance);
+    } else {
+      setAgentState('IDLE');
     }
-  }, []);
-
-  // Execute a parsed intent payload
-  const executeIntent = useCallback(
-    async (intent: VoiceIntentPayload) => {
-      setIsProcessing(true);
-      try {
-        if (intent.speechFeedback) {
-          speakFeedback(intent.speechFeedback);
-        }
-
-        switch (intent.action) {
-          case 'NAVIGATE': {
-            if (intent.targetRoute) {
-              router.push(intent.targetRoute);
-            }
-            break;
-          }
-          case 'TIMER_START': {
-            const params = new URLSearchParams({
-              task: intent.taskName || 'Focus Session',
-              duration: String(intent.durationMinutes || 15),
-              category: intent.category || 'Productivity',
-            });
-            router.push(`/timer?${params.toString()}`);
-            break;
-          }
-          case 'TIMER_PAUSE':
-          case 'TIMER_RESUME':
-          case 'TIMER_STOP':
-          case 'TIMER_EXTEND':
-          case 'TIMER_SET_INTERVAL': {
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(
-                new CustomEvent('slake-timer-voice-command', { detail: intent })
-              );
-            }
-            break;
-          }
-          case 'TASK_QUICK_LOG': {
-            if (user?.uid) {
-              await addTask({
-                name: intent.taskName || 'Quick Habit',
-                duration: intent.durationMinutes || 1,
-                icon: intent.category === 'Hydration' ? 'Droplets' : 'CheckCircle2',
-                category: intent.category || 'Hydration',
-                order: 0,
-              });
-              toast({
-                title: 'Quick Habit Logged! ✨',
-                description: `${intent.taskName} marked complete.`,
-              });
-            }
-            break;
-          }
-          case 'TASK_CREATE': {
-            if (user?.uid) {
-              await addTask({
-                name: intent.taskName || 'Custom Task',
-                duration: intent.durationMinutes || 15,
-                icon: 'Laptop',
-                category: intent.category || 'Productivity',
-                order: 0,
-              });
-              toast({
-                title: 'Task Created',
-                description: `${intent.taskName} (${intent.durationMinutes}m) added to your routine.`,
-              });
-            }
-            break;
-          }
-          case 'REDEEM_TRIGGER': {
-            router.push('/rewards');
-            break;
-          }
-          case 'MODAL_DISMISS':
-          default:
-            break;
-        }
-
-        onActionComplete?.();
-      } catch (err: any) {
-        console.error('Failed to execute voice intent:', err);
-        setError(err.message || 'Execution error');
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [router, speakFeedback, addTask, user, toast, onActionComplete]
-  );
-
-  // Send completed transcript to API
-  const processTranscript = useCallback(
-    async (finalTranscript: string) => {
-      if (!finalTranscript.trim()) return;
-      setIsProcessing(true);
-
-      try {
-        const payload: VoiceCommandRequest = {
-          transcript: finalTranscript,
-          currentRoute: pathname,
-        };
-
-        const res = await fetch('/api/voice/intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          throw new Error(`Failed to parse voice command (${res.status})`);
-        }
-
-        const data: VoiceIntentPayload = await res.json();
-        setDetectedIntent(data);
-      } catch (err: any) {
-        console.error('Voice processing error:', err);
-        setError('Could not process speech. Try again.');
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [pathname]
-  );
+  }, [setAgentState]);
 
   // Audio waveform visualizer using Web Audio API AnalyserNode
   const startAudioVisualizer = useCallback(async () => {
@@ -205,8 +105,8 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
 
         for (let i = 0; i < barCount; i++) {
           const val = dataArray[i * step] || 0;
-          // Normalize to [0.1, 1.0]
-          const normalized = Math.max(0.15, Math.min(1.0, val / 180));
+          // Scale dynamically for green waveform bars
+          const normalized = Math.max(0.15, Math.min(1.0, (val / 160) + 0.15));
           newAmplitudes.push(normalized);
         }
 
@@ -216,7 +116,7 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
 
       renderFrame();
     } catch (err) {
-      console.warn('Audio visualizer media device error (non-fatal):', err);
+      console.warn('Audio visualizer stream init (non-fatal):', err);
     }
   }, []);
 
@@ -233,8 +133,216 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
-    setWaveformAmplitudes(new Array(16).fill(0.1));
+    setWaveformAmplitudes(new Array(16).fill(0.15));
   }, []);
+
+  // Dispatch intent action
+  const executeIntent = useCallback(
+    async (intent: VoiceIntentPayload) => {
+      setAgentState('EXECUTING');
+      // Action Processing Haptic: Crisp success pulse [80]
+      triggerHaptic([80]);
+
+      try {
+        if (intent.speechFeedback) {
+          speakFeedback(intent.speechFeedback);
+        }
+
+        switch (intent.action) {
+          case 'NAVIGATE': {
+            if (intent.targetRoute) {
+              router.push(intent.targetRoute);
+            }
+            break;
+          }
+          case 'TIMER_START': {
+            const duration = intent.durationMinutes || 15;
+            startTimer({
+              taskName: intent.taskName || 'Focus Session',
+              initialDuration: duration,
+              category: intent.category || 'Productivity',
+            });
+            router.push('/');
+            break;
+          }
+          case 'TIMER_PAUSE': {
+            updateTimer({ isPaused: true });
+            break;
+          }
+          case 'TIMER_RESUME': {
+            updateTimer({ isPaused: false });
+            break;
+          }
+          case 'TIMER_STOP': {
+            clearTimer();
+            toast({
+              title: 'Task Conquered! 🎉',
+              description: 'Focus session completed and logged.',
+            });
+            break;
+          }
+          case 'TIMER_EXTEND': {
+            const extendMins = intent.extendMinutes || 5;
+            if (activeTimer) {
+              const newInitial = activeTimer.initialDuration + extendMins;
+              const newExpected = activeTimer.expectedEndTime + (extendMins * 60 * 1000);
+              updateTimer({ initialDuration: newInitial, expectedEndTime: newExpected });
+              toast({
+                title: 'Timer Extended ⏱️',
+                description: `Added ${extendMins} minutes to active session.`,
+              });
+            }
+            break;
+          }
+          case 'TIMER_SET_INTERVAL': {
+            const interval = intent.intervalMinutes || 10;
+            toast({
+              title: 'Interval Alerts Configured 🔔',
+              description: `You will be alerted every ${interval} minutes.`,
+            });
+            break;
+          }
+          case 'TASK_LOG_QUICK':
+          case 'TASK_QUICK_LOG': {
+            if (user?.uid) {
+              const cat = intent.category || 'Hydration';
+              let earnedCoins = intent.earnedCoins || 15;
+              if (cat === 'Productivity') earnedCoins = 50;
+              else if (cat === 'Fitness') earnedCoins = 40;
+              else if (cat === 'Meditation' || cat === 'Creativity') earnedCoins = 30;
+
+              await addTask({
+                name: intent.taskName || 'Quick Habit Log',
+                duration: intent.durationMinutes || 1,
+                completed: true,
+                initialDuration: intent.durationMinutes || 1,
+                icon: cat === 'Hydration' ? 'Droplets' : cat === 'Fitness' ? 'Dumbbell' : 'CheckCircle2',
+                category: cat,
+                earnedCoins,
+                order: 0,
+              });
+
+              // Optimistic daily coins cache update
+              try {
+                const todayStr = getLocalDateString();
+                const { amount } = getCachedDailyCoins();
+                setCachedDailyCoins(amount + earnedCoins, todayStr);
+              } catch (e) {}
+
+              toast({
+                title: 'Habit Conquered! ✨',
+                description: `+${earnedCoins} Slake Coins earned for ${intent.taskName || 'quick log'}!`,
+              });
+            }
+            break;
+          }
+          case 'TASK_CREATE': {
+            if (user?.uid) {
+              await addTask({
+                name: intent.taskName || 'Custom Task',
+                duration: intent.durationMinutes || 15,
+                initialDuration: intent.durationMinutes || 15,
+                completed: false,
+                icon: 'Laptop',
+                category: intent.category || 'Productivity',
+                order: 0,
+              });
+              toast({
+                title: 'Task Created 📋',
+                description: `${intent.taskName} (${intent.durationMinutes}m) added to your routine.`,
+              });
+            }
+            break;
+          }
+          case 'COOP_ACTION': {
+            router.push('/reformers');
+            toast({
+              title: 'Co-op Reformers Hub',
+              description: intent.speechFeedback,
+            });
+            break;
+          }
+          case 'REWARDS_ACTION':
+          case 'REDEEM_TRIGGER': {
+            router.push('/rewards');
+            break;
+          }
+          case 'SENSOR_ENVIRONMENT_TOGGLE': {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('slake-sensor-toggle', { detail: intent }));
+            }
+            toast({
+              title: 'Sensory Environment',
+              description: intent.speechFeedback,
+            });
+            break;
+          }
+          case 'MODAL_DISMISS':
+          default:
+            break;
+        }
+
+        onActionComplete?.();
+      } catch (err: any) {
+        console.error('Failed to execute voice intent:', err);
+        setError(err.message || 'Execution error');
+        setAgentState('IDLE');
+      }
+    },
+    [router, speakFeedback, triggerHaptic, startTimer, updateTimer, clearTimer, activeTimer, addTask, user, toast, onActionComplete, setAgentState]
+  );
+
+  // Send completed transcript to API
+  const processTranscript = useCallback(
+    async (finalTranscript: string) => {
+      if (!finalTranscript.trim()) {
+        setAgentState('IDLE');
+        return;
+      }
+
+      setAgentState('THINKING');
+      // Thinking State Haptic: Double micro pulse [30, 50, 30]
+      triggerHaptic([30, 50, 30]);
+
+      try {
+        const payload: VoiceCommandRequest = {
+          transcript: finalTranscript,
+          currentRoute: pathname,
+          activeTimerState: activeTimer
+            ? {
+                isRunning: !activeTimer.isPaused,
+                isPaused: activeTimer.isPaused,
+                taskName: activeTimer.taskName,
+              }
+            : undefined,
+        };
+
+        const res = await fetch('/api/voice/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to parse voice command (${res.status})`);
+        }
+
+        const data: VoiceIntentPayload = await res.json();
+        setDetectedIntent(data);
+        // Automatically execute high confidence matches
+        if ((data.confidence || 0) >= 0.90) {
+          await executeIntent(data);
+        } else {
+          setAgentState('IDLE');
+        }
+      } catch (err: any) {
+        console.error('Voice processing error:', err);
+        setError('Could not process speech. Try again.');
+        setAgentState('IDLE');
+      }
+    },
+    [pathname, activeTimer, triggerHaptic, executeIntent, setAgentState]
+  );
 
   // Start Speech Recognition with 800ms silence debounce
   const startListening = useCallback(() => {
@@ -257,7 +365,9 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
-        setIsListening(true);
+        setAgentState('LISTENING');
+        // Listen Trigger Haptic: Single short pulse [50]
+        triggerHaptic([50]);
         startAudioVisualizer();
       };
 
@@ -286,12 +396,11 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
         if (event.error !== 'no-speech') {
           setError(event.error);
         }
-        setIsListening(false);
+        setAgentState('IDLE');
         stopAudioVisualizer();
       };
 
       recognition.onend = () => {
-        setIsListening(false);
         stopAudioVisualizer();
       };
 
@@ -299,10 +408,10 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
       recognition.start();
     } catch (err: any) {
       setError(err.message || 'Error starting microphone.');
-      setIsListening(false);
+      setAgentState('IDLE');
       stopAudioVisualizer();
     }
-  }, [startAudioVisualizer, stopAudioVisualizer, processTranscript]);
+  }, [triggerHaptic, startAudioVisualizer, stopAudioVisualizer, processTranscript, setAgentState]);
 
   const stopListening = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -314,13 +423,14 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
         recognitionRef.current.stop();
       } catch (e) {}
     }
-    setIsListening(false);
     stopAudioVisualizer();
 
     if (transcript.trim() && !detectedIntent) {
       processTranscript(transcript);
+    } else {
+      setAgentState('IDLE');
     }
-  }, [transcript, detectedIntent, stopAudioVisualizer, processTranscript]);
+  }, [transcript, detectedIntent, stopAudioVisualizer, processTranscript, setAgentState]);
 
   const cancelListening = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -332,11 +442,11 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
         recognitionRef.current.abort();
       } catch (e) {}
     }
-    setIsListening(false);
+    setAgentState('IDLE');
     setTranscript('');
     setDetectedIntent(null);
     stopAudioVisualizer();
-  }, [stopAudioVisualizer]);
+  }, [stopAudioVisualizer, setAgentState]);
 
   useEffect(() => {
     return () => {
@@ -345,11 +455,14 @@ export function useVoiceController(onActionComplete?: () => void): UseVoiceContr
   }, [cancelListening]);
 
   return {
-    isListening,
+    agentState,
+    isListening: agentState === 'LISTENING',
+    isThinking: agentState === 'THINKING',
+    isExecuting: agentState === 'EXECUTING',
+    isSpeaking: agentState === 'SPEAKING',
     transcript,
     waveformAmplitudes,
     detectedIntent,
-    isProcessing,
     startListening,
     stopListening,
     cancelListening,
