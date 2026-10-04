@@ -215,7 +215,7 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: i * 0.1 }}
-                            className="group relative p-8 rounded-[2rem] bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-500 hover:-translate-y-2"
+                            className="group relative p-8 rounded-[2rem] bg-card border border-border hover:bg-muted/50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 shadow-sm"
                         >
                             <div className={`w-16 h-16 ${item.bg} rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 duration-500`}>
                                 <item.icon className={`w-8 h-8 ${item.color}`} />
@@ -223,9 +223,9 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
                             <div className="space-y-2">
                                 <div className="flex items-baseline gap-2">
                                     <span className={`text-4xl font-black ${item.color}`}>{item.key}</span>
-                                    <h3 className="text-2xl font-bold text-white">{item.title}</h3>
+                                    <h3 className="text-2xl font-bold text-foreground">{item.title}</h3>
                                 </div>
-                                <p className="text-slate-400 leading-relaxed font-medium">{item.desc}</p>
+                                <p className="text-muted-foreground leading-relaxed font-medium">{item.desc}</p>
                             </div>
                             <div className={`absolute top-4 right-6 text-6xl font-black opacity-[0.03] ${item.color} select-none transition-opacity group-hover:opacity-10`}>{item.key}</div>
                         </motion.div>
@@ -974,28 +974,28 @@ function ReformersPageContent() {
             <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 pt-12 space-y-6">
 
                 {/* Live Activity Feed / Ticker */}
-                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-2 flex items-center gap-4 overflow-hidden shadow-inner group">
+                <div className="bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-2 flex items-center gap-4 overflow-hidden shadow-inner group">
                     <div className="flex items-center gap-2 shrink-0 bg-emerald-500/20 px-3 py-1 rounded-lg border border-emerald-500/30">
-                        <Zap className="w-3 h-3 text-emerald-400 fill-emerald-400" />
-                        <span className="text-[10px] font-black tracking-widest uppercase text-emerald-400">Live Activity</span>
+                        <Zap className="w-3 h-3 text-emerald-600 dark:text-emerald-400 fill-emerald-600 dark:fill-emerald-400" />
+                        <span className="text-[10px] font-black tracking-widest uppercase text-emerald-700 dark:text-emerald-400">Live Activity</span>
                     </div>
                     <div className="flex-1 overflow-hidden">
                         <motion.div
                             animate={{ x: [400, -1200] }}
                             transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-                            className="flex items-center gap-12 whitespace-nowrap text-[11px] font-bold text-gray-400"
+                            className="flex items-center gap-12 whitespace-nowrap text-[11px] font-bold text-muted-foreground dark:text-gray-400"
                         >
                             {liveMembers.slice(0, 5).map((m, i) => (
                                 <span key={i} className="flex items-center gap-2">
-                                    <span className="text-white">{m.name}</span> just earned <span className="text-amber-500">{Math.floor(Math.random() * 50) + 20} Coins</span>
+                                    <span className="text-foreground font-extrabold">{m.name}</span> just earned <span className="text-amber-600 dark:text-amber-500 font-extrabold">{Math.floor(Math.random() * 50) + 20} Coins</span>
                                     <span className="opacity-30">•</span>
                                 </span>
                             ))}
                             <span className="flex items-center gap-2">
-                                <span className="text-white">Global:</span> 12 Reformers focusing now
+                                <span className="text-foreground font-extrabold">Global:</span> 12 Reformers focusing now
                             </span>
                             <span className="flex items-center gap-2">
-                                <span className="text-emerald-400">Streak:</span> {currentStreakLocal} Days achieved by you!
+                                <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">Streak:</span> {currentStreakLocal} Days achieved by you!
                             </span>
                         </motion.div>
                     </div>
@@ -1019,14 +1019,14 @@ function ReformersPageContent() {
                         {isAdmin && (
                             <Dialog open={adminModalOpen} onOpenChange={setAdminModalOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" className="flex-1 sm:flex-none border-yellow-500/30 bg-[#1a1a1a] text-yellow-500 hover:text-yellow-400 hover:bg-muted text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4"><LockKeyhole className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Admin</Button>
+                                    <Button variant="outline" className="flex-1 sm:flex-none border-amber-500/30 bg-card hover:bg-muted text-amber-600 dark:text-yellow-500 hover:text-amber-700 dark:hover:text-yellow-400 text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4 shadow-sm"><LockKeyhole className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Admin</Button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-[#1a1a1a] border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
+                                <DialogContent className="bg-card dark:bg-[#1a1a1a] border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
                                     <DialogHeader>
-                                        <DialogTitle className="text-yellow-500 flex items-center gap-2 text-xl font-bold"><ShieldCheck /> Admin Access</DialogTitle>
+                                        <DialogTitle className="text-amber-600 dark:text-yellow-500 flex items-center gap-2 text-xl font-bold"><ShieldCheck /> Admin Access</DialogTitle>
                                     </DialogHeader>
                                     <div className="space-y-4 py-4">
-                                        <h3 className="font-bold text-sm text-gray-400 uppercase tracking-widest">Pending Approvals</h3>
+                                        <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-widest">Pending Approvals</h3>
                                         {liveMembers.filter(m => m.reformersStatus === 'pending').map(m => (
                                             <div key={m.id} className="flex items-center justify-between p-3 border border-border rounded-xl">
                                                 <div className="flex items-center gap-3">
@@ -1048,7 +1048,7 @@ function ReformersPageContent() {
                                             redemptionRequests.map(r => (
                                                 <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-border rounded-xl bg-muted/20 gap-2">
                                                     <div>
-                                                        <p className="font-bold text-sm text-white">{r.userName || "Anonymous"} <span className="text-xs font-normal text-gray-400">({r.userEmail || "No Email"})</span></p>
+                                                        <p className="font-bold text-sm text-foreground">{r.userName || "Anonymous"} <span className="text-xs font-normal text-muted-foreground">({r.userEmail || "No Email"})</span></p>
                                                         <p className="text-xs text-amber-400 font-semibold">{r.rewardName} • {r.creditsRedeemed ? Number(r.creditsRedeemed).toLocaleString() : (r.amount * 1000).toLocaleString()} Coins</p>
                                                         {r.upiId && <p className="text-xs font-mono text-emerald-400 mt-0.5">UPI ID: {r.upiId}</p>}
                                                     </div>
@@ -1068,7 +1068,7 @@ function ReformersPageContent() {
                                             <p className="text-sm text-gray-500 bg-muted/20 p-4 rounded-lg">No redemption requests recorded yet.</p>
                                         )}
 
-                                        <h3 className="font-bold text-sm text-gray-400 uppercase tracking-widest mt-6">Manage Members (Enrolled)</h3>
+                                        <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-widest mt-6">Manage Members (Enrolled)</h3>
                                         {liveMembers.filter(m => m.isEnrolled).map(m => (
                                             <div key={m.id} className="flex items-center justify-between p-3 border border-border rounded-xl">
                                                 <div className="flex items-center gap-3">
@@ -1103,14 +1103,14 @@ function ReformersPageContent() {
                                 </DialogContent>
                             </Dialog>
                         )}
-                        <Button variant="outline" className="flex-1 sm:flex-none border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4" onClick={() => setReferralModalOpen(true)}>
+                        <Button variant="outline" className="flex-1 sm:flex-none border-border bg-card hover:bg-muted text-foreground dark:bg-[#1a1a1a] dark:text-gray-300 hover:text-foreground text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4 shadow-sm" onClick={() => setReferralModalOpen(true)}>
                             <Share2 className="w-3.5 h-3.5 mr-1 sm:mr-2" /> Invite
                         </Button>
                         <Dialog open={socialModalOpen} onOpenChange={setSocialModalOpen}>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="flex-1 sm:flex-none border-border bg-[#1a1a1a] text-gray-300 hover:text-foreground hover:bg-muted text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4"><LayoutDashboard className="w-3.5 h-3.5 mr-1 sm:mr-2" />Social Sync</Button>
+                                <Button variant="outline" className="flex-1 sm:flex-none border-border bg-card hover:bg-muted text-foreground dark:bg-[#1a1a1a] dark:text-gray-300 hover:text-foreground text-[10px] sm:text-xs h-9 sm:h-10 px-2 sm:px-4 shadow-sm"><LayoutDashboard className="w-3.5 h-3.5 mr-1 sm:mr-2" />Social Sync</Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
+                            <DialogContent className="bg-card dark:bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
                                 <DialogHeader>
                                     <DialogTitle className="text-[#10b981] flex items-center gap-2 text-xl font-bold"><ShieldCheck /> Social Network Access</DialogTitle>
                                 </DialogHeader>
@@ -1118,21 +1118,21 @@ function ReformersPageContent() {
                                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
                                         <div>
                                             <p className="font-medium text-sm flex items-center gap-2"><Phone className="w-4 h-4 text-[#25D366]" /> WhatsApp Reminders</p>
-                                            <p className="text-xs text-gray-500 max-w-[200px]">Send automated alerts to your accountability partner.</p>
+                                            <p className="text-xs text-muted-foreground max-w-[200px]">Send automated alerts to your accountability partner.</p>
                                         </div>
                                         <Switch checked={whatsappSync} onCheckedChange={setWhatsappSync} className="data-[state=checked]:bg-[#10b981]" />
                                     </div>
                                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
                                         <div>
                                             <p className="font-medium text-sm flex items-center gap-2"><Instagram className="w-4 h-4 text-[#E1306C]" /> Instagram Share</p>
-                                            <p className="text-xs text-gray-500 max-w-[200px]">Post your completion cards to your network.</p>
+                                            <p className="text-xs text-muted-foreground max-w-[200px]">Post your completion cards to your network.</p>
                                         </div>
                                         <Switch checked={metaSync} onCheckedChange={setMetaSync} className="data-[state=checked]:bg-[#10b981]" />
                                     </div>
                                     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
                                         <div>
                                             <p className="font-medium text-sm flex items-center gap-2"><Linkedin className="w-4 h-4 text-[#0077b5]" /> LinkedIn Career Sync</p>
-                                            <p className="text-xs text-gray-500 max-w-[200px]">Publish productivity milestones automatically.</p>
+                                            <p className="text-xs text-muted-foreground max-w-[200px]">Publish productivity milestones automatically.</p>
                                         </div>
                                         <Switch checked={linkedinSync} onCheckedChange={setLinkedinSync} className="data-[state=checked]:bg-[#10b981]" />
                                     </div>
@@ -1153,7 +1153,7 @@ function ReformersPageContent() {
                     </div>
 
                     <Dialog open={referralModalOpen} onOpenChange={setReferralModalOpen}>
-                        <DialogContent className="bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
+                        <DialogContent className="bg-card dark:bg-[#1a1a1a] border-border text-foreground sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle className="text-[#10b981] flex items-center gap-2 text-xl font-bold"><Share2 /> Invite to Reformers League</DialogTitle>
                             </DialogHeader>
@@ -1234,7 +1234,7 @@ function ReformersPageContent() {
 
                     <TabsContent value="league" className="space-y-6">
                 <div className="pt-2">
-                    <Card className="bg-[#1a1a1a] border border-border shadow-2xl relative overflow-hidden transition-all duration-300 hover:border-[#10b981]/30">
+                    <Card className="bg-card dark:bg-[#1a1a1a] border border-border shadow-md dark:shadow-2xl relative overflow-hidden transition-all duration-300 hover:border-[#10b981]/30">
                         <div className="absolute top-0 left-0 w-full h-28 bg-gradient-to-br from-[#10b981]/20 to-transparent"></div>
                         <CardContent className="pt-6 relative z-10">
                             {isEditing ? (
@@ -1247,11 +1247,11 @@ function ReformersPageContent() {
                                         <div className="flex-1 space-y-2">
                                             <label className="text-xs text-muted-foreground font-bold tracking-widest uppercase">Display Picture</label>
                                             <div className="flex gap-2">
-                                                <Button variant="outline" className="bg-muted border-none hover:bg-[#333] hover:text-foreground text-foreground h-10 relative overflow-hidden">
+                                                <Button variant="outline" className="bg-muted border-none hover:bg-muted/80 hover:text-foreground text-foreground h-10 relative overflow-hidden">
                                                     <Camera className="w-4 h-4 mr-2" /> Upload
                                                     <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                                                 </Button>
-                                                <Button variant="outline" onClick={handleRandomVector} className="bg-muted hover:bg-[#333] hover:text-foreground border-none text-foreground h-10">Vector</Button>
+                                                <Button variant="outline" onClick={handleRandomVector} className="bg-muted hover:bg-muted/80 hover:text-foreground border-none text-foreground h-10">Vector</Button>
                                             </div>
                                         </div>
                                     </div>
@@ -1273,7 +1273,7 @@ function ReformersPageContent() {
                                     </div>
                                     <div className="flex gap-3 pt-2">
                                         <Button onClick={handleSaveProfile} className="flex-1 bg-[#10b981] hover:bg-[#059669] text-black font-bold h-12"><Save className="w-4 h-4 mr-2" /> Save Profile</Button>
-                                        <Button onClick={() => setIsEditing(false)} variant="secondary" className="bg-muted hover:bg-[#333] text-foreground h-12">Cancel</Button>
+                                        <Button onClick={() => setIsEditing(false)} variant="secondary" className="bg-muted hover:bg-muted/80 text-foreground h-12">Cancel</Button>
                                     </div>
                                 </div>
                             ) : (
@@ -1287,7 +1287,7 @@ function ReformersPageContent() {
                                             <Button onClick={togglePrivacy} size="icon" variant="secondary" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-border" title={profileData?.isPrivateProfile ? "Private" : "Public"}>
                                                 {profileData?.isPrivateProfile ? <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" /> : <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-[#10b981]" />}
                                             </Button>
-                                            <Button onClick={handleLeaveLeague} size="icon" variant="destructive" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.5)] border border-red-500/50 bg-[#1a1a1a] hover:bg-red-500 text-red-500 hover:text-white" title="Exit League">
+                                            <Button onClick={handleLeaveLeague} size="icon" variant="destructive" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-md border border-red-500/50 bg-card dark:bg-[#1a1a1a] hover:bg-red-500 text-red-500 hover:text-white" title="Exit League">
                                                 <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                             </Button>
                                         </div>
@@ -1330,7 +1330,7 @@ function ReformersPageContent() {
                                             </div>
                                         </div>
 
-                                        <p className="text-xs sm:text-sm text-gray-300 max-w-lg mt-2 sm:mt-3 mx-auto sm:mx-0 leading-relaxed">
+                                        <p className="text-xs sm:text-sm text-muted-foreground dark:text-gray-300 max-w-lg mt-2 sm:mt-3 mx-auto sm:mx-0 leading-relaxed">
                                             {profileData?.bio || "Building disciplined habits and enforcing high-performance standards."}
                                         </p>
 
@@ -1379,15 +1379,15 @@ function ReformersPageContent() {
 
                 {/* Global Live Leaderboard Panel */}
                 {isAdmin && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl mb-6 shadow-sm">
-                        <h3 className="font-bold text-yellow-500 flex items-center gap-2 mb-3"><ShieldCheck className="w-5 h-5" /> Pending Approvals</h3>
+                    <div className="bg-amber-500/10 dark:bg-yellow-500/10 border border-amber-500/30 dark:border-yellow-500/30 p-4 rounded-xl mb-6 shadow-sm">
+                        <h3 className="font-bold text-amber-700 dark:text-yellow-400 flex items-center gap-2 mb-3"><ShieldCheck className="w-5 h-5" /> Pending Approvals</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {liveMembers.filter(m => m.reformersStatus === 'pending').map(m => (
-                                <div key={m.id} className="flex items-center justify-between p-3 border border-yellow-500/20 bg-black/40 rounded-xl">
+                                <div key={m.id} className="flex items-center justify-between p-3 border border-amber-500/20 dark:border-yellow-500/20 bg-card dark:bg-black/40 rounded-xl shadow-sm">
                                     <div className="flex items-center gap-3 w-full overflow-hidden">
                                         <Avatar className="w-10 h-10 shrink-0"><AvatarImage src={m.avatar} /></Avatar>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-bold text-white text-sm truncate">{m.name}</p>
+                                            <p className="font-bold text-foreground text-sm truncate">{m.name}</p>
                                             <p className="text-[10px] uppercase text-muted-foreground truncate">{m.profession}</p>
                                         </div>
                                         <Button size="sm" className="bg-[#10b981] hover:bg-[#059669] text-black font-bold shrink-0 text-xs h-7" onClick={() => approveUser(m.id)}>Approve</Button>
@@ -1395,7 +1395,7 @@ function ReformersPageContent() {
                                 </div>
                             ))}
                             {liveMembers.filter(m => m.reformersStatus === 'pending').length === 0 && (
-                                <p className="text-sm text-yellow-500/70 p-2">No pending reformers at the moment. You're all caught up!</p>
+                                <p className="text-sm font-medium text-amber-800/80 dark:text-yellow-500/70 p-2">No pending reformers at the moment. You're all caught up!</p>
                             )}
                         </div>
                     </div>
@@ -1404,16 +1404,16 @@ function ReformersPageContent() {
                 {liveMembers.filter(m => m.pendingCoWorkerId === user?.uid).length > 0 && (
                     <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl mb-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-emerald-400 flex items-center gap-2"><Users className="w-5 h-5" /> Co-Reformer Requests</h3>
-                            <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Action Required</Badge>
+                            <h3 className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2"><Users className="w-5 h-5" /> Co-Reformer Requests</h3>
+                            <Badge variant="outline" className="bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border-emerald-500/30">Action Required</Badge>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {liveMembers.filter(m => m.pendingCoWorkerId === user?.uid).map(m => (
-                                <div key={m.id} className="flex items-center justify-between p-3 border border-emerald-500/20 bg-black/40 rounded-xl hover:bg-black/60 transition-colors">
+                                <div key={m.id} className="flex items-center justify-between p-3 border border-emerald-500/20 bg-card dark:bg-black/40 rounded-xl hover:bg-muted/50 dark:hover:bg-black/60 transition-colors shadow-sm">
                                     <div className="flex items-center gap-3 w-full overflow-hidden">
                                         <Avatar className="w-10 h-10 shrink-0 border border-emerald-500/30"><AvatarImage src={m.avatar} /></Avatar>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-bold text-white text-sm truncate">{m.name}</p>
+                                            <p className="font-bold text-foreground text-sm truncate">{m.name}</p>
                                             <p className="text-[10px] uppercase text-muted-foreground truncate">{m.profession}</p>
                                         </div>
                                         <div className="flex gap-2 shrink-0">
@@ -1544,28 +1544,28 @@ function ReformersPageContent() {
                                     }
                                 }}>
                                     <DialogTrigger asChild>
-                                    <div onClick={() => setSelectedUser(member)} className="cursor-pointer bg-[#1a1a1a] border border-border p-4 rounded-xl flex items-center justify-between hover:border-[#10b981]/50 transition-all duration-300 shadow-md group">
+                                    <div onClick={() => setSelectedUser(member)} className="cursor-pointer bg-card hover:bg-muted/50 dark:bg-[#1a1a1a] dark:hover:bg-[#222] border border-border p-4 rounded-xl flex items-center justify-between hover:border-[#10b981]/50 transition-all duration-300 shadow-sm group">
                                         <div className="flex items-center gap-4">
                                             <div className="relative shrink-0">
                                                 <Avatar className="w-12 h-12 border border-border group-hover:border-[#10b981]/50 transition-colors">
                                                     <AvatarImage src={member.avatar} />
                                                     <AvatarFallback className="bg-muted">{member.name.charAt(0)}</AvatarFallback>
                                                 </Avatar>
-                                                {member.online && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#10b981] border-2 border-[#1a1a1a] rounded-full flex" style={{ boxShadow: "0 0 8px rgba(16,185,129,0.8)" }}></span>}
+                                                {member.online && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#10b981] border-2 border-card dark:border-[#1a1a1a] rounded-full flex" style={{ boxShadow: "0 0 8px rgba(16,185,129,0.8)" }}></span>}
                                             </div>
                                             <div className="flex-1 overflow-hidden">
                                                 <div className="flex items-center gap-2">
                                                     <h4 className="font-bold text-sm truncate text-foreground">{member.name}</h4>
-                                                    {member.isPrivate && <LockKeyhole className="w-3 h-3 text-gray-500" />}
+                                                    {member.isPrivate && <LockKeyhole className="w-3 h-3 text-muted-foreground" />}
                                                 </div>
-                                                <p className={`text-xs font-medium truncate mt-0.5 tracking-wide ${member.online ? 'text-[#10b981]' : 'text-gray-500'}`}>{member.status}</p>
+                                                <p className={`text-xs font-medium truncate mt-0.5 tracking-wide ${member.online ? 'text-emerald-600 dark:text-[#10b981]' : 'text-muted-foreground'}`}>{member.status}</p>
                                                 <div className="flex items-center gap-2 mt-1.5 text-muted-foreground">
-                                                    <div className="flex items-center gap-1 opacity-60">
+                                                    <div className="flex items-center gap-1 opacity-80">
                                                         <MapPin className="w-3 h-3" />
                                                         <span className="text-[10px] uppercase font-semibold">{member.location}</span>
                                                     </div>
                                                     <span className="text-[10px] opacity-40">•</span>
-                                                    <span className="text-[10px] opacity-60 font-medium">{member.profession}</span>
+                                                    <span className="text-[10px] opacity-80 font-medium">{member.profession}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1580,18 +1580,18 @@ function ReformersPageContent() {
                                                 <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Tasks</p>
                                             </div>
                                             <div className="text-center hidden md:block">
-                                                <p className="text-xs font-bold text-amber-500 leading-tight">{member.coins}</p>
-                                                <p className="text-[9px] uppercase tracking-widest text-amber-500/70 font-bold">DM Coins</p>
+                                                <p className="text-xs font-bold text-amber-600 dark:text-amber-500 leading-tight">{member.coins}</p>
+                                                <p className="text-[9px] uppercase tracking-widest text-amber-700/80 dark:text-amber-500/70 font-bold">DM Coins</p>
                                             </div>
                                             <div className="text-center pr-2 border-l border-border/50 pl-3 md:pl-4">
                                                 <p className="text-xs font-black text-foreground leading-tight">{member.streak}</p>
-                                                <p className="text-[9px] uppercase tracking-widest text-[#10b981] font-bold">Streak</p>
+                                                <p className="text-[9px] uppercase tracking-widest text-emerald-600 dark:text-[#10b981] font-bold">Streak</p>
                                             </div>
                                         </div>
                                     </div>
                                 </DialogTrigger>
 
-                                <DialogContent className="bg-[#1a1a1a] border-border text-foreground w-[96vw] max-w-[400px] max-h-[92vh] overflow-x-hidden overflow-y-auto p-0 rounded-2xl">
+                                <DialogContent className="bg-card dark:bg-[#1a1a1a] border-border text-foreground w-[96vw] max-w-[400px] max-h-[92vh] overflow-x-hidden overflow-y-auto p-0 rounded-2xl shadow-2xl">
                                     <DialogHeader className="hidden">
                                         <DialogTitle>Profile Actions</DialogTitle>
                                     </DialogHeader>
@@ -1600,7 +1600,7 @@ function ReformersPageContent() {
                                         <div className="flex flex-col h-[500px]">
                                             <div className="bg-muted/50 p-4 border-b border-border flex items-center justify-between shadow-sm relative z-10">
                                                 <div className="flex items-center gap-3">
-                                                    <Button variant="ghost" size="icon" className="hover:bg-[#333] hover:text-foreground" onClick={() => setChatMode(false)}>
+                                                    <Button variant="ghost" size="icon" className="hover:bg-muted hover:text-foreground" onClick={() => setChatMode(false)}>
                                                         <ArrowLeft className="w-4 h-4" />
                                                     </Button>
                                                     <div className="flex items-center gap-2">
@@ -1628,7 +1628,7 @@ function ReformersPageContent() {
                                                         const isMe = msg.senderId === user?.uid;
                                                         return (
                                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                                                <div className={`max-w-[75%] p-3 rounded-2xl text-sm leading-snug shadow-sm ${isMe ? 'bg-[#10b981] text-black rounded-tr-sm' : 'bg-muted text-foreground rounded-tl-sm border border-[#333]'}`}>
+                                                                <div className={`max-w-[75%] p-3 rounded-2xl text-sm leading-snug shadow-sm ${isMe ? 'bg-[#10b981] text-black rounded-tr-sm' : 'bg-muted text-foreground rounded-tl-sm border border-border'}`}>
                                                                     {msg.text}
                                                                     {msg.coOpSessionId && (
                                                                         <div className="mt-3 pt-3 border-t border-black/10">
@@ -1662,7 +1662,7 @@ function ReformersPageContent() {
                                                 )}
                                             </div>
 
-                                            <div className="flex gap-2 p-2 bg-[#1a1a1a] border-t border-border overflow-x-auto no-scrollbar scroll-smooth">
+                                            <div className="flex gap-2 p-2 bg-card dark:bg-[#1a1a1a] border-t border-border overflow-x-auto no-scrollbar scroll-smooth">
                                                 {whatsappJoinLink && (
                                                     <Button
                                                         onClick={() => window.open(whatsappJoinLink, "_blank")}
@@ -1694,7 +1694,7 @@ function ReformersPageContent() {
                                                     🔥 Share Streak
                                                 </Button>
                                             </div>
-                                            <form onSubmit={handleSendMessage} className="p-3 border-t border-border flex gap-2 bg-[#1a1a1a]">
+                                            <form onSubmit={handleSendMessage} className="p-3 border-t border-border flex gap-2 bg-card dark:bg-[#1a1a1a]">
                                                 <Input
                                                     value={messageText}
                                                     onChange={(e) => setMessageText(e.target.value)}
@@ -1712,7 +1712,7 @@ function ReformersPageContent() {
                                                         <AvatarImage src={member.avatar} />
                                                         <AvatarFallback className="bg-muted">{member.name.charAt(0)}</AvatarFallback>
                                                     </Avatar>
-                                                    {member.online && <div className="absolute bottom-1 right-2 bg-[#10b981] w-5 h-5 border-[3px] border-[#1a1a1a] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>}
+                                                    {member.online && <div className="absolute bottom-1 right-2 bg-[#10b981] w-5 h-5 border-[3px] border-card dark:border-[#1a1a1a] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>}
                                                 </div>
 
                                                 <div>
@@ -1727,40 +1727,40 @@ function ReformersPageContent() {
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-5">
-                                                        <p className="text-sm text-gray-300 italic bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">"{member.bio}"</p>
+                                                        <p className="text-sm text-muted-foreground dark:text-gray-300 italic bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">"{member.bio}"</p>
 
                                                         <div className="bg-muted/50 border border-border p-3 sm:p-4 rounded-xl grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2 items-start justify-items-center shadow-sm w-full">
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Followers</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Followers</div>
                                                                 <div className="text-base sm:text-lg font-black text-foreground truncate">{selectedUserFollowers}</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Following</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Following</div>
                                                                 <div className="text-base sm:text-lg font-black text-foreground truncate">{selectedUserFollowing}</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">App Days</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">App Days</div>
                                                                 <div className="text-base sm:text-lg font-black text-foreground truncate">{member.appAge}D</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Logbook</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Logbook</div>
                                                                 <div className="text-base sm:text-lg font-black text-foreground truncate">{member.streak}</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">DM Coins</div>
-                                                                <div className="text-base sm:text-lg font-black text-amber-500 truncate">{member.coins}</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">DM Coins</div>
+                                                                <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-500 truncate">{member.coins}</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Certs</div>
-                                                                <div className="text-base sm:text-lg font-black text-[#10b981] truncate">{Math.floor(member.streak / 7)}</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Certs</div>
+                                                                <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-[#10b981] truncate">{Math.floor(member.streak / 7)}</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Tasks</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Tasks</div>
                                                                 <div className="text-base sm:text-lg font-black text-foreground truncate">{member.totalTasks}</div>
                                                             </div>
                                                             <div className="text-center w-full">
-                                                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-1 truncate">Water</div>
-                                                                <div className="text-base sm:text-lg font-black text-blue-400 truncate">{member.totalWaterGlasses}</div>
+                                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Water</div>
+                                                                <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 truncate">{member.totalWaterGlasses}</div>
                                                             </div>
                                                         </div>
 
@@ -1776,14 +1776,14 @@ function ReformersPageContent() {
                                                 )}
 
                                                 <div className="grid grid-cols-2 gap-3 pt-6 border-t border-border w-full">
-                                                    <Button onClick={handleFollow} className={`w-full font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-[#333] border border-[#333]' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
+                                                    <Button onClick={handleFollow} className={`w-full font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80 border border-border' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
                                                         {isFollowing ? "Following" : "Follow"}
                                                     </Button>
-                                                    {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="w-full bg-muted hover:bg-[#333] text-foreground h-12 px-3 shadow-md border border-[#333] text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-2" /> Text</Button>}
+                                                    {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="w-full bg-muted hover:bg-muted/80 text-foreground h-12 px-3 shadow-md border border-border text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-2" /> Text</Button>}
 
                                                     <div className="col-span-2 space-y-2">
                                                         {profileData?.coWorkerId === member.id ? (
-                                                            <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-sm bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
+                                                            <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-sm bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                 Unlink Co-Reformer
                                                             </Button>
                                                         ) : (peerLatestData?.pendingCoWorkerId === user?.uid || member.pendingCoWorkerId === user?.uid) ? (
@@ -1792,7 +1792,7 @@ function ReformersPageContent() {
                                                             </Button>
                                                         ) : profileData?.pendingCoWorkerId === member.id ? (
                                                             <div className="space-y-2">
-                                                                <Button variant="outline" disabled className="w-full font-extrabold h-12 text-xs sm:text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 opacity-70 leading-tight">
+                                                                <Button variant="outline" disabled className="w-full font-extrabold h-12 text-xs sm:text-sm bg-amber-500/10 text-amber-700 dark:text-yellow-500 border-amber-500/30 opacity-70 leading-tight">
                                                                     Waiting for {member.name.split(' ')[0]} to Accept...
                                                                 </Button>
                                                                 <Button onClick={() => handleWithdrawRequest()} variant="ghost" className="w-full text-[10px] uppercase font-bold text-red-400 hover:text-red-300">
@@ -1800,7 +1800,7 @@ function ReformersPageContent() {
                                                                 </Button>
                                                             </div>
                                                         ) : (
-                                                            <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 leading-tight">
+                                                            <Button onClick={() => handleConnectCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-xs sm:text-sm bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 leading-tight">
                                                                 Connect as Co-Reformer
                                                             </Button>
                                                         )}
@@ -1823,7 +1823,7 @@ function ReformersPageContent() {
                 </Tabs>
 
                 <Dialog open={showTunedPopup} onOpenChange={setShowTunedPopup}>
-                    <DialogContent className="bg-slate-950/95 border-emerald-500/50 text-white text-center p-12 rounded-[2.5rem] backdrop-blur-xl shadow-[0_0_50px_rgba(16,185,129,0.2)] sm:max-w-md">
+                    <DialogContent className="bg-card dark:bg-slate-950/95 border-emerald-500/50 text-foreground dark:text-white text-center p-12 rounded-[2.5rem] backdrop-blur-xl shadow-2xl sm:max-w-md">
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}

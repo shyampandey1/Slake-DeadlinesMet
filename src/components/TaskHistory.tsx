@@ -437,7 +437,7 @@ function TaskLogBookContent() {
                     <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                         <div className="flex items-center gap-2 w-full flex-1">
                             <Select value={filter} onValueChange={handleFilterChange}>
-                                <SelectTrigger className="flex-1 sm:w-[180px] bg-card/40 border-white/5 shadow-sm text-foreground">
+                                <SelectTrigger className="flex-1 sm:w-[180px] bg-card border-border shadow-sm text-foreground">
                                     <SelectValue placeholder="Select a range" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -454,7 +454,7 @@ function TaskLogBookContent() {
                                 <Button
                                     id="date"
                                     variant={"outline"}
-                                    className={cn("flex-1 justify-start text-left font-normal bg-card/40 border-white/5 shadow-sm", !date && "text-muted-foreground")}
+                                    className={cn("flex-1 justify-start text-left font-normal bg-card border-border shadow-sm", !date && "text-muted-foreground")}
                                     onClick={() => { setFilter('custom'); setIsCalendarOpen(true); }}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -477,7 +477,7 @@ function TaskLogBookContent() {
                     </Popover>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full sm:w-auto bg-card/40 border-white/5 shadow-sm">
+                            <Button variant="outline" className="w-full sm:w-auto bg-card border-border shadow-sm">
                                 <Download className="mr-2 h-4 w-4" />
                                 Download
                             </Button>
@@ -500,7 +500,7 @@ function TaskLogBookContent() {
                 <>
                     <div ref={reportRef}>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                            <Card className="bg-card border-border shadow-sm rounded-2xl hover:border-border/80 transition-all duration-300 hover:scale-[1.02]">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                     <CardTitle className="text-xs sm:text-sm font-medium truncate">Tasks Logged</CardTitle>
                                     <BookText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -510,7 +510,7 @@ function TaskLogBookContent() {
                                     <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stats.completedTasks} completed</p>
                                 </CardContent>
                             </Card>
-                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                            <Card className="bg-card border-border shadow-sm rounded-2xl hover:border-border/80 transition-all duration-300 hover:scale-[1.02]">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                     <CardTitle className="text-xs sm:text-sm font-medium truncate">Completion Rate</CardTitle>
                                     <CheckCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -520,7 +520,7 @@ function TaskLogBookContent() {
                                     <p className="text-[10px] sm:text-xs text-muted-foreground truncate">of logged tasks</p>
                                 </CardContent>
                             </Card>
-                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                            <Card className="bg-card border-border shadow-sm rounded-2xl hover:border-border/80 transition-all duration-300 hover:scale-[1.02]">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                     <CardTitle className="text-xs sm:text-sm font-medium truncate">Time Focused</CardTitle>
                                     <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -530,7 +530,7 @@ function TaskLogBookContent() {
                                     <p className="text-[10px] sm:text-xs text-muted-foreground truncate">all sessions</p>
                                 </CardContent>
                             </Card>
-                            <Card className="bg-card/40 border-white/5 backdrop-blur-md shadow-lg rounded-2xl hover:border-white/10 transition-all duration-300 hover:scale-[1.02]">
+                            <Card className="bg-card border-border shadow-sm rounded-2xl hover:border-border/80 transition-all duration-300 hover:scale-[1.02]">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                                     <CardTitle className="text-xs sm:text-sm font-medium truncate">Hydration Goal</CardTitle>
                                     <Droplets className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -553,13 +553,13 @@ function TaskLogBookContent() {
                                     <span className="font-headline text-lg font-bold tracking-tight">Generate Productivity Insights</span>
                                 </Button>
                             ) : (
-                                <Card className="border-blue-500/30 bg-blue-900/10 overflow-hidden">
+                                <Card className="border-blue-500/30 bg-blue-500/5 dark:bg-blue-900/10 overflow-hidden shadow-sm">
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 bg-blue-500/5">
                                         <div>
                                             <CardTitle className="text-lg font-headline flex items-center gap-2 flex-wrap">
                                                 <BrainCircuit className="w-5 h-5 text-blue-400" />
                                                 Smart Productivity Coach
-                                                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">
                                                     Personalized Insights
                                                 </span>
                                             </CardTitle>
@@ -612,10 +612,10 @@ function TaskLogBookContent() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-500/5 to-purple-500/5 rounded-xl border border-white/5">
+                                                <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-blue-500/5 to-purple-500/5 rounded-xl border border-border">
                                                     <div className="relative w-24 h-24 mb-3">
                                                         <svg className="w-full h-full" viewBox="0 0 100 100">
-                                                            <circle className="text-white/10 stroke-current" strokeWidth="8" fill="transparent" r="40" cx="50" cy="50" />
+                                                            <circle className="text-muted/60 dark:text-white/10 stroke-current" strokeWidth="8" fill="transparent" r="40" cx="50" cy="50" />
                                                             <circle
                                                                 className="text-blue-500 stroke-current"
                                                                 strokeWidth="8"
@@ -637,32 +637,32 @@ function TaskLogBookContent() {
                                                     <p className="text-xs text-center font-medium text-muted-foreground leading-tight">Focus Score based on consistency and output</p>
                                                 </div>
                                                 {insights.moversEvaluation && (
-                                                    <div className="col-span-full mt-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur-sm space-y-3">
+                                                    <div className="col-span-full mt-2 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-950/20 backdrop-blur-sm space-y-3">
                                                         <div className="flex items-center justify-between flex-wrap gap-2">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                                                <span className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40">
                                                                     Daily Routine & Habit Balance
                                                                 </span>
-                                                                <span className="text-xs font-semibold text-emerald-400">
+                                                                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                                                                     Rating: {insights.moversEvaluation.overallRating}
                                                                 </span>
                                                             </div>
-                                                            <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-mono">
+                                                            <div className="flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-mono">
                                                                 <span>Adherence:</span>
-                                                                <span className="font-bold text-sm text-emerald-400">{insights.moversEvaluation.adherenceScore}%</span>
+                                                                <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400">{insights.moversEvaluation.adherenceScore}%</span>
                                                             </div>
                                                         </div>
-                                                        <p className="text-xs text-emerald-100/90 leading-relaxed">
+                                                        <p className="text-xs text-foreground/90 dark:text-emerald-100/90 leading-relaxed">
                                                             {insights.moversEvaluation.feedback}
                                                         </p>
                                                         {insights.moversEvaluation.pillarBreakdown && (
                                                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
                                                                 {Object.entries(insights.moversEvaluation.pillarBreakdown).map(([pillar, status]) => (
-                                                                    <div key={pillar} className="px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/5 text-[11px] flex flex-col items-center">
+                                                                    <div key={pillar} className="px-2.5 py-1.5 rounded-lg bg-card dark:bg-black/40 border border-border text-[11px] flex flex-col items-center shadow-xs">
                                                                         <span className="capitalize text-muted-foreground truncate w-full text-center text-[10px]">
                                                                             {pillar.replace(/([A-Z])/g, ' ').trim()}
                                                                         </span>
-                                                                        <span className={status === 'Active' ? 'text-emerald-400 font-semibold' : 'text-zinc-500'}>
+                                                                        <span className={status === 'Active' ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-zinc-500'}>
                                                                             {status}
                                                                         </span>
                                                                     </div>
@@ -747,7 +747,7 @@ function TaskLogBookContent() {
                                             </div>
                                         </div>
 
-                                        <Separator className="bg-white/5" />
+                                        <Separator className="bg-border" />
 
                                         {/* TASK 2: Sleek Responsive Glassmorphic Cards Grid */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -771,8 +771,8 @@ function TaskLogBookContent() {
                                                         className={cn(
                                                             "flex flex-col text-left p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group select-none cursor-pointer",
                                                             isSelected 
-                                                                ? "bg-slate-900/60 border-blue-500/50 shadow-lg shadow-blue-500/5 scale-[1.02]" 
-                                                                : "bg-slate-950/20 hover:bg-slate-900/40 border-white/5 hover:border-white/10 hover:scale-[1.01]"
+                                                                ? "bg-card border-primary/50 ring-2 ring-primary/20 shadow-md scale-[1.02] dark:bg-slate-900/60 dark:border-blue-500/50" 
+                                                                : "bg-card hover:bg-muted/40 border-border hover:border-border/80 hover:scale-[1.01] shadow-sm dark:bg-slate-950/20 dark:hover:bg-slate-900/40 dark:border-white/5 dark:hover:border-white/10"
                                                         )}
                                                         style={{
                                                             boxShadow: isSelected ? `0 4px 20px -2px ${color}20` : undefined
@@ -796,21 +796,21 @@ function TaskLogBookContent() {
                                                                 <Icon className="w-5 h-5" />
                                                             </div>
                                                             <div>
-                                                                <h4 className="font-bold text-sm tracking-tight text-white/90">{catName}</h4>
+                                                                <h4 className="font-bold text-sm tracking-tight text-foreground">{catName}</h4>
                                                                 <p className="text-[10px] text-muted-foreground">{stat.taskCount} completed</p>
                                                             </div>
                                                         </div>
                                                         
                                                         <div className="mt-auto space-y-2 w-full">
                                                             <div className="flex justify-between items-baseline">
-                                                                <span className="text-2xl font-black font-headline text-white">{formatDuration(stat.duration)}</span>
+                                                                <span className="text-2xl font-black font-headline text-foreground">{formatDuration(stat.duration)}</span>
                                                                 <span className="text-[10px] font-bold text-amber-500 flex items-center gap-0.5">
                                                                     🪙 {stat.coins}
                                                                 </span>
                                                             </div>
                                                             
                                                             {/* HSL dynamic glow progress bar */}
-                                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-1.5 w-full bg-muted dark:bg-white/10 rounded-full overflow-hidden">
                                                                 <div 
                                                                     className="h-full rounded-full transition-all duration-500"
                                                                     style={{ 
@@ -890,10 +890,10 @@ function TaskLogBookContent() {
                                             <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
                                             <div className="space-y-3">
                                                 {groupedTasks[day].map((task) => (
-                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/60 border border-white/5 backdrop-blur-md shadow-sm hover:border-white/10 transition-colors">
+                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card border border-border shadow-sm hover:border-primary/30 transition-colors">
                                                         <div className="flex items-center gap-3.5 flex-1 min-w-0">
                                                             {/* Visual Category Icon Container */}
-                                                            <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex-shrink-0 flex items-center justify-center">
+                                                            <div className="p-2 rounded-xl bg-muted/60 border border-border flex-shrink-0 flex items-center justify-center">
                                                                 {getCategoryIcon(task.category)}
                                                             </div>
                                                             <div className="flex-1 min-w-0 text-left">

@@ -604,12 +604,12 @@ export default function TaskForm() {
             <CarouselNext />
           </Carousel>
         ) : (
-          <div className="bg-card/50 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl flex flex-col items-center justify-center h-[300px] p-8 text-center">
+          <div className="bg-card border border-border shadow-sm rounded-2xl flex flex-col items-center justify-center h-[300px] p-8 text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <FolderSearch className="h-8 w-8 text-primary opacity-80" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">No Tasks Found</h3>
-            <p className="text-white/60 text-sm max-w-sm mb-6 leading-relaxed">
+            <h3 className="text-xl font-bold text-foreground mb-2">No Tasks Found</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mb-6 leading-relaxed">
               This routine is currently empty. Start by adding tasks in the routine section to organize your day.
             </p>
             <Button variant="default" size="lg" className="px-8 shadow-lg shadow-primary/20" asChild>
@@ -710,19 +710,19 @@ export default function TaskForm() {
       />
 
       <AlertDialog open={showActiveTimerAlert} onOpenChange={setShowActiveTimerAlert}>
-        <AlertDialogContent className="bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-6 max-w-[90vw] sm:max-w-md">
+        <AlertDialogContent className="bg-card text-foreground border border-border shadow-2xl rounded-2xl p-6 max-w-[90vw] sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+            <AlertDialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
               <Clock className="w-5 h-5 text-amber-500 animate-pulse" />
               Active Session in Progress
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-white/70 text-sm mt-2 leading-relaxed">
-              You are currently focusing on <strong className="text-white font-bold">{activeTimer?.taskName}</strong>. Starting a new task will end this session. Do you want to proceed?
+            <AlertDialogDescription className="text-muted-foreground text-sm mt-2 leading-relaxed">
+              You are currently focusing on <strong className="text-foreground font-bold">{activeTimer?.taskName}</strong>. Starting a new task will end this session. Do you want to proceed?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-6">
             <AlertDialogCancel 
-              className="bg-transparent border border-white/10 hover:bg-white/5 text-white/80 hover:text-white rounded-xl h-11"
+              className="bg-transparent border border-border hover:bg-muted text-foreground rounded-xl h-11"
               onClick={() => {
                 setShowActiveTimerAlert(false);
                 setPendingStartParams(null);

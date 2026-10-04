@@ -401,7 +401,7 @@ export function RewardsContent() {
                     const isUnlocked = cert.progress >= 100;
                     return (
                         <motion.div key={cert.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.1 }} className="flex flex-col gap-3">
-                            <div id={cert.id} className={`relative overflow-hidden rounded-2xl p-6 border-2 shadow-2xl flex flex-col justify-between min-h-[200px] ${isUnlocked ? `border-transparent bg-gradient-to-br ${cert.color} text-white` : 'border-white/5 bg-card/40 backdrop-blur-md text-muted-foreground grayscale'}`}>
+                            <div id={cert.id} className={`relative overflow-hidden rounded-2xl p-6 border-2 shadow-2xl flex flex-col justify-between min-h-[200px] ${isUnlocked ? `border-transparent bg-gradient-to-br ${cert.color} text-white` : 'border-border bg-card shadow-sm text-muted-foreground grayscale'}`}>
                                 <div className="absolute top-0 right-0 -mt-6 -mr-6 opacity-20 rotate-12 pointer-events-none mix-blend-overlay">
                                     <IconComponent className="w-48 h-48" />
                                 </div>
@@ -418,10 +418,10 @@ export function RewardsContent() {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs h-10 rounded-xl bg-card/40 border-white/5 hover:bg-card/60 hover:text-white" onClick={() => exportCertificate(cert.id, cert.title)}>
+                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs h-10 rounded-xl bg-card border-border hover:bg-muted text-foreground" onClick={() => exportCertificate(cert.id, cert.title)}>
                                     {downloading === cert.id ? "Rendering..." : "Export"}
                                 </Button>
-                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs h-10 rounded-xl bg-card/40 border-white/5 hover:bg-card/60 hover:text-white" onClick={() => pinCertificate(cert.id, cert.title)}>
+                                <Button variant="outline" disabled={!isUnlocked} className="flex-1 font-bold text-xs h-10 rounded-xl bg-card border-border hover:bg-muted text-foreground" onClick={() => pinCertificate(cert.id, cert.title)}>
                                     {(profileData?.pinnedCertificateIds || []).includes(cert.id) ? 'Pinned' : 'Pin to Profile'}
                                 </Button>
                             </div>
