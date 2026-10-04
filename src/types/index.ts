@@ -113,6 +113,7 @@ export type UserProfile = {
     daysOff?: Day[];
     routineVersions?: { [key: string]: number };
     slakeCredits?: number;
+    coins?: number;
     streak?: StreakData;
     phone?: string;
     instagramLink?: string;

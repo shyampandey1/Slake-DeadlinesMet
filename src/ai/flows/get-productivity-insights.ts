@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { runJevInference } from '@/lib/jevClient';
+import { runJevInference, evaluateProductivityInsightsWithJev } from '@/lib/jevClient';
 
 export const ProductivityInsightsInputSchema = z.object({
   tasks: z.array(z.object({
@@ -66,8 +66,38 @@ Provide:
 4. focusScore (0-100)
 5. moversEvaluation (overallRating, adherenceScore: 0-100, feedback)`;
 
+  const catCounts: { [key: string]: number } = {
+    Productivity: 0,
+    Hydration: 0,
+    Fitness: 0,
+    Meditation: 0,
+    Hygiene: 0,
+    Creativity: 0,
+  };
+  tasks.forEach(t => {
+    const c = t.category || 'Productivity';
+    if (c in catCounts) {
+      catCounts[c]++;
+    } else {
+      catCounts.Productivity++;
+    }
+  });
+
+  const completedCount = tasks.filter(t => t.completed).length;
+  const streakCount = input.streak?.currentStreak || 0;
+
+  const payload = {
+    userId: 'current-user',
+    periodDays: 7,
+    completedTasksCount: completedCount,
+    categoryDistribution: catCounts as any,
+    streakCount,
+    mostProductiveHour: 'None',
+    totalCoinsEarned: completedCount * 10,
+  };
+
   try {
-    return await runJevInference(prompt, ProductivityInsightsOutputSchema);
+    return await evaluateProductivityInsightsWithJev(payload);
   } catch (error: any) {
     console.warn("JEV TypeSafe Flow Inference Fallback:", error?.message);
 

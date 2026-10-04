@@ -120,7 +120,7 @@ export async function encryptText(text: string | null | undefined, seed: string)
     }
 
     const encryptedBuffer = await subtle.encrypt(
-      { name: "AES-GCM", iv },
+      { name: "AES-GCM", iv: iv as any },
       key,
       encodedData
     );
@@ -157,9 +157,9 @@ export async function decryptText(cipherText: string | null | undefined, seed: s
     if (!key) return cipherText;
 
     const decryptedBuffer = await subtle.decrypt(
-      { name: "AES-GCM", iv },
+      { name: "AES-GCM", iv: iv as any },
       key,
-      ciphertext
+      (ciphertext as any)
     );
 
     const decoder = new TextDecoder();

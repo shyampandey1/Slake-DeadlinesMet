@@ -119,12 +119,12 @@ export default function FloatingTimer() {
             if ("serviceWorker" in navigator) {
               navigator.serviceWorker.ready.then((reg) => {
                 reg.showNotification("Session Complete!", {
+                  ...({ vibrate: [300, 100, 300] } as any),
                   body: `Time's up! You've finished: ${taskTitle}`,
                   icon: "/icon.svg",
                   badge: "/icon.svg",
                   tag: "timer-done",
-                  vibrate: [300, 100, 300],
-                  data: { url: "/timer?from_notification=true", type: "TIMER" },
+                                    data: { url: "/timer?from_notification=true", type: "TIMER" },
                   requireInteraction: true,
                 });
               }).catch(() => {});

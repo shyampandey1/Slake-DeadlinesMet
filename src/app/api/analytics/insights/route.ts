@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { runJevInference } from '@/lib/jevClient';
+import { runJevInference, evaluateProductivityInsightsWithJev } from '@/lib/jevClient';
 
 export interface InsightsPayload {
   userId: string;
@@ -19,7 +19,7 @@ export interface InsightsPayload {
   totalCoinsEarned: number;
 }
 
-export const InsightsPayloadSchema = z.object({
+const InsightsPayloadSchema = z.object({
   userId: z.string().default('anonymous'),
   periodDays: z.number().default(7),
   completedTasksCount: z.number().default(0),
@@ -43,7 +43,7 @@ export const InsightsPayloadSchema = z.object({
   totalCoinsEarned: z.number().default(0),
 });
 
-export const InsightsOutputSchema = z.object({
+const InsightsOutputSchema = z.object({
   summary: z.string().describe('A 2-3 sentence summary of recent achievements based on raw metrics and MOVERS protocol.'),
   strengths: z.array(z.string()).describe('Top 2-3 productive patterns identified (specifically mentioning most productive hour or categories).'),
   suggestions: z.array(z.string()).describe('2-3 actionable, highly tactical, specific tips to improve focus or balance (no generic motivational text).'),
@@ -273,7 +273,7 @@ Guidelines:
 5. Include a moversEvaluation rating the user's protocol integration (overallRating: Optimal, Strong, Developing, or Foundational; adherenceScore: 0-100; feedback: tactical guidance).`;
 
     try {
-      const inferenceResult = await runJevInference(prompt, InsightsOutputSchema);
+      const inferenceResult = await evaluateProductivityInsightsWithJev(payload);
       return NextResponse.json(inferenceResult);
     } catch (inferenceError: any) {
       console.warn('[JEV TypeSafe] Inference fallback triggered:', inferenceError?.message);

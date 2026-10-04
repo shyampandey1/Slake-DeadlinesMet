@@ -96,7 +96,7 @@ export default function NotificationScheduler() {
               icon: "/icon.svg",
               badge: "/icon.svg",
               tag: `event-${event.id}`,
-              vibrate: [200, 100, 200],
+              ...({ vibrate: [200, 100, 200] } as any),
               data: {
                 url: "/calendar?from_notification=true",
                 type: "CALENDAR",
@@ -135,7 +135,7 @@ export default function NotificationScheduler() {
               icon: "/icon.svg",
               badge: "/icon.svg",
               tag: `event-${event.id}`,
-              vibrate: [200, 100, 200],
+              ...({ vibrate: [200, 100, 200] } as any),
               data: {
                 url: "/calendar?from_notification=true",
                 type: "CALENDAR",
@@ -183,7 +183,7 @@ export default function NotificationScheduler() {
           icon: "/icon.svg",
           badge: "/icon.svg",
           tag: "timer-done",
-          vibrate: [300, 100, 300],
+          ...({ vibrate: [300, 100, 300] } as any),
           data: {
             url: "/timer?from_notification=true",
             type: "TIMER",

@@ -348,7 +348,7 @@ function TaskLogBookContent() {
                 categoryDistribution,
                 streakCount: profileData?.streak?.currentStreak || 0,
                 mostProductiveHour,
-                totalCoinsEarned: profileData?.coins || (completedTasksCount * 10),
+                totalCoinsEarned: profileData?.coins || profileData?.slakeCredits || (completedTasksCount * 10),
             };
 
             const response = await fetch('/api/analytics/insights', {
