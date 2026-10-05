@@ -13,6 +13,8 @@ import HardwareBackHandler from "@/components/HardwareBackHandler";
 import NotificationScheduler from "@/components/NotificationScheduler";
 import FloatingTimer from "@/components/FloatingTimer";
 import AgentDM from "@/components/voice/AgentDM";
+import { VoiceProvider } from "@/hooks/useVoiceController";
+import { ThemeProvider } from "@/hooks/useTheme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,8 +55,6 @@ export const metadata: Metadata = {
   }
 };
 
-import { ThemeProvider } from "@/hooks/useTheme";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -70,14 +70,16 @@ export default function RootLayout({
                 <ProfileProvider>
                     <TimerUIProvider>
                         <TimerProvider>
-                            <HardwareBackHandler />
-                            <AgentDM />
-                            <PageTransitionWrapper>
-                                {children}
-                            </PageTransitionWrapper>
-                            <BottomNav />
-                            <NotificationScheduler />
-                            <FloatingTimer />
+                            <VoiceProvider>
+                                <HardwareBackHandler />
+                                <AgentDM />
+                                <PageTransitionWrapper>
+                                    {children}
+                                </PageTransitionWrapper>
+                                <BottomNav />
+                                <NotificationScheduler />
+                                <FloatingTimer />
+                            </VoiceProvider>
                         </TimerProvider>
                     </TimerUIProvider>
                     <Toaster />

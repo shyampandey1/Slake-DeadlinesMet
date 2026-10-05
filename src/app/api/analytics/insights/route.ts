@@ -44,10 +44,15 @@ const InsightsPayloadSchema = z.object({
 });
 
 const InsightsOutputSchema = z.object({
+  headline: z.string().optional(),
   summary: z.string().describe('A 2-3 sentence summary of recent achievements based on raw metrics and MOVERS protocol.'),
   strengths: z.array(z.string()).describe('Top 2-3 productive patterns identified (specifically mentioning most productive hour or categories).'),
   suggestions: z.array(z.string()).describe('2-3 actionable, highly tactical, specific tips to improve focus or balance (no generic motivational text).'),
   focusScore: z.number().min(0).max(100).describe('A score from 0-100 reflecting focus and consistency.'),
+  productivityScore: z.number().optional(),
+  categoryBreakdownAnalysis: z.any().optional(),
+  tacticalRecommendations: z.array(z.string()).optional(),
+  alignmentWithMovers: z.any().optional(),
   moversEvaluation: z.object({
     overallRating: z.string().describe('Rating of MOVERS protocol execution (e.g. Optimal, Strong, Developing, Foundational)'),
     adherenceScore: z.number().min(0).max(100).describe('Adherence score to MOVERS pillars'),

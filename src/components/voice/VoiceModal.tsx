@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { X, Check, Edit2, Mic, MicOff, Sparkles, ArrowRight, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { X, Check, Edit2, Mic, MicOff, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useVoiceController } from "@/hooks/useVoiceController";
 import type { VoiceIntentPayload } from "@/types/voice";
-import { Input } from "@/components/ui/input";
 
 interface VoiceModalProps {
   isOpen: boolean;
@@ -25,9 +25,7 @@ export function VoiceModal({ isOpen, onClose }: VoiceModalProps) {
     cancelListening,
     executeIntent,
     error,
-  } = useVoiceController(() => {
-    onClose();
-  });
+  } = useVoiceController();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedTaskName, setEditedTaskName] = useState("");
@@ -57,6 +55,7 @@ export function VoiceModal({ isOpen, onClose }: VoiceModalProps) {
       durationMinutes: editedDuration,
     };
     await executeIntent(finalIntent);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -94,7 +93,6 @@ export function VoiceModal({ isOpen, onClose }: VoiceModalProps) {
 
           {/* Body Content */}
           {!detectedIntent ? (
-            /* Active Listening / Audio Waveform State (Screenshot #2) */
             <div className="flex flex-col items-center justify-center py-8 space-y-6 text-center">
               <div className="space-y-1">
                 <p className="text-sm font-semibold tracking-wide text-emerald-500 flex items-center justify-center gap-1.5 animate-pulse">
@@ -147,7 +145,6 @@ export function VoiceModal({ isOpen, onClose }: VoiceModalProps) {
               )}
             </div>
           ) : (
-            /* Quick Setup Confirmation State (Screenshot #1) */
             <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
               <div>
                 <h3 className="text-xl font-black text-foreground">Quick Setup</h3>

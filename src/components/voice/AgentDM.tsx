@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Sparkles, Volume2, CheckCircle2, ChevronDown, X, Play, Clock, Droplets, Dumbbell, BrainCircuit } from "lucide-react";
+import { Mic, MicOff, Sparkles, Volume2, CheckCircle2, ChevronDown, X, Clock, Droplets, Dumbbell, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useVoiceController } from "@/hooks/useVoiceController";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,18 +12,17 @@ export default function AgentDM() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const {
+    isOpen,
+    closeAgentDM,
     agentState,
     isListening,
     isThinking,
     isExecuting,
     isSpeaking,
     transcript,
-    waveformAmplitudes,
     detectedIntent,
     startListening,
     stopListening,
-    cancelListening,
-    executeIntent,
     error,
   } = useVoiceController();
 
@@ -47,138 +46,169 @@ export default function AgentDM() {
 
   return (
     <>
-      {/* Viewport Floating HUD Capsule */}
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 350, damping: 25 }}
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-pointer"
-        onClick={handlePillClick}
-      >
-        <div
-          className={cn(
-            "backdrop-blur-xl bg-slate-950/85 border border-emerald-500/20 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
-            "hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]",
-            isListening && "border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.35)] ring-2 ring-emerald-500/30",
-            isThinking && "border-blue-500/60 shadow-[0_0_30px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/30",
-            isSpeaking && "border-purple-500/60 shadow-[0_0_30px_rgba(168,85,247,0.35)] ring-2 ring-purple-500/30",
-            isExecuting && "border-emerald-400/80 shadow-[0_0_30px_rgba(52,211,153,0.4)]"
-          )}
-        >
-          {/* Status Indicator Icon */}
-          <div className="relative flex items-center justify-center">
-            {agentState === 'IDLE' && (
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                </span>
-                <Mic className="w-3.5 h-3.5 text-emerald-400/80" />
-              </div>
-            )}
-
-            {agentState === 'LISTENING' && (
-              <motion.div
-                animate={{ scale: [1, 1.25, 1] }}
-                transition={{ repeat: Infinity, duration: 1.2 }}
-                className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]"
-              />
-            )}
-
-            {agentState === 'THINKING' && (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full shadow-[0_0_10px_#10b981]"
-              />
-            )}
-
-            {agentState === 'EXECUTING' && (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-bounce" />
-            )}
-
-            {agentState === 'SPEAKING' && (
-              <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
-            )}
-          </div>
-
-          {/* Central Label & Dynamic Waveform Equalizer */}
-          <div className="flex items-center gap-2">
-            {agentState === 'IDLE' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent font-headline">
-                  Agent DM
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                  • Click to Speak
-                </span>
-              </div>
-            )}
-
-            {agentState === 'LISTENING' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
-                  Listening...
-                </span>
-                {/* 16 Audio-Reactive Waveform Equalizer Bars */}
-                <div className="flex items-center gap-[2.5px] h-5 px-1">
-                  {waveformAmplitudes.map((amp, idx) => (
-                    <motion.div
-                      key={idx}
-                      className="w-[2.5px] bg-emerald-400 rounded-full"
-                      animate={{ height: `${Math.max(4, amp * 20)}px` }}
-                      transition={{ duration: 0.08 }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {agentState === 'THINKING' && (
-              <span className="text-xs font-bold text-blue-300 font-mono tracking-wide animate-pulse">
-                Thinking...
-              </span>
-            )}
-
-            {agentState === 'EXECUTING' && (
-              <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
-                Executing...
-              </span>
-            )}
-
-            {agentState === 'SPEAKING' && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-purple-300 font-mono tracking-wide">
-                  Agent DM
-                </span>
-                {/* Speaking Ripples */}
-                <div className="flex items-center gap-1">
-                  {[0, 1, 2, 3].map((bar) => (
-                    <motion.div
-                      key={bar}
-                      animate={{ scaleY: [0.3, 1.2, 0.3] }}
-                      transition={{ repeat: Infinity, duration: 0.6, delay: bar * 0.15 }}
-                      className="w-1 h-3.5 bg-purple-400 rounded-full"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Modal Expansion Trigger */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setModalOpen(true);
-            }}
-            className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors ml-1"
-            title="Expand Agent DM Commands"
+      {/* Viewport Floating HUD Capsule (Rendered conditionally when toggled on) */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="agent-dm-floating-hud"
+            initial={{ y: -60, opacity: 0, scale: 0.92 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: -60, opacity: 0, scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 420, damping: 26 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-pointer"
+            onClick={handlePillClick}
           >
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </motion.div>
+            <div
+              className={cn(
+                "backdrop-blur-xl bg-slate-950/90 border border-emerald-500/30 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
+                "hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]",
+                isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
+                isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
+                isSpeaking && "border-purple-500/70 shadow-[0_0_30px_rgba(168,85,247,0.4)] ring-2 ring-purple-500/30",
+                isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
+              )}
+            >
+              {/* Status Indicator Icon */}
+              <div className="relative flex items-center justify-center">
+                {agentState === 'IDLE' && (
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                    </span>
+                    <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                  </div>
+                )}
+
+                {agentState === 'LISTENING' && (
+                  <motion.div
+                    animate={{ scale: [1, 1.25, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.1 }}
+                    className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]"
+                  />
+                )}
+
+                {agentState === 'THINKING' && (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full shadow-[0_0_10px_#10b981]"
+                  />
+                )}
+
+                {agentState === 'EXECUTING' && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-bounce" />
+                )}
+
+                {agentState === 'SPEAKING' && (
+                  <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
+                )}
+              </div>
+
+              {/* Central Label & Dynamic Waveform Equalizer */}
+              <div className="flex items-center gap-2">
+                {agentState === 'IDLE' && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent font-headline">
+                      Agent DM
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                      • Click to Speak
+                    </span>
+                  </div>
+                )}
+
+                {agentState === 'LISTENING' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                      {transcript ? (
+                        <span className="truncate max-w-[120px] sm:max-w-[180px] inline-block font-sans text-white">
+                          "{transcript}"
+                        </span>
+                      ) : (
+                        "Listening..."
+                      )}
+                    </span>
+                    {/* 16 Audio-Reactive Hardware-Accelerated Waveform Equalizer Bars */}
+                    <div className="flex items-center gap-[2.5px] h-5 px-1">
+                      {[0.4, 0.8, 0.6, 1.0, 0.7, 0.9, 0.5, 0.85, 0.45, 0.75, 1.0, 0.65, 0.9, 0.5, 0.8, 0.35].map((baseHeight, idx) => (
+                        <motion.div
+                          key={idx}
+                          className="w-[2.5px] bg-emerald-400 rounded-full"
+                          animate={{
+                            height: ['4px', `${Math.max(6, baseHeight * 20)}px`, '6px', `${Math.max(4, baseHeight * 16)}px`, '4px'],
+                          }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 0.6 + (idx % 4) * 0.12,
+                            delay: idx * 0.04,
+                            ease: 'easeInOut',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {agentState === 'THINKING' && (
+                  <span className="text-xs font-bold text-blue-300 font-mono tracking-wide animate-pulse">
+                    Thinking...
+                  </span>
+                )}
+
+                {agentState === 'EXECUTING' && (
+                  <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                    Executing...
+                  </span>
+                )}
+
+                {agentState === 'SPEAKING' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-purple-300 font-mono tracking-wide">
+                      Agent DM
+                    </span>
+                    {/* Speaking Ripples */}
+                    <div className="flex items-center gap-1">
+                      {[0, 1, 2, 3].map((bar) => (
+                        <motion.div
+                          key={bar}
+                          animate={{ scaleY: [0.3, 1.2, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 0.6, delay: bar * 0.15 }}
+                          className="w-1 h-3.5 bg-purple-400 rounded-full"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons: Modal expansion & Close button */}
+              <div className="flex items-center gap-0.5 ml-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setModalOpen(true);
+                  }}
+                  className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                  title="Expand Agent DM Commands"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeAgentDM();
+                  }}
+                  className="p-1 rounded-full text-slate-400 hover:text-red-400 hover:bg-white/10 transition-colors"
+                  title="Close Agent DM"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Expanded Interactive Command Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -261,6 +291,12 @@ export default function AgentDM() {
                 Close
               </Button>
             </div>
+
+            {error && (
+              <p className="text-xs text-red-400 font-medium bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">
+                {error}
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

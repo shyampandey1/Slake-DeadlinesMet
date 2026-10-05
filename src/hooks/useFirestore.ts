@@ -223,7 +223,7 @@ export function useTasks() {
     profileDataRef.current = profileData;
   }, [profileData]);
 
-  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
+  const addTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
     if (!user) return;
     const newTask = {
       ...task,
@@ -232,19 +232,21 @@ export function useTasks() {
 
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
-      const updatedTasks = [...tasks, { ...newTask, id: `local_${new Date().getTime()}_${Math.random().toString(36).substr(2, 5)}`, userId: user.uid }];
-      setTasks(updatedTasks);
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
-      } catch (error) {
-        console.warn("Couldn't access localStorage for tasks");
-      }
+      setTasks(prev => {
+        const updatedTasks = [...prev, { ...newTask, id: `local_${new Date().getTime()}_${Math.random().toString(36).substr(2, 5)}`, userId: user.uid }];
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
+        } catch (error) {
+          console.warn("Couldn't access localStorage for tasks");
+        }
+        return updatedTasks;
+      });
       return;
     }
 
     const encryptedName = await encryptText(task.name, user.uid);
     await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
-  };
+  }, [user, isOffline, isSyncEnabled]);
 
   const clearTasks = async () => {
     if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) return; // Added signout check
