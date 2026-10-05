@@ -5,8 +5,10 @@ export interface CommandDefinition {
   phrases: string[];
   patterns: RegExp[];
   category?: VoiceCategory;
+  taskName?: string;
   targetRoute?: VoiceRoute;
   durationMinutes?: number;
+  durationSeconds?: number;
   extendMinutes?: number;
   intervalMinutes?: number;
   earnedCoins?: number;
@@ -123,7 +125,8 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
   // 3. MOVERS PROTOCOL TASK CREATION (TASK_CREATE)
   // ==========================================
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Meditation',
     phrases: ['start meditation for 10 minutes', 'meditate 10 minutes', '10 minute meditation'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?meditation(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Meditation',
@@ -132,16 +135,35 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'M: Meditation & Mindfulness pillar'
   },
   {
-    action: 'TASK_CREATE',
-    phrases: ['oxygenation deep breathing 4 minutes', 'breathing exercise 4 minutes', 'deep breathing'],
-    patterns: [/(?:start|create)?\s*(?:an\s+)?(?:oxygenation|deep\s+breathing|breathwork)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
+    action: 'TIMER_START',
+    phrases: [
+      'deep breathing in 30 seconds',
+      'deep breathing 30 seconds',
+      'deep breathing 1 minute',
+      'deep breating 1 minute',
+      'deep breathing for 1 minute',
+      'oxygenation deep breathing 4 minutes',
+      'breathing exercise 4 minutes',
+      'deep breathing',
+      'deep breating',
+      'breathwork',
+      'box breathing',
+      'pranayama'
+    ],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:an\s+)?(?:oxygenation|deep\s+breathing|deep\s+breating|breathing|breating|breathwork|box\s+breathing)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?|\bhalf\b)?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s|min|minute|minutes|m)?\s*(?:of\s+)?(?:deep\s+breathing|deep\s+breating|breathing|breating|breathwork)/i
+    ],
+    taskName: 'Deep Breathing',
     category: 'Meditation',
-    durationMinutes: 4,
-    speechFeedback: 'Initiating 4-minute Oxygenation and Box Breathing session.',
-    description: 'O: Oxygenation & Breathwork pillar'
+    durationMinutes: 1,
+    durationSeconds: 60,
+    speechFeedback: 'Starting Deep Breathing exercise in full screen.',
+    description: 'O: Oxygenation & Breathwork protocol'
   },
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Goal Visualization',
     phrases: ['goal visualization 10 minutes', 'visualize goals', 'mental rehearsal 10 minutes'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?(?:goal\s+)?visualization(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Productivity',
@@ -150,7 +172,8 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'V: Visualization & Mental Clarity pillar'
   },
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Workout',
     phrases: ['workout 20 minutes', 'exercise 20 minutes', 'morning workout', 'fitness session'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?(?:workout|exercise|fitness|gym)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Fitness',
@@ -159,7 +182,8 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'E: Exercise & Movement pillar'
   },
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Positive Reading',
     phrases: ['read positive 15 minutes', 'reading positive books', 'positive reading 15 minutes'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?(?:read\s+positive|positive\s+reading|reading)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Creativity',
@@ -168,7 +192,8 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'R: Reading Positive Wisdom pillar'
   },
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Journaling',
     phrases: ['journal 10 minutes', 'scribing 10 minutes', 'evening reflection journal', 'write journal'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?(?:journal|scribing|reflection)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Creativity',
@@ -177,7 +202,8 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'S: Scribing & Daily Progress Tracking pillar'
   },
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Deep Work',
     phrases: ['deep work 45 minutes', 'coding session 60 minutes', 'focus work 30 minutes'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?(?:deep\s+work|coding|focus\s+work|study)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Productivity',
@@ -186,7 +212,8 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'High-cognitive velocity deep work block'
   },
   {
-    action: 'TASK_CREATE',
+    action: 'TIMER_START',
+    taskName: 'Hydration Break',
     phrases: ['drink water timer', 'hydration timer 5 minutes', 'water break timer'],
     patterns: [/(?:start|create)?\s*(?:a\s+)?(?:drink\s+water|hydration|water\s+break)(?:\s+timer)?(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Hydration',

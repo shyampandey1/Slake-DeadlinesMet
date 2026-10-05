@@ -57,6 +57,7 @@ export const VoiceIntentPayloadSchema = z.object({
   ]),
   taskName: z.string().optional(),
   durationMinutes: z.number().optional(),
+  durationSeconds: z.number().optional(),
   category: z
     .enum(['Productivity', 'Hydration', 'Fitness', 'Meditation', 'Hygiene', 'Creativity'])
     .optional(),

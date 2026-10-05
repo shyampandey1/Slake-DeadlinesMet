@@ -170,14 +170,55 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             }
             break;
           }
-          case 'TIMER_START': {
-            const duration = intent.durationMinutes || 15;
+          case 'TIMER_START':
+          case 'TASK_CREATE': {
+            const durationMins = intent.durationMinutes || (intent.durationSeconds ? intent.durationSeconds / 60 : 15);
+            const durationSecs = intent.durationSeconds || Math.round(durationMins * 60);
+            const taskName = intent.taskName || 'Focus Session';
+            const category = (intent.category as any) || 'Productivity';
+            const expectedEndTime = Date.now() + (durationSecs * 1000);
+
+            // 1. Add to routine in background if user is logged in
+            const curUser = userRef.current;
+            if (curUser?.uid) {
+              addTaskRef.current({
+                name: taskName,
+                duration: Math.max(1, Math.round(durationMins)),
+                initialDuration: Math.max(1, Math.round(durationMins)),
+                completed: false,
+                category: category,
+              }).catch(() => {});
+            }
+
+            // 2. Start active background timer
             startTimerRef.current({
-              taskName: intent.taskName || 'Focus Session',
-              initialDuration: duration,
-              category: intent.category || 'Productivity',
+              taskName,
+              initialDuration: durationMins,
+              category,
+              expectedEndTime,
             });
-            routerRef.current.push('/');
+
+            // 3. Immediately close the Agent DM HUD so fullscreen is unobstructed
+            setIsOpen(false);
+
+            // 4. Navigate directly to fullscreen timer
+            const params = new URLSearchParams();
+            params.set('task', taskName);
+            params.set('duration', durationMins.toString());
+            if (intent.durationSeconds) {
+              params.set('seconds', intent.durationSeconds.toString());
+            }
+            params.set('category', category);
+            params.set('expectedEndTime', expectedEndTime.toString());
+            params.set('forceRestart', 'true');
+
+            routerRef.current.push(`/timer?${params.toString()}`);
+
+            const durDisplay = durationSecs < 60 ? `${durationSecs}s` : durationMins === 1 ? '1m' : `${durationMins}m`;
+            toastRef.current({
+              title: 'Focus Session Started ⏱️',
+              description: `${taskName} (${durDisplay}) started in full screen.`,
+            });
             break;
           }
           case 'TIMER_PAUSE': {
@@ -250,23 +291,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             }
             break;
           }
-          case 'TASK_CREATE': {
-            const curUser = userRef.current;
-            if (curUser?.uid) {
-              await addTaskRef.current({
-                name: intent.taskName || 'Custom Task',
-                duration: intent.durationMinutes || 15,
-                initialDuration: intent.durationMinutes || 15,
-                completed: false,
-                category: (intent.category as any) || 'Productivity',
-              });
-              toastRef.current({
-                title: 'Task Created 📋',
-                description: `${intent.taskName} (${intent.durationMinutes}m) added to your routine.`,
-              });
-            }
-            break;
-          }
+// Handled above by unified TIMER_START / TASK_CREATE full screen launcher
           case 'COOP_ACTION': {
             routerRef.current.push('/reformers');
             toastRef.current({
@@ -353,7 +378,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         setDetectedIntent(data);
 
         // Automatically execute high confidence matches
-        if ((data.confidence || 0) >= 0.90) {
+        if ((data.confidence || 0) >= 0.85) {
           await executeIntent(data);
         } else {
           setAgentState('IDLE');

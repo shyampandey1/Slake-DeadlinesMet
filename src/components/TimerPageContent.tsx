@@ -11,7 +11,13 @@ export default function TimerPageContent() {
 
   const taskName = searchParams.get('task');
   const durationStr = searchParams.get('duration');
-  const duration = durationStr ? parseInt(durationStr, 10) : null;
+  const secondsStr = searchParams.get('seconds');
+  
+  let duration = durationStr ? parseFloat(durationStr) : null;
+  if (secondsStr && !isNaN(parseFloat(secondsStr))) {
+    duration = parseFloat(secondsStr) / 60;
+  }
+  
   const category = searchParams.get('category') ?? undefined;
   const color = searchParams.get('color') ?? undefined;
   const expectedEndTimeStr = searchParams.get('expectedEndTime');
@@ -21,7 +27,7 @@ export default function TimerPageContent() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!taskName || duration === null || isNaN(duration)) {
+    if (!taskName || duration === null || isNaN(duration) || duration <= 0) {
       router.replace('/');
     } else {
       setIsReady(true);

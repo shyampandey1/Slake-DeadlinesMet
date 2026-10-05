@@ -4,21 +4,148 @@ import { callTypeSafeSystemOne, TypeSafeQuestion } from '@/lib/jevClient';
 import { VOICE_COMMAND_DICTIONARY } from '@/config/voiceCommandDictionary';
 
 /**
+ * Normalizes speech input: converts spoken numbers, handles ASR typos, lowercases
+ */
+function normalizeSpeech(text: string): string {
+  let lower = text.toLowerCase().trim();
+
+  // Spoken number normalization
+  const numMap: [RegExp, string][] = [
+    [/\bhalf\s+a\s+minute\b/gi, '30 seconds'],
+    [/\bhalf\s+an\s+hour\b/gi, '30 minutes'],
+    [/\ba\s+minute\b/gi, '1 minute'],
+    [/\bone\s+minute\b/gi, '1 minute'],
+    [/\btwo\s+minutes\b/gi, '2 minutes'],
+    [/\bthree\s+minutes\b/gi, '3 minutes'],
+    [/\bfour\s+minutes\b/gi, '4 minutes'],
+    [/\bfive\s+minutes\b/gi, '5 minutes'],
+    [/\bten\s+minutes\b/gi, '10 minutes'],
+    [/\bfifteen\s+minutes\b/gi, '15 minutes'],
+    [/\btwenty\s+minutes\b/gi, '20 minutes'],
+    [/\bthirty\s+seconds\b/gi, '30 seconds'],
+    [/\bthirty\s+minutes\b/gi, '30 minutes'],
+    [/\bforty\s+five\s+minutes\b/gi, '45 minutes'],
+    [/\bsixty\s+minutes\b/gi, '60 minutes'],
+    [/\ban\s+hour\b/gi, '60 minutes'],
+    [/\bone\s+hour\b/gi, '60 minutes'],
+  ];
+
+  for (const [pat, val] of numMap) {
+    lower = lower.replace(pat, val);
+  }
+
+  // ASR speech recognition phonetic typo fixes
+  lower = lower.replace(/\bbreating\b/gi, 'breathing');
+  lower = lower.replace(/\bbreth\b/gi, 'breath');
+  lower = lower.replace(/\bbrething\b/gi, 'breathing');
+  lower = lower.replace(/\boxigen\b/gi, 'oxygen');
+
+  return lower;
+}
+
+/**
+ * Extracts duration in seconds and minutes from spoken text
+ */
+function extractDuration(text: string): { durationMinutes?: number; durationSeconds?: number } {
+  const norm = normalizeSpeech(text);
+
+  // 1. Seconds extraction: (\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s\b)
+  const secMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s\b)/i);
+  if (secMatch) {
+    const sec = parseFloat(secMatch[1]);
+    return {
+      durationSeconds: sec,
+      durationMinutes: Math.round((sec / 60) * 100) / 100,
+    };
+  }
+
+  // 2. Minutes extraction: (\d+(?:\.\d+)?)\s*(?:min|minute|minutes|m\b)
+  const minMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:min|minute|minutes|m\b)/i);
+  if (minMatch) {
+    const min = parseFloat(minMatch[1]);
+    return {
+      durationMinutes: min,
+      durationSeconds: Math.round(min * 60),
+    };
+  }
+
+  // 3. Hours extraction: (\d+(?:\.\d+)?)\s*(?:hour|hours|hr|hrs|h\b)
+  const hrMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:hour|hours|hr|hrs|h\b)/i);
+  if (hrMatch) {
+    const hr = parseFloat(hrMatch[1]);
+    return {
+      durationMinutes: hr * 60,
+      durationSeconds: Math.round(hr * 3600),
+    };
+  }
+
+  return {};
+}
+
+/**
  * Parses transcripts against canonical dictionary and deterministic NLP
  */
 function parseVoiceCommand(transcript: string, currentRoute: string = '/'): VoiceIntentPayload {
-  const lower = transcript.toLowerCase().trim();
+  const norm = normalizeSpeech(transcript);
 
   // 1. Direct match against canonical voice command dictionary
   for (const cmd of VOICE_COMMAND_DICTIONARY) {
-    // Check direct phrase matches
-    if (cmd.phrases.some(p => lower === p || lower.startsWith(p) || lower.endsWith(p))) {
+    const isPhraseMatch = cmd.phrases.some(p => {
+      const np = normalizeSpeech(p);
+      return norm === np || norm.startsWith(np) || norm.endsWith(np);
+    });
+
+    let isPatternMatch = false;
+    let matchedGroup: string | undefined;
+
+    for (const pat of cmd.patterns) {
+      const match = norm.match(pat);
+      if (match) {
+        isPatternMatch = true;
+        matchedGroup = match[1];
+        break;
+      }
+    }
+
+    if (isPhraseMatch || isPatternMatch) {
+      let durationMinutes = cmd.durationMinutes;
+      let durationSeconds = cmd.durationSeconds;
+      let extendMinutes = cmd.extendMinutes;
+      let intervalMinutes = cmd.intervalMinutes;
+
+      // Extract duration from user utterance if present
+      const extracted = extractDuration(norm);
+      if (extracted.durationSeconds !== undefined) {
+        durationSeconds = extracted.durationSeconds;
+        durationMinutes = extracted.durationMinutes;
+      }
+
+      if (cmd.action === 'TIMER_EXTEND' && matchedGroup && !isNaN(parseInt(matchedGroup, 10))) {
+        extendMinutes = parseInt(matchedGroup, 10);
+      } else if (cmd.action === 'TIMER_SET_INTERVAL' && matchedGroup && !isNaN(parseInt(matchedGroup, 10))) {
+        intervalMinutes = parseInt(matchedGroup, 10);
+      }
+
+      const taskName = cmd.taskName || (cmd.category ? cmd.phrases[0] : undefined);
+      let feedback = cmd.speechFeedback;
+
+      if (cmd.action === 'TIMER_START' && taskName) {
+        if (durationSeconds && durationSeconds < 60) {
+          feedback = `Starting ${durationSeconds}-second ${taskName} exercise in full screen.`;
+        } else if (durationMinutes && durationMinutes === 1) {
+          feedback = `Starting 1-minute ${taskName} exercise in full screen.`;
+        } else if (durationMinutes) {
+          feedback = `Starting ${durationMinutes}-minute ${taskName} session in full screen.`;
+        }
+      }
+
       return {
         action: cmd.action,
-        taskName: cmd.category ? cmd.phrases[0] : undefined,
-        durationMinutes: cmd.durationMinutes,
-        extendMinutes: cmd.extendMinutes,
-        intervalMinutes: cmd.intervalMinutes,
+        taskName,
+        durationMinutes,
+        durationSeconds,
+        extendMinutes,
+        intervalMinutes,
         category: cmd.category,
         targetRoute: cmd.targetRoute,
         earnedCoins: cmd.earnedCoins,
@@ -26,88 +153,72 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
         rewardsAction: cmd.rewardsAction,
         sensorType: cmd.sensorType,
         sensorState: cmd.sensorState,
-        speechFeedback: cmd.speechFeedback,
+        speechFeedback: feedback,
         confidence: 0.98,
       };
     }
-
-    // Check regex patterns
-    for (const pat of cmd.patterns) {
-      const match = lower.match(pat);
-      if (match) {
-        let duration = cmd.durationMinutes;
-        let extend = cmd.extendMinutes;
-        let interval = cmd.intervalMinutes;
-
-        if (match[1] && !isNaN(parseInt(match[1], 10))) {
-          const num = parseInt(match[1], 10);
-          if (cmd.action === 'TIMER_EXTEND') extend = num;
-          else if (cmd.action === 'TIMER_SET_INTERVAL') interval = num;
-          else duration = num;
-        }
-
-        return {
-          action: cmd.action,
-          taskName: cmd.category ? cmd.phrases[0] : undefined,
-          durationMinutes: duration,
-          extendMinutes: extend,
-          intervalMinutes: interval,
-          category: cmd.category,
-          targetRoute: cmd.targetRoute,
-          earnedCoins: cmd.earnedCoins,
-          coopAction: cmd.coopAction,
-          rewardsAction: cmd.rewardsAction,
-          sensorType: cmd.sensorType,
-          sensorState: cmd.sensorState,
-          speechFeedback: cmd.speechFeedback,
-          confidence: 0.95,
-        };
-      }
-    }
   }
 
-  // 2. Fallback pattern matching for dynamic task names and durations
-  const durationMatch = lower.match(/(\d+)\s*(?:min|minute|minutes|m|mi)/i);
-  const duration = durationMatch ? parseInt(durationMatch[1], 10) : 15;
+  // 2. High-precision dynamic task and timer handler
+  const { durationMinutes, durationSeconds } = extractDuration(norm);
 
-  let taskName = transcript;
-  taskName = taskName
-    .replace(/^(?:set\s+a\s+timer\s+(?:of|for)?|start\s+(?:a)?\s*timer\s+(?:of|for)?|start\s+a\s+|start\s+|create\s+task\s+|create\s+)/i, '')
-    .replace(/(?:in|for)?\s*\d+\s*(?:min|minute|minutes|m|mi)/i, '')
+  // Check if breathing or oxygenation task
+  if (norm.includes('breath') || norm.includes('oxygen') || norm.includes('pranayama')) {
+    const finalSeconds = durationSeconds || 60;
+    const finalMinutes = durationMinutes || (finalSeconds / 60);
+    const durLabel = finalSeconds < 60 ? `${finalSeconds} seconds` : finalMinutes === 1 ? '1 minute' : `${finalMinutes} minutes`;
+    return {
+      action: 'TIMER_START',
+      taskName: 'Deep Breathing',
+      durationMinutes: finalMinutes,
+      durationSeconds: finalSeconds,
+      category: 'Meditation',
+      speechFeedback: `Starting ${durLabel} Deep Breathing exercise in full screen.`,
+      confidence: 0.98,
+    };
+  }
+
+  // Clean task name
+  let cleanTask = norm
+    .replace(/^(?:start\s+(?:a\s+)?|set\s+(?:a\s+)?timer\s+(?:for|of)?|begin\s+(?:a\s+)?|do\s+(?:some\s+)?|create\s+(?:a\s+)?task\s+(?:for|of)?|create\s+)/i, '')
+    .replace(/(?:in|for|of)?\s*\d+(?:\.\d+)?\s*(?:sec|second|seconds|s|min|minute|minutes|m|hour|hours|hr|hrs)\b/gi, '')
+    .replace(/\b(?:timer|session|exercise|countdown)\b/gi, '')
     .trim();
 
-  if (!taskName) {
-    taskName = 'Focus Session';
-  } else {
-    taskName = taskName.charAt(0).toUpperCase() + taskName.slice(1);
-  }
-
-  // Categorize task dynamically
   let category: VoiceCategory = 'Productivity';
-  const nameLower = taskName.toLowerCase();
-  if (nameLower.includes('water') || nameLower.includes('hydrate') || nameLower.includes('drink')) {
-    category = 'Hydration';
-  } else if (nameLower.includes('meditat') || nameLower.includes('breath') || nameLower.includes('mindful') || nameLower.includes('relax')) {
+  if (norm.includes('meditat') || norm.includes('mindful') || norm.includes('relax')) {
     category = 'Meditation';
-  } else if (nameLower.includes('exercise') || nameLower.includes('workout') || nameLower.includes('run') || nameLower.includes('fitness') || nameLower.includes('gym') || nameLower.includes('stretch')) {
+    if (!cleanTask) cleanTask = 'Meditation';
+  } else if (norm.includes('water') || norm.includes('hydrate') || norm.includes('drink')) {
+    category = 'Hydration';
+    if (!cleanTask) cleanTask = 'Hydration Break';
+  } else if (norm.includes('exercise') || norm.includes('workout') || norm.includes('run') || norm.includes('fitness') || norm.includes('gym') || norm.includes('stretch')) {
     category = 'Fitness';
-  } else if (nameLower.includes('draw') || nameLower.includes('write') || nameLower.includes('design') || nameLower.includes('art') || nameLower.includes('read') || nameLower.includes('journal')) {
+    if (!cleanTask) cleanTask = 'Workout';
+  } else if (norm.includes('draw') || norm.includes('write') || norm.includes('design') || norm.includes('art') || norm.includes('read') || norm.includes('journal')) {
     category = 'Creativity';
-  } else if (nameLower.includes('brush') || nameLower.includes('shower') || nameLower.includes('bath') || nameLower.includes('bed') || nameLower.includes('table') || nameLower.includes('clean') || nameLower.includes('dinner') || nameLower.includes('lunch') || nameLower.includes('breakfast')) {
+    if (!cleanTask) cleanTask = 'Creative Focus';
+  } else if (norm.includes('brush') || norm.includes('shower') || norm.includes('bath') || norm.includes('bed') || norm.includes('clean')) {
     category = 'Hygiene';
+    if (!cleanTask) cleanTask = 'Hygiene';
   }
 
-  const isTimerStart = lower.includes('timer') || lower.includes('start') || lower.includes('focus') || lower.includes('countdown');
+  const finalName = cleanTask
+    ? cleanTask.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    : 'Focus Session';
+
+  const finalMinutes = durationMinutes || 15;
+  const finalSeconds = durationSeconds || (finalMinutes * 60);
+  const durLabel = finalSeconds < 60 ? `${finalSeconds} seconds` : finalMinutes === 1 ? '1 minute' : `${finalMinutes} minutes`;
 
   return {
-    action: isTimerStart ? 'TIMER_START' : 'TASK_CREATE',
-    taskName,
-    durationMinutes: duration,
+    action: 'TIMER_START',
+    taskName: finalName,
+    durationMinutes: finalMinutes,
+    durationSeconds: finalSeconds,
     category,
-    speechFeedback: isTimerStart
-      ? `Starting ${duration}-minute timer for ${taskName}.`
-      : `Created task ${taskName} for ${duration} minutes.`,
-    confidence: 0.90,
+    speechFeedback: `Starting ${durLabel} timer for ${finalName} in full screen.`,
+    confidence: 0.95,
   };
 }
 
@@ -127,7 +238,7 @@ export async function POST(req: Request) {
 
     // 2. Validate against JEV TypeSafe Decision Engine if ambiguity exists
     try {
-      if (localResult.confidence && localResult.confidence < 0.95) {
+      if (localResult.confidence && localResult.confidence < 0.90) {
         const state = {
           transcript,
           currentRoute,

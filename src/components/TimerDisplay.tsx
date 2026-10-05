@@ -112,10 +112,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { session, updateSession } = useCoOpSession(coOpSessionId || activeTimer?.coOpSessionId);
 
   // Check if this task is a breathing/oxygenation task
-  const isBreathingTask = taskName.toLowerCase().includes("breath") || taskName.toLowerCase().includes("oxygen");
-  const effectiveDuration = isBreathingTask ? 3 : initialDuration;
+  const isBreathingTask = taskName.toLowerCase().includes("breath") || taskName.toLowerCase().includes("oxygen") || taskName.toLowerCase().includes("pranayama");
+  const effectiveDuration = (initialDuration && initialDuration > 0) ? initialDuration : (isBreathingTask ? 3 : 15);
 
-  const [timeRemaining, setTimeRemaining] = useState(effectiveDuration * 60);
+  const [timeRemaining, setTimeRemaining] = useState(Math.round(effectiveDuration * 60));
   
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -608,15 +608,17 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             );
 
             if (forceRestart || !activeTimer || activeTimer.taskName !== taskName || activeCoOpSessionId !== targetCoOpSessionId || isExpired) {
+              const seconds = Math.round(effectiveDuration * 60);
+              const computedEndTime = expectedEndTime || (Date.now() + seconds * 1000);
               startTimer({
                 taskName,
                 initialDuration: effectiveDuration,
                 category,
                 color,
-                expectedEndTime,
+                expectedEndTime: computedEndTime,
                 coOpSessionId: targetCoOpSessionId
               });
-              setTimeRemaining(effectiveDuration * 60);
+              setTimeRemaining(seconds);
               setIsPaused(false);
               showCompletionNotification(true); // Schedule it!
             } else {
@@ -698,7 +700,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
       // Task 3: Interval Alerts - wrap checks within steady interval loops
       if (focusInterval && difference > 0 && expectedEndTimeRef.current) {
-        const elapsedSeconds = effectiveDuration * 60 - difference;
+        const elapsedSeconds = Math.round(effectiveDuration * 60) - difference;
         const intervalSeconds = focusInterval * 60;
         const currentIntervalIndex = Math.floor(elapsedSeconds / intervalSeconds);
         
@@ -875,7 +877,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     if (session) {
       updateSession({ status: "finished" });
     }
-    const timeSpentInSeconds = (effectiveDuration * 60) - timeRemaining;
+    const timeSpentInSeconds = Math.round(effectiveDuration * 60) - timeRemaining;
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
     const finalCategory = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
@@ -1001,7 +1003,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = (timeRemaining / (effectiveDuration * 60)) * 100;
+  const totalSeconds = Math.round(effectiveDuration * 60);
+  const progress = totalSeconds > 0 ? (timeRemaining / totalSeconds) * 100 : 0;
   const timerColor = 'hsl(var(--primary))';
 
   const hour = currentDate ? currentDate.getHours() : 12;
