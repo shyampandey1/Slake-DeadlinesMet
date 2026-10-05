@@ -222,13 +222,76 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
     description: 'Hydration & physical cell replenishment'
   },
 
+  {
+    action: 'TIMER_START',
+    taskName: 'Drink a Glass of Water',
+    phrases: [
+      'drink a glass of water in 1 minute',
+      'drink a glass of water in one minute',
+      'drink a glass of water',
+      'drink water in 1 minute',
+      'drink water in one minute',
+      'drink water',
+      'drink glass of water',
+      'glass of water'
+    ],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:a\s+)?drink\s+(?:a\s+)?(?:glass\s+of\s+)?(?:water|hydration)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?|half)?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s|min|minute|minutes|m)?\s*(?:to\s+)?(?:drink\s+(?:a\s+)?(?:glass\s+of\s+)?water)/i
+    ],
+    category: 'Hydration',
+    durationMinutes: 1,
+    durationSeconds: 60,
+    speechFeedback: 'Starting 1-minute timer to drink a glass of water in full screen.',
+    description: 'Hydration & physical cell replenishment timer'
+  },
+  {
+    action: 'TIMER_START',
+    taskName: 'Make Bed',
+    phrases: [
+      'make bed in 2 minutes',
+      'make my bed in 2 minutes',
+      'make bed',
+      'make my bed'
+    ],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:make|set)\s+(?:the\s+|my\s+)?bed(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?|half)?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
+    ],
+    category: 'Hygiene',
+    durationMinutes: 2,
+    durationSeconds: 120,
+    speechFeedback: 'Starting 2-minute timer for Make Bed in full screen.',
+    description: 'Domestic setup step: Make bed'
+  },
+  {
+    action: 'TIMER_START',
+    taskName: 'Quick Stretch',
+    phrases: [
+      'quick stretch 5 minutes',
+      'stretch for 5 minutes',
+      'quick stretch',
+      'do a stretch'
+    ],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:a\s+)?(?:quick\s+)?stretch(?:ing)?(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?|half)?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
+    ],
+    category: 'Fitness',
+    durationMinutes: 5,
+    durationSeconds: 300,
+    speechFeedback: 'Starting 5-minute Quick Stretch session in full screen.',
+    description: 'Movement reset: Quick stretch'
+  },
+
   // ==========================================
-  // 4. QUICK LOGGING (TASK_LOG_QUICK)
+  // 4. QUICK LOGGING (TASK_LOG_QUICK - EXPLICIT PAST TENSE ONLY)
   // ==========================================
   {
     action: 'TASK_LOG_QUICK',
-    phrases: ['log water', 'drank water', 'glass of water done', 'log hydration', 'water logged'],
-    patterns: [/(?:log|drank|drink|completed|done)\s+(?:a\s+)?(?:glass\s+of\s+)?(?:water|hydration)/i, /^(?:water|hydration)\s+(?:logged|done|check)$/i],
+    phrases: ['log water', 'drank water', 'already drank water', 'water logged', 'drank a glass of water'],
+    patterns: [
+      /^(?:i\s+)?(?:already\s+)?(?:drank|logged)\s+(?:a\s+)?(?:glass\s+of\s+)?(?:water|hydration)$/i,
+      /^(?:water|hydration)\s+(?:logged|done|checked|finished)$/i
+    ],
     category: 'Hydration',
     durationMinutes: 1,
     earnedCoins: 15,
@@ -237,8 +300,11 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
   },
   {
     action: 'TASK_LOG_QUICK',
-    phrases: ['bed made', 'make bed done', 'set bed done', 'log bed made', 'made my bed'],
-    patterns: [/(?:bed\s+made|made\s+my\s+bed|set\s+the\s+bed\s+done|log\s+bed)/i],
+    phrases: ['bed made', 'already made bed', 'log bed made', 'made my bed'],
+    patterns: [
+      /^(?:i\s+)?(?:already\s+)?made\s+(?:my\s+)?bed$/i,
+      /^(?:bed\s+made|bed\s+done|log\s+bed)$/i
+    ],
     category: 'Hygiene',
     durationMinutes: 2,
     earnedCoins: 15,
@@ -247,8 +313,11 @@ export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
   },
   {
     action: 'TASK_LOG_QUICK',
-    phrases: ['quick stretch done', 'stretching done', 'log stretch', 'did my stretch'],
-    patterns: [/(?:quick\s+stretch|stretching|stretch)\s+(?:done|completed|logged)/i, /^(?:log\s+stretch)$/i],
+    phrases: ['quick stretch done', 'stretching done', 'did my stretch', 'stretch completed'],
+    patterns: [
+      /^(?:i\s+)?(?:already\s+)?(?:completed|finished|did)\s+(?:my\s+)?(?:quick\s+)?stretch$/i,
+      /^(?:quick\s+stretch|stretching|stretch)\s+(?:done|completed|logged)$/i
+    ],
     category: 'Fitness',
     durationMinutes: 5,
     earnedCoins: 40,

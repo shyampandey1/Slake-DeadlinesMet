@@ -87,9 +87,23 @@ function extractDuration(text: string): { durationMinutes?: number; durationSeco
  */
 function parseVoiceCommand(transcript: string, currentRoute: string = '/'): VoiceIntentPayload {
   const norm = normalizeSpeech(transcript);
+  const extracted = extractDuration(norm);
+  const hasDuration = extracted.durationSeconds !== undefined || extracted.durationMinutes !== undefined;
 
   // 1. Direct match against canonical voice command dictionary
   for (const cmd of VOICE_COMMAND_DICTIONARY) {
+    // If the command is a quick-log, ensure the user didn't specify a duration or use an imperative verb.
+    // Specifying a duration (e.g. "drink a glass of water in 1 minute") or imperative verb ("drink", "make")
+    // means the user wants to start the timer for that task, NOT that they already finished it!
+    if (cmd.action === 'TASK_LOG_QUICK') {
+      if (hasDuration) {
+        continue; // Skip quick log, proceed to timer start!
+      }
+      if (/^(?:drink|make|do|start|begin|take|perform|set)\b/i.test(norm)) {
+        continue; // Imperative verb means start the action now, NOT a past-tense log!
+      }
+    }
+
     const isPhraseMatch = cmd.phrases.some(p => {
       const np = normalizeSpeech(p);
       return norm === np || norm.startsWith(np) || norm.endsWith(np);
@@ -114,8 +128,7 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
       let intervalMinutes = cmd.intervalMinutes;
 
       // Extract duration from user utterance if present
-      const extracted = extractDuration(norm);
-      if (extracted.durationSeconds !== undefined) {
+      if (hasDuration) {
         durationSeconds = extracted.durationSeconds;
         durationMinutes = extracted.durationMinutes;
       }
@@ -160,7 +173,7 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
   }
 
   // 2. High-precision dynamic task and timer handler
-  const { durationMinutes, durationSeconds } = extractDuration(norm);
+  const { durationMinutes, durationSeconds } = extracted;
 
   // Check if breathing or oxygenation task
   if (norm.includes('breath') || norm.includes('oxygen') || norm.includes('pranayama')) {
@@ -178,6 +191,22 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     };
   }
 
+  // Check if hydration task (e.g. "drink a glass of water in 1 minute", "drink water", "hydrate", "glass of water")
+  if (norm.includes('water') || norm.includes('hydrate') || norm.includes('drink')) {
+    const finalSeconds = durationSeconds || 60;
+    const finalMinutes = durationMinutes || (finalSeconds / 60);
+    const durLabel = finalSeconds < 60 ? `${finalSeconds} seconds` : finalMinutes === 1 ? '1 minute' : `${finalMinutes} minutes`;
+    return {
+      action: 'TIMER_START',
+      taskName: 'Drink a Glass of Water',
+      durationMinutes: finalMinutes,
+      durationSeconds: finalSeconds,
+      category: 'Hydration',
+      speechFeedback: `Starting ${durLabel} timer to drink a glass of water in full screen.`,
+      confidence: 0.98,
+    };
+  }
+
   // Clean task name
   let cleanTask = norm
     .replace(/^(?:start\s+(?:a\s+)?|set\s+(?:a\s+)?timer\s+(?:for|of)?|begin\s+(?:a\s+)?|do\s+(?:some\s+)?|create\s+(?:a\s+)?task\s+(?:for|of)?|create\s+)/i, '')
@@ -189,9 +218,6 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
   if (norm.includes('meditat') || norm.includes('mindful') || norm.includes('relax')) {
     category = 'Meditation';
     if (!cleanTask) cleanTask = 'Meditation';
-  } else if (norm.includes('water') || norm.includes('hydrate') || norm.includes('drink')) {
-    category = 'Hydration';
-    if (!cleanTask) cleanTask = 'Hydration Break';
   } else if (norm.includes('exercise') || norm.includes('workout') || norm.includes('run') || norm.includes('fitness') || norm.includes('gym') || norm.includes('stretch')) {
     category = 'Fitness';
     if (!cleanTask) cleanTask = 'Workout';
@@ -200,7 +226,7 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     if (!cleanTask) cleanTask = 'Creative Focus';
   } else if (norm.includes('brush') || norm.includes('shower') || norm.includes('bath') || norm.includes('bed') || norm.includes('clean')) {
     category = 'Hygiene';
-    if (!cleanTask) cleanTask = 'Hygiene';
+    if (!cleanTask) cleanTask = norm.includes('bed') ? 'Make Bed' : 'Hygiene';
   }
 
   const finalName = cleanTask
@@ -256,7 +282,7 @@ export async function POST(req: Request) {
               TIMER_STOP: 'User wants to stop, end, or finish the active timer',
               TIMER_EXTEND: 'User wants to add more minutes to the current timer',
               TIMER_SET_INTERVAL: 'User wants to configure recurring milestone alert intervals',
-              TASK_LOG_QUICK: 'User logged a quick micro habit like drinking water or making bed',
+              TASK_LOG_QUICK: 'User explicitly stated an action is already completed in past tense',
               TASK_CREATE: 'User wants to schedule or add a new task to their routine',
               NAVIGATE: 'User wants to transition to a different screen or page in the app',
               COOP_ACTION: 'User wants to manage co-op cluster sessions or invite peers',
