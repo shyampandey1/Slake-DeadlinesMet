@@ -167,7 +167,8 @@ export type UserProfile = {
         category?: string;
         color?: string;
         coOpSessionId?: string;
-    };
+        timeLeftWhenPaused?: number;
+    } | null;
     notificationSettings?: {
         streakExpiryWarning: boolean;
         hydrationReminders: boolean;

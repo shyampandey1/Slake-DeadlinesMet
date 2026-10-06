@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, deleteDoc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, getDoc, collection, query, where } from "firebase/firestore";
 import { useAuth } from "./useAuth";
 
 export interface CoOpSession {
@@ -24,30 +23,65 @@ export interface CoOpSession {
 export const useCoOpSession = (sessionId?: string) => {
     const { user } = useAuth();
     const [session, setSession] = useState<CoOpSession | null>(null);
-    const [loading, setLoading] = useState(!!sessionId);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!sessionId) return;
-
-        const unsub = onSnapshot(doc(db, "coop_sessions", sessionId), (snap) => {
-            if (snap.exists()) {
-                setSession({ id: snap.id, ...snap.data() } as CoOpSession);
-            } else {
-                setSession(null);
-            }
+        if (!user) {
+            setSession(null);
             setLoading(false);
-        }, (error) => {
-            console.error("Co-op session sync failed:", error);
-            setLoading(false);
-        });
+            return;
+        }
 
-        return () => unsub();
-    }, [sessionId]);
+        if (sessionId) {
+            const unsub = onSnapshot(doc(db, "coop_sessions", sessionId), (snap) => {
+                if (snap.exists()) {
+                    setSession({ id: snap.id, ...snap.data() } as CoOpSession);
+                } else {
+                    setSession(null);
+                }
+                setLoading(false);
+            }, (error) => {
+                console.error("Co-op session sync failed:", error);
+                setLoading(false);
+            });
+
+            return () => unsub();
+        } else {
+            // Auto-detect active session for current user
+            const q = query(
+                collection(db, "coop_sessions"),
+                where("participants", "array-contains", user.uid)
+            );
+
+            const unsub = onSnapshot(q, (snap) => {
+                if (!snap.empty) {
+                    const activeDocs = snap.docs
+                        .map(d => ({ id: d.id, ...d.data() } as CoOpSession))
+                        .filter(s => s.status !== "finished");
+
+                    if (activeDocs.length > 0) {
+                        setSession(activeDocs[activeDocs.length - 1]);
+                    } else {
+                        setSession(null);
+                    }
+                } else {
+                    setSession(null);
+                }
+                setLoading(false);
+            }, (error) => {
+                console.warn("Auto-detect co-op session query failed:", error);
+                setLoading(false);
+            });
+
+            return () => unsub();
+        }
+    }, [sessionId, user]);
 
     const updateSession = useCallback(async (updates: Partial<CoOpSession>) => {
-        if (!sessionId || !user) return;
+        const targetId = sessionId || session?.id;
+        if (!targetId || !user) return;
         try {
-            await updateDoc(doc(db, "coop_sessions", sessionId), {
+            await updateDoc(doc(db, "coop_sessions", targetId), {
                 ...updates,
                 lastActionBy: user.uid,
                 lastActionAt: serverTimestamp()
@@ -55,18 +89,27 @@ export const useCoOpSession = (sessionId?: string) => {
         } catch (error) {
             console.error("Failed to update Co-op session:", error);
         }
-    }, [sessionId, user]);
+    }, [sessionId, session?.id, user]);
 
-    const createSession = useCallback(async (data: Omit<CoOpSession, 'id' | 'lastActionBy' | 'lastActionAt' | 'startTime' | 'expectedEndTime' | 'isPaused' | 'timeLeftWhenPaused' | 'status'>) => {
+    const createSession = useCallback(async (data: Omit<CoOpSession, "id" | "lastActionBy" | "lastActionAt" | "startTime" | "expectedEndTime" | "isPaused" | "timeLeftWhenPaused" | "status"> & {
+        startTime?: number | null;
+        expectedEndTime?: number | null;
+        isPaused?: boolean;
+        timeLeftWhenPaused?: number | null;
+        status?: "waiting" | "running" | "finished";
+    }) => {
         if (!user) return null;
         const id = `${user.uid}_${Date.now()}`;
-        const newSession: Omit<CoOpSession, 'id'> = {
-            ...data,
-            startTime: null,
-            expectedEndTime: null,
-            isPaused: true,
-            timeLeftWhenPaused: data.initialDuration * 60,
-            status: "waiting",
+        const newSession: Omit<CoOpSession, "id"> = {
+            taskName: data.taskName,
+            initialDuration: data.initialDuration,
+            participants: data.participants,
+            createdBy: data.createdBy || user.uid,
+            startTime: data.startTime !== undefined ? data.startTime : Date.now(),
+            expectedEndTime: data.expectedEndTime !== undefined ? data.expectedEndTime : Date.now() + (data.initialDuration * 60 * 1000),
+            isPaused: data.isPaused !== undefined ? data.isPaused : false,
+            timeLeftWhenPaused: data.isPaused ? (data.timeLeftWhenPaused ?? data.initialDuration * 60) : null,
+            status: data.status || "running",
             lastActionBy: user.uid,
             lastActionAt: serverTimestamp()
         };
@@ -86,22 +129,34 @@ export const useCoOpSession = (sessionId?: string) => {
             const snap = await getDoc(sessionRef);
             if (snap.exists()) {
                 const data = snap.data();
-                if (!data.participants.includes(user.uid)) {
+                const currentParticipants: string[] = data.participants || [];
+                if (!currentParticipants.includes(user.uid)) {
                     await updateDoc(sessionRef, {
-                        participants: [...data.participants, user.uid]
+                        participants: [...currentParticipants, user.uid],
+                        lastActionBy: user.uid,
+                        lastActionAt: serverTimestamp()
                     });
                 }
             }
         } catch (error) {
             console.error("Failed to join Co-op session:", error);
-            throw error; // Rethrow to let UI handle it
+            throw error;
         }
     }, [user]);
 
     const endSession = useCallback(async () => {
-        if (!sessionId) return;
-        await deleteDoc(doc(db, "coop_sessions", sessionId));
-    }, [sessionId]);
+        const targetId = sessionId || session?.id;
+        if (!targetId) return;
+        try {
+            await updateDoc(doc(db, "coop_sessions", targetId), {
+                status: "finished",
+                lastActionBy: user?.uid || "system",
+                lastActionAt: serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Failed to end Co-op session:", error);
+        }
+    }, [sessionId, session?.id, user?.uid]);
 
     return { session, loading, updateSession, createSession, joinSession, endSession };
 };

@@ -340,27 +340,32 @@ export default function TaskForm() {
  
   // Listen for incoming Co-op Sessions
   useEffect(() => {
-    if (!user?.uid || !profileData?.coWorkerId) return;
+    if (!user?.uid || !profileData?.coWorkerId) {
+      setIncomingSession(null);
+      return;
+    }
     
     const q = query(
       collection(db, "coop_sessions"),
-      where("participants", "array-contains", user.uid),
-      where("status", "==", "waiting"),
-      limit(1)
+      where("participants", "array-contains", user.uid)
     );
 
     const unsub = onSnapshot(q, (snap: any) => {
       if (!snap.empty) {
-        const data = snap.docs[0].data();
-        // Only show if we didn't create it
-        if (data.createdBy !== user.uid) {
-          setIncomingSession({ id: snap.docs[0].id, ...data });
+        const activeDocs = snap.docs
+          .map((d: any) => ({ id: d.id, ...d.data() }))
+          .filter((d: any) => d.status !== "finished" && d.createdBy !== user.uid);
+        
+        if (activeDocs.length > 0) {
+          setIncomingSession(activeDocs[activeDocs.length - 1]);
+        } else {
+          setIncomingSession(null);
         }
       } else {
         setIncomingSession(null);
       }
     }, (error) => {
-      console.warn("Co-op session listener failed (likely missing index):", error);
+      console.warn("Co-op session listener failed:", error);
     });
 
     return () => unsub();
@@ -390,13 +395,16 @@ export default function TaskForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     let coOpSessionId = undefined;
-    if (profileData?.coWorkerId) {
+    if (profileData?.coWorkerId && user?.uid) {
       try {
         const sessionId = await createSession({
           taskName: values.taskName,
           initialDuration: values.duration,
-          participants: [user?.uid!, profileData.coWorkerId],
-          createdBy: user?.uid!
+          participants: [user.uid, profileData.coWorkerId],
+          createdBy: user.uid,
+          status: "running",
+          isPaused: false,
+          expectedEndTime: Date.now() + (values.duration * 60 * 1000)
         });
         if (sessionId) {
           coOpSessionId = sessionId;
@@ -475,7 +483,9 @@ export default function TaskForm() {
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-70 leading-none mb-1">Incoming Co-op Task</p>
                 <p className="text-sm font-black leading-tight">{incomingSession.taskName}</p>
               </div>
-              <Badge variant="outline" className="border-black/20 text-black font-bold">READY</Badge>
+              <Badge variant="outline" className="border-black/20 text-black font-bold">
+                {incomingSession.status === "running" ? "LIVE" : "READY"}
+              </Badge>
             </div>
             <div className="flex gap-2">
               <Button 
@@ -560,7 +570,7 @@ export default function TaskForm() {
                                         size="icon" 
                                         variant="secondary"
                                         className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors"
-                                         onClick={() => {
+                                         onClick={async () => {
                                            let colorVal = undefined;
                                            const categoryData = mergedTasks[category];
                                            if (categoryData && categoryData.color) {
@@ -569,11 +579,33 @@ export default function TaskForm() {
                                                colorVal = colorClassMatch[0];
                                              }
                                            }
+
+                                           let coOpSessionId = undefined;
+                                           if (profileData?.coWorkerId && user?.uid) {
+                                             try {
+                                               const sessionId = await createSession({
+                                                 taskName: task.name,
+                                                 initialDuration: task.duration,
+                                                 participants: [user.uid, profileData.coWorkerId],
+                                                 createdBy: user.uid,
+                                                 status: "running",
+                                                 isPaused: false,
+                                                 expectedEndTime: Date.now() + (task.duration * 60 * 1000)
+                                               });
+                                               if (sessionId) {
+                                                 coOpSessionId = sessionId;
+                                               }
+                                             } catch (e) {
+                                               console.error("Co-op session creation failed:", e);
+                                             }
+                                           }
+
                                            triggerTaskStart({
                                              task: task.name,
                                              duration: task.duration.toString(),
                                              category: category,
-                                             color: colorVal
+                                             color: colorVal,
+                                             coOpSessionId
                                            });
                                          }}
                                       >

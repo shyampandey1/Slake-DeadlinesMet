@@ -66,16 +66,20 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Co-op Sessions (Coach-Led Model)
+    // Co-op Sessions (Collaborative Model)
     match /coop_sessions/{sessionId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null;
-      // Members can only update the participants list to join. Only the Coach (createdBy) can change timer state.
+      // Any participant or creator can update timer state or join
       allow update: if request.auth != null && (
         request.auth.uid == resource.data.createdBy ||
+        request.auth.uid in resource.data.participants ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
       );
-      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.uid in resource.data.participants
+      );
     }
 
     // Reward Redemption Requests

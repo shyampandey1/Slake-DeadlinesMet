@@ -350,6 +350,12 @@ function ReformersPageContent() {
     const { session: activeCoOp, createSession, joinSession } = useCoOpSession();
     const [showStartTogetherModal, setShowStartTogetherModal] = useState(false);
     const [coOpTaskToPropose, setCoOpTaskToPropose] = useState<any>(null);
+    const [currentTime, setCurrentTime] = useState(Date.now());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     useEffect(() => {
         if (user?.uid) {
@@ -1444,7 +1450,8 @@ function ReformersPageContent() {
                                 const params = new URLSearchParams({
                                     task: activeCoOp.taskName,
                                     duration: activeCoOp.initialDuration.toString(),
-                                    coOpSessionId: activeCoOp.id
+                                    coOpSessionId: activeCoOp.id,
+                                    forceRestart: "true"
                                 });
                                 window.location.href = `/timer?${params.toString()}`;
                             }}
@@ -1466,9 +1473,15 @@ function ReformersPageContent() {
                         if (!coWorker || !coWorker.activeSession) return null;
                         
                         const s = coWorker.activeSession;
-                        const timeLeft = Math.max(0, Math.round((s.expectedEndTime - Date.now()) / 1000));
-                        const isPaused = s.isPaused;
-                        const progress = Math.min(100, Math.max(0, (timeLeft / (s.duration * 60)) * 100));
+                        const isPaused = !!s.isPaused;
+                        const timeLeft = isPaused && s.timeLeftWhenPaused !== undefined && s.timeLeftWhenPaused !== null
+                            ? s.timeLeftWhenPaused
+                            : Math.max(0, Math.round(((s.expectedEndTime || 0) - currentTime) / 1000));
+                        const totalSeconds = (s.duration || 25) * 60;
+                        const progress = Math.min(100, Math.max(0, (timeLeft / totalSeconds) * 100));
+                        const mins = Math.floor(timeLeft / 60);
+                        const secs = timeLeft % 60;
+                        const formattedTime = `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 
                         return (
                             <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 p-6 rounded-2xl mb-8 shadow-xl relative overflow-hidden group border-2 animate-in fade-in zoom-in duration-500">
@@ -1492,8 +1505,8 @@ function ReformersPageContent() {
                                         </p>
                                         <div className="flex flex-col gap-2 mt-4 max-w-xs mx-auto md:mx-0">
                                             <div className="flex justify-between items-end">
-                                                <span className="text-xs font-black text-emerald-400 font-mono uppercase tracking-widest">Session Progress</span>
-                                                <span className="text-lg font-black text-white font-mono">{100 - Math.round(progress)}%</span>
+                                                <span className="text-xs font-black text-emerald-400 font-mono uppercase tracking-widest">{isPaused ? "Paused" : "Remaining"}</span>
+                                                <span className="text-lg font-black text-white font-mono">{formattedTime} · {100 - Math.round(progress)}%</span>
                                             </div>
                                             <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
                                                 <motion.div 
@@ -1513,16 +1526,18 @@ function ReformersPageContent() {
                                                 const params = new URLSearchParams({
                                                     task: s.taskName,
                                                     duration: s.duration.toString(),
-                                                    coOpSessionId: s.coOpSessionId
+                                                    coOpSessionId: s.coOpSessionId,
+                                                    forceRestart: "true"
                                                 });
                                                 window.location.href = `/timer?${params.toString()}`;
                                             } else {
                                                 const params = new URLSearchParams({
                                                     task: s.taskName,
                                                     duration: s.duration.toString(),
-                                                    expectedEndTime: s.expectedEndTime.toString(),
-                                                    category: "Co-op Session",
-                                                    color: "#10b981"
+                                                    expectedEndTime: s.expectedEndTime ? s.expectedEndTime.toString() : "",
+                                                    category: s.category || "Co-op Session",
+                                                    color: s.color || "#10b981",
+                                                    forceRestart: "true"
                                                 });
                                                 window.location.href = `/timer?${params.toString()}`;
                                             }
