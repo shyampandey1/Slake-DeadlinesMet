@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -1093,7 +1093,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center w-full max-w-4xl px-4">
-              {/* Floating Ambient Mindfulness Telemetry Capsule (Replaces cramped top/bottom text) */}
+              {/* Floating Ambient Mindfulness Telemetry Capsule (Breathing & Eye Exercise) */}
               {isBreathingTask && (
                 <div className="mb-6 inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/25 bg-black/40 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-all duration-700 animate-in fade-in zoom-in-95">
                   <span className="relative flex h-2 w-2">
@@ -1120,30 +1120,66 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 </div>
               )}
 
+              {isEyeExerciseTask && (
+                <div className="mb-6 inline-flex items-center gap-3 px-5 py-2 rounded-full border border-amber-500/30 bg-black/50 backdrop-blur-xl shadow-[0_4px_30px_rgba(245,158,11,0.15)] transition-all duration-700 animate-in fade-in zoom-in-95">
+                  <span className="relative flex h-2 w-2">
+                    <span className={cn(
+                      "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                      eyePhase === 'close-eyes' ? "bg-emerald-400" : eyePhase === 'blink' ? "bg-sky-400" : "bg-amber-400"
+                    )} />
+                    <span className={cn(
+                      "relative inline-flex rounded-full h-2 w-2",
+                      eyePhase === 'close-eyes' ? "bg-emerald-400" : eyePhase === 'blink' ? "bg-sky-400" : "bg-amber-400"
+                    )} />
+                  </span>
+                  <span className="font-bold tracking-[0.22em] uppercase font-mono text-xs text-amber-400">
+                    {eyePhase === "look-up" && "LOOK UP"}
+                    {eyePhase === "look-down" && "LOOK DOWN"}
+                    {eyePhase === "look-left" && "LOOK LEFT"}
+                    {eyePhase === "look-right" && "LOOK RIGHT"}
+                    {eyePhase === "roll" && "ROLL EYES"}
+                    {eyePhase === "blink" && "RAPID BLINK"}
+                    {eyePhase === "focus-near-far" && "NEAR & FAR"}
+                    {eyePhase === "close-eyes" && "REST & RECHARGE"}
+                  </span>
+                  <span className="text-amber-400/30">•</span>
+                  <span className="text-xs font-medium text-amber-100/90 tracking-wide">
+                    {eyePhase === "look-up" && "Gently elevate your gaze without straining..."}
+                    {eyePhase === "look-down" && "Direct your line of sight comfortably down..."}
+                    {eyePhase === "look-left" && "Sweep eyes left, relaxing the optic nerve..."}
+                    {eyePhase === "look-right" && "Sweep eyes right, extending peripheral ease..."}
+                    {eyePhase === "roll" && "Follow the smooth luminous orbit 360°..."}
+                    {eyePhase === "blink" && "Rapid soft blinks to replenish natural tears..."}
+                    {eyePhase === "focus-near-far" && "Shift focus between close detail and the horizon..."}
+                    {eyePhase === "close-eyes" && "Close your eyelids and surrender all tension..."}
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 w-full">
-              {/* Specialized Task HUD Panel (Lungs or Eyeball Assist) */}
+              {/* Specialized Task HUD Panel (Breathing Mandala or Sacred Eye Sanctuary) */}
               {(isBreathingTask || isEyeExerciseTask) && (
                 <div className={cn(
-                  isBreathingTask 
-                    ? "w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-[360px] lg:h-[360px] rounded-[2.5rem]" 
-                    : "w-64 sm:w-72 md:w-80 lg:w-[360px] h-36 md:h-44 rounded-3xl",
-                  "border border-primary/20 bg-primary/5 backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-500"
+                  "w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-[360px] lg:h-[360px] rounded-[2.5rem]",
+                  "border border-amber-500/25 bg-gradient-to-b from-amber-500/[0.07] via-slate-950/80 to-black/90 backdrop-blur-2xl shadow-[0_12px_45px_rgba(0,0,0,0.6),0_0_40px_rgba(245,158,11,0.08)] flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-700"
                 )}>
-                  {/* Digital blueprint grid layer */}
-                  {!isBreathingTask && (
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(245,158,11,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(245,158,11,0.02)_1px,transparent_1px)] bg-[size:16px_16px] opacity-75" />
-                  )}
-                  {isBreathingTask && (
-                    <div 
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        background: 'radial-gradient(circle at center, rgba(245, 158, 11, 0.16) 0%, transparent 70%)',
-                        opacity: breathingPhase === 'hold' ? 1.0 : breathingPhase === 'inhale' ? 0.75 : 0.25,
-                        transform: breathingPhase === 'hold' ? 'scale(1.25)' : breathingPhase === 'inhale' ? 'scale(1.15)' : 'scale(0.85)',
-                        transition: 'all 4000ms cubic-bezier(0.4, 0, 0.2, 1)',
-                      }}
-                    />
-                  )}
+                  {/* Atmospheric Sacred Golden Halo Glow */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(circle at center, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0.04) 50%, transparent 75%)',
+                      opacity: (isBreathingTask && breathingPhase === 'hold') || (isEyeExerciseTask && eyePhase === 'close-eyes') ? 1.0 : 0.7,
+                      transform: (isBreathingTask && breathingPhase === 'hold') || (isEyeExerciseTask && eyePhase === 'focus-near-far') ? 'scale(1.25)' : 'scale(1.0)',
+                      transition: 'all 3000ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                  />
+
+                  {/* Concentric sacred geometry celestial rings */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                    <div className="w-[85%] h-[85%] rounded-full border border-amber-400/30 border-dashed animate-[spin_60s_linear_infinite]" />
+                    <div className="absolute w-[68%] h-[68%] rounded-full border border-amber-300/20" />
+                    <div className="absolute w-[50%] h-[50%] rounded-full border border-amber-400/15 border-dotted animate-[spin_40s_linear_infinite_reverse]" />
+                  </div>
                   
                   {isBreathingTask && (
                     <>
@@ -1212,86 +1248,152 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
                   {isEyeExerciseTask && (
                     <>
-                      {/* Eye Phase Label */}
-                      <div className="text-xs font-bold uppercase tracking-[0.25em] text-primary z-10 animate-pulse mt-1">
-                        {eyePhase === "look-up" && "Look Up ⬆️"}
-                        {eyePhase === "look-down" && "Look Down ⬇️"}
-                        {eyePhase === "look-left" && "Look Left ⬅️"}
-                        {eyePhase === "look-right" && "Look Right ➡️"}
-                        {eyePhase === "roll" && "Roll Eyes 🔄"}
-                        {eyePhase === "blink" && "Blink Rapidly 👁️"}
-                        {eyePhase === "focus-near-far" && "Focus Near & Far 🔍"}
-                        {eyePhase === "close-eyes" && "Close Eyes & Rest 💤"}
-                      </div>
+                      {/* Ethereal Sacred Eye Sanctuary Graphic with 100% Optical Harmonics */}
+                      <div className="relative w-full h-full flex items-center justify-center z-0 overflow-visible">
+                        {/* Golden Harmonic Aura Flower behind eye */}
+                        <div className="absolute w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center opacity-40 pointer-events-none">
+                          {Array.from({ length: 8 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className="absolute w-14 h-14 rounded-full"
+                              style={{
+                                transform: `rotate(${i * 45}deg) translateY(-26px) scale(${eyePhase === 'close-eyes' ? 1.25 : 0.95})`,
+                                background: 'radial-gradient(circle at center, rgba(245, 222, 190, 0.28) 0%, rgba(245, 158, 11, 0.08) 70%, transparent 100%)',
+                                border: '1px solid rgba(245, 222, 190, 0.2)',
+                                mixBlendMode: 'screen',
+                                transition: 'all 2000ms cubic-bezier(0.4, 0, 0.2, 1)',
+                              }}
+                            />
+                          ))}
+                        </div>
 
-                      {/* Eyeball Graphic HUD */}
-                      <div className="relative w-full h-[60%] flex items-center justify-center z-0">
-                        {/* Outer tracking reticles / calibration lines */}
-                        <div className="absolute inset-0 rounded-full border border-primary/10 border-dashed scale-75" />
-                        <div className="absolute w-[80%] h-[1px] bg-primary/10" />
-                        <div className="absolute h-[80%] w-[1px] bg-primary/10" />
-                        
-                        {/* Sclera / Outer Eye shape */}
-                        <div className="absolute w-[65%] h-[75%] rounded-[50%] border-2 border-primary/20 bg-slate-950/40 flex items-center justify-center overflow-hidden">
-                          {/* Eyelids (close/blink animation) */}
+                        {/* Central Sacred Geometric Ocular Eye Shell */}
+                        <div className="relative w-52 h-36 flex items-center justify-center">
+                          {/* Outer Almond Vesica Piscis Aura Ring with Warm Glow */}
                           <div 
-                            style={{
-                              height: (eyePhase === 'close-eyes') ? '50%' : (eyePhase === 'blink') ? '25%' : '0%',
-                              transition: 'height 0.15s ease-in-out',
-                            }}
-                            className="absolute top-0 left-0 right-0 bg-slate-950/95 border-b border-primary/30 z-20"
-                          />
-                          <div 
-                            style={{
-                              height: (eyePhase === 'close-eyes') ? '50%' : (eyePhase === 'blink') ? '25%' : '0%',
-                              transition: 'height 0.15s ease-in-out',
-                            }}
-                            className="absolute bottom-0 left-0 right-0 bg-slate-950/95 border-t border-primary/30 z-20"
-                          />
-                          
-                          {/* Iris + Pupil Container */}
-                          <div 
-                            style={{
-                              transform: 
-                                eyePhase === 'look-up'
-                                  ? 'translateY(-14px)'
-                                  : eyePhase === 'look-down'
-                                  ? 'translateY(14px)'
-                                  : eyePhase === 'look-left'
-                                  ? 'translateX(-22px)'
-                                  : eyePhase === 'look-right'
-                                  ? 'translateX(22px)'
-                                  : 'none',
-                              scale: eyePhase === 'focus-near-far' ? 1.3 : 1.0,
-                              transition: 'all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                            }}
                             className={cn(
-                              "w-16 h-16 rounded-full border border-primary/30 flex items-center justify-center bg-primary/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] relative",
-                              eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
+                              "absolute w-48 h-28 rounded-[50%/35%] border border-amber-300/40 bg-gradient-to-b from-amber-500/10 via-slate-950/70 to-black/90",
+                              "shadow-[0_0_35px_rgba(245,158,11,0.22),inset_0_0_20px_rgba(245,158,11,0.12)] flex items-center justify-center overflow-hidden transition-all duration-700"
                             )}
                           >
-                            <div className="absolute inset-1.5 rounded-full border border-primary/20 border-dashed" />
+                            {/* Inner Iris Guide Crosshair lines */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+                              <div className="h-full w-[1px] bg-gradient-to-b from-transparent via-amber-300 to-transparent" />
+                            </div>
+
+                            {/* Eyelids Smooth Dynamic Curtains with Golden Crest Border */}
                             <div 
                               style={{
-                                scale: eyePhase === 'focus-near-far' ? 0.5 : 1.0,
-                                transition: 'scale 0.5s ease-in-out',
+                                height: eyePhase === 'close-eyes' ? '51%' : eyePhase === 'blink' ? '30%' : '0%',
+                                transition: 'height 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
                               }}
-                              className="w-5.5 h-5.5 rounded-full bg-primary border border-primary/50 shadow-[0_0_10px_rgba(245,158,11,0.6)] relative flex items-center justify-center"
+                              className="absolute top-0 left-0 right-0 bg-gradient-to-b from-slate-950 via-slate-900 to-amber-950/70 border-b-2 border-amber-400/60 z-30 shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
+                            />
+                            <div 
+                              style={{
+                                height: eyePhase === 'close-eyes' ? '51%' : eyePhase === 'blink' ? '30%' : '0%',
+                                transition: 'height 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+                              }}
+                              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-900 to-amber-950/70 border-t-2 border-amber-400/60 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.8)]"
+                            />
+
+                            {/* Iris & Pupil Core System */}
+                            <div
+                              style={{
+                                transform: 
+                                  eyePhase === 'look-up'
+                                    ? 'translateY(-18px)'
+                                    : eyePhase === 'look-down'
+                                    ? 'translateY(18px)'
+                                    : eyePhase === 'look-left'
+                                    ? 'translateX(-28px)'
+                                    : eyePhase === 'look-right'
+                                    ? 'translateX(28px)'
+                                    : 'translate(0, 0)',
+                                scale: eyePhase === 'focus-near-far' ? 1.25 : 1.0,
+                                transition: 'all 0.65s cubic-bezier(0.34, 1.4, 0.64, 1)',
+                              }}
+                              className={cn(
+                                "w-20 h-20 rounded-full flex items-center justify-center relative z-10 transition-transform",
+                                eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
+                              )}
                             >
-                              <div className="w-1 h-1 rounded-full bg-white opacity-70 absolute top-[25%] left-[25%]" />
+                              {/* Outer Luminous Iris Petals / Sacred Crown */}
+                              <div className="absolute inset-0 rounded-full border border-amber-300/60 bg-gradient-to-br from-amber-400/30 via-amber-600/20 to-black shadow-[0_0_25px_rgba(245,158,11,0.4)]" />
+                              <div className="absolute inset-1.5 rounded-full border border-amber-200/30 border-dashed animate-[spin_20s_linear_infinite]" />
+
+                              {/* Concentric Golden Radiance Rays */}
+                              {Array.from({ length: 12 }).map((_, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  className="absolute w-[1px] h-3 bg-gradient-to-t from-amber-300/60 to-transparent"
+                                  style={{
+                                    transform: `rotate(${rIdx * 30}deg) translateY(-8px)`,
+                                  }}
+                                />
+                              ))}
+
+                              {/* Pupil Orb with Specular Star Reflection */}
+                              <div 
+                                style={{
+                                  scale: eyePhase === 'focus-near-far' ? 0.65 : eyePhase === 'close-eyes' ? 0.8 : 1.0,
+                                  transition: 'scale 0.5s ease-in-out',
+                                }}
+                                className="w-8 h-8 rounded-full bg-gradient-to-b from-slate-950 to-black border-2 border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.7),inset_0_0_8px_rgba(0,0,0,0.9)] relative flex items-center justify-center"
+                              >
+                                {/* Crystalline Specular Light Reflections */}
+                                <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_6px_#ffffff] absolute top-[20%] left-[25%]" />
+                                <div className="w-1 h-1 rounded-full bg-amber-200 opacity-80 absolute bottom-[25%] right-[25%]" />
+                              </div>
                             </div>
                           </div>
+
+                          {/* Outer Orbital Guidance Particle Track */}
+                          <div 
+                            className={cn(
+                              "absolute w-52 h-32 rounded-[50%/35%] border border-amber-400/25 pointer-events-none transition-all duration-700",
+                              eyePhase === 'roll' && "border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse"
+                            )}
+                          />
                         </div>
                       </div>
 
-                      {/* HUD Label */}
-                      <div className="text-[9px] font-code tracking-[0.2em] text-primary/40 uppercase mb-1">
-                        HUD EYE ASSIST ACTIVE
+                      {/* Subtle Bottom Eye Rhythm Stage Dock */}
+                      <div className="absolute bottom-5 inset-x-0 flex justify-center z-20 pointer-events-none">
+                        <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/60 border border-amber-500/30 backdrop-blur-md text-[10px] font-mono tracking-wider text-amber-300/80 uppercase shadow-lg">
+                          {[
+                            { id: 'look-up', label: 'UP' },
+                            { id: 'look-down', label: 'DOWN' },
+                            { id: 'look-left', label: 'LEFT' },
+                            { id: 'look-right', label: 'RIGHT' },
+                            { id: 'roll', label: 'ROLL' },
+                            { id: 'blink', label: 'BLINK' },
+                            { id: 'focus-near-far', label: 'FOCUS' },
+                            { id: 'close-eyes', label: 'REST' },
+                          ].map((step, sIdx) => {
+                            const isCurrent = eyePhase === step.id;
+                            return (
+                              <React.Fragment key={step.id}>
+                                {sIdx > 0 && <span className="text-white/15 text-[8px]">•</span>}
+                                <span className={cn(
+                                  "transition-all duration-300 text-[9px]",
+                                  isCurrent 
+                                    ? "text-amber-300 font-bold drop-shadow-[0_0_6px_rgba(245,158,11,0.8)] scale-105" 
+                                    : "text-white/30"
+                                )}>
+                                  {step.label}
+                                </span>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
                       </div>
                     </>
                   )}
                 </div>
               )}
+
 
               {/* Minimal Clean Timer Dial */}
               <CircularProgress progress={progress} isUIVisible={isUIVisible}>
