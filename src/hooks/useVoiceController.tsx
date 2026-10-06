@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { VoiceIntentPayload, VoiceCommandRequest, VoiceAgentState } from '@/types/voice';
+import { useAgentAudio } from '@/hooks/useAgentAudio';
 import { useTasks } from '@/hooks/useFirestore';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveTimer } from '@/hooks/useActiveTimer';
@@ -28,6 +29,7 @@ export interface VoiceContextValue {
   detectedIntent: VoiceIntentPayload | null;
   error: string | null;
   waveformAmplitudes: number[];
+  waveformFrequencies: number[];
 
   // Controller Actions
   startListening: () => void;
@@ -67,6 +69,13 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [waveformAmplitudes] = useState<number[]>(() => new Array(16).fill(0.3));
+  // Neural Voice Engine & Audio-reactive Waveform
+  const { speak: neuralSpeak, stopPlayback: stopNeuralPlayback, waveformFrequencies, ensureAudioContextRunning } = useAgentAudio();
+  const neuralSpeakRef = useRef(neuralSpeak);
+  useEffect(() => { neuralSpeakRef.current = neuralSpeak; }, [neuralSpeak]);
+  const stopNeuralPlaybackRef = useRef(stopNeuralPlayback);
+  useEffect(() => { stopNeuralPlaybackRef.current = stopNeuralPlayback; }, [stopNeuralPlayback]);
+
 
   // Mutable refs to keep callback references completely stable
   const addTaskRef = useRef(addTask);
@@ -129,28 +138,27 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     }
   }, []);
 
-  // Text-To-Speech with state updates
-  const speakFeedback = useCallback((text: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
+  // Neural Text-To-Speech with state updates & haptics
+  const speakFeedback = useCallback(async (text: string) => {
+    if (!text || !text.trim()) {
+      setAgentState('IDLE');
+      return;
+    }
 
-      setAgentState('SPEAKING');
+    setAgentState('SPEAKING');
+    triggerHaptic([80]);
 
-      utterance.onend = () => {
-        setAgentState('IDLE');
-      };
-      utterance.onerror = () => {
-        setAgentState('IDLE');
-      };
-
-      window.speechSynthesis.speak(utterance);
-    } else {
+    try {
+      await neuralSpeakRef.current(text, {
+        voiceProfile: 'assistant_female',
+        speed: 1.05,
+      });
+    } catch (err) {
+      console.warn('[Agent DM] Speech playback error:', err);
+    } finally {
       setAgentState('IDLE');
     }
-  }, [setAgentState]);
+  }, [setAgentState, triggerHaptic]);
 
   // Dispatch intent action
   const executeIntent = useCallback(
@@ -447,6 +455,8 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       return;
     }
 
+    stopNeuralPlaybackRef.current?.();
+    ensureAudioContextRunning();
     try {
       // Abort any old recognition instance cleanly
       if (recognitionRef.current) {
@@ -564,6 +574,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     isStartingRef.current = false;
     isProcessingRef.current = false;
 
+    stopNeuralPlaybackRef.current?.();
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
@@ -626,6 +637,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     detectedIntent,
     error,
     waveformAmplitudes,
+    waveformFrequencies,
     startListening,
     stopListening,
     cancelListening,

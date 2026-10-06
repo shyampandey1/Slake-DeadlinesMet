@@ -23,11 +23,17 @@ export default function AgentDM() {
     detectedIntent,
     startListening,
     stopListening,
+    cancelListening,
+    waveformFrequencies,
     error,
   } = useVoiceController();
 
+  // If user taps the mic or HUD pill while speaking, interrupt and transition to LISTENING
   const handlePillClick = () => {
-    if (isListening) {
+    if (isSpeaking) {
+      cancelListening();
+      startListening();
+    } else if (isListening) {
       stopListening();
     } else if (agentState === 'IDLE') {
       startListening();
@@ -44,6 +50,12 @@ export default function AgentDM() {
     { label: "Deep Work 45m", icon: Clock, phrase: "deep work 45 minutes" },
   ];
 
+  // Derive audio-reactive frequencies (16 equalizer bars)
+  const activeFrequencies =
+    waveformFrequencies && waveformFrequencies.length === 16
+      ? waveformFrequencies
+      : new Array(16).fill(0);
+
   return (
     <>
       {/* Viewport Floating HUD Capsule (Rendered conditionally when toggled on) */}
@@ -55,7 +67,7 @@ export default function AgentDM() {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -60, opacity: 0, scale: 0.92 }}
             transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-pointer"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-pointer flex flex-col items-center gap-1.5"
             onClick={handlePillClick}
           >
             <div
@@ -64,7 +76,7 @@ export default function AgentDM() {
                 "hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]",
                 isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
                 isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
-                isSpeaking && "border-purple-500/70 shadow-[0_0_30px_rgba(168,85,247,0.4)] ring-2 ring-purple-500/30",
+                isSpeaking && "border-emerald-400/80 shadow-[0_0_35px_rgba(16,185,129,0.45)] ring-2 ring-emerald-400/40",
                 isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
               )}
             >
@@ -92,7 +104,7 @@ export default function AgentDM() {
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full shadow-[0_0_10px_#10b981]"
+                    className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full shadow-[0_0_10px_#3b82f6]"
                   />
                 )}
 
@@ -101,7 +113,7 @@ export default function AgentDM() {
                 )}
 
                 {agentState === 'SPEAKING' && (
-                  <Volume2 className="w-4 h-4 text-purple-400 animate-pulse" />
+                  <Volume2 className="w-4 h-4 text-emerald-300 animate-pulse" />
                 )}
               </div>
 
@@ -129,14 +141,14 @@ export default function AgentDM() {
                         "Listening..."
                       )}
                     </span>
-                    {/* 16 Audio-Reactive Hardware-Accelerated Waveform Equalizer Bars */}
+                    {/* Listening Rhythm Bars */}
                     <div className="flex items-center gap-[2.5px] h-5 px-1">
                       {[0.4, 0.8, 0.6, 1.0, 0.7, 0.9, 0.5, 0.85, 0.45, 0.75, 1.0, 0.65, 0.9, 0.5, 0.8, 0.35].map((baseHeight, idx) => (
                         <motion.div
                           key={idx}
                           className="w-[2.5px] bg-emerald-400 rounded-full"
                           animate={{
-                            height: ['4px', `${Math.max(6, baseHeight * 20)}px`, '6px', `${Math.max(4, baseHeight * 16)}px`, '4px'],
+                            height: ['4px', String(Math.max(6, baseHeight * 18)) + 'px', '4px'],
                           }}
                           transition={{
                             repeat: Infinity,
@@ -152,7 +164,7 @@ export default function AgentDM() {
 
                 {agentState === 'THINKING' && (
                   <span className="text-xs font-bold text-blue-300 font-mono tracking-wide animate-pulse">
-                    Thinking...
+                    Parsing Intent...
                   </span>
                 )}
 
@@ -163,20 +175,22 @@ export default function AgentDM() {
                 )}
 
                 {agentState === 'SPEAKING' && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-purple-300 font-mono tracking-wide">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
                       Agent DM
                     </span>
-                    {/* Speaking Ripples */}
-                    <div className="flex items-center gap-1">
-                      {[0, 1, 2, 3].map((bar) => (
-                        <motion.div
-                          key={bar}
-                          animate={{ scaleY: [0.3, 1.2, 0.3] }}
-                          transition={{ repeat: Infinity, duration: 0.6, delay: bar * 0.15 }}
-                          className="w-1 h-3.5 bg-purple-400 rounded-full"
-                        />
-                      ))}
+                    {/* Real-time Audio-Reactive Frequency Equalizer Bars */}
+                    <div className="flex items-center gap-[2.5px] h-5 px-1">
+                      {activeFrequencies.map((freq, idx) => {
+                        const barHeight = Math.max(4, Math.min(22, Math.round(freq * 22)));
+                        return (
+                          <div
+                            key={idx}
+                            style={{ height: barHeight + 'px' }}
+                            className="w-[2.5px] bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-full transition-[height] duration-75 ease-out shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -206,6 +220,20 @@ export default function AgentDM() {
                 </button>
               </div>
             </div>
+
+            {/* Speaking Caption subtitle under HUD pill */}
+            {isSpeaking && detectedIntent?.speechFeedback && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="px-3 py-1 bg-slate-950/80 border border-emerald-500/20 backdrop-blur-md rounded-full shadow-lg max-w-[280px] sm:max-w-[360px] text-center"
+              >
+                <span className="text-[11px] text-emerald-200 font-medium truncate inline-block w-full">
+                  "{detectedIntent.speechFeedback}"
+                </span>
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -219,7 +247,7 @@ export default function AgentDM() {
               Agent DM • Voice Intelligence HUD
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-xs">
-              Hands-free voice execution powered by JEV TypeSafe Decision Engine.
+              Hands-free voice execution powered by Studio-Grade Neural TTS & JEV TypeSafe Decision Engine.
             </DialogDescription>
           </DialogHeader>
 
@@ -231,7 +259,7 @@ export default function AgentDM() {
                 <span className="text-emerald-400 font-bold">{agentState}</span>
               </div>
               <p className="text-sm font-medium text-slate-200 min-h-[24px] italic">
-                {transcript ? `"${transcript}"` : detectedIntent?.speechFeedback || "Ready for voice command..."}
+                {transcript ? '"' + transcript + '"' : detectedIntent?.speechFeedback || "Ready for voice command..."}
               </p>
             </div>
 
