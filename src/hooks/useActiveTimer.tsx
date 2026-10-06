@@ -57,6 +57,11 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         setIsInitialized(true);
     }, []);
 
+    const activeTimerRef = useRef(activeTimer);
+    useEffect(() => {
+        activeTimerRef.current = activeTimer;
+    }, [activeTimer]);
+
     // Sync from Firestore (for other devices)
     useEffect(() => {
         if (!user) return;
@@ -64,7 +69,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribe = onSnapshot(doc(db, 'active_sessions', user.uid), (docSnap) => {
             if (!docSnap.exists()) {
                 // If Firestore has no session but we have one
-                if (activeTimer && isInitialized) {
+                if (activeTimerRef.current && isInitialized) {
                     const checkClear = setTimeout(() => {
                         setActiveTimer(null);
                         localStorage.removeItem(STORAGE_KEY);
@@ -112,10 +117,12 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(newTimer));
                 }).catch(() => {});
             }
+        }, (error) => {
+            console.warn('active_sessions snapshot error:', error);
         });
 
         return () => unsubscribe();
-    }, [user, activeTimer, isInitialized]);
+    }, [user, isInitialized]);
 
     const saveTimer = useCallback((timer: ActiveTimer | null) => {
         setActiveTimer(timer);

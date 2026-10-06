@@ -189,20 +189,7 @@ export default function NotificationBell() {
                     </div>
                 </div>
             </PopoverContent>
-            <style jsx global>{`
-                @keyframes bell-shake {
-                    0%, 100% { transform: rotate(0deg); }
-                    15% { transform: rotate(10deg); }
-                    30% { transform: rotate(-10deg); }
-                    45% { transform: rotate(5deg); }
-                    60% { transform: rotate(-5deg); }
-                    75% { transform: rotate(2deg); }
-                    90% { transform: rotate(-2deg); }
-                }
-                .animate-bell-shake {
-                    animation: bell-shake 0.8s ease-in-out;
-                }
-            `}</style>
+
         </Popover>
     );
 }

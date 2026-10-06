@@ -1,33 +1,38 @@
-
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 export default function HardwareBackHandler() {
     const pathname = usePathname();
-    const router = useRouter();
     const { toast } = useToast();
     const lastPressRef = useRef<number>(0);
 
     useEffect(() => {
-        // Double-back to exit logic ONLY for the root home page
+        // Only run if installed as PWA or in standalone mobile mode
+        if (typeof window === 'undefined') return;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+            (window.navigator as any).standalone === true;
+        if (!isStandalone) return;
+
+        // Double-back to exit logic ONLY for the root home page in standalone app
         if (pathname !== '/') {
             return;
         }
 
         // Trap the initial push for the root page to catch the first back press
-        // We use a slight timeout to ensure it doesn't fire during navigation
         const timer = setTimeout(() => {
-            window.history.pushState(null, '', window.location.href);
-        }, 100);
+            try {
+                window.history.pushState({ isHomeTrap: true }, '', window.location.href);
+            } catch (e) {
+                // Ignore history push errors
+            }
+        }, 300);
 
         const handlePopState = (event: PopStateEvent) => {
             const now = Date.now();
             if (now - lastPressRef.current < 2000) {
-                // Secondary check: Are they really trying to exit?
-                // In a PWA standalone mode, this will properly exit to the launcher.
                 window.history.back();
             } else {
                 lastPressRef.current = now;
@@ -36,8 +41,11 @@ export default function HardwareBackHandler() {
                     description: "Tap back again to close the app.",
                     duration: 3000,
                 });
-                // Re-push state so we can trap the NEXT back button as well!
-                window.history.pushState(null, '', window.location.href);
+                try {
+                    window.history.pushState({ isHomeTrap: true }, '', window.location.href);
+                } catch (e) {
+                    // Ignore
+                }
             }
         };
 

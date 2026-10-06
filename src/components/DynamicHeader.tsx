@@ -266,12 +266,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                     </div>
                 </div>
             </div>
-             <style jsx>{`
-                 @keyframes twinkle {
-                     0%, 100% { opacity: 0.3; }
-                     50% { opacity: 0.9; }
-                 }
-            `}</style>
+
         </div>
     );
 }

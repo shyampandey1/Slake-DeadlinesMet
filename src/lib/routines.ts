@@ -410,7 +410,7 @@ export const wrapRoutineWithMOVERS = (
     
     const S = { name: "Scribing (S)", duration: 15, icon: "PenSquare", category: "Evening Protocol" };
 
-    const result = [...tasks];
+    const result = Array.isArray(tasks) ? [...tasks] : [];
 
     if (preference === 'morning_primer') {
         // Inject M+O+V+E at the start

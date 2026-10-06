@@ -88,6 +88,8 @@ export function RewardsContent() {
          });
          members.sort((a, b) => b.streak - a.streak || b.coins - a.coins);
          setLiveLeaderboard(members);
+     }, (err) => {
+         console.warn("Live leaderboard snapshot error:", err);
      });
      
      return () => unsubscribe();

@@ -31,7 +31,7 @@ export default function GlobalError({
                 We encountered an unexpected error. This can happen during sign out or due to a network disruption. 
             </p>
             <div className="flex gap-4">
-                <Button variant="outline" onClick={() => router.push('/')}>
+                <Button variant="outline" onClick={() => window.location.href = '/'}>
                     Go to Home
                 </Button>
                 <Button onClick={() => window.location.reload()}>

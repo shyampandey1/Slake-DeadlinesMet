@@ -267,6 +267,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                  });
              }
          });
+     }, (err) => {
+         console.warn("Messages snapshot error:", err);
      });
      
      return () => {

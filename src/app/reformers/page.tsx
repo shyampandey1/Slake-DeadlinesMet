@@ -362,8 +362,8 @@ function ReformersPageContent() {
             const follRef = collection(db, "users", user.uid, "user_followers");
             const followingRef = collection(db, "users", user.uid, "user_following");
             
-            const unsubFoll = onSnapshot(follRef, (snap: any) => setMyFollowers(snap.size));
-            const unsubFollowing = onSnapshot(followingRef, (snap: any) => setMyFollowing(snap.size));
+            const unsubFoll = onSnapshot(follRef, (snap: any) => setMyFollowers(snap.size), (err) => console.warn("Followers listener error:", err));
+            const unsubFollowing = onSnapshot(followingRef, (snap: any) => setMyFollowing(snap.size), (err) => console.warn("Following listener error:", err));
             
             return () => { unsubFoll(); unsubFollowing(); };
         }
@@ -380,6 +380,8 @@ function ReformersPageContent() {
                 setWhatsappJoinLink(defaultLink);
                 setEditWhatsappJoinLink(defaultLink);
             }
+        }, (err) => {
+            console.warn("Config reformers snapshot error:", err);
         });
         return () => unsub();
     }, []);
@@ -391,8 +393,8 @@ function ReformersPageContent() {
                 const follRef = collection(db, "users", selectedUser.id, "user_followers");
                 const followingRef = collection(db, "users", selectedUser.id, "user_following");
                 
-                const unsubFoll = onSnapshot(follRef, (snap: any) => setSelectedUserFollowers(snap.size));
-                const unsubFollowing = onSnapshot(followingRef, (snap: any) => setSelectedUserFollowing(snap.size));
+                const unsubFoll = onSnapshot(follRef, (snap: any) => setSelectedUserFollowers(snap.size), (err: any) => console.warn("User followers listener error:", err));
+                const unsubFollowing = onSnapshot(followingRef, (snap: any) => setSelectedUserFollowing(snap.size), (err: any) => console.warn("User following listener error:", err));
                 
                 return () => { unsubFoll(); unsubFollowing(); };
             } catch (e) { }
@@ -464,6 +466,8 @@ function ReformersPageContent() {
                 return bScore - aScore;
             });
             setLiveMembers(members);
+        }, (err) => {
+            console.warn("Live members query snapshot error:", err);
         });
 
         return () => unsubscribe();
@@ -541,6 +545,8 @@ function ReformersPageContent() {
                     }
                 }
                 setConversation(msgs);
+            }, (err) => {
+                console.warn("Merge conversation snapshot error:", err);
             });
 
             return () => unsubMerge();
@@ -680,6 +686,8 @@ function ReformersPageContent() {
                 const reqs: any[] = [];
                 snap.forEach(d => reqs.push({ id: d.id, ...d.data() }));
                 setRedemptionRequests(reqs);
+            }, (err) => {
+                console.warn("Redemption requests snapshot error:", err);
             });
             return () => unsub();
         } catch (e) {
