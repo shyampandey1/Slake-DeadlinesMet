@@ -201,6 +201,19 @@ export function useHydrationAudio() {
   }, []);
 
   useEffect(() => {
+    const handleToggle = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail.actionType === 'AUDIO_WATER_ON' || (detail.sensorType === 'water_sounds' && detail.sensorState === 'on')) {
+        startHydrationAudio();
+      } else if (detail.actionType === 'AUDIO_MUTE' || (detail.sensorType === 'ambient_noise' && detail.sensorState === 'off')) {
+        stopHydrationAudio();
+      }
+    };
+    window.addEventListener('slake-sensor-toggle', handleToggle);
+    return () => window.removeEventListener('slake-sensor-toggle', handleToggle);
+  }, [startHydrationAudio, stopHydrationAudio]);
+
+  useEffect(() => {
     return () => {
       if (synthRef.current) {
         synthRef.current.stop();

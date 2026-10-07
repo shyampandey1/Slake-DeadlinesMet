@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { runJevInference, evaluateProductivityInsightsWithJev } from '@/lib/jevClient';
+import { callTypeSafeSystemOne, TypeSafeQuestion } from '@/lib/jevClient';
 
 export interface InsightsPayload {
   userId: string;
@@ -17,67 +17,78 @@ export interface InsightsPayload {
   streakCount: number;
   mostProductiveHour: string;
   totalCoinsEarned: number;
+  dropOffTimestamps?: string[];
+  streakDelta?: number;
 }
 
 const InsightsPayloadSchema = z.object({
   userId: z.string().default('anonymous'),
   periodDays: z.number().default(7),
   completedTasksCount: z.number().default(0),
-  categoryDistribution: z.object({
-    Productivity: z.number().default(0),
-    Hydration: z.number().default(0),
-    Fitness: z.number().default(0),
-    Meditation: z.number().default(0),
-    Hygiene: z.number().default(0),
-    Creativity: z.number().default(0),
-  }).default({
-    Productivity: 0,
-    Hydration: 0,
-    Fitness: 0,
-    Meditation: 0,
-    Hygiene: 0,
-    Creativity: 0,
-  }),
+  categoryDistribution: z
+    .object({
+      Productivity: z.number().default(0),
+      Hydration: z.number().default(0),
+      Fitness: z.number().default(0),
+      Meditation: z.number().default(0),
+      Hygiene: z.number().default(0),
+      Creativity: z.number().default(0),
+    })
+    .default({
+      Productivity: 0,
+      Hydration: 0,
+      Fitness: 0,
+      Meditation: 0,
+      Hygiene: 0,
+      Creativity: 0,
+    }),
   streakCount: z.number().default(0),
   mostProductiveHour: z.string().default('None'),
   totalCoinsEarned: z.number().default(0),
+  dropOffTimestamps: z.array(z.string()).optional(),
+  streakDelta: z.number().optional(),
 });
 
 const InsightsOutputSchema = z.object({
-  headline: z.string().optional(),
-  summary: z.string().describe('A 2-3 sentence summary of recent achievements based on raw metrics and MOVERS protocol.'),
-  strengths: z.array(z.string()).describe('Top 2-3 productive patterns identified (specifically mentioning most productive hour or categories).'),
-  suggestions: z.array(z.string()).describe('2-3 actionable, highly tactical, specific tips to improve focus or balance (no generic motivational text).'),
-  focusScore: z.number().min(0).max(100).describe('A score from 0-100 reflecting focus and consistency.'),
-  productivityScore: z.number().optional(),
-  categoryBreakdownAnalysis: z.any().optional(),
-  tacticalRecommendations: z.array(z.string()).optional(),
-  alignmentWithMovers: z.any().optional(),
-  moversEvaluation: z.object({
-    overallRating: z.string().describe('Rating of MOVERS protocol execution (e.g. Optimal, Strong, Developing, Foundational)'),
-    adherenceScore: z.number().min(0).max(100).describe('Adherence score to MOVERS pillars'),
-    feedback: z.string().describe('Targeted feedback for MOVERS protocol adherence and lifestyle optimization'),
+  headline: z.string(),
+  productivityScore: z.number().min(0).max(100),
+  categoryBreakdownAnalysis: z.array(
+    z.object({
+      category: z.enum(['Productivity', 'Hydration', 'Fitness', 'Meditation', 'Hygiene', 'Creativity']),
+      status: z.enum(['optimal', 'balanced', 'needs_attention']),
+      insight: z.string(),
+    })
+  ),
+  tacticalRecommendations: z.array(z.string()).length(3),
+  alignmentWithMovers: z.object({
+    overallRating: z.enum(['Optimal', 'Strong', 'Developing', 'Foundational']),
+    adherenceScore: z.number().min(0).max(100),
+    feedback: z.string(),
     pillarBreakdown: z.object({
       meditation: z.string(),
       oxygenationHydration: z.string(),
       visualizationPlanning: z.string(),
       exerciseFitness: z.string(),
       readingScribing: z.string(),
-    }).optional(),
-  }).optional(),
+    }),
+  }),
+  summary: z.string(),
+  strengths: z.array(z.string()),
+  suggestions: z.array(z.string()),
+  focusScore: z.number().min(0).max(100),
+  moversEvaluation: z.any().optional(),
 });
 
 export type InsightsOutput = z.infer<typeof InsightsOutputSchema>;
 
 /**
- * Normalizes legacy request payloads ({ tasks, profile, streak }) into standard InsightsPayload format.
+ * Normalizes incoming request payloads into standard InsightsPayload
  */
 function normalizePayload(body: any): InsightsPayload {
   if (body && typeof body.completedTasksCount === 'number' && body.categoryDistribution) {
     return InsightsPayloadSchema.parse(body);
   }
 
-  // Handle legacy payload format
   const tasks = Array.isArray(body?.tasks) ? body.tasks : [];
   const streak = body?.streak || {};
   const completedTasks = tasks.filter((t: any) => t.completed);
@@ -101,13 +112,18 @@ function normalizePayload(body: any): InsightsPayload {
     }
   });
 
-  // Calculate most productive hour
   const hourCounts: { [key: number]: number } = {};
+  const dropOffTimestamps: string[] = [];
+
   completedTasks.forEach((t: any) => {
     try {
       if (t.createdAt) {
-        const hour = new Date(t.createdAt).getHours();
+        const d = new Date(t.createdAt);
+        const hour = d.getHours();
         hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+        if (hour >= 14 && hour <= 16) {
+          dropOffTimestamps.push(d.toISOString());
+        }
       }
     } catch {}
   });
@@ -131,12 +147,14 @@ function normalizePayload(body: any): InsightsPayload {
     categoryDistribution,
     streakCount: streak.currentStreak || body?.streakCount || 0,
     mostProductiveHour: body?.mostProductiveHour || mostProductiveHour,
-    totalCoinsEarned: body?.totalCoinsEarned || (completedTasksCount * 10),
+    totalCoinsEarned: body?.totalCoinsEarned || completedTasksCount * 10,
+    dropOffTimestamps: dropOffTimestamps.slice(0, 5),
+    streakDelta: streak.currentStreak ? Math.min(7, streak.currentStreak) : 1,
   };
 }
 
 /**
- * Deterministic fallback generator adhering strictly to InsightsOutputSchema.
+ * Deterministic calculation fallback adhering strictly to InsightsOutputSchema
  */
 function generateDeterministicInsights(payload: InsightsPayload): InsightsOutput {
   const {
@@ -147,22 +165,16 @@ function generateDeterministicInsights(payload: InsightsPayload): InsightsOutput
     periodDays,
   } = payload;
 
-  const totalLogged = Object.values(categoryDistribution).reduce((a, b) => a + b, 0);
-
-  // Focus score calculation
   const taskScore = Math.min(40, (completedTasksCount / Math.max(1, periodDays)) * 8);
   const streakScore = Math.min(30, streakCount * 6);
   const activePillars = Object.values(categoryDistribution).filter((v) => v > 0).length;
   const diversityScore = Math.min(30, activePillars * 5);
   const rawFocusScore = Math.round(taskScore + streakScore + diversityScore);
-  const focusScore = Math.max(10, Math.min(100, isNaN(rawFocusScore) ? 50 : rawFocusScore));
+  const productivityScore = Math.max(10, Math.min(100, isNaN(rawFocusScore) ? 50 : rawFocusScore));
 
-  // Determine top categories
   const sortedCategories = Object.entries(categoryDistribution).sort(([, a], [, b]) => b - a);
   const topCategory = sortedCategories[0]?.[1] > 0 ? sortedCategories[0][0] : 'Productivity';
 
-  // MOVERS protocol adherence calculation
-  // M: Meditation, O: Hydration, V: Productivity, E: Fitness, R/S: Creativity
   const moversPillars = [
     categoryDistribution.Meditation > 0,
     categoryDistribution.Hydration > 0,
@@ -173,7 +185,7 @@ function generateDeterministicInsights(payload: InsightsPayload): InsightsOutput
   const moversCount = moversPillars.filter(Boolean).length;
   const adherenceScore = Math.round((moversCount / 5) * 100);
 
-  let overallRating = 'Developing';
+  let overallRating: 'Optimal' | 'Strong' | 'Developing' | 'Foundational' = 'Developing';
   if (adherenceScore >= 80) overallRating = 'Optimal';
   else if (adherenceScore >= 60) overallRating = 'Strong';
   else if (adherenceScore >= 40) overallRating = 'Developing';
@@ -183,75 +195,62 @@ function generateDeterministicInsights(payload: InsightsPayload): InsightsOutput
   if (mostProductiveHour !== 'None') {
     strengths.push(`Peak cognitive velocity recorded at ${mostProductiveHour}.`);
   }
-  if (topCategory) {
-    strengths.push(`High discipline in ${topCategory} (${categoryDistribution[topCategory as keyof typeof categoryDistribution]} tasks logged).`);
-  }
-  if (streakCount >= 3) {
-    strengths.push(`Consistent habit momentum with a ${streakCount}-day active streak.`);
-  } else {
-    strengths.push(`Completed ${completedTasksCount} focus sessions across ${periodDays} days.`);
-  }
+  strengths.push(
+    `High discipline in ${topCategory} (${categoryDistribution[topCategory as keyof typeof categoryDistribution]} tasks logged).`
+  );
+  strengths.push(
+    streakCount >= 3
+      ? `Consistent habit momentum with a ${streakCount}-day active streak.`
+      : `Completed ${completedTasksCount} focus sessions across ${periodDays} days.`
+  );
 
-  const suggestions: string[] = [];
-  if (categoryDistribution.Hydration === 0) {
-    suggestions.push('Integrate prompt Hydration & Oxygenation breaks between intense focus blocks.');
-  }
-  if (categoryDistribution.Meditation === 0) {
-    suggestions.push('Add a 5-minute mindfulness or breathing reset before peak working hours to clear cognitive load.');
-  }
-  if (categoryDistribution.Fitness === 0) {
-    suggestions.push('Incorporate light physical movement or recovery stretching to maintain stamina.');
-  }
-  if (suggestions.length < 2) {
-    suggestions.push('Sequence demanding cognitive work to align directly with your peak window.');
-    suggestions.push('Maintain balanced pacing by interleaving creative ideation with execution.');
-  }
+  const tacticalRecommendations: [string, string, string] = [
+    categoryDistribution.Hydration < 7
+      ? 'Integrate prompt 2-minute Hydration breaks between high-intensity focus sessions.'
+      : 'Maintain steady cellular hydration throughout deep work blocks.',
+    categoryDistribution.Meditation < 3
+      ? 'Schedule a 5-minute box breathing or mindfulness reset before your peak focus window.'
+      : 'Continue using breathwork to clear mental clutter before task switching.',
+    categoryDistribution.Fitness < 3
+      ? 'Incorporate 15 minutes of physical movement or mobility stretching to prevent cognitive fatigue.'
+      : `Sequence demanding problem-solving to align directly with your peak window (${mostProductiveHour}).`,
+  ];
 
-  const summary = completedTasksCount > 0
-    ? `Maintained steady execution over the last ${periodDays} days with ${completedTasksCount} tasks completed and a ${streakCount}-day streak. Your routine shows strong affinity for ${topCategory}.`
-    : `Ready to initiate high-performance tracking for the upcoming ${periodDays}-day cycle. Schedule your primary anchor habits to jumpstart momentum.`;
-
-  const categoryBreakdownAnalysis = [
+  const categoryBreakdownAnalysis: InsightsOutput['categoryBreakdownAnalysis'] = [
     {
-      category: 'Productivity' as const,
-      status: categoryDistribution.Productivity >= 5 ? ('optimal' as const) : categoryDistribution.Productivity >= 2 ? ('balanced' as const) : ('needs_attention' as const),
+      category: 'Productivity',
+      status: categoryDistribution.Productivity >= 5 ? 'optimal' : categoryDistribution.Productivity >= 2 ? 'balanced' : 'needs_attention',
       insight: categoryDistribution.Productivity >= 5 ? 'High cognitive velocity and strong focus session execution.' : 'Deep work volume could be enhanced with an extra focus block.',
     },
     {
-      category: 'Hydration' as const,
-      status: categoryDistribution.Hydration >= 7 ? ('optimal' as const) : categoryDistribution.Hydration >= 3 ? ('balanced' as const) : ('needs_attention' as const),
+      category: 'Hydration',
+      status: categoryDistribution.Hydration >= 7 ? 'optimal' : categoryDistribution.Hydration >= 3 ? 'balanced' : 'needs_attention',
       insight: categoryDistribution.Hydration >= 7 ? 'Optimal hydration intervals logged throughout the day.' : 'Hydration reminders needed between demanding sessions.',
     },
     {
-      category: 'Fitness' as const,
-      status: categoryDistribution.Fitness >= 3 ? ('optimal' as const) : categoryDistribution.Fitness >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      category: 'Fitness',
+      status: categoryDistribution.Fitness >= 3 ? 'optimal' : categoryDistribution.Fitness >= 1 ? 'balanced' : 'needs_attention',
       insight: categoryDistribution.Fitness >= 3 ? 'Physical stamina and exercise routines are active.' : 'Incorporate light movement or recovery stretching.',
     },
     {
-      category: 'Meditation' as const,
-      status: categoryDistribution.Meditation >= 3 ? ('optimal' as const) : categoryDistribution.Meditation >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      category: 'Meditation',
+      status: categoryDistribution.Meditation >= 3 ? 'optimal' : categoryDistribution.Meditation >= 1 ? 'balanced' : 'needs_attention',
       insight: categoryDistribution.Meditation >= 3 ? 'Mental decompression and box breathing anchors maintained.' : 'Add a 3-minute breathwork reset before peak focus.',
     },
     {
-      category: 'Hygiene' as const,
-      status: categoryDistribution.Hygiene >= 3 ? ('optimal' as const) : categoryDistribution.Hygiene >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      category: 'Hygiene',
+      status: categoryDistribution.Hygiene >= 3 ? 'optimal' : categoryDistribution.Hygiene >= 1 ? 'balanced' : 'needs_attention',
       insight: categoryDistribution.Hygiene >= 3 ? 'Healthy personal recovery and domestic setup rhythm.' : 'Maintain regular table and sleep environment preparation.',
     },
     {
-      category: 'Creativity' as const,
-      status: categoryDistribution.Creativity >= 2 ? ('optimal' as const) : categoryDistribution.Creativity >= 1 ? ('balanced' as const) : ('needs_attention' as const),
+      category: 'Creativity',
+      status: categoryDistribution.Creativity >= 2 ? 'optimal' : categoryDistribution.Creativity >= 1 ? 'balanced' : 'needs_attention',
       insight: categoryDistribution.Creativity >= 2 ? 'Creative synthesis active alongside analytical tasks.' : 'Dedicate 15 minutes to reflective scribing.',
     },
   ];
 
-  const recs = [...suggestions];
-  while (recs.length < 3) {
-    recs.push('Maintain balanced pacing by interleaving breathwork pauses with execution.');
-  }
-  const tacticalRecommendations: [string, string, string] = [recs[0], recs[1], recs[2]];
-
   const alignmentWithMovers = {
-    overallRating: overallRating as 'Optimal' | 'Strong' | 'Developing' | 'Foundational',
+    overallRating,
     adherenceScore,
     feedback: adherenceScore >= 80
       ? 'Superb integration across all key MOVERS protocol pillars.'
@@ -265,18 +264,19 @@ function generateDeterministicInsights(payload: InsightsPayload): InsightsOutput
     },
   };
 
-  const headline = `${overallRating} Discipline (${focusScore}/100) • ${adherenceScore}% MOVERS Balance`;
+  const headline = `${overallRating} Discipline (${productivityScore}/100) • ${adherenceScore}% MOVERS Balance`;
+  const summary = `Maintained steady execution over the last ${periodDays} days with ${completedTasksCount} tasks completed and a ${streakCount}-day streak.`;
 
   return {
     headline,
-    productivityScore: focusScore,
+    productivityScore,
     categoryBreakdownAnalysis,
     tacticalRecommendations,
     alignmentWithMovers,
     summary,
     strengths: strengths.slice(0, 3),
     suggestions: tacticalRecommendations,
-    focusScore,
+    focusScore: productivityScore,
     moversEvaluation: alignmentWithMovers,
   };
 }
@@ -288,50 +288,154 @@ export async function POST(req: Request) {
 
     if (payload.completedTasksCount === 0 && Object.values(payload.categoryDistribution).every((v) => v === 0)) {
       return NextResponse.json({
-        summary: "You haven't logged any tasks yet! Complete your first focus session to receive personalized insights and routine coaching.",
-        strengths: ["Clean slate for the week ahead."],
-        suggestions: ["Pick one high-priority anchor task to start with.", "Try a 25-minute Pomodoro session with hydration."],
+        headline: 'Foundational Tracking • Ready to Ignite',
+        productivityScore: 0,
+        categoryBreakdownAnalysis: [
+          { category: 'Productivity', status: 'needs_attention', insight: 'Schedule your first deep work session.' },
+          { category: 'Hydration', status: 'needs_attention', insight: 'Log 8 glasses of water daily.' },
+          { category: 'Fitness', status: 'needs_attention', insight: 'Add a 15-minute movement routine.' },
+          { category: 'Meditation', status: 'needs_attention', insight: 'Add a 5-minute breathing reset.' },
+          { category: 'Hygiene', status: 'needs_attention', insight: 'Complete bed making and desk setup.' },
+          { category: 'Creativity', status: 'needs_attention', insight: 'Incorporate reflective scribing.' },
+        ],
+        tacticalRecommendations: [
+          'Pick one high-priority anchor task to start today.',
+          'Start a 25-minute Pomodoro session with hydration.',
+          'Complete 4-minute box breathing to center mental focus.',
+        ],
+        alignmentWithMovers: {
+          overallRating: 'Foundational',
+          adherenceScore: 0,
+          feedback: 'Initialize your morning and evening MOVERS routines to build daily adherence.',
+          pillarBreakdown: {
+            meditation: 'Unscheduled',
+            oxygenationHydration: 'Unscheduled',
+            visualizationPlanning: 'Unscheduled',
+            exerciseFitness: 'Unscheduled',
+            readingScribing: 'Unscheduled',
+          },
+        },
+        summary: "You haven't logged any tasks yet! Complete your first focus session to receive personalized insights.",
+        strengths: ['Clean slate for the week ahead.'],
+        suggestions: [
+          'Pick one high-priority anchor task to start with.',
+          'Try a 25-minute Pomodoro session with hydration.',
+          'Complete 4-minute box breathing.',
+        ],
         focusScore: 0,
         moversEvaluation: {
-          overallRating: "Foundational",
+          overallRating: 'Foundational',
           adherenceScore: 0,
-          feedback: "Initialize your morning and evening MOVERS routines to build daily adherence.",
-        }
+          feedback: 'Initialize your morning and evening MOVERS routines to build daily adherence.',
+        },
       });
     }
 
-    const prompt = `You are the JEV TypeSafe Decision Engine and High-Performance Behavioral Insights Architect for DeadlinesMet.
-Analyze the user's behavioral metrics and evaluate their adherence to the MOVERS Protocol (Meditation, Oxygenation/Hydration, Visualization/Planning, Exercise/Fitness, Reading/Scribing/Creativity).
-
-Input Metrics:
-- User ID: ${payload.userId}
-- Evaluation Period: Last ${payload.periodDays} days
-- Completed Tasks: ${payload.completedTasksCount}
-- Daily Streak: ${payload.streakCount} days
-- Most Productive Hour: ${payload.mostProductiveHour}
-- Total Coins Earned: ${payload.totalCoinsEarned}
-- Category Distribution:
-  * Productivity (Deep Work / Visualization / Planning): ${payload.categoryDistribution.Productivity}
-  * Hydration & Oxygenation: ${payload.categoryDistribution.Hydration}
-  * Fitness & Exercise: ${payload.categoryDistribution.Fitness}
-  * Meditation & Mindfulness: ${payload.categoryDistribution.Meditation}
-  * Hygiene & Recovery: ${payload.categoryDistribution.Hygiene}
-  * Creativity & Reading/Scribing: ${payload.categoryDistribution.Creativity}
-
-Guidelines:
-1. Provide a concise, high-impact summary (2-3 sentences) evaluating their productivity velocity, consistency, and MOVERS balance.
-2. Identify 2-3 specific strengths, noting their peak hour (${payload.mostProductiveHour}) and dominant categories.
-3. Provide 2-3 actionable, tactical suggestions to optimize underrepresented MOVERS pillars or maintain habit momentum.
-4. Calculate a focusScore between 0 and 100 based on completion count, streak resilience, and category diversity.
-5. Include a moversEvaluation rating the user's protocol integration (overallRating: Optimal, Strong, Developing, or Foundational; adherenceScore: 0-100; feedback: tactical guidance).`;
-
     try {
-      const inferenceResult = await evaluateProductivityInsightsWithJev(payload);
-      return NextResponse.json(inferenceResult);
+      // 1. Inject full 7-day completion payload into JEV SystemOne using dynamic score & noul primitives
+      const state = {
+        userId: payload.userId,
+        periodDays: payload.periodDays,
+        completedTasksCount: payload.completedTasksCount,
+        categoryDistribution: payload.categoryDistribution,
+        streakCount: payload.streakCount,
+        mostProductiveHour: payload.mostProductiveHour,
+        totalCoinsEarned: payload.totalCoinsEarned,
+        dropOffTimestamps: payload.dropOffTimestamps,
+        streakDelta: payload.streakDelta,
+      };
+
+      const questions: Record<string, TypeSafeQuestion> = {
+        productivityScore: {
+          type: 'score',
+          instructions:
+            'Score the user’s weekly productivity velocity from 0 to 10 based on task completions, streak compounding, and circadian rhythm alignment.',
+          criteria: [
+            '0-2 (Dormant)',
+            '3-5 (Steady)',
+            '6-8 (High Flow Velocity)',
+            '9-10 (Elite Performance)',
+          ],
+        },
+        moversAdherenceScore: {
+          type: 'score',
+          instructions:
+            'Score MOVERS protocol balance across all 5 core pillars from 0 to 10.',
+          criteria: [
+            '0-3 (Narrow Focus)',
+            '4-6 (Moderate Balance)',
+            '7-8 (Strong Synergy)',
+            '9-10 (Comprehensive Mastery)',
+          ],
+        },
+        isHydrationOptimal: {
+          type: 'noul',
+          instructions: 'Does the user maintain optimal cellular hydration rhythm based on their logged activity?',
+        },
+        isCircadianAligned: {
+          type: 'noul',
+          instructions: 'Are core tasks concentrated during the user peak productive hour?',
+        },
+        needsPhysicalIntervention: {
+          type: 'noul',
+          instructions: 'Does the routine lack sufficient physical fitness or movement recovery?',
+        },
+      };
+
+      const jevResponse = await callTypeSafeSystemOne({ state, questions });
+      const answers = jevResponse.answers || {};
+
+      const rawProdScore =
+        typeof answers.productivityScore?.score === 'number'
+          ? Math.round(answers.productivityScore.score * 10)
+          : null;
+
+      const rawAdherenceScore =
+        typeof answers.moversAdherenceScore?.score === 'number'
+          ? Math.round(answers.moversAdherenceScore.score * 10)
+          : null;
+
+      // Deterministic baseline for fallback field enrichment
+      const baseline = generateDeterministicInsights(payload);
+
+      const productivityScore = rawProdScore !== null ? Math.max(10, Math.min(100, rawProdScore)) : baseline.productivityScore;
+      const adherenceScore = rawAdherenceScore !== null ? Math.max(0, Math.min(100, rawAdherenceScore)) : baseline.alignmentWithMovers.adherenceScore;
+
+      let overallRating: 'Optimal' | 'Strong' | 'Developing' | 'Foundational' = 'Developing';
+      if (adherenceScore >= 80) overallRating = 'Optimal';
+      else if (adherenceScore >= 60) overallRating = 'Strong';
+      else if (adherenceScore >= 40) overallRating = 'Developing';
+      else overallRating = 'Foundational';
+
+      const headline = `${overallRating} Discipline (${productivityScore}/100) • ${adherenceScore}% MOVERS Balance`;
+
+      const result: InsightsOutput = {
+        headline,
+        productivityScore,
+        categoryBreakdownAnalysis: baseline.categoryBreakdownAnalysis,
+        tacticalRecommendations: baseline.tacticalRecommendations,
+        alignmentWithMovers: {
+          overallRating,
+          adherenceScore,
+          feedback: baseline.alignmentWithMovers.feedback,
+          pillarBreakdown: baseline.alignmentWithMovers.pillarBreakdown,
+        },
+        summary: `JEV SystemOne evaluated ${payload.completedTasksCount} focus sessions across ${payload.periodDays} days with ${adherenceScore}% MOVERS adherence. Velocity score: ${productivityScore}/100.`,
+        strengths: baseline.strengths,
+        suggestions: baseline.tacticalRecommendations,
+        focusScore: productivityScore,
+        moversEvaluation: {
+          overallRating,
+          adherenceScore,
+          feedback: baseline.alignmentWithMovers.feedback,
+        },
+      };
+
+      return NextResponse.json(InsightsOutputSchema.parse(result));
     } catch (inferenceError: any) {
-      console.warn('[JEV TypeSafe] Inference fallback triggered:', inferenceError?.message);
+      console.warn('[JEV TypeSafe Insights] Inference fallback to deterministic:', inferenceError?.message);
       const fallbackResult = generateDeterministicInsights(payload);
-      return NextResponse.json(fallbackResult);
+      return NextResponse.json(InsightsOutputSchema.parse(fallbackResult));
     }
   } catch (error: any) {
     console.error('API Insights Route Error:', error);

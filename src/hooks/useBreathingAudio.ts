@@ -187,6 +187,20 @@ export function useBreathingAudio() {
   }, []);
 
   useEffect(() => {
+    const handleToggle = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail.actionType === 'AUDIO_BREATHE_ON' || (detail.sensorType === 'breathing_chimes' && detail.sensorState === 'on')) {
+        initBreathingAudio();
+        playBreathingChime('inhale');
+      } else if (detail.actionType === 'AUDIO_MUTE' || (detail.sensorType === 'ambient_noise' && detail.sensorState === 'off')) {
+        stopBreathingAudio();
+      }
+    };
+    window.addEventListener('slake-sensor-toggle', handleToggle);
+    return () => window.removeEventListener('slake-sensor-toggle', handleToggle);
+  }, [initBreathingAudio, playBreathingChime, stopBreathingAudio]);
+
+  useEffect(() => {
     return () => {
       if (synthRef.current) {
         synthRef.current.stop();

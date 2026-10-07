@@ -119,6 +119,28 @@ export default function GazeTracker({ onPauseToggle, onStop, onSkip, isPaused, i
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [status, triggerBlinkClick]);
 
+  // Voice & System Event Listener for hands-free sensor toggling
+  useEffect(() => {
+    const handleSensorToggle = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const detail = customEvent.detail || {};
+      const actionType = detail.actionType;
+      const sensorType = detail.sensorType;
+      const sensorState = detail.sensorState;
+
+      if (actionType === 'TOGGLE_EYE_TRACKING_ON' || (sensorType === 'eye_tracking' && sensorState === 'on')) {
+        if (status === 'off' || status === 'failsafe') {
+          startCamera();
+        }
+      } else if (actionType === 'TOGGLE_EYE_TRACKING_OFF' || (sensorType === 'eye_tracking' && sensorState === 'off')) {
+        stopCamera();
+      }
+    };
+
+    window.addEventListener('slake-sensor-toggle', handleSensorToggle);
+    return () => window.removeEventListener('slake-sensor-toggle', handleSensorToggle);
+  }, [status, stopCamera]);
+
   // Initialize Worker and WebCam
   const startCamera = async () => {
     setStatus("loading");

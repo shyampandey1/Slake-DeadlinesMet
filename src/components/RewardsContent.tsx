@@ -18,7 +18,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useTasks } from "@/hooks/useFirestore";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy, limit } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 
 export function RewardsContent() {
@@ -26,31 +26,14 @@ export function RewardsContent() {
   const { user } = useAuth();
   const router = useRouter();
   
-  const [credits, setCredits] = useState(profileData?.slakeCredits || 0);
+  const currentCoins = profileData?.slakeCoins ?? profileData?.slakeCredits ?? 0;
+  const [credits, setCredits] = useState(currentCoins);
   
   useEffect(() => {
     if (profileData) {
-        const streak = profileData.streak?.highestStreak || 0;
-        const tasksDone = (profileData as any).totalTasks || 0;
-        const water = (profileData as any).totalWaterGlasses || 0;
-        const age = (profileData as any).appAge || 0;
-        
-        const base = 1000;
-        const taskScore = tasksDone * 250;
-        const waterScore = water * 500;
-        const streakScore = streak * 1000;
-        const ageScore = age * 200;
-        
-        const newCredits = base + taskScore + waterScore + streakScore + ageScore;
-        
-        if (profileData.slakeCredits !== newCredits) {
-             updateUserProfileData({ slakeCredits: newCredits });
-             setCredits(newCredits);
-        } else {
-             setCredits(profileData.slakeCredits);
-        }
+      setCredits(profileData.slakeCoins ?? profileData.slakeCredits ?? 0);
     }
-  }, [profileData?.streak?.highestStreak, (profileData as any)?.totalTasks, (profileData as any)?.totalWaterGlasses, (profileData as any)?.appAge, profileData?.slakeCredits, updateUserProfileData]);
+  }, [profileData?.slakeCoins, profileData?.slakeCredits]);
 
   const userCurrency = (profileData?.currency || "INR").toUpperCase();
   const cSym = userCurrency === "USD" ? "$" : userCurrency === "EUR" ? "€" : "₹";
@@ -67,7 +50,8 @@ export function RewardsContent() {
   const [redemptionSuccess, setRedemptionSuccess] = useState(false);
 
   useEffect(() => {
-     const q = query(collection(db, "users"));
+     let unsubscribeInner: (() => void) | null = null;
+     const q = query(collection(db, "users"), orderBy("slakeCoins", "desc"), limit(50));
      const unsubscribe = onSnapshot(q, (snapshot) => {
          const members: any[] = [];
          snapshot.forEach(doc => {
@@ -78,7 +62,7 @@ export function RewardsContent() {
                  name: data.displayName || "Anonymous Reformer",
                  avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
                  streak: data.streak?.currentStreak || 0,
-                 coins: data.slakeCredits || 0,
+                 coins: (data as any).slakeCoins ?? data.slakeCredits ?? 0,
                  daysElapsed: data.streak?.highestStreak || 0,
                  certificates: Math.floor((data.streak?.highestStreak || 0) / 3) + Math.floor(((data as any).totalTasks || 0) / 10),
                  city: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
@@ -86,13 +70,38 @@ export function RewardsContent() {
                  isMe: uid === profileData?.userId
              });
          });
-         members.sort((a, b) => b.streak - a.streak || b.coins - a.coins);
+         members.sort((a, b) => b.coins - a.coins || b.streak - a.streak);
          setLiveLeaderboard(members);
      }, (err) => {
-         console.warn("Live leaderboard snapshot error:", err);
+         console.warn("Live leaderboard ordered query error (falling back to unindexed query):", err);
+         const fallbackQ = query(collection(db, "users"), limit(50));
+         unsubscribeInner = onSnapshot(fallbackQ, (snapshot) => {
+             const members: any[] = [];
+             snapshot.forEach(doc => {
+                 const data = doc.data() as UserProfile;
+                 const uid = data.userId || doc.id;
+                 members.push({
+                     id: uid,
+                     name: data.displayName || "Anonymous Reformer",
+                     avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
+                     streak: data.streak?.currentStreak || 0,
+                     coins: (data as any).slakeCoins ?? data.slakeCredits ?? 0,
+                     daysElapsed: data.streak?.highestStreak || 0,
+                     certificates: Math.floor((data.streak?.highestStreak || 0) / 3) + Math.floor(((data as any).totalTasks || 0) / 10),
+                     city: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
+                     routine: data.profile || "General",
+                     isMe: uid === profileData?.userId
+                 });
+             });
+             members.sort((a, b) => b.coins - a.coins || b.streak - a.streak);
+             setLiveLeaderboard(members);
+         });
      });
      
-     return () => unsubscribe();
+     return () => {
+         unsubscribe();
+         if (unsubscribeInner) unsubscribeInner();
+     };
   }, [profileData?.userId]);
 
   const rewardItems = [
@@ -255,11 +264,12 @@ export function RewardsContent() {
               console.error("Failed to trigger admin notification API:", apiErr);
           }
 
-          const newBalance = credits - selectedReward.credits;
+          const newBalance = Math.max(0, credits - selectedReward.credits);
           setCredits(newBalance);
-          updateUserProfileData({ slakeCredits: newBalance, slakeBalance: newBalance });
+          updateUserProfileData({ slakeCoins: newBalance, slakeCredits: newBalance, slakeBalance: newBalance });
           const userRef = doc(db, "users", user.uid);
           await updateDoc(userRef, {
+              slakeCoins: increment(-selectedReward.credits),
               slakeCredits: increment(-selectedReward.credits),
               slakeBalance: increment(-selectedReward.credits)
           });
@@ -290,12 +300,12 @@ export function RewardsContent() {
                             <Zap className="w-40 h-40" />
                         </div>
                         <CardHeader>
-                            <CardTitle className="text-lg font-medium text-white/90">DM Coins</CardTitle>
+                            <CardTitle className="text-sm sm:text-lg font-medium text-white/90">DM Coins</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-end gap-3 z-10 relative">
-                                <span className="text-6xl font-black tracking-tighter drop-shadow-md">{credits.toLocaleString()}</span>
-                                <span className="text-2xl pb-1 font-bold text-white/90">DM Coins</span>
+                            <div className="flex items-end gap-3 z-10 relative flex-wrap">
+                                <span className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter drop-shadow-md">{credits.toLocaleString()}</span>
+                                <span className="text-lg sm:text-2xl pb-1 font-bold text-white/90">DM Coins</span>
                             </div>
                         </CardContent>
                     </Card>

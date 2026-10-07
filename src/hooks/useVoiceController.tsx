@@ -51,13 +51,13 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  const { addTask } = useTasks();
-  const { startTimer, updateTimer, clearTimer, activeTimer } = useActiveTimer();
+  const { addTask, tasks, toggleTaskCompletion } = useTasks();
+  const { startTimer, updateTimer, clearTimer, activeTimer, setFocusInterval } = useActiveTimer();
   const { toast } = useToast();
 
-  // Agent DM toggle state: default CLOSED (not staying full time active)
-  const [isOpen, setIsOpenState] = useState<boolean>(false);
-  const isOpenRef = useRef(false);
+  // Agent DM persistent floating HUD state: default active
+  const [isOpen, setIsOpenState] = useState<boolean>(true);
+  const isOpenRef = useRef(true);
   const setIsOpen = useCallback((open: boolean) => {
     isOpenRef.current = open;
     setIsOpenState(open);
@@ -77,9 +77,17 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   useEffect(() => { stopNeuralPlaybackRef.current = stopNeuralPlayback; }, [stopNeuralPlayback]);
 
 
-  // Mutable refs to keep callback references completely stable
   const addTaskRef = useRef(addTask);
   useEffect(() => { addTaskRef.current = addTask; }, [addTask]);
+
+  const tasksRef = useRef(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
+  const toggleTaskCompletionRef = useRef(toggleTaskCompletion);
+  useEffect(() => { toggleTaskCompletionRef.current = toggleTaskCompletion; }, [toggleTaskCompletion]);
+
+  const setFocusIntervalRef = useRef(setFocusInterval);
+  useEffect(() => { setFocusIntervalRef.current = setFocusInterval; }, [setFocusInterval]);
 
   const activeTimerRef = useRef(activeTimer);
   useEffect(() => { activeTimerRef.current = activeTimer; }, [activeTimer]);
@@ -117,18 +125,6 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     setTranscript(val);
   }, []);
 
-  const setAgentState = useCallback((newState: VoiceAgentState) => {
-    setAgentStateInternal(newState);
-    onStateChangeRef.current?.(newState);
-  }, []);
-
-  // Speech Recognition lifecycle tracking refs
-  const recognitionRef = useRef<any>(null);
-  const isListeningRef = useRef(false);
-  const isStartingRef = useRef(false);
-  const isProcessingRef = useRef(false);
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   // Haptic pulse helper
   const triggerHaptic = useCallback((pattern: number | number[]) => {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
@@ -137,6 +133,25 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       } catch (e) {}
     }
   }, []);
+
+  const setAgentState = useCallback((newState: VoiceAgentState) => {
+    setAgentStateInternal(newState);
+    onStateChangeRef.current?.(newState);
+    if (newState === 'LISTENING') {
+      triggerHaptic([50]);
+    } else if (newState === 'THINKING') {
+      triggerHaptic([30, 50, 30]);
+    } else if (newState === 'EXECUTING' || newState === 'SPEAKING') {
+      triggerHaptic([80]);
+    }
+  }, [triggerHaptic]);
+
+  // Speech Recognition lifecycle tracking refs
+  const recognitionRef = useRef<any>(null);
+  const isListeningRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const isProcessingRef = useRef(false);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Neural Text-To-Speech with state updates & haptics
   const speakFeedback = useCallback(async (text: string) => {
@@ -261,10 +276,42 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           }
           case 'TIMER_SET_INTERVAL': {
             const interval = intent.intervalMinutes || 10;
+            setFocusIntervalRef.current(interval);
             toastRef.current({
               title: 'Interval Alerts Configured 🔔',
               description: `You will be alerted every ${interval} minutes.`,
             });
+            break;
+          }
+          case 'ROUTINE_COMPLETE_TASK': {
+            const curTimer = activeTimerRef.current;
+            if (curTimer?.taskName) {
+              const existing = tasksRef.current.find(
+                (t) => t.name.toLowerCase() === curTimer.taskName.toLowerCase() && !t.completed
+              );
+              if (existing) {
+                await toggleTaskCompletionRef.current(existing.id);
+              } else if (userRef.current?.uid) {
+                await addTaskRef.current({
+                  name: curTimer.taskName,
+                  duration: curTimer.initialDuration || 15,
+                  initialDuration: curTimer.initialDuration || 15,
+                  completed: true,
+                  category: (curTimer.category as any) || 'Productivity',
+                  earnedCoins: 50,
+                });
+              }
+              clearTimerRef.current();
+              toastRef.current({
+                title: 'Task Conquered! 🎉',
+                description: `${curTimer.taskName} marked as completed. Session logged!`,
+              });
+            } else {
+              toastRef.current({
+                title: 'Routine Completed',
+                description: intent.speechFeedback || 'Active task finished.',
+              });
+            }
             break;
           }
           case 'TASK_LOG_QUICK':
@@ -315,7 +362,17 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           }
           case 'SENSOR_ENVIRONMENT_TOGGLE': {
             if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('slake-sensor-toggle', { detail: intent }));
+              window.dispatchEvent(
+                new CustomEvent('slake-sensor-toggle', {
+                  detail: {
+                    actionType: intent.actionType,
+                    sensorType: intent.sensorType,
+                    sensorState: intent.sensorState,
+                    speechFeedback: intent.speechFeedback,
+                    ...intent,
+                  },
+                })
+              );
             }
             toastRef.current({
               title: 'Sensory Environment',

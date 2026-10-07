@@ -105,7 +105,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     isAmbientEnabled, setAmbientEnabled, selectedAmbient, setSelectedAmbient, ambientVolume, setAmbientVolume,
     isSoundtrackEnabled, setSoundtrackEnabled, selectedSoundtrack, setSelectedSoundtrack, soundtrackVolume, setSoundtrackVolume
   } = useAudioSettings();
-  const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized } = useActiveTimer();
+  const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized, focusInterval: contextFocusInterval } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
@@ -128,7 +128,24 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
-  const [focusInterval, setFocusInterval] = useState<number | null>(null);
+  const [focusInterval, setFocusInterval] = useState<number | null>(contextFocusInterval || null);
+
+  useEffect(() => {
+    if (contextFocusInterval && contextFocusInterval > 0) {
+      setFocusInterval(contextFocusInterval);
+    }
+  }, [contextFocusInterval]);
+
+  useEffect(() => {
+    const handleIntervalEvent = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail.interval) {
+        setFocusInterval(detail.interval);
+      }
+    };
+    window.addEventListener('slake-focus-interval-changed', handleIntervalEvent);
+    return () => window.removeEventListener('slake-focus-interval-changed', handleIntervalEvent);
+  }, []);
   const [customIntervalInput, setCustomIntervalInput] = useState<string>("");
   const [taskCategory, setTaskCategory] = useState(category);
   const [showExitWarning, setShowExitWarning] = useState(false);
@@ -1159,7 +1176,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     <main
       onClick={handleInteraction}
       onMouseMove={handleInteraction}
-      className={cn("dark relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-white bg-[#0c0d0e] overflow-hidden", flashState === "three-times" && "ring-8 ring-emerald-500/60 ring-inset border-4 border-emerald-400")}
+      className={cn(
+        "dark relative flex min-h-screen w-full flex-col items-center justify-start p-4 sm:p-6 md:p-8 transition-all duration-300 ease-in-out text-white bg-[#0c0d0e] overflow-hidden",
+        flashState === "three-times" && "border-emerald-500/80 ring-4 ring-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.35)]"
+      )}
       style={{
         '--timer-primary-color': timerColor,
         '--flash-color': isContinuousFlashing 

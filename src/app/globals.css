@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&family=Nunito:wght@200..1000&family=Orbitron:wght@400..900&family=Space+Grotesk:wght@300..700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,6 +10,11 @@ html {
 @layer base {
   :root {
     scrollbar-gutter: stable;
+    --font-geist-sans: 'Geist', sans-serif;
+    --font-geist-mono: 'Geist Mono', monospace;
+    --font-nunito: 'Nunito', sans-serif;
+    --font-space-grotesk: 'Space Grotesk', sans-serif;
+    --font-orbitron: 'Orbitron', monospace;
     --background: 40 20% 95%;
     --foreground: 20 10% 10%;
     --card: 0 0% 100%;

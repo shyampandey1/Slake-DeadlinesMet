@@ -21,6 +21,8 @@ interface ActiveTimer {
 interface TimerContextType {
     activeTimer: ActiveTimer | null;
     isInitialized: boolean;
+    focusInterval: number;
+    setFocusInterval: (interval: number) => void;
     startTimer: (timer: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string }) => void;
     clearTimer: () => void;
     updateTimer: (updates: Partial<ActiveTimer>, remainingSeconds?: number) => void;
@@ -32,8 +34,16 @@ const STORAGE_KEY = 'deadlinesmet_active_timer';
 
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
     const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+    const [focusInterval, setFocusIntervalState] = useState<number>(10);
     const [isInitialized, setIsInitialized] = useState(false);
     const { user } = useAuth();
+
+    const setFocusInterval = useCallback((interval: number) => {
+        setFocusIntervalState(interval);
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('slake-focus-interval-changed', { detail: { interval } }));
+        }
+    }, []);
 
     // Use a ref to track the last synced Firestore state to avoid loops
     const lastSyncedFirestore = useRef<string | null>(null);
@@ -269,7 +279,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }, [user]);
 
     return (
-        <TimerContext.Provider value={{ activeTimer, isInitialized, startTimer, clearTimer, updateTimer }}>
+        <TimerContext.Provider value={{ activeTimer, isInitialized, focusInterval, setFocusInterval, startTimer, clearTimer, updateTimer }}>
             {children}
         </TimerContext.Provider>
     );

@@ -13,7 +13,6 @@ const nextConfig = {
       ...(config.externals || []),
       "@opentelemetry/sdk-node",
       "@genkit-ai/firebase",
-      "@genkit-ai/googleai",
       "genkit"
     ];
     // Disable minification to bypass crashes

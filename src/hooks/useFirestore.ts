@@ -314,7 +314,26 @@ export function useTasks() {
     return () => window.removeEventListener('app-online-sync', syncOfflineTasks);
   }, [user, isOffline, isSyncEnabled]);
 
-  return { tasks, loading, addTask, clearTasks };
+  const toggleTaskCompletion = useCallback(async (taskId: string) => {
+    if (!user) return;
+    const targetTask = tasks.find(t => t.id === taskId);
+    if (!targetTask) return;
+
+    const newCompleted = !targetTask.completed;
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: newCompleted, completedAt: newCompleted ? new Date().toISOString() : undefined } : t));
+
+    try {
+      const taskRef = doc(db, 'users', user.uid, 'tasks', taskId);
+      await updateDoc(taskRef, {
+        completed: newCompleted,
+        completedAt: newCompleted ? Timestamp.now() : null,
+      });
+    } catch (err) {
+      console.warn('Failed to update task completion in Firestore:', err);
+    }
+  }, [user, tasks]);
+
+  return { tasks, loading, addTask, clearTasks, toggleTaskCompletion };
 }
 
 // Hook for managing preset tasks and routines

@@ -72,7 +72,7 @@ export default function AgentDM() {
           >
             <div
               className={cn(
-                "backdrop-blur-xl bg-slate-950/90 border border-emerald-500/30 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
+                "backdrop-blur-xl bg-slate-950/85 border border-emerald-500/30 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
                 "hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]",
                 isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
                 isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",

@@ -33,7 +33,8 @@ export type VoiceIntentAction =
   | 'REWARDS_ACTION'
   | 'REDEEM_TRIGGER'
   | 'SENSOR_ENVIRONMENT_TOGGLE'
-  | 'MODAL_DISMISS';
+  | 'MODAL_DISMISS'
+  | 'ROUTINE_COMPLETE_TASK';
 
 export type VoiceAgentState = 'IDLE' | 'LISTENING' | 'THINKING' | 'EXECUTING' | 'SPEAKING';
 
@@ -54,7 +55,9 @@ export const VoiceIntentPayloadSchema = z.object({
     'REDEEM_TRIGGER',
     'SENSOR_ENVIRONMENT_TOGGLE',
     'MODAL_DISMISS',
+    'ROUTINE_COMPLETE_TASK',
   ]),
+  actionType: z.string().optional(),
   taskName: z.string().optional(),
   durationMinutes: z.number().optional(),
   durationSeconds: z.number().optional(),
@@ -78,7 +81,7 @@ export const VoiceIntentPayloadSchema = z.object({
   earnedCoins: z.number().optional(),
   coopAction: z.enum(['invite', 'start_sprint', 'pause_group']).optional(),
   rewardsAction: z.enum(['redeem', 'withdraw', 'pin_certificate', 'check_balance']).optional(),
-  sensorType: z.enum(['eye_tracking', 'water_sounds', 'ambient_noise']).optional(),
+  sensorType: z.enum(['eye_tracking', 'water_sounds', 'ambient_noise', 'breathing_chimes']).optional(),
   sensorState: z.enum(['on', 'off', 'toggle']).optional(),
   speechFeedback: z.string(),
   confidence: z.number().min(0).max(1).optional(),
