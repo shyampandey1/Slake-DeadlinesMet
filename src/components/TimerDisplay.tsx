@@ -724,8 +724,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         if (lastSyncedSessionSnapshotRef.current === snapshotKey) return;
         lastSyncedSessionSnapshotRef.current = snapshotKey;
 
-        // ONLY sync if the change came from someone else to prevent bounces
-        if (session.lastActionBy && session.lastActionBy !== user.uid) {
+        // ONLY sync if the change did NOT originate from this user's current device action
+        if (!session.lastActionBy || session.lastActionBy !== user.uid) {
             // Update local state from shared session
             if (session.isPaused !== isPaused) {
                 setIsPaused(session.isPaused);

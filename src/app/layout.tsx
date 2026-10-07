@@ -15,6 +15,7 @@ import FloatingTimer from "@/components/FloatingTimer";
 import AgentDM from "@/components/voice/AgentDM";
 import { VoiceProvider } from "@/hooks/useVoiceController";
 import { ThemeProvider } from "@/hooks/useTheme";
+import CoReformerSyncWatcher from "@/components/CoReformerSyncWatcher";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({
                         <TimerProvider>
                             <VoiceProvider>
                                 <HardwareBackHandler />
+                                <CoReformerSyncWatcher />
                                 <AgentDM />
                                 <PageTransitionWrapper>
                                     {children}
