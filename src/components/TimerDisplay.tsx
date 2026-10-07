@@ -109,7 +109,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
-  const { session, updateSession } = useCoOpSession(coOpSessionId || activeTimer?.coOpSessionId);
+  const resolvedCoOpSessionId = forceRestart
+    ? coOpSessionId
+    : (coOpSessionId || (activeTimer?.taskName === taskName ? activeTimer?.coOpSessionId : undefined));
+  const { session, updateSession } = useCoOpSession(resolvedCoOpSessionId, false);
 
   // Check if this task is a breathing/oxygenation task
   const isBreathingTask = taskName.toLowerCase().includes("breath") || taskName.toLowerCase().includes("oxygen") || taskName.toLowerCase().includes("pranayama");
@@ -581,6 +584,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   }, []);
 
     const hasInitializedRef = useRef(false);
+    const lastInitKeyRef = useRef<string | null>(null);
+    const lastSyncedSessionSnapshotRef = useRef<string | null>(null);
 
     // Handle initialization and sync with global state
     useEffect(() => {
@@ -588,8 +593,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         if (!isInitialized) return;
 
         try {
-            // Reset state when task params change
-            if (!forceRestart && hasInitializedRef.current && (activeTimer?.taskName === taskName)) {
+            const targetCoOpSessionId = resolvedCoOpSessionId || undefined;
+            const currentInitKey = `${taskName}_${effectiveDuration}_${targetCoOpSessionId || ''}_${expectedEndTime || ''}`;
+
+            // Avoid re-initializing if we already initialized this exact task session
+            if (hasInitializedRef.current && lastInitKeyRef.current === currentInitKey) {
                 setSyncComplete(true);
                 return;
             }
@@ -600,7 +608,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             // START our persistent global background timer when the page mounts!
             // But ONLY if one isn't already running for this task or if the task changed
             const activeCoOpSessionId = activeTimer?.coOpSessionId || undefined;
-            const targetCoOpSessionId = coOpSessionId || undefined;
             const isExpired = activeTimer && (
               activeTimer.isPaused 
                 ? (activeTimer.timeLeftWhenPaused !== undefined && activeTimer.timeLeftWhenPaused <= 0)
@@ -609,7 +616,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
             if (forceRestart || !activeTimer || activeTimer.taskName !== taskName || activeCoOpSessionId !== targetCoOpSessionId || isExpired) {
               const seconds = Math.round(effectiveDuration * 60);
-              const computedEndTime = expectedEndTime || (Date.now() + seconds * 1000);
+              const computedEndTime = (expectedEndTime && expectedEndTime > Date.now())
+                ? expectedEndTime
+                : (Date.now() + seconds * 1000);
+              const initialRemaining = Math.max(1, Math.round((computedEndTime - Date.now()) / 1000));
+
+              timeRemainingRef.current = initialRemaining;
+              expectedEndTimeRef.current = computedEndTime;
+
               startTimer({
                 taskName,
                 initialDuration: effectiveDuration,
@@ -618,8 +632,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 expectedEndTime: computedEndTime,
                 coOpSessionId: targetCoOpSessionId
               });
-              setTimeRemaining(seconds);
+              setTimeRemaining(initialRemaining);
               setIsPaused(false);
+              setIsFinished(false);
               showCompletionNotification(true); // Schedule it!
 
               updateUserProfileData({
@@ -632,7 +647,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                   isPaused: false,
                   category: category || "",
                   color: color || "",
-                  coOpSessionId: targetCoOpSessionId || ""
+                  coOpSessionId: targetCoOpSessionId || "",
+                  timeLeftWhenPaused: null
                 }
               });
 
@@ -648,13 +664,18 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             } else {
               // RESTORE from active timer
               setIsPaused(activeTimer.isPaused);
+              setIsFinished(false);
               let rem = Math.round(effectiveDuration * 60);
               if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
                 rem = activeTimer.timeLeftWhenPaused;
+                timeRemainingRef.current = rem;
+                expectedEndTimeRef.current = null;
                 setTimeRemaining(rem);
               } else if (activeTimer.expectedEndTime) {
                 const diff = Math.max(0, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
                 rem = diff;
+                timeRemainingRef.current = diff;
+                expectedEndTimeRef.current = activeTimer.isPaused ? null : activeTimer.expectedEndTime;
                 setTimeRemaining(diff);
                 if (!activeTimer.isPaused) showCompletionNotification(true); // Re-schedule it!
               }
@@ -670,21 +691,22 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                   category: category || "",
                   color: color || "",
                   coOpSessionId: targetCoOpSessionId || "",
-                  timeLeftWhenPaused: activeTimer.isPaused ? rem : undefined
+                  timeLeftWhenPaused: activeTimer.isPaused ? rem : null
                 }
               });
             }
             hasInitializedRef.current = true;
+            lastInitKeyRef.current = currentInitKey;
             setSyncComplete(true);
         } catch (e) {
             console.error("Timer initialization failed:", e);
             setSyncComplete(true); // Allow UI to show even if recovery happened
         }
-    }, [taskName, effectiveDuration, category, color, startTimer, isInitialized, expectedEndTime, coOpSessionId, forceRestart]); // Removed activeTimer from deps to prevent re-init loop
+    }, [taskName, effectiveDuration, category, color, startTimer, isInitialized, expectedEndTime, resolvedCoOpSessionId, forceRestart]);
 
     // CO-OP SYNC ENGINE
     useEffect(() => {
-        if (!session || !syncComplete || !user) return;
+        if (!session || !resolvedCoOpSessionId || session.id !== resolvedCoOpSessionId || session.taskName !== taskName || !syncComplete || !user) return;
 
         // Auto-start session if it is still waiting while local timer is running
         if (session.status === "waiting" && !isPaused && session.createdBy === user.uid) {
@@ -698,8 +720,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
             return;
         }
 
+        const snapshotKey = `${session.id}_${session.status}_${session.isPaused}_${session.expectedEndTime}_${session.timeLeftWhenPaused}_${session.lastActionBy}_${session.lastActionAt?.toMillis?.() || session.lastActionAt?.seconds || ''}`;
+        if (lastSyncedSessionSnapshotRef.current === snapshotKey) return;
+        lastSyncedSessionSnapshotRef.current = snapshotKey;
+
         // ONLY sync if the change came from someone else to prevent bounces
-        if (session.lastActionBy !== user.uid) {
+        if (session.lastActionBy && session.lastActionBy !== user.uid) {
             // Update local state from shared session
             if (session.isPaused !== isPaused) {
                 setIsPaused(session.isPaused);
@@ -709,25 +735,27 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                     activeSession: {
                         taskName,
                         duration: effectiveDuration,
-                        expectedEndTime: session.expectedEndTime || (Date.now() + (session.timeLeftWhenPaused || timeRemaining) * 1000),
+                        expectedEndTime: session.expectedEndTime || (Date.now() + (session.timeLeftWhenPaused || timeRemainingRef.current) * 1000),
                         isPaused: session.isPaused,
                         category: category || "",
                         color: color || "",
                         coOpSessionId: session.id,
-                        timeLeftWhenPaused: session.isPaused ? (session.timeLeftWhenPaused || timeRemaining) : undefined
+                        timeLeftWhenPaused: session.isPaused ? (session.timeLeftWhenPaused || timeRemainingRef.current) : null
                     }
                 });
             }
 
-            if (session.status === "running" && session.expectedEndTime) {
+            if (session.status === "running" && session.expectedEndTime && session.expectedEndTime > Date.now()) {
                 const diff = Math.max(0, Math.round((session.expectedEndTime - Date.now()) / 1000));
-                if (Math.abs(diff - timeRemaining) > 1) { // Drift correction
+                if (Math.abs(diff - timeRemainingRef.current) > 1) { // Drift correction
+                    timeRemainingRef.current = diff;
                     setTimeRemaining(diff);
                     updateTimer({ isPaused: false, expectedEndTime: session.expectedEndTime }, diff);
                 }
                 expectedEndTimeRef.current = session.expectedEndTime;
-            } else if (session.status === "waiting") {
-                if (session.timeLeftWhenPaused !== undefined && session.timeLeftWhenPaused !== null) {
+            } else if (session.status === "waiting" && session.isPaused) {
+                if (session.timeLeftWhenPaused !== undefined && session.timeLeftWhenPaused !== null && session.timeLeftWhenPaused > 0) {
+                    timeRemainingRef.current = session.timeLeftWhenPaused;
                     setTimeRemaining(session.timeLeftWhenPaused);
                     updateTimer({ isPaused: true, timeLeftWhenPaused: session.timeLeftWhenPaused }, session.timeLeftWhenPaused);
                 }
@@ -743,7 +771,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 });
             }
         }
-    }, [session, syncComplete, user?.uid, isPaused, timeRemaining, updateTimer, clearTimer, taskName, effectiveDuration, category, color, updateUserProfileData, updateSession]);
+    }, [session, resolvedCoOpSessionId, syncComplete, user, isPaused, updateTimer, clearTimer, taskName, effectiveDuration, category, color, updateUserProfileData, updateSession]);
 
   // Main stable timer engine resilient to background throttling
   useEffect(() => {
@@ -754,19 +782,23 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       return;
     }
 
-    if (!expectedEndTimeRef.current) {
+    if (!expectedEndTimeRef.current || expectedEndTimeRef.current <= Date.now()) {
       expectedEndTimeRef.current = Date.now() + timeRemainingRef.current * 1000;
     }
 
     const interval = setInterval(() => {
+      if (!expectedEndTimeRef.current) return;
       const now = Date.now();
-      const difference = Math.max(0, Math.round((expectedEndTimeRef.current! - now) / 1000));
+      const difference = Math.max(0, Math.round((expectedEndTimeRef.current - now) / 1000));
 
+      timeRemainingRef.current = difference;
       setTimeRemaining(difference);
 
       if (isHydrationTask) {
-        const fadeFactor = Math.min(1.0, difference / 15.0);
-        setHydrationVolume(fadeFactor);
+        try {
+          const fadeFactor = Math.min(1.0, difference / 15.0);
+          setHydrationVolume(fadeFactor);
+        } catch {}
       }
 
       // Task 3: Interval Alerts - wrap checks within steady interval loops
@@ -820,7 +852,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isPaused, isFinished, playFinish, playTick, showCompletionNotification, syncComplete, clearTimer]);
+  }, [isPaused, isFinished, playFinish, playTick, showCompletionNotification, syncComplete, clearTimer, taskName, effectiveDuration]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -1534,7 +1566,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                                 category: category || "",
                                 color: color || "",
                                 coOpSessionId: currentCoOpId,
-                                timeLeftWhenPaused: newPaused ? timeRemaining : undefined
+                                timeLeftWhenPaused: newPaused ? timeRemaining : null
                             }
                         });
                         

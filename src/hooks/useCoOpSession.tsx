@@ -20,7 +20,7 @@ export interface CoOpSession {
     lastActionAt: any;
 }
 
-export const useCoOpSession = (sessionId?: string) => {
+export const useCoOpSession = (sessionId?: string, autoDetect: boolean = false) => {
     const { user } = useAuth();
     const [session, setSession] = useState<CoOpSession | null>(null);
     const [loading, setLoading] = useState(true);
@@ -46,8 +46,8 @@ export const useCoOpSession = (sessionId?: string) => {
             });
 
             return () => unsub();
-        } else {
-            // Auto-detect active session for current user
+        } else if (autoDetect) {
+            // Auto-detect active session for current user (only recent, non-expired sessions)
             const q = query(
                 collection(db, "coop_sessions"),
                 where("participants", "array-contains", user.uid)
@@ -55,9 +55,23 @@ export const useCoOpSession = (sessionId?: string) => {
 
             const unsub = onSnapshot(q, (snap) => {
                 if (!snap.empty) {
+                    const now = Date.now();
+                    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
                     const activeDocs = snap.docs
                         .map(d => ({ id: d.id, ...d.data() } as CoOpSession))
-                        .filter(s => s.status !== "finished");
+                        .filter(s => {
+                            if (s.status === "finished") return false;
+                            if (s.status === "running" && s.expectedEndTime && s.expectedEndTime <= now) return false;
+                            const idParts = s.id.split("_");
+                            const createdTs = s.startTime || (idParts.length > 1 ? parseInt(idParts[idParts.length - 1], 10) : 0);
+                            if (createdTs && !isNaN(createdTs) && (now - createdTs > TWO_HOURS_MS)) return false;
+                            return true;
+                        })
+                        .sort((a, b) => {
+                            const tsA = a.startTime || parseInt(a.id.split("_").pop() || "0", 10) || 0;
+                            const tsB = b.startTime || parseInt(b.id.split("_").pop() || "0", 10) || 0;
+                            return tsA - tsB;
+                        });
 
                     if (activeDocs.length > 0) {
                         setSession(activeDocs[activeDocs.length - 1]);
@@ -74,8 +88,11 @@ export const useCoOpSession = (sessionId?: string) => {
             });
 
             return () => unsub();
+        } else {
+            setSession(null);
+            setLoading(false);
         }
-    }, [sessionId, user]);
+    }, [sessionId, autoDetect, user]);
 
     const updateSession = useCallback(async (updates: Partial<CoOpSession>) => {
         const targetId = sessionId || session?.id;

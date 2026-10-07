@@ -182,10 +182,6 @@ export default function TaskForm() {
     coOpSessionId?: string;
     joinSessionId?: string;
   }) => {
-    if (activeTimer) {
-      clearTimer();
-    }
-
     if (params.joinSessionId) {
       try {
         await joinSession(params.joinSessionId);
@@ -352,9 +348,23 @@ export default function TaskForm() {
 
     const unsub = onSnapshot(q, (snap: any) => {
       if (!snap.empty) {
+        const now = Date.now();
+        const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
         const activeDocs = snap.docs
           .map((d: any) => ({ id: d.id, ...d.data() }))
-          .filter((d: any) => d.status !== "finished" && d.createdBy !== user.uid);
+          .filter((d: any) => {
+            if (d.status === "finished" || d.createdBy === user.uid) return false;
+            if (d.status === "running" && d.expectedEndTime && d.expectedEndTime <= now) return false;
+            const idParts = String(d.id || "").split("_");
+            const createdTs = d.startTime || (idParts.length > 1 ? parseInt(idParts[idParts.length - 1], 10) : 0);
+            if (createdTs && !isNaN(createdTs) && (now - createdTs > TWO_HOURS_MS)) return false;
+            return true;
+          })
+          .sort((a: any, b: any) => {
+            const tsA = a.startTime || parseInt(String(a.id || "").split("_").pop() || "0", 10) || 0;
+            const tsB = b.startTime || parseInt(String(b.id || "").split("_").pop() || "0", 10) || 0;
+            return tsA - tsB;
+          });
         
         if (activeDocs.length > 0) {
           setIncomingSession(activeDocs[activeDocs.length - 1]);

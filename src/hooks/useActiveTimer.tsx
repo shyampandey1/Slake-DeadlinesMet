@@ -37,6 +37,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
     // Use a ref to track the last synced Firestore state to avoid loops
     const lastSyncedFirestore = useRef<string | null>(null);
+    const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const localWriteTimestampRef = useRef<number>(0);
 
     // Initial load from storage (as fallback/immediate load)
     useEffect(() => {
@@ -67,14 +69,25 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         if (!user) return;
 
         const unsubscribe = onSnapshot(doc(db, 'active_sessions', user.uid), (docSnap) => {
+            if (clearTimeoutRef.current) {
+                clearTimeout(clearTimeoutRef.current);
+                clearTimeoutRef.current = null;
+            }
+
+            // Ignore incoming snapshots that arrive immediately after a local timer write
+            if (Date.now() - localWriteTimestampRef.current < 3000) {
+                return;
+            }
+
             if (!docSnap.exists()) {
                 // If Firestore has no session but we have one
                 if (activeTimerRef.current && isInitialized) {
-                    const checkClear = setTimeout(() => {
-                        setActiveTimer(null);
-                        localStorage.removeItem(STORAGE_KEY);
+                    clearTimeoutRef.current = setTimeout(() => {
+                        if (Date.now() - localWriteTimestampRef.current >= 3000) {
+                            setActiveTimer(null);
+                            localStorage.removeItem(STORAGE_KEY);
+                        }
                     }, 2000);
-                    return () => clearTimeout(checkClear);
                 }
                 return;
             }
@@ -101,7 +114,14 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                     expectedEndTime = now + (timeLeftWhenPaused * 1000); // Shift expected end time if it resumes now
                 }
 
+                // Do not restore an already-expired remote session
+                if (!isPaused && expectedEndTime <= now) {
+                    return;
+                }
+
                 decryptText(data.currentTaskId, user.uid).then(decryptedName => {
+                    if (Date.now() - localWriteTimestampRef.current < 3000) return;
+
                     const newTimer: ActiveTimer = {
                         taskName: decryptedName || 'Untitled Task',
                         expectedEndTime: expectedEndTime,
@@ -121,10 +141,20 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             console.warn('active_sessions snapshot error:', error);
         });
 
-        return () => unsubscribe();
+        return () => {
+            if (clearTimeoutRef.current) {
+                clearTimeout(clearTimeoutRef.current);
+            }
+            unsubscribe();
+        };
     }, [user, isInitialized]);
 
     const saveTimer = useCallback((timer: ActiveTimer | null) => {
+        localWriteTimestampRef.current = Date.now();
+        if (clearTimeoutRef.current) {
+            clearTimeout(clearTimeoutRef.current);
+            clearTimeoutRef.current = null;
+        }
         setActiveTimer(timer);
         if (timer) {
             try {
@@ -191,6 +221,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }, [saveTimer]);
 
     const updateTimer = useCallback((updates: Partial<ActiveTimer>, remainingSeconds?: number) => {
+        localWriteTimestampRef.current = Date.now();
         setActiveTimer(prev => {
             if (!prev) return null;
 

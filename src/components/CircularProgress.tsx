@@ -31,7 +31,7 @@ const CircularProgress = ({ progress, children, isUIVisible }: CircularProgressP
                 viewBox="0 0 200 200"
             >
                 <circle
-                    stroke="hsl(var(--muted))"
+                    stroke="rgba(255, 255, 255, 0.12)"
                     fill="transparent"
                     strokeWidth={stroke}
                     r={normalizedRadius}

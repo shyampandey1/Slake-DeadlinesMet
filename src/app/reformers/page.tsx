@@ -347,7 +347,7 @@ function ReformersPageContent() {
     const [selectedUserFollowers, setSelectedUserFollowers] = useState(0);
     const [selectedUserFollowing, setSelectedUserFollowing] = useState(0);
     const [peerLatestData, setPeerLatestData] = useState<any>(null);
-    const { session: activeCoOp, createSession, joinSession } = useCoOpSession();
+    const { session: activeCoOp, createSession, joinSession } = useCoOpSession(undefined, !!profileData?.coWorkerId);
     const [showStartTogetherModal, setShowStartTogetherModal] = useState(false);
     const [coOpTaskToPropose, setCoOpTaskToPropose] = useState<any>(null);
     const [currentTime, setCurrentTime] = useState(Date.now());

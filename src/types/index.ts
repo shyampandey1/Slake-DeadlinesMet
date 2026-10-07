@@ -167,7 +167,7 @@ export type UserProfile = {
         category?: string;
         color?: string;
         coOpSessionId?: string;
-        timeLeftWhenPaused?: number;
+        timeLeftWhenPaused?: number | null;
     } | null;
     notificationSettings?: {
         streakExpiryWarning: boolean;
