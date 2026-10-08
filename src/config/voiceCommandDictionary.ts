@@ -1,4 +1,4 @@
-import { VoiceIntentAction, VoiceCategory, VoiceRoute } from '@/types/voice';
+import { VoiceIntentAction, VoiceCategory, VoiceRoute, JEV_VOICE_DATASET, JevVoiceRecord } from '@/types/voice';
 
 export interface CommandDefinition {
   action: VoiceIntentAction;
@@ -13,630 +13,518 @@ export interface CommandDefinition {
   extendMinutes?: number;
   intervalMinutes?: number;
   earnedCoins?: number;
+  coinsAwarded?: number;
   coopAction?: 'invite' | 'start_sprint' | 'pause_group';
   rewardsAction?: 'redeem' | 'withdraw' | 'pin_certificate' | 'check_balance';
-  sensorType?: 'eye_tracking' | 'water_sounds' | 'ambient_noise' | 'breathing_chimes';
+  sensorType?: 'eye_tracking' | 'water_sounds' | 'ambient_noise';
   sensorState?: 'on' | 'off' | 'toggle';
   speechFeedback: string;
   description: string;
 }
 
-export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
-  // ==========================================
-  // 1. NAVIGATION (NAVIGATE)
-  // ==========================================
+// Convert dataset entries from JEV_VOICE_DATASET into structured CommandDefinitions
+function buildDatasetCommandDefinitions(): CommandDefinition[] {
+  return JEV_VOICE_DATASET.map((item: JevVoiceRecord) => {
+    let taskName: string | undefined = undefined;
+    if (item.intent === 'TASK_CREATE') {
+      const first = item.utterances[0] || '';
+      taskName = first
+        .replace(/^(?:start|begin|do|run)\s+/i, '')
+        .replace(/\s+(?:timer|session|break|exercise|sprint|block|review)$/i, '')
+        .trim();
+      taskName = taskName.charAt(0).toUpperCase() + taskName.slice(1);
+    }
+
+    let coopAction: 'invite' | 'start_sprint' | 'pause_group' | undefined;
+    if (item.actionType === 'INVITE_PARTNER') coopAction = 'invite';
+    if (item.actionType === 'BROADCAST_START') coopAction = 'start_sprint';
+    if (item.actionType === 'BROADCAST_PAUSE') coopAction = 'pause_group';
+
+    let rewardsAction: 'redeem' | 'withdraw' | 'pin_certificate' | 'check_balance' | undefined;
+    if (item.actionType === 'REDEEM_UPI') rewardsAction = 'redeem';
+    if (item.actionType === 'PIN_CERTIFICATE') rewardsAction = 'pin_certificate';
+    if (item.actionType === 'CHECK_BALANCE') rewardsAction = 'check_balance';
+
+    let sensorType: 'eye_tracking' | 'water_sounds' | 'ambient_noise' | undefined;
+    let sensorState: 'on' | 'off' | 'toggle' | undefined;
+    if (item.actionType?.includes('EYE_TRACKING')) {
+      sensorType = 'eye_tracking';
+      sensorState = item.actionType.endsWith('ON') ? 'on' : 'off';
+    } else if (item.actionType === 'AUDIO_WATER_ON') {
+      sensorType = 'water_sounds';
+      sensorState = 'on';
+    } else if (item.actionType === 'AUDIO_BREATHE_ON') {
+      sensorType = 'ambient_noise';
+      sensorState = 'on';
+    } else if (item.actionType === 'AUDIO_MUTE') {
+      sensorType = 'ambient_noise';
+      sensorState = 'off';
+    }
+
+    const durationSeconds = item.durationMinutes ? item.durationMinutes * 60 : undefined;
+
+    return {
+      action: item.intent as VoiceIntentAction,
+      actionType: item.actionType,
+      phrases: item.utterances,
+      patterns: item.utterances.map(u => {
+        const escaped = u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`^${escaped}$`, 'i');
+      }),
+      category: item.category as VoiceCategory | undefined,
+      taskName,
+      targetRoute: item.targetRoute as VoiceRoute | undefined,
+      durationMinutes: item.durationMinutes,
+      durationSeconds,
+      extendMinutes: item.actionType === 'EXTEND' ? item.durationMinutes : undefined,
+      intervalMinutes: item.actionType === 'SET_INTERVAL' ? item.durationMinutes : undefined,
+      coinsAwarded: item.coinsAwarded,
+      earnedCoins: item.coinsAwarded,
+      coopAction,
+      rewardsAction,
+      sensorType,
+      sensorState,
+      speechFeedback: item.speechFeedback,
+      description: `JEV Dataset intent: ${item.intent} (${item.actionType || 'standard'})`
+    };
+  });
+}
+
+const DATASET_COMMANDS = buildDatasetCommandDefinitions();
+
+// Extended regex patterns & flexible fallback commands
+const FLEXIBLE_COMMANDS: CommandDefinition[] = [
+  // 1. Navigation flexible patterns
   {
     action: 'NAVIGATE',
-    phrases: [
-      'go home',
-      'take me home',
-      'open home',
-      'dashboard',
-      'homescreen',
-    ],
-    patterns: [/^(?:go\s+to\s+|open\s+|take\s+me\s+to\s+)?(?:home|dashboard|homescreen)$/i],
+    phrases: ['go home', 'open home', 'take me home', 'dashboard', 'main screen', 'back to dashboard'],
+    patterns: [/^(?:go\s+to\s+|open\s+|take\s+me\s+to\s+)?(?:home|dashboard|homescreen|main\s+screen)$/i],
     targetRoute: '/',
-    speechFeedback: 'Navigating to Homescreen.',
-    description: 'Jump to the main dashboard and active countdown.',
+    speechFeedback: 'Opening dashboard.',
+    description: 'Jump to the main dashboard'
   },
   {
     action: 'NAVIGATE',
-    phrases: [
-      'open routine',
-      'show schedule',
-      'show routine',
-      'go to routine',
-      'my routines',
-      'routine schedule',
-    ],
-    patterns: [/(?:open|show|go to|view)\s+(?:my\s+)?(?:routine|schedule)/i],
+    phrases: ['open routine', 'show my routine', "today's schedule", 'check routine', 'view routine'],
+    patterns: [/(?:open|show|go to|view|check)\s+(?:my\s+)?(?:routine|schedule|today'?s\s+schedule)/i],
     targetRoute: '/routine',
-    speechFeedback: 'Opening your Routine schedule.',
-    description: 'View and adjust daily profession and MOVERS schedule.',
+    speechFeedback: 'Here is your routine.',
+    description: 'View daily routine schedule'
   },
   {
     action: 'NAVIGATE',
-    phrases: [
-      'go to reformers',
-      'open reformer league',
-      'show community',
-      'show reformers league',
-      'open reformers',
-      'reformers league',
-      'community',
-    ],
-    patterns: [/(?:open|show|go to|view)\s+(?:the\s+)?(?:reformer(?:s)?(?:\s+league)?|community)/i],
+    phrases: ['go to reformers', 'open reformer league', 'show reformers', 'the league', 'community page'],
+    patterns: [/(?:open|show|go to|view)\s+(?:the\s+)?(?:reformer(?:s)?(?:\s+league)?|community(?:\s+page)?)/i],
     targetRoute: '/reformers',
-    speechFeedback: 'Entering the Reformers League.',
-    description: 'Check global leaderboard, co-op peers, and league status.',
+    speechFeedback: 'Opening Reformers League.',
+    description: 'Enter Reformers League'
   },
   {
     action: 'NAVIGATE',
-    phrases: [
-      'open rewards',
-      'show achievement center',
-      'view my coins',
-      'check wallet',
-      'show rewards',
-      'achievement center',
-      'achievements',
-      'go to rewards',
-      'view coins',
-    ],
-    patterns: [/(?:open|show|go to|view|check)\s+(?:my\s+)?(?:rewards|achievement(?:s)?(?:\s+center)?|coins|wallet|gamification)/i],
+    phrases: ['open rewards', 'show achievement center', 'view my coins', 'check wallet', 'open achievements'],
+    patterns: [/(?:open|show|go to|view|check)\s+(?:my\s+)?(?:rewards|achievement(?:s)?(?:\s+center)?|wallet|coins)/i],
     targetRoute: '/rewards',
-    speechFeedback: 'Opening Achievement Center and Rewards.',
-    description: 'Redeem Slake Coins, certificates, and view badges.',
+    speechFeedback: 'Opening Achievement Center.',
+    description: 'Achievement and rewards center'
   },
   {
     action: 'NAVIGATE',
-    phrases: [
-      'open log book',
-      'show analytics',
-      'view productivity insights',
-      'show task log book',
-      'open logbook',
-      'go to logbook',
-      'history',
-      'task history',
-      'show history',
-      'productivity insights',
-    ],
-    patterns: [/(?:open|show|go to|view)\s+(?:task\s+)?(?:log\s*book|logbook|history|analytics|productivity\s+insights)/i],
-    targetRoute: '/logbook',
-    speechFeedback: 'Opening your Task Log Book and Behavioral Insights.',
-    description: 'Review completed tasks, performance graphs, and JEV insights.',
+    phrases: ['open log book', 'show task log', 'view insights', 'task analytics', 'open history'],
+    patterns: [/(?:open|show|go to|view)\s+(?:my\s+)?(?:log\s*book|task\s*log|history|insights|analytics)/i],
+    targetRoute: '/analytics',
+    speechFeedback: 'Opening Task Log Book.',
+    description: 'Analytics & task log book'
   },
   {
     action: 'NAVIGATE',
-    phrases: [
-      'open settings',
-      'go to settings',
-      'preferences',
-      'app settings',
-    ],
-    patterns: [/(?:open|show|go to|view)\s+(?:app\s+)?(?:settings|preferences)/i],
+    phrases: ['open settings', 'preferences', 'system settings', 'app config'],
+    patterns: [/(?:open|show|go to)\s+(?:settings|preferences|system\s+settings|app\s+config)/i],
     targetRoute: '/settings',
-    speechFeedback: 'Opening Settings.',
-    description: 'Configure notifications, audio, and profile settings.',
+    speechFeedback: 'Opening settings.',
+    description: 'App settings and preferences'
   },
 
-  // ==========================================
-  // 2. TIMER CONTROLS (TIMER_*)
-  // ==========================================
+  // 2. Active Timer flexible patterns
   {
     action: 'TIMER_START',
-    phrases: [
-      'start timer',
-      'begin task',
-      "let's go",
-      'lets go',
-      'start focus',
-      'begin timer',
-      'countdown start',
-      'start session',
-    ],
-    patterns: [/^(?:start|begin)\s+(?:the\s+)?(?:timer|focus|countdown|session|task)$/i, /^let'?s\s+go$/i],
-    speechFeedback: 'Starting focus timer.',
-    description: 'Initiate the running timer for the current task.',
+    actionType: 'START',
+    phrases: ['start timer', 'begin task', 'start the clock', "let's go", 'run timer', 'start now'],
+    patterns: [/^(?:start|run|begin)\s+(?:the\s+)?(?:timer|clock|now|task)$/i, /^let'?s\s+go$/i],
+    speechFeedback: 'Timer started.',
+    description: 'Start active countdown timer'
   },
   {
     action: 'TIMER_PAUSE',
-    phrases: [
-      'pause timer',
-      'hold on',
-      'wait a second',
-      'pause',
-      'pause session',
-      'freeze timer',
-    ],
-    patterns: [/^(?:pause|hold\s+on|wait\s+(?:a\s+second|a\s+sec|a\s+moment)|freeze)(?:\s+timer|\s+session)?$/i],
+    actionType: 'PAUSE',
+    phrases: ['pause timer', 'pause the clock', 'hold on', 'wait a sec', 'take a pause', 'freeze timer'],
+    patterns: [/^(?:pause|hold\s+on|wait\s+a\s+sec|take\s+a\s+pause|freeze\s+timer)/i],
     speechFeedback: 'Timer paused.',
-    description: 'Temporarily pause the active countdown.',
+    description: 'Pause active timer'
   },
   {
     action: 'TIMER_RESUME',
-    phrases: [
-      'resume timer',
-      'unpause',
-      'keep going',
-      'resume',
-      'continue',
-    ],
-    patterns: [/^(?:resume|continue|unpause|keep\s+going)(?:\s+timer|\s+session)?$/i],
-    speechFeedback: 'Resuming timer countdown.',
-    description: 'Resume the paused timer.',
+    actionType: 'RESUME',
+    phrases: ['resume timer', 'unpause', 'keep going', 'continue session', 'back to work'],
+    patterns: [/^(?:resume|unpause|keep\s+going|continue|back\s+to\s+work)/i],
+    speechFeedback: 'Resuming timer.',
+    description: 'Resume active timer'
   },
   {
     action: 'TIMER_STOP',
-    phrases: [
-      'stop timer',
-      'finish task',
-      'task done',
-      'wrap it up',
-      'end timer',
-      'complete task',
-    ],
-    patterns: [/^(?:stop|finish|end|complete|wrap\s+it\s+up|done)(?:\s+the)?(?:\s+timer|\s+task|\s+session)?$/i],
-    speechFeedback: 'Focus session completed. Great discipline!',
-    description: 'Finish the active timer and log accomplishments.',
+    actionType: 'COMPLETE',
+    phrases: ['stop timer', 'end task', 'finish task', 'mark complete', 'wrap it up', 'task done'],
+    patterns: [/^(?:stop\s+timer|end\s+task|finish\s+task|mark\s+complete|wrap\s+it\s+up|task\s+done)$/i],
+    speechFeedback: 'Task completed. Great work!',
+    description: 'Complete active task'
   },
   {
     action: 'TIMER_STOP',
-    phrases: [
-      'cancel timer',
-      'abort task',
-      'abort timer',
-      'cancel task',
-    ],
-    patterns: [/^(?:cancel|abort)(?:\s+the)?(?:\s+timer|\s+task|\s+session)?$/i],
-    speechFeedback: 'Timer cancelled.',
-    description: 'Cancel or abort active timer.',
+    actionType: 'ABORT',
+    phrases: ['cancel timer', 'abort task', 'reset timer', 'discard clock', 'stop without saving'],
+    patterns: [/^(?:cancel\s+timer|abort\s+task|reset\s+timer|discard\s+clock|stop\s+without\s+saving)$/i],
+    speechFeedback: 'Timer reset.',
+    description: 'Abort / reset active timer'
   },
   {
     action: 'TIMER_EXTEND',
-    phrases: [
-      'add 5 minutes',
-      'add 10 minutes',
-      'give me 5 more minutes',
-      'give me more time',
-      'extend timer',
-      'extend 5 minutes',
-      'extend 10 minutes',
-    ],
-    patterns: [/(?:add|extend|give\s+me)\s*(?:by)?\s*(\d+)\s*(?:more)?\s*(?:min|minute|minutes|m)?/i],
+    actionType: 'EXTEND',
+    phrases: ['add 5 minutes', 'give me 5 more minutes', 'extend by 5', '5 more minutes'],
+    patterns: [/(?:add|give\s+me|extend(?:\s+timer)?(?:\s+by)?)\s*5(?:\s+more)?\s*min/i],
+    durationMinutes: 5,
     extendMinutes: 5,
-    speechFeedback: 'Extending timer.',
-    description: 'Add extra minutes to the active focus session.',
+    speechFeedback: 'Added 5 minutes.',
+    description: 'Extend timer by 5 minutes'
+  },
+  {
+    action: 'TIMER_EXTEND',
+    actionType: 'EXTEND',
+    phrases: ['add 10 minutes', 'give me 10 more minutes', 'extend timer by 10', '10 more minutes'],
+    patterns: [/(?:add|give\s+me|extend(?:\s+timer)?(?:\s+by)?)\s*10(?:\s+more)?\s*min/i],
+    durationMinutes: 10,
+    extendMinutes: 10,
+    speechFeedback: 'Added 10 minutes.',
+    description: 'Extend timer by 10 minutes'
   },
   {
     action: 'TIMER_SET_INTERVAL',
-    phrases: [
-      'set interval 5 minutes',
-      'set interval 10 minutes',
-      'set interval 15 minutes',
-      'remind me every 10 minutes',
-      'remind me every 5 minutes',
-      'set interval every 10 minutes',
-      'notify every 5 minutes',
-      'interval alert 15 minutes',
-      'set interval',
-    ],
-    patterns: [/(?:set\s+interval|notify|alert|remind\s+me)\s*(?:every)?\s*(\d+)\s*(?:min|minute|minutes|m)?/i],
+    actionType: 'SET_INTERVAL',
+    phrases: ['remind me every 5 minutes', 'set interval 5 minutes', 'alert every 5 mins', '5 minute chimes'],
+    patterns: [/(?:remind\s+me\s+every|set\s+interval(?:\s+to)?|alert\s+every)\s*5\s*min/i],
+    durationMinutes: 5,
+    intervalMinutes: 5,
+    speechFeedback: 'Interval set to 5 minutes.',
+    description: 'Set 5 minute interval alerts'
+  },
+  {
+    action: 'TIMER_SET_INTERVAL',
+    actionType: 'SET_INTERVAL',
+    phrases: ['remind me every 10 minutes', 'set interval 10 minutes', 'alert every 10 mins', '10 minute interval'],
+    patterns: [/(?:remind\s+me\s+every|set\s+interval(?:\s+to)?|alert\s+every)\s*10\s*min/i],
+    durationMinutes: 10,
     intervalMinutes: 10,
-    speechFeedback: 'Milestone interval alert updated.',
-    description: 'Configure recurring milestone alert ticks and border flashes.',
+    speechFeedback: 'Interval set to 10 minutes.',
+    description: 'Set 10 minute interval alerts'
   },
 
-  // ==========================================
-  // 3. MOVERS PROTOCOL TASK CREATION (TASK_CREATE)
-  // ==========================================
+  // Dynamic regex patterns for MOVERS Task Creation with variable durations
   {
-    action: 'TIMER_START',
-    taskName: 'Meditation',
-    phrases: [
-      'start meditation',
-      'meditate for 10 minutes',
-      'start meditation for 10 minutes',
-      'meditate 10 minutes',
-      '10 minute meditation',
-    ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?meditation(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
-    category: 'Meditation',
-    durationMinutes: 10,
-    earnedCoins: 30,
-    speechFeedback: 'Setting up 10-minute Meditation and Centering block (+30 Slake Coins).',
-    description: 'M: Meditation & Mindfulness pillar',
-  },
-  {
-    action: 'TIMER_START',
+    action: 'TASK_CREATE',
     taskName: 'Deep Breathing',
-    phrases: [
-      'start deep breathing',
-      'oxygenation session',
-      'breathe in and out',
-      'oxygenation deep breathing 4 minutes',
-      'breathing exercise 4 minutes',
-      'deep breathing',
-      'box breathing',
-      'pranayama',
+    phrases: ['start deep breathing', 'deep breathing 1 minute', 'deep breathing in 30 seconds', 'box breathing 4 minutes', 'breathe in and out'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:deep\s+)?breath(?:ing|e)?(?:\s+session|\s+exercise)?(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s|min|minute|minutes|m)?\s*(?:of\s+)?(?:deep\s+)?breath(?:ing|e)?/i,
+      /box\s+breathing\s*(\d+)?/i,
+      /oxygenation\s+session/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:deep\s+breathing|oxygenation|box\s+breathing|breathwork|pranayama)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Meditation',
     durationMinutes: 4,
-    earnedCoins: 30,
-    speechFeedback: 'Starting 4-minute Oxygenation and Deep Breathing session (+30 Slake Coins).',
-    description: 'O: Oxygenation & Breathwork pillar',
+    coinsAwarded: 30,
+    speechFeedback: 'Starting deep breathing oxygenation in full screen.',
+    description: 'Deep breathing oxygenation timer'
   },
   {
-    action: 'TIMER_START',
-    taskName: 'Visualization',
-    phrases: [
-      'start visualization',
-      'mental rehearsal',
-      'visualization session',
-      'daily visualization',
-      'strategic planning visualization',
+    action: 'TASK_CREATE',
+    taskName: 'Meditation',
+    phrases: ['start meditation', 'meditate for 10 minutes', 'begin mindfulness', '10 minute meditation'],
+    patterns: [
+      /(?:start|begin|do)?\s*meditat(?:ion|e)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s|min|minute|minutes|m)?\s*(?:of\s+)?meditat(?:ion|e)/i,
+      /begin\s+mindfulness/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:visualization|mental\s+rehearsal)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
+    category: 'Meditation',
+    durationMinutes: 10,
+    coinsAwarded: 30,
+    speechFeedback: 'Starting 10-minute meditation.',
+    description: 'Mindfulness meditation session'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Visualization',
+    phrases: ['start visualization', '10 minutes vision review', 'mental rehearsal', 'visualize goals'],
+    patterns: [
+      /(?:start|begin|do)?\s*visualiz(?:ation|e)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /vision\s+review/i,
+      /mental\s+rehearsal/i
+    ],
     category: 'Productivity',
     durationMinutes: 10,
-    earnedCoins: 30,
-    speechFeedback: 'Preparing 10-minute Mental Rehearsal & Visualization block (+30 Slake Coins).',
-    description: 'V: Visualization & Mental Rehearsal pillar',
+    coinsAwarded: 30,
+    speechFeedback: 'Starting visualization block.',
+    description: 'Mental rehearsal visualization'
   },
   {
-    action: 'TIMER_START',
+    action: 'TASK_CREATE',
     taskName: 'Workout',
-    phrases: [
-      'start workout',
-      'exercise for 20 minutes',
-      'morning stretch',
-      'morning workout',
-      'exercise 20 minutes',
-      'gym session',
+    phrases: ['start workout', 'exercise for 20 minutes', 'morning physical warmup', 'start gym session'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:workout|exercise|gym|physical\s+warmup)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s|min|minute|minutes|m)?\s*(?:of\s+)?(?:workout|exercise)/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:workout|exercise|morning\s+stretch|gym)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Fitness',
     durationMinutes: 20,
-    earnedCoins: 40,
-    speechFeedback: 'Starting 20-minute Energizing Exercise & Movement block (+40 Slake Coins).',
-    description: 'E: Exercise & Physical Activation pillar',
+    coinsAwarded: 40,
+    speechFeedback: 'Starting 20-minute workout.',
+    description: 'Physical workout and movement'
   },
   {
-    action: 'TIMER_START',
-    taskName: 'Wisdom Reading',
-    phrases: [
-      'start reading',
-      'wisdom reading',
-      'read 15 minutes',
-      'reading session',
-      'book reading',
+    action: 'TASK_CREATE',
+    taskName: 'Reading',
+    phrases: ['start reading', 'read positive 15 minutes', 'wisdom reading', 'book time'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:reading|read\s+book|wisdom\s+reading|read\s+positive)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i,
+      /book\s+time/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:reading|wisdom\s+reading|book)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Creativity',
     durationMinutes: 15,
-    earnedCoins: 30,
-    speechFeedback: 'Starting 15-minute Wisdom Reading block (+30 Slake Coins).',
-    description: 'R: Reading Positive Wisdom pillar',
+    coinsAwarded: 30,
+    speechFeedback: 'Starting reading session.',
+    description: 'Wisdom & positive reading'
   },
   {
-    action: 'TIMER_START',
-    taskName: 'Journaling',
-    phrases: [
-      'start scribing',
-      'journal for 10 minutes',
-      'log thoughts',
-      'journal 10 minutes',
-      'scribing 10 minutes',
-      'evening reflection journal',
-      'write journal',
+    action: 'TASK_CREATE',
+    taskName: 'Scribing',
+    phrases: ['start scribing', 'journal for 10 minutes', 'write diary', 'evening intention journaling'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:scribing|journaling|journal|write\s+diary)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:journal|scribing|log\s+thoughts|reflection)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Creativity',
     durationMinutes: 10,
-    earnedCoins: 30,
-    speechFeedback: 'Setting up 10-minute Scribing and Journaling block (+30 Slake Coins).',
-    description: 'S: Scribing & Daily Progress Tracking pillar',
+    coinsAwarded: 30,
+    speechFeedback: 'Starting scribing session.',
+    description: 'Daily intention scribing & journaling'
   },
   {
-    action: 'TIMER_START',
+    action: 'TASK_CREATE',
     taskName: 'Deep Work',
-    phrases: [
-      'start deep work',
-      'code for 45 minutes',
-      'focus block 30 minutes',
-      'deep work 45 minutes',
-      'coding session 60 minutes',
-      'focus work 30 minutes',
+    phrases: ['start deep work', 'code for 45 minutes', 'focus block 30 minutes', 'engineering sprint'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:deep\s+work|coding|focus\s+block|engineering\s+sprint)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:deep\s+work|coding|focus\s+block|study)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Productivity',
     durationMinutes: 45,
-    earnedCoins: 50,
-    speechFeedback: 'Preparing Deep Work session (+50 Slake Coins).',
-    description: 'High-cognitive velocity deep work block',
+    coinsAwarded: 50,
+    speechFeedback: 'Starting deep work sprint.',
+    description: 'Deep work focus sprint'
   },
   {
-    action: 'TIMER_START',
-    taskName: 'Hydration Break',
-    phrases: [
-      'drink water timer',
-      'hydrate now',
-      'drink water',
-      'hydration break',
-      'drink a glass of water',
+    action: 'TASK_CREATE',
+    taskName: 'Drink Water',
+    phrases: ['drink water timer', 'drink a glass of water', 'hydrate 2 minutes', 'water break'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:drink\s+water|hydrate|water\s+break)(?:\s+timer|\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:drink\s+water|hydrate\s+now|water\s+break)(?:\s+timer)?(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Hydration',
     durationMinutes: 2,
-    earnedCoins: 15,
-    speechFeedback: 'Starting 2-minute Hydration & Recovery pause (+15 Slake Coins).',
-    description: 'Hydration & physical cell replenishment',
+    coinsAwarded: 15,
+    speechFeedback: 'Starting hydration break.',
+    description: 'Hydration break timer'
   },
   {
-    action: 'TIMER_START',
+    action: 'TASK_CREATE',
     taskName: 'Clean Workspace',
-    phrases: [
-      'clean workspace',
-      'tidy desk',
-      'clean desk',
-      'tidy workspace',
-      'organize desk',
+    phrases: ['clean workspace', 'make my bed', 'set work table', 'desk tidy 5 minutes'],
+    patterns: [
+      /(?:start|begin|do)?\s*(?:clean\s+workspace|tidy\s+desk|make\s+bed|set\s+work\s+table)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
     ],
-    patterns: [/(?:start|create)?\s*(?:a\s+)?(?:clean\s+workspace|tidy\s+desk|clean\s+desk|tidy\s+workspace)(?:\s+for|\s+of)?\s*(\d+)?\s*(?:min|minute|minutes)?/i],
     category: 'Hygiene',
     durationMinutes: 5,
-    earnedCoins: 15,
-    speechFeedback: 'Setting up 5-minute Workspace Organization reset (+15 Slake Coins).',
-    description: 'Domestic & workspace reset',
+    coinsAwarded: 15,
+    speechFeedback: 'Starting workspace hygiene.',
+    description: 'Workspace hygiene & environment setup'
   },
 
-  // ==========================================
-  // 4. INSTANT QUICK-LOGGING (TASK_LOG_QUICK)
-  // ==========================================
+  // 4. One-shot quick logging (Explicit past-tense only)
   {
     action: 'TASK_LOG_QUICK',
-    taskName: 'Drink a Glass of Water',
-    phrases: [
-      'log water',
-      'drank a glass of water',
-      'water logged',
-      'drank water',
-      'water break done',
+    phrases: ['log water', 'drank a glass of water', 'finished my water', 'water logged'],
+    patterns: [
+      /^(?:i\s+)?(?:already\s+)?(?:drank|logged|finished)\s+(?:a\s+)?(?:glass\s+of\s+)?(?:water|hydration)$/i,
+      /^(?:water|hydration)\s+(?:logged|done|checked|finished)$/i
     ],
-    patterns: [/^(?:log\s+water|drank\s+(?:a\s+)?(?:glass\s+of\s+)?water|water\s+logged)$/i],
     category: 'Hydration',
-    durationMinutes: 1,
+    coinsAwarded: 15,
     earnedCoins: 15,
-    speechFeedback: 'Water intake logged. +15 Slake Coins earned for cellular hydration!',
-    description: 'Quick-log 1 glass of water (+15 SC)',
+    speechFeedback: 'Logged. Plus 15 coins!',
+    description: 'Instant water logging'
   },
   {
     action: 'TASK_LOG_QUICK',
-    taskName: 'Make Bed',
-    phrases: [
-      'bed made',
-      'made my bed',
-      'desk organized',
-      'bed is made',
-      'tidy workspace done',
+    phrases: ['bed made', 'made my bed', 'table cleaned', 'desk organized'],
+    patterns: [
+      /^(?:i\s+)?(?:already\s+)?(?:made\s+(?:my\s+)?bed|table\s+cleaned|desk\s+organized)$/i,
+      /^(?:bed\s+made|bed\s+done)$/i
     ],
-    patterns: [/^(?:bed\s+made|made\s+(?:my\s+)?bed|desk\s+organized)$/i],
     category: 'Hygiene',
-    durationMinutes: 5,
+    coinsAwarded: 15,
     earnedCoins: 15,
-    speechFeedback: 'Bed made and workspace organized. +15 Slake Coins earned for domestic discipline!',
-    description: 'Habit anchor: Made bed (+15 SC)',
+    speechFeedback: 'Logged. Plus 15 coins!',
+    description: 'Instant domestic hygiene logging'
   },
   {
     action: 'TASK_LOG_QUICK',
-    taskName: 'Quick Stretch',
-    phrases: [
-      'quick stretch done',
-      'completed 10 pushups',
-      'pushups done',
-      'stretch completed',
-      'workout done',
+    phrases: ['quick stretch done', 'finished pushups', 'completed 10 squats'],
+    patterns: [
+      /^(?:i\s+)?(?:already\s+)?(?:quick\s+stretch\s+done|finished\s+pushups|completed\s+10\s+squats)$/i,
+      /^(?:stretch|pushups|squats)\s+(?:done|completed|logged)$/i
     ],
-    patterns: [/^(?:quick\s+stretch\s+done|completed\s+\d+\s+pushups|pushups\s+done)$/i],
     category: 'Fitness',
-    durationMinutes: 5,
+    coinsAwarded: 40,
     earnedCoins: 40,
-    speechFeedback: 'Physical stretch logged. +40 Slake Coins earned for movement!',
-    description: 'Movement reset: Quick stretch (+40 SC)',
+    speechFeedback: 'Fitness logged. Plus 40 coins!',
+    description: 'Instant fitness logging'
   },
 
-  // ==========================================
-  // 5. COACH CO-OP (COOP_ACTION)
-  // ==========================================
+  // 5. Co-op sync
   {
     action: 'COOP_ACTION',
-    phrases: [
-      'invite co reformer',
-      'start partner session',
-      'invite friend',
-      'invite partner',
-      'co op invite',
-    ],
-    patterns: [/(?:invite|add)\s+(?:a\s+)?(?:co\s*reformer|partner|friend|member)/i, /start\s+partner\s+session/i],
+    actionType: 'INVITE_PARTNER',
+    phrases: ['invite co reformer', 'start partner session', 'invite duet partner', 'co op with partner'],
+    patterns: [/(?:invite|start)\s+(?:co\s*reformer|partner\s+session|duet\s+partner|co\s*op\s+with\s+partner)/i],
     coopAction: 'invite',
-    speechFeedback: 'Opening Co-op Reformer invitations.',
-    description: 'Generate co-op partner invite code',
+    speechFeedback: 'Invitation sent.',
+    description: 'Invite co-reformer duet partner'
   },
   {
     action: 'COOP_ACTION',
-    phrases: [
-      'coach start group sprint',
-      'start class timer',
-      'start group sprint',
-      'start co op timer',
-      'begin group sprint',
-    ],
-    patterns: [/(?:coach\s+)?(?:start|begin)\s+(?:group\s+sprint|co\s*op\s+timer|class\s+timer|cluster\s+timer)/i],
+    actionType: 'BROADCAST_START',
+    phrases: ['coach start group sprint', 'start class timer', 'run co op timer for all', 'start group test'],
+    patterns: [/(?:coach\s+)?(?:start\s+group\s+sprint|start\s+class\s+timer|run\s+co\s*op\s+timer\s+for\s+all|start\s+group\s+test)/i],
     coopAction: 'start_sprint',
-    speechFeedback: 'Synchronizing and starting group sprint for all connected members.',
-    description: 'Coach-led synchronized cluster timer initiation',
+    speechFeedback: 'Group sprint started.',
+    description: 'Broadcast start group sprint'
   },
   {
     action: 'COOP_ACTION',
-    phrases: [
-      'coach pause group timer',
-      'pause group timer',
-      'pause co op',
-      'hold group timer',
-    ],
-    patterns: [/(?:coach\s+)?(?:pause|hold)\s+(?:group\s+timer|co\s*op|cluster\s+session)/i],
+    actionType: 'BROADCAST_PAUSE',
+    phrases: ['coach pause group timer', 'pause class session', 'pause group clock'],
+    patterns: [/(?:coach\s+)?(?:pause\s+group\s+timer|pause\s+class\s+session|pause\s+group\s+clock)/i],
     coopAction: 'pause_group',
-    speechFeedback: 'Group session paused across the cluster.',
-    description: 'Pause synchronized co-op timer',
+    speechFeedback: 'Group timer paused.',
+    description: 'Broadcast pause group sprint'
   },
 
-  // ==========================================
-  // 6. REWARDS & PAYOUT (REWARDS_ACTION)
-  // ==========================================
+  // 6. Rewards, Payouts & Certificates
   {
     action: 'REWARDS_ACTION',
-    phrases: [
-      'redeem payout',
-      'withdraw cash',
-      'claim 10 rupees',
-      'withdraw 10 rupees',
-      'request payout',
-      'cash out',
-    ],
-    patterns: [/(?:redeem\s+payout|withdraw\s+cash|claim\s+10\s+rupees|withdraw|cash\s+out|claim\s+payout)/i],
+    actionType: 'REDEEM_UPI',
+    phrases: ['redeem payout', 'withdraw cash', 'claim direct payout', 'cash out my coins', 'claim 10 rupees'],
+    patterns: [/(?:redeem\s+payout|withdraw\s+cash|claim\s+direct\s+payout|cash\s+out\s+my\s+coins|claim\s+10\s+rupees)/i],
     rewardsAction: 'redeem',
-    speechFeedback: 'Opening Direct UPI Payout redemption modal.',
-    description: 'Direct UPI cash payout redemption flow',
+    speechFeedback: 'Opening payout window.',
+    description: 'Redeem direct cash payout'
   },
   {
     action: 'REWARDS_ACTION',
-    phrases: [
-      'pin certificate',
-      'feature my certificate',
-      'pin certificate to profile',
-      'pin my certificate',
-      'pin badge',
-    ],
-    patterns: [/(?:pin\s+certificate|feature\s+(?:my\s+)?certificate|pin\s+my\s+cert|pin\s+to\s+profile)/i],
+    actionType: 'PIN_CERTIFICATE',
+    phrases: ['pin certificate', 'feature my certificate', 'pin to profile', 'pin achievement'],
+    patterns: [/(?:pin\s+certificate|feature\s+my\s+certificate|pin\s+to\s+profile|pin\s+achievement)/i],
     rewardsAction: 'pin_certificate',
-    speechFeedback: 'Accessing Certificate Showcase to pin credentials to your public profile.',
-    description: 'Pin milestone certificates to Reformers showcase',
+    speechFeedback: 'Certificate pinned to profile.',
+    description: 'Pin certificate to profile'
   },
   {
     action: 'REWARDS_ACTION',
-    phrases: [
-      'check coin balance',
-      'how many coins do I have',
-      'how many coins',
-      'what is my balance',
-      'coin balance',
-    ],
-    patterns: [/(?:check|view|what\s+is\s+my|how\s+many)?\s*(?:coin\s+balance|coins\s+do\s+i\s+have|coins|slake\s+credits)/i],
+    actionType: 'CHECK_BALANCE',
+    phrases: ['check coin balance', 'how many coins do I have', 'my wallet balance', 'check balance'],
+    patterns: [/(?:check\s+coin\s+balance|how\s+many\s+coins\s+do\s+i\s+have|my\s+wallet\s+balance|check\s+balance)/i],
     rewardsAction: 'check_balance',
-    speechFeedback: 'Checking your Slake Coin balance and daily earnings.',
-    description: 'Inspect earned Slake Coins and daily tally',
+    speechFeedback: 'Checking your coin balance.',
+    description: 'Check coin balance'
   },
 
-  // ==========================================
-  // 7. SENSORS & ENVIRONMENTS (SENSOR_ENVIRONMENT_TOGGLE)
-  // ==========================================
+  // 7. Sensors & Multimodal Toggles
   {
     action: 'SENSOR_ENVIRONMENT_TOGGLE',
     actionType: 'TOGGLE_EYE_TRACKING_ON',
-    phrases: [
-      'turn on eye tracking',
-      'enable gaze control',
-      'enable eye tracking',
-      'start gaze tracking',
-      'turn on gaze control',
-    ],
-    patterns: [/(?:turn\s+on|enable|start)\s+(?:eye\s+tracking|gaze\s+control|gaze\s+dwell)/i],
+    phrases: ['turn on eye tracking', 'enable gaze control', 'hands free mode on', 'start eye sensor'],
+    patterns: [/(?:turn\s+on\s+eye\s+tracking|enable\s+gaze\s+control|hands\s+free\s+mode\s+on|start\s+eye\s+sensor)/i],
     sensorType: 'eye_tracking',
     sensorState: 'on',
-    speechFeedback: 'Eye tracking and gaze control activated.',
-    description: 'Activate webcam-based gaze tracking',
+    speechFeedback: 'Gaze control active.',
+    description: 'Turn on eye tracking'
   },
   {
     action: 'SENSOR_ENVIRONMENT_TOGGLE',
     actionType: 'TOGGLE_EYE_TRACKING_OFF',
-    phrases: [
-      'turn off eye tracking',
-      'disable gaze control',
-      'turn off gaze control',
-      'disable eye tracking',
-      'stop gaze tracking',
-    ],
-    patterns: [/(?:turn\s+off|disable|stop)\s+(?:eye\s+tracking|gaze\s+control|gaze\s+dwell)/i],
+    phrases: ['turn off eye tracking', 'disable gaze control', 'exit hands free'],
+    patterns: [/(?:turn\s+off\s+eye\s+tracking|disable\s+gaze\s+control|exit\s+hands\s+free)/i],
     sensorType: 'eye_tracking',
     sensorState: 'off',
-    speechFeedback: 'Eye tracking disabled and camera stream released.',
-    description: 'Deactivate webcam gaze tracking and release camera',
+    speechFeedback: 'Gaze control disabled.',
+    description: 'Turn off eye tracking'
   },
   {
     action: 'SENSOR_ENVIRONMENT_TOGGLE',
     actionType: 'AUDIO_WATER_ON',
-    phrases: [
-      'turn on water sounds',
-      'play pouring audio',
-      'enable water sounds',
-      'water sounds on',
-      'soundscape water',
-    ],
-    patterns: [/(?:turn\s+on|enable|play)\s+(?:water\s+sounds|pouring\s+audio|waterfall|hydration\s+audio)/i],
+    phrases: ['turn on water sounds', 'play pouring audio', 'enable ambient sound'],
+    patterns: [/(?:turn\s+on\s+water\s+sounds|play\s+pouring\s+audio|enable\s+ambient\s+sound)/i],
     sensorType: 'water_sounds',
     sensorState: 'on',
-    speechFeedback: 'Procedural hydration pouring soundscape enabled.',
-    description: 'Enable procedural Web Audio water soundscape',
+    speechFeedback: 'Water sounds enabled.',
+    description: 'Turn on water soundscape'
   },
   {
     action: 'SENSOR_ENVIRONMENT_TOGGLE',
     actionType: 'AUDIO_MUTE',
-    phrases: [
-      'mute sounds',
-      'silent mode',
-      'turn off sounds',
-      'disable audio',
-      'mute audio',
-    ],
-    patterns: [/(?:mute|turn\s+off|disable)\s+(?:sound|sounds|audio|soundscape)/i, /^silent\s+mode$/i],
+    phrases: ['mute sounds', 'turn off audio', 'silent mode'],
+    patterns: [/(?:mute\s+sounds|turn\s+off\s+audio|silent\s+mode)/i],
     sensorType: 'ambient_noise',
     sensorState: 'off',
-    speechFeedback: 'Ambient audio muted.',
-    description: 'Silence background audio synthesis',
+    speechFeedback: 'Audio muted.',
+    description: 'Mute sounds'
   },
   {
     action: 'SENSOR_ENVIRONMENT_TOGGLE',
     actionType: 'AUDIO_BREATHE_ON',
-    phrases: [
-      'enable breathing chimes',
-      'turn on breathing chimes',
-      'play breathing chimes',
-      'breathing chimes on',
-    ],
-    patterns: [/(?:turn\s+on|enable|play)\s+(?:breathing\s+chimes|breath\s+chimes)/i],
-    sensorType: 'breathing_chimes',
+    phrases: ['enable breathing chimes', 'turn on breathing sounds', 'play chimes'],
+    patterns: [/(?:enable\s+breathing\s+chimes|turn\s+on\s+breathing\s+sounds|play\s+chimes)/i],
+    sensorType: 'ambient_noise',
     sensorState: 'on',
-    speechFeedback: 'Procedural box breathing harmonic chimes enabled.',
-    description: 'Enable procedural harmonic breathing audio',
+    speechFeedback: 'Breathing chimes active.',
+    description: 'Enable breathing chimes'
   },
 
-  // ==========================================
-  // 8. MODAL CONTROL (MODAL_DISMISS)
-  // ==========================================
+  // 8. Dismissal & System Controls
   {
     action: 'MODAL_DISMISS',
-    phrases: [
-      'close this',
-      'dismiss popup',
-      'cancel',
-      'never mind',
-      'dismiss',
-      'exit',
-    ],
-    patterns: [/^(?:close\s+this|dismiss(?:\s+popup)?|cancel|never\s+mind|exit|close)$/i],
+    actionType: 'DISMISS',
+    phrases: ['close this', 'dismiss popup', 'dismiss modal', 'cancel', 'never mind', 'go back'],
+    patterns: [/^(?:close\s+this|dismiss\s+popup|dismiss\s+modal|cancel|never\s+mind|go\s+back|dismiss|close)$/i],
     speechFeedback: 'Dismissed.',
-    description: 'Dismiss floating HUD and cancel prompt.',
-  },
+    description: 'Dismiss HUD or modal'
+  }
 ];
+
+export const VOICE_COMMAND_DICTIONARY: CommandDefinition[] = [
+  ...DATASET_COMMANDS,
+  ...FLEXIBLE_COMMANDS
+];
+
+export const getFewShotExamples = () => {
+  return JEV_VOICE_DATASET.map(cmd => ({
+    sampleInput: cmd.utterances[0],
+    action: cmd.intent,
+    speechFeedback: cmd.speechFeedback
+  }));
+};

@@ -189,7 +189,8 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         switch (intent.action) {
           case 'NAVIGATE': {
             if (intent.targetRoute) {
-              routerRef.current.push(intent.targetRoute);
+              const route = intent.targetRoute === '/analytics' ? '/logbook' : intent.targetRoute;
+              routerRef.current.push(route);
             }
             break;
           }
@@ -254,10 +255,17 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           }
           case 'TIMER_STOP': {
             clearTimerRef.current();
-            toastRef.current({
-              title: 'Task Conquered! 🎉',
-              description: 'Focus session completed and logged.',
-            });
+            if (intent.actionType === 'ABORT') {
+              toastRef.current({
+                title: 'Timer Reset ⏱️',
+                description: 'Active countdown discarded.',
+              });
+            } else {
+              toastRef.current({
+                title: 'Task Conquered! 🎉',
+                description: 'Focus session completed and logged.',
+              });
+            }
             break;
           }
           case 'TIMER_EXTEND': {
@@ -319,10 +327,12 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             const curUser = userRef.current;
             if (curUser?.uid) {
               const cat = intent.category || 'Hydration';
-              let earnedCoins = intent.earnedCoins || 15;
-              if (cat === 'Productivity') earnedCoins = 50;
-              else if (cat === 'Fitness') earnedCoins = 40;
-              else if (cat === 'Meditation' || cat === 'Creativity') earnedCoins = 30;
+              let earnedCoins = intent.coinsAwarded || intent.earnedCoins || 15;
+              if (!intent.coinsAwarded && !intent.earnedCoins) {
+                if (cat === 'Productivity') earnedCoins = 50;
+                else if (cat === 'Fitness') earnedCoins = 40;
+                else if (cat === 'Meditation' || cat === 'Creativity') earnedCoins = 30;
+              }
 
               await addTaskRef.current({
                 name: intent.taskName || 'Quick Habit Log',
