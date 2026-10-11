@@ -39,79 +39,96 @@ class EyeExerciseSynth {
         panner = this.ctx.createStereoPanner();
       }
 
-      let duration = 0.8;
-      let baseFreq = 440;
+      let duration = 1.4;
+      let baseFreq = 432; // Healing A 432Hz tuning reference
 
       if (type === "look-up") {
-        baseFreq = 659.25; // E5
+        baseFreq = 576; // D5 - gentle ascending harmonic
         osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
-        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.4, time + 0.45);
-        duration = 0.6;
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, time + 0.6);
+        duration = 1.2;
       } else if (type === "look-down") {
-        baseFreq = 329.63; // E4
+        baseFreq = 384; // G4 - grounding descending tone
         osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
-        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, time + 0.45);
-        duration = 0.6;
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, time + 0.6);
+        duration = 1.2;
       } else if (type === "look-left") {
-        baseFreq = 440; // A4
-        osc.type = "triangle";
+        baseFreq = 432; // A4
+        osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
         if (panner) panner.pan.setValueAtTime(-0.85, time);
-        duration = 0.5;
+        duration = 1.1;
       } else if (type === "look-right") {
-        baseFreq = 440; // A4
-        osc.type = "triangle";
+        baseFreq = 432; // A4
+        osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
         if (panner) panner.pan.setValueAtTime(0.85, time);
-        duration = 0.5;
+        duration = 1.1;
       } else if (type === "roll") {
-        baseFreq = 392; // G4
+        baseFreq = 432;
         osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
-        for (let i = 0; i < 10; i++) {
-          const modTime = time + (i * 0.1);
-          const freqOffset = Math.sin(i * 1.2) * 80;
-          osc.frequency.setValueAtTime(baseFreq + freqOffset, modTime);
+        // Circular swirling stereo pan & subtle pitch glide
+        if (panner) {
+          panner.pan.setValueAtTime(-0.8, time);
+          panner.pan.linearRampToValueAtTime(0.8, time + 0.7);
+          panner.pan.linearRampToValueAtTime(-0.8, time + 1.4);
         }
-        duration = 1.0;
+        duration = 1.6;
       } else if (type === "close-eyes") {
-        baseFreq = 220; // A3
+        baseFreq = 216; // Deep soothing sub-harmonic
         osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
-        duration = 1.2;
+        duration = 2.0;
         this.startDrone();
       } else if (type === "blink") {
-        baseFreq = 880; // A5
+        baseFreq = 648; // Crisp delicate water-droplet chime
         osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
-        osc.frequency.setValueAtTime(baseFreq * 1.25, time + 0.12);
-        osc.frequency.setValueAtTime(baseFreq, time + 0.24);
-        duration = 0.45;
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.1, time + 0.08);
+        duration = 0.55;
       } else if (type === "focus-near-far") {
-        baseFreq = 523.25; // C5
+        baseFreq = 324;
         osc.type = "sine";
         osc.frequency.setValueAtTime(baseFreq, time);
-        osc.frequency.setValueAtTime(baseFreq * 2.0, time + 0.25);
-        duration = 0.85;
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, time + 0.5);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq, time + 1.2);
+        duration = 1.5;
       }
 
+      // Add harmonic overtone oscillator for authentic singing bowl / crystal chime shimmer
+      const overtone = this.ctx.createOscillator();
+      const overtoneGain = this.ctx.createGain();
+      overtone.type = "sine";
+      overtone.frequency.setValueAtTime(baseFreq * 2.01, time); // warm natural detuned octave
+
       gain.gain.setValueAtTime(0.001, time);
-      gain.gain.exponentialRampToValueAtTime(0.12, time + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      gain.gain.exponentialRampToValueAtTime(0.25, time + 0.05); // soft velvet attack
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration); // long acoustic decay
+
+      overtoneGain.gain.setValueAtTime(0.001, time);
+      overtoneGain.gain.exponentialRampToValueAtTime(0.08, time + 0.03);
+      overtoneGain.gain.exponentialRampToValueAtTime(0.0001, time + (duration * 0.7));
 
       if (panner) {
         osc.connect(gain);
+        overtone.connect(overtoneGain);
         gain.connect(panner);
+        overtoneGain.connect(panner);
         panner.connect(this.masterGain!);
       } else {
         osc.connect(gain);
+        overtone.connect(overtoneGain);
         gain.connect(this.masterGain!);
+        overtoneGain.connect(this.masterGain!);
       }
 
       osc.start(time);
-      osc.stop(time + duration + 0.1);
+      overtone.start(time);
+      osc.stop(time + duration + 0.15);
+      overtone.stop(time + duration + 0.15);
     } catch (e) {
       console.warn("Chime playback error:", e);
     }
@@ -124,11 +141,11 @@ class EyeExerciseSynth {
       this.droneOsc = this.ctx.createOscillator();
       this.droneGain = this.ctx.createGain();
 
-      this.droneOsc.type = "triangle";
-      this.droneOsc.frequency.setValueAtTime(146.83, time); // D3
+      this.droneOsc.type = "sine";
+      this.droneOsc.frequency.setValueAtTime(144, time); // 144Hz warm restorative alpha frequency
       
       this.droneGain.gain.setValueAtTime(0.001, time);
-      this.droneGain.gain.linearRampToValueAtTime(0.25, time + 1.0); // louder relaxing drone
+      this.droneGain.gain.linearRampToValueAtTime(0.18, time + 1.2);
 
       this.droneOsc.connect(this.droneGain);
       this.droneGain.connect(this.masterGain!);

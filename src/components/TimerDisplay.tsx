@@ -1392,68 +1392,196 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
                   {isEyeExerciseTask && (
                     <>
-                      {/* Elegant Serene Ocular Mandala (Matches Breathing Screen Zen Aesthetics) */}
+                      {/* Organic Vector Graphic Eye Simulation */}
                       <div className="relative w-full h-full flex items-center justify-center z-0 overflow-visible">
-                        {/* Harmonic Golden Radiance Petals */}
-                        <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
-                          {Array.from({ length: 8 }).map((_, i) => {
-                            const angle = i * 45;
-                            const isResting = eyePhase === 'close-eyes';
-                            const isFocusing = eyePhase === 'focus-near-far';
-                            const petalDist = isResting ? 14 : isFocusing ? 32 : 24;
-                            const petalScale = isResting ? 0.75 : isFocusing ? 1.15 : 0.95;
+                        {/* Ambient Iris Aura Glow */}
+                        <div 
+                          className="absolute w-36 h-28 sm:w-44 sm:h-32 rounded-full pointer-events-none transition-all duration-1000 ease-out"
+                          style={{
+                            background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.08) 50%, transparent 75%)',
+                            filter: 'blur(10px)',
+                            transform: eyePhase === 'focus-near-far' ? 'scale(1.2)' : eyePhase === 'close-eyes' ? 'scale(0.8)' : 'scale(1.0)',
+                          }}
+                        />
 
-                            return (
-                              <div
-                                key={i}
-                                className="absolute w-10 h-10 sm:w-12 sm:h-12 rounded-full pointer-events-none transition-all duration-700 ease-out"
+                        {/* Vector Eye SVG Stage */}
+                        <div className="relative w-40 h-28 sm:w-48 sm:h-32 flex items-center justify-center">
+                          <svg
+                            viewBox="0 0 200 120"
+                            className="w-full h-full overflow-visible drop-shadow-[0_4px_24px_rgba(245,158,11,0.25)]"
+                          >
+                            <defs>
+                              {/* Sclera organic gradient */}
+                              <linearGradient id="scleraGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#1e222a" stopOpacity="0.95" />
+                                <stop offset="50%" stopColor="#0f1115" stopOpacity="0.98" />
+                                <stop offset="100%" stopColor="#090a0d" stopOpacity="1" />
+                              </linearGradient>
+
+                              {/* Iris golden amber gradient */}
+                              <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stopColor="#fef3c7" />
+                                <stop offset="45%" stopColor="#f59e0b" />
+                                <stop offset="85%" stopColor="#b45309" />
+                                <stop offset="100%" stopColor="#451a03" />
+                              </radialGradient>
+
+                              {/* Eyelid mask / contour gradient */}
+                              <linearGradient id="lidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#020617" />
+                                <stop offset="100%" stopColor="#0f172a" />
+                              </linearGradient>
+
+                              {/* Clip Path defining the natural Almond Eye Opening */}
+                              <clipPath id="eyeOpeningClip">
+                                <path d="M 15 60 Q 100 8 185 60 Q 100 112 15 60 Z" />
+                              </clipPath>
+                            </defs>
+
+                            {/* Outer Ethereal Contour Ring */}
+                            <path
+                              d="M 15 60 Q 100 6 185 60 Q 100 114 15 60 Z"
+                              fill="none"
+                              stroke="rgba(245, 158, 11, 0.35)"
+                              strokeWidth="1.5"
+                              strokeDasharray="4 3"
+                              className="opacity-70 animate-[spin_60s_linear_infinite] origin-center"
+                            />
+
+                            {/* Eye Sclera (Eyeball base) */}
+                            <path
+                              d="M 15 60 Q 100 8 185 60 Q 100 112 15 60 Z"
+                              fill="url(#scleraGrad)"
+                              stroke="rgba(251, 191, 36, 0.45)"
+                              strokeWidth="1.5"
+                            />
+
+                            {/* Eye Interior clipped to eye opening */}
+                            <g clipPath="url(#eyeOpeningClip)">
+                              {/* Inner soft horizon guides */}
+                              <line x1="30" y1="60" x2="170" y2="60" stroke="rgba(245, 158, 11, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
+                              <line x1="100" y1="20" x2="100" y2="100" stroke="rgba(245, 158, 11, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
+
+                              {/* Dynamic Moving Iris & Pupil Group */}
+                              <g
                                 style={{
-                                  transform: `rotate(${angle}deg) translateY(-${petalDist}px) scale(${petalScale})`,
-                                  background: 'radial-gradient(circle at center, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.08) 60%, transparent 100%)',
-                                  border: '1px solid rgba(251, 191, 36, 0.25)',
-                                  mixBlendMode: 'screen',
-                                  boxShadow: eyePhase === 'focus-near-far' ? '0 0 16px rgba(245, 158, 11, 0.3)' : 'none',
+                                  transform:
+                                    eyePhase === 'look-up'
+                                      ? 'translate(0px, -20px)'
+                                      : eyePhase === 'look-down'
+                                      ? 'translate(0px, 20px)'
+                                      : eyePhase === 'look-left'
+                                      ? 'translate(-30px, 0px)'
+                                      : eyePhase === 'look-right'
+                                      ? 'translate(30px, 0px)'
+                                      : eyePhase === 'roll'
+                                      ? 'translate(0px, 0px)'
+                                      : 'translate(0px, 0px)',
+                                  transition: eyePhase === 'roll' ? 'none' : 'transform 0.65s cubic-bezier(0.34, 1.25, 0.64, 1)',
+                                }}
+                                className={cn(
+                                  "origin-center",
+                                  eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
+                                )}
+                              >
+                                {/* Outer Iris Luminous Aura */}
+                                <circle
+                                  cx="100"
+                                  cy="60"
+                                  r={eyePhase === 'focus-near-far' ? 33 : 28}
+                                  fill="rgba(245, 158, 11, 0.25)"
+                                  className="transition-all duration-700"
+                                />
+
+                                {/* Iris Body with Vector Gradient */}
+                                <circle
+                                  cx="100"
+                                  cy="60"
+                                  r={eyePhase === 'focus-near-far' ? 29 : 25}
+                                  fill="url(#irisGrad)"
+                                  stroke="rgba(254, 243, 199, 0.6)"
+                                  strokeWidth="1.2"
+                                  className="transition-all duration-700 shadow-lg"
+                                />
+
+                                {/* Delicate Iris Crypts & Striations */}
+                                {Array.from({ length: 16 }).map((_, striationIdx) => {
+                                  const rad = (striationIdx * 22.5 * Math.PI) / 180;
+                                  const x1 = 100 + Math.cos(rad) * 11;
+                                  const y1 = 60 + Math.sin(rad) * 11;
+                                  const x2 = 100 + Math.cos(rad) * 23;
+                                  const y2 = 60 + Math.sin(rad) * 23;
+                                  return (
+                                    <line
+                                      key={striationIdx}
+                                      x1={x1}
+                                      y1={y1}
+                                      x2={x2}
+                                      y2={y2}
+                                      stroke="rgba(254, 243, 199, 0.35)"
+                                      strokeWidth="0.75"
+                                    />
+                                  );
+                                })}
+
+                                {/* Pupil Core */}
+                                <circle
+                                  cx="100"
+                                  cy="60"
+                                  r={
+                                    eyePhase === 'focus-near-far'
+                                      ? 14
+                                      : eyePhase === 'close-eyes'
+                                      ? 8
+                                      : 10
+                                  }
+                                  fill="#000000"
+                                  stroke="rgba(245, 158, 11, 0.5)"
+                                  strokeWidth="1"
+                                  className="transition-all duration-700"
+                                />
+
+                                {/* Specular Catchlights (Brings realism & life to the eye) */}
+                                <circle cx="94" cy="53" r="3.2" fill="#ffffff" className="opacity-90" />
+                                <circle cx="106" cy="67" r="1.6" fill="#fde68a" className="opacity-75" />
+                              </g>
+
+                              {/* Soothing Eyelids Closing Simulation */}
+                              {/* Upper Eyelid Curtain */}
+                              <path
+                                d={
+                                  eyePhase === 'close-eyes'
+                                    ? "M 10 60 Q 100 68 190 60 L 190 0 L 10 0 Z"
+                                    : eyePhase === 'blink'
+                                    ? "M 10 60 Q 100 48 190 60 L 190 0 L 10 0 Z"
+                                    : "M 10 60 Q 100 4 190 60 L 190 0 L 10 0 Z"
+                                }
+                                fill="url(#lidGrad)"
+                                stroke="rgba(245, 158, 11, 0.7)"
+                                strokeWidth="1.5"
+                                style={{
+                                  transition: 'd 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
                                 }}
                               />
-                            );
-                          })}
 
-                          {/* Concentric Subtle Orbital Rings */}
-                          <div className={cn(
-                            "absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full border border-amber-400/20 pointer-events-none transition-all duration-700",
-                            eyePhase === 'roll' && "border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] animate-[spin_6s_linear_infinite]"
-                          )} />
-
-                          {/* Serene Floating Luminous Focal Orb */}
-                          <div
-                            style={{
-                              transform:
-                                eyePhase === 'look-up'
-                                  ? 'translateY(-22px)'
-                                  : eyePhase === 'look-down'
-                                  ? 'translateY(22px)'
-                                  : eyePhase === 'look-left'
-                                  ? 'translateX(-26px)'
-                                  : eyePhase === 'look-right'
-                                  ? 'translateX(26px)'
-                                  : 'translate(0, 0)',
-                              scale: eyePhase === 'focus-near-far' ? 1.3 : eyePhase === 'close-eyes' ? 0.65 : 1.0,
-                              opacity: eyePhase === 'close-eyes' ? 0.45 : 1.0,
-                              transition: 'all 0.65s cubic-bezier(0.34, 1.3, 0.64, 1)',
-                            }}
-                            className={cn(
-                              "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center relative z-10 transition-transform",
-                              eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
-                            )}
-                          >
-                            {/* Inner Radiant Core */}
-                            <div className="w-full h-full rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.65)] flex items-center justify-center">
-                              {/* Soft Pupil Spark */}
-                              <div className="w-3.5 h-3.5 rounded-full bg-slate-950/80 shadow-[inset_0_0_6px_rgba(0,0,0,0.9)] flex items-center justify-center">
-                                <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_4px_#ffffff]" />
-                              </div>
-                            </div>
-                          </div>
+                              {/* Lower Eyelid Curtain */}
+                              <path
+                                d={
+                                  eyePhase === 'close-eyes'
+                                    ? "M 10 60 Q 100 56 190 60 L 190 120 L 10 120 Z"
+                                    : eyePhase === 'blink'
+                                    ? "M 10 60 Q 100 70 190 60 L 190 120 L 10 120 Z"
+                                    : "M 10 60 Q 100 116 190 60 L 190 120 L 10 120 Z"
+                                }
+                                fill="url(#lidGrad)"
+                                stroke="rgba(245, 158, 11, 0.7)"
+                                strokeWidth="1.5"
+                                style={{
+                                  transition: 'd 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                              />
+                            </g>
+                          </svg>
                         </div>
                       </div>
 
