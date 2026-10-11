@@ -83,6 +83,21 @@ function extractDuration(text: string): { durationMinutes?: number; durationSeco
 }
 
 /**
+ * Helper to convert a string to title case while keeping minor English words lowercase
+ */
+function toTitleCase(str: string): string {
+  const minor = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'of', 'in']);
+  const words = str.split(/\s+/).filter(Boolean);
+  return words.map((w, idx) => {
+    const lower = w.toLowerCase();
+    if (idx !== 0 && minor.has(lower)) {
+      return lower;
+    }
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }).join(' ');
+}
+
+/**
  * Parses transcripts against JEV Voice Dataset and canonical dictionary
  */
 function parseVoiceCommand(transcript: string, currentRoute: string = '/'): VoiceIntentPayload {
@@ -114,9 +129,9 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
           .replace(/^(?:start|begin|do|run)\s+/i, '')
           .replace(/\s+(?:timer|session|break|exercise|sprint|block|review)$/i, '')
           .trim();
-        taskName = taskName.charAt(0).toUpperCase() + taskName.slice(1);
+        taskName = toTitleCase(taskName);
       } else if (record.intent === 'TASK_LOG_QUICK') {
-        taskName = record.utterances[0];
+        taskName = toTitleCase(record.utterances[0]);
       }
 
       let speechFeedback = record.speechFeedback;
@@ -182,11 +197,11 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
       }
 
       let feedback = cmd.speechFeedback;
-      if (cmd.taskName && hasDuration && (cmd.action === 'TIMER_START' || cmd.action === 'TASK_CREATE')) {
+      if (cmd.taskName && (cmd.action === 'TIMER_START' || cmd.action === 'TASK_CREATE')) {
         const durLabel = (durationSeconds && durationSeconds < 60)
           ? `${durationSeconds} seconds`
           : durationMinutes === 1 ? '1 minute' : `${durationMinutes} minutes`;
-        feedback = `Starting ${durLabel} timer for ${cmd.taskName} in full screen.`;
+        feedback = `Starting ${durLabel} for ${cmd.taskName}. Let's make it count!`;
       }
 
       return {
@@ -211,27 +226,58 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     }
   }
 
-  // 3. Fallback Dynamic Task Matching (e.g. "code for 20 minutes", "read 15 minutes")
-  const { durationMinutes, durationSeconds } = extracted;
-
+  // 3. Fallback Dynamic Task Matching (e.g. "drink a glass of water", "code for 20 minutes", "read 15 minutes")
   let category: VoiceCategory = 'Productivity';
   if (/drink|water|hydrate/i.test(norm)) category = 'Hydration';
-  else if (/breath|oxygen|meditat|mindful|calm/i.test(norm)) category = 'Meditation';
-  else if (/stretch|workout|run|squat|pushup|gym/i.test(norm)) category = 'Fitness';
-  else if (/bed|clean|tidy|hygiene|wash/i.test(norm)) category = 'Hygiene';
+  else if (/breath|oxygen|meditat|mindful|calm|zen/i.test(norm)) category = 'Meditation';
+  else if (/stretch|workout|run|squat|pushup|gym|exercise|fitness/i.test(norm)) category = 'Fitness';
+  else if (/bed|clean|tidy|hygiene|wash|shower/i.test(norm)) category = 'Hygiene';
   else if (/read|book|journal|write|draw|paint|scribe/i.test(norm)) category = 'Creativity';
 
-  const cleanTask = norm
-    .replace(/(?:start|begin|do|run|set|a|the|session|timer|in|for|of|\d+(?:\.\d+)?|\s+sec|\s+second|\s+seconds|\s+min|\s+minute|\s+minutes|\s+hour|\s+hours)/gi, '')
+  // Category defaults when no duration was explicitly spoken
+  const CATEGORY_DEFAULTS: Record<VoiceCategory, { minutes: number; coins: number }> = {
+    Hydration: { minutes: 2, coins: 15 },
+    Meditation: { minutes: 10, coins: 30 },
+    Fitness: { minutes: 20, coins: 40 },
+    Hygiene: { minutes: 5, coins: 15 },
+    Creativity: { minutes: 15, coins: 30 },
+    Productivity: { minutes: 25, coins: 50 },
+  };
+
+  const defaultMeta = CATEGORY_DEFAULTS[category];
+  const finalMinutes = extracted.durationMinutes !== undefined ? extracted.durationMinutes : defaultMeta.minutes;
+  const finalSeconds = extracted.durationSeconds !== undefined ? extracted.durationSeconds : (finalMinutes * 60);
+
+  // Clean task name: strip command verbs and explicit durations while preserving natural task names
+  let cleanTask = norm
+    .replace(/\b(?:start|begin|do|run|set|session|timer|countdown)\b/gi, ' ')
+    .replace(/\b(?:for|in)\s+\d+(?:\.\d+)?\s*(?:sec|second|seconds|min|minute|minutes|hour|hours|hr|hrs)\b/gi, ' ')
+    .replace(/\b\d+(?:\.\d+)?\s*(?:sec|second|seconds|min|minute|minutes|hour|hours|hr|hrs)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 
-  const finalName = cleanTask
-    ? cleanTask.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-    : 'Focus Session';
+  // If input was a bare hydration phrase, ensure a polished, complete name
+  if (/^(?:glass\s+of\s+water|water|hydrate)$/i.test(cleanTask)) {
+    cleanTask = 'Drink a glass of water';
+  }
 
-  const finalMinutes = durationMinutes || 15;
-  const finalSeconds = durationSeconds || (finalMinutes * 60);
-  const durLabel = finalSeconds < 60 ? `${finalSeconds} seconds` : finalMinutes === 1 ? '1 minute' : `${finalMinutes} minutes`;
+  const finalName = cleanTask
+    ? toTitleCase(cleanTask)
+    : (category === 'Hydration' ? 'Drink a Glass of Water' : 'Focus Session');
+
+  const durLabel = finalSeconds < 60
+    ? `${finalSeconds} seconds`
+    : finalMinutes === 1 ? '1 minute' : `${finalMinutes} minutes`;
+
+  // Companion-style speech feedback
+  let speechFeedback = `Starting ${durLabel} for ${finalName}. Let's focus!`;
+  if (category === 'Hydration') {
+    speechFeedback = `Starting a quick ${durLabel} hydration break. Enjoy your water!`;
+  } else if (category === 'Meditation') {
+    speechFeedback = `Starting ${durLabel} for ${finalName}. Take a deep breath and relax.`;
+  } else if (category === 'Fitness') {
+    speechFeedback = `Starting ${durLabel} for ${finalName}. Let's get moving!`;
+  }
 
   return {
     action: 'TIMER_START',
@@ -239,9 +285,11 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     taskName: finalName,
     durationMinutes: finalMinutes,
     durationSeconds: finalSeconds,
+    coinsAwarded: defaultMeta.coins,
+    earnedCoins: defaultMeta.coins,
     category,
-    speechFeedback: `Starting ${durLabel} timer for ${finalName} in full screen.`,
-    confidence: 0.90,
+    speechFeedback,
+    confidence: 0.85,
   };
 }
 

@@ -241,7 +241,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             const durDisplay = durationSecs < 60 ? `${durationSecs}s` : durationMins === 1 ? '1m' : `${durationMins}m`;
             toastRef.current({
               title: 'Focus Session Started ⏱️',
-              description: `${taskName} (${durDisplay}) started in full screen.`,
+              description: `${taskName} (${durDisplay}) started.`,
             });
             break;
           }

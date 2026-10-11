@@ -240,7 +240,7 @@ const FLEXIBLE_COMMANDS: CommandDefinition[] = [
     category: 'Meditation',
     durationMinutes: 4,
     coinsAwarded: 30,
-    speechFeedback: 'Starting deep breathing oxygenation in full screen.',
+    speechFeedback: 'Starting 4 minutes of deep breathing oxygenation. Breathe easy.',
     description: 'Deep breathing oxygenation timer'
   },
   {
