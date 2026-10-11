@@ -21,8 +21,8 @@ export default function LogBookPage() {
             <HamburgerMenu />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto pt-24 pb-24">
-          <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-4">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-24 pb-24 min-w-0">
+          <div className="w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-12 py-4 min-w-0 overflow-x-hidden">
             <TaskHistory />
           </div>
         </main>

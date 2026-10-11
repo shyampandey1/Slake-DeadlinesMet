@@ -52,6 +52,7 @@ import { useBreathingAudio } from "@/hooks/useBreathingAudio";
 import { useEyeExerciseAudio } from "@/hooks/useEyeExerciseAudio";
 import HydrationBackground from "./HydrationBackground";
 import DwellButton from "./DwellButton";
+import VoiceInput from "./VoiceInput";
 import { 
   Sheet, 
   SheetContent, 
@@ -1205,10 +1206,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       />
       <CoOpDisplay />
       <div className={cn(
-        "w-full max-w-4xl flex justify-center py-2 sm:py-4 transition-opacity duration-300 z-10",
+        "w-full max-w-4xl relative flex items-center justify-center py-2 sm:py-4 transition-opacity duration-300 z-10",
         !isUIVisible && "opacity-30"
       )}>
         <InfoDisplay />
+        <div className="absolute right-0 sm:right-2 top-1/2 -translate-y-1/2">
+          <VoiceInput />
+        </div>
       </div>
       <div className="flex-1 flex w-full max-w-4xl flex-col items-center justify-center text-center py-2 sm:py-6">
         <h2 className="mb-2 text-sm sm:text-xl font-medium tracking-wide text-foreground/80 uppercase tracking-[0.2em] opacity-50"
@@ -1216,14 +1220,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           {category || 'Focus Session'}
         </h2>
         <h1 className={cn(
-            "mb-8 font-bold tracking-tight text-foreground font-headline transition-all duration-300 px-4",
-            taskName.length > 20 ? "text-3xl sm:text-5xl md:text-6xl" : "text-4xl sm:text-6xl md:text-7xl lg:text-8xl"
+            "font-bold tracking-tight text-foreground font-headline transition-all duration-300 px-4",
+            (isBreathingTask || isEyeExerciseTask)
+              ? (taskName.length > 20 ? "mb-2 sm:mb-3 text-2xl sm:text-3xl md:text-4xl" : "mb-2 sm:mb-4 text-3xl sm:text-4xl md:text-5xl")
+              : (taskName.length > 20 ? "mb-4 sm:mb-8 text-3xl sm:text-5xl md:text-6xl" : "mb-4 sm:mb-8 text-4xl sm:text-6xl md:text-7xl lg:text-8xl")
         )}
             style={{ textShadow: isContinuousFlashing ? '0 4px 20px rgba(0,0,0,0.8)' : undefined }}>
           {taskName}
         </h1>
 
-        <div className="mb-12 flex flex-col items-center justify-center w-full">
+        <div className="mb-4 sm:mb-8 flex flex-col items-center justify-center w-full">
           {!syncComplete ? (
             <div className="flex flex-col items-center justify-center p-12">
                 <Loader2 className="h-12 w-12 animate-spin text-primary opacity-50" />
@@ -1294,12 +1300,12 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 </div>
               )}
 
-              <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 w-full">
+              <div className="flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-6 md:gap-8 lg:gap-10 w-full">
               {/* Specialized Task HUD Panel (Breathing Mandala or Sacred Eye Sanctuary) */}
               {(isBreathingTask || isEyeExerciseTask) && (
                 <div className={cn(
-                  "w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-[360px] lg:h-[360px] rounded-[2.5rem]",
-                  "border border-amber-500/25 bg-gradient-to-b from-amber-500/[0.07] via-slate-950/80 to-black/90 backdrop-blur-2xl shadow-[0_12px_45px_rgba(0,0,0,0.6),0_0_40px_rgba(245,158,11,0.08)] flex flex-col items-center justify-center p-6 relative overflow-hidden transition-all duration-700"
+                  "w-44 h-44 sm:w-52 sm:h-52 md:w-56 md:h-56 lg:w-60 lg:h-60 rounded-3xl shrink-0",
+                  "border border-amber-500/25 bg-gradient-to-b from-amber-500/[0.07] via-slate-950/80 to-black/90 backdrop-blur-2xl shadow-[0_12px_45px_rgba(0,0,0,0.6),0_0_40px_rgba(245,158,11,0.08)] flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden transition-all duration-700"
                 )}>
                   {/* Atmospheric Sacred Golden Halo Glow */}
                   <div 
@@ -1386,120 +1392,74 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
                   {isEyeExerciseTask && (
                     <>
-                      {/* Ethereal Sacred Eye Sanctuary Graphic with 100% Optical Harmonics */}
+                      {/* Elegant Serene Ocular Mandala (Matches Breathing Screen Zen Aesthetics) */}
                       <div className="relative w-full h-full flex items-center justify-center z-0 overflow-visible">
-                        {/* Golden Harmonic Aura Flower behind eye */}
-                        <div className="absolute w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center opacity-40 pointer-events-none">
-                          {Array.from({ length: 8 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className="absolute w-14 h-14 rounded-full"
-                              style={{
-                                transform: `rotate(${i * 45}deg) translateY(-26px) scale(${eyePhase === 'close-eyes' ? 1.25 : 0.95})`,
-                                background: 'radial-gradient(circle at center, rgba(245, 222, 190, 0.28) 0%, rgba(245, 158, 11, 0.08) 70%, transparent 100%)',
-                                border: '1px solid rgba(245, 222, 190, 0.2)',
-                                mixBlendMode: 'screen',
-                                transition: 'all 2000ms cubic-bezier(0.4, 0, 0.2, 1)',
-                              }}
-                            />
-                          ))}
-                        </div>
+                        {/* Harmonic Golden Radiance Petals */}
+                        <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+                          {Array.from({ length: 8 }).map((_, i) => {
+                            const angle = i * 45;
+                            const isResting = eyePhase === 'close-eyes';
+                            const isFocusing = eyePhase === 'focus-near-far';
+                            const petalDist = isResting ? 14 : isFocusing ? 32 : 24;
+                            const petalScale = isResting ? 0.75 : isFocusing ? 1.15 : 0.95;
 
-                        {/* Central Sacred Geometric Ocular Eye Shell */}
-                        <div className="relative w-52 h-36 flex items-center justify-center">
-                          {/* Outer Almond Vesica Piscis Aura Ring with Warm Glow */}
-                          <div 
+                            return (
+                              <div
+                                key={i}
+                                className="absolute w-10 h-10 sm:w-12 sm:h-12 rounded-full pointer-events-none transition-all duration-700 ease-out"
+                                style={{
+                                  transform: `rotate(${angle}deg) translateY(-${petalDist}px) scale(${petalScale})`,
+                                  background: 'radial-gradient(circle at center, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.08) 60%, transparent 100%)',
+                                  border: '1px solid rgba(251, 191, 36, 0.25)',
+                                  mixBlendMode: 'screen',
+                                  boxShadow: eyePhase === 'focus-near-far' ? '0 0 16px rgba(245, 158, 11, 0.3)' : 'none',
+                                }}
+                              />
+                            );
+                          })}
+
+                          {/* Concentric Subtle Orbital Rings */}
+                          <div className={cn(
+                            "absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full border border-amber-400/20 pointer-events-none transition-all duration-700",
+                            eyePhase === 'roll' && "border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] animate-[spin_6s_linear_infinite]"
+                          )} />
+
+                          {/* Serene Floating Luminous Focal Orb */}
+                          <div
+                            style={{
+                              transform:
+                                eyePhase === 'look-up'
+                                  ? 'translateY(-22px)'
+                                  : eyePhase === 'look-down'
+                                  ? 'translateY(22px)'
+                                  : eyePhase === 'look-left'
+                                  ? 'translateX(-26px)'
+                                  : eyePhase === 'look-right'
+                                  ? 'translateX(26px)'
+                                  : 'translate(0, 0)',
+                              scale: eyePhase === 'focus-near-far' ? 1.3 : eyePhase === 'close-eyes' ? 0.65 : 1.0,
+                              opacity: eyePhase === 'close-eyes' ? 0.45 : 1.0,
+                              transition: 'all 0.65s cubic-bezier(0.34, 1.3, 0.64, 1)',
+                            }}
                             className={cn(
-                              "absolute w-48 h-28 rounded-[50%/35%] border border-amber-300/40 bg-gradient-to-b from-amber-500/10 via-slate-950/70 to-black/90",
-                              "shadow-[0_0_35px_rgba(245,158,11,0.22),inset_0_0_20px_rgba(245,158,11,0.12)] flex items-center justify-center overflow-hidden transition-all duration-700"
+                              "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center relative z-10 transition-transform",
+                              eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
                             )}
                           >
-                            {/* Inner Iris Guide Crosshair lines */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-                              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-                              <div className="h-full w-[1px] bg-gradient-to-b from-transparent via-amber-300 to-transparent" />
-                            </div>
-
-                            {/* Eyelids Smooth Dynamic Curtains with Golden Crest Border */}
-                            <div 
-                              style={{
-                                height: eyePhase === 'close-eyes' ? '51%' : eyePhase === 'blink' ? '30%' : '0%',
-                                transition: 'height 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
-                              }}
-                              className="absolute top-0 left-0 right-0 bg-gradient-to-b from-slate-950 via-slate-900 to-amber-950/70 border-b-2 border-amber-400/60 z-30 shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
-                            />
-                            <div 
-                              style={{
-                                height: eyePhase === 'close-eyes' ? '51%' : eyePhase === 'blink' ? '30%' : '0%',
-                                transition: 'height 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
-                              }}
-                              className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-900 to-amber-950/70 border-t-2 border-amber-400/60 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.8)]"
-                            />
-
-                            {/* Iris & Pupil Core System */}
-                            <div
-                              style={{
-                                transform: 
-                                  eyePhase === 'look-up'
-                                    ? 'translateY(-18px)'
-                                    : eyePhase === 'look-down'
-                                    ? 'translateY(18px)'
-                                    : eyePhase === 'look-left'
-                                    ? 'translateX(-28px)'
-                                    : eyePhase === 'look-right'
-                                    ? 'translateX(28px)'
-                                    : 'translate(0, 0)',
-                                scale: eyePhase === 'focus-near-far' ? 1.25 : 1.0,
-                                transition: 'all 0.65s cubic-bezier(0.34, 1.4, 0.64, 1)',
-                              }}
-                              className={cn(
-                                "w-20 h-20 rounded-full flex items-center justify-center relative z-10 transition-transform",
-                                eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
-                              )}
-                            >
-                              {/* Outer Luminous Iris Petals / Sacred Crown */}
-                              <div className="absolute inset-0 rounded-full border border-amber-300/60 bg-gradient-to-br from-amber-400/30 via-amber-600/20 to-black shadow-[0_0_25px_rgba(245,158,11,0.4)]" />
-                              <div className="absolute inset-1.5 rounded-full border border-amber-200/30 border-dashed animate-[spin_20s_linear_infinite]" />
-
-                              {/* Concentric Golden Radiance Rays */}
-                              {Array.from({ length: 12 }).map((_, rIdx) => (
-                                <div
-                                  key={rIdx}
-                                  className="absolute w-[1px] h-3 bg-gradient-to-t from-amber-300/60 to-transparent"
-                                  style={{
-                                    transform: `rotate(${rIdx * 30}deg) translateY(-8px)`,
-                                  }}
-                                />
-                              ))}
-
-                              {/* Pupil Orb with Specular Star Reflection */}
-                              <div 
-                                style={{
-                                  scale: eyePhase === 'focus-near-far' ? 0.65 : eyePhase === 'close-eyes' ? 0.8 : 1.0,
-                                  transition: 'scale 0.5s ease-in-out',
-                                }}
-                                className="w-8 h-8 rounded-full bg-gradient-to-b from-slate-950 to-black border-2 border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.7),inset_0_0_8px_rgba(0,0,0,0.9)] relative flex items-center justify-center"
-                              >
-                                {/* Crystalline Specular Light Reflections */}
-                                <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_6px_#ffffff] absolute top-[20%] left-[25%]" />
-                                <div className="w-1 h-1 rounded-full bg-amber-200 opacity-80 absolute bottom-[25%] right-[25%]" />
+                            {/* Inner Radiant Core */}
+                            <div className="w-full h-full rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.65)] flex items-center justify-center">
+                              {/* Soft Pupil Spark */}
+                              <div className="w-3.5 h-3.5 rounded-full bg-slate-950/80 shadow-[inset_0_0_6px_rgba(0,0,0,0.9)] flex items-center justify-center">
+                                <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_4px_#ffffff]" />
                               </div>
                             </div>
                           </div>
-
-                          {/* Outer Orbital Guidance Particle Track */}
-                          <div 
-                            className={cn(
-                              "absolute w-52 h-32 rounded-[50%/35%] border border-amber-400/25 pointer-events-none transition-all duration-700",
-                              eyePhase === 'roll' && "border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse"
-                            )}
-                          />
                         </div>
                       </div>
 
-                      {/* Subtle Bottom Eye Rhythm Stage Dock */}
-                      <div className="absolute bottom-5 inset-x-0 flex justify-center z-20 pointer-events-none">
-                        <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/60 border border-amber-500/30 backdrop-blur-md text-[10px] font-mono tracking-wider text-amber-300/80 uppercase shadow-lg">
+                      {/* Minimal Bottom Phase Rhythm Pill */}
+                      <div className="absolute bottom-3 inset-x-0 flex justify-center z-20 pointer-events-none">
+                        <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/60 border border-amber-500/25 backdrop-blur-md text-[9px] font-mono tracking-wider text-amber-300/80 uppercase shadow-md">
                           {[
                             { id: 'look-up', label: 'UP' },
                             { id: 'look-down', label: 'DOWN' },
@@ -1513,9 +1473,9 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                             const isCurrent = eyePhase === step.id;
                             return (
                               <React.Fragment key={step.id}>
-                                {sIdx > 0 && <span className="text-white/15 text-[8px]">•</span>}
+                                {sIdx > 0 && <span className="text-white/15 text-[7px]">•</span>}
                                 <span className={cn(
-                                  "transition-all duration-300 text-[9px]",
+                                  "transition-all duration-300 text-[8px] sm:text-[9px]",
                                   isCurrent 
                                     ? "text-amber-300 font-bold drop-shadow-[0_0_6px_rgba(245,158,11,0.8)] scale-105" 
                                     : "text-white/30"
@@ -1803,23 +1763,27 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       </AlertDialog>
 
       <AlertDialog open={isFinished}>
-        <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
+        <AlertDialogContent 
+          onOpenAutoFocus={(e) => e.preventDefault()} 
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className="w-[92vw] sm:max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-6 rounded-2xl sm:rounded-3xl"
+        >
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline text-2xl">Session Over!</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="font-headline text-2xl text-foreground">Session Over!</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
               Did you complete your task, "{taskName}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 w-full mt-2">
               <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 h-11 sm:h-12 text-sm sm:text-base font-bold rounded-xl"
                 onClick={() => handleSaveTask(false)}
               >
                 No
               </AlertDialogAction>
               <AlertDialogAction
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 h-11 sm:h-12 text-sm sm:text-base font-bold rounded-xl"
                 onClick={() => handleSaveTask(true)}
               >
                 Yes!
@@ -1834,37 +1798,40 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           onOpenAutoFocus={(e) => e.preventDefault()} 
           onCloseAutoFocus={(e) => e.preventDefault()} 
           onPointerDownOutside={(e) => { e.preventDefault(); handleMotivationalDialogChange(false); }} 
-          className="w-[92vw] sm:max-w-md overflow-hidden bg-background/90 backdrop-blur-md border border-amber-500/20 shadow-2xl"
+          className="w-[92vw] sm:max-w-md max-h-[90dvh] overflow-y-auto p-5 sm:p-6 bg-background/95 backdrop-blur-2xl border border-amber-500/20 shadow-2xl rounded-2xl sm:rounded-3xl flex flex-col justify-between"
         >
           {showMotivationalDialog && <CoinParticles />}
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-headline text-2xl text-amber-500">
-              <PartyPopper className="text-amber-500 animate-bounce" />
+            <DialogTitle className="flex items-center gap-2 font-headline text-xl sm:text-2xl text-amber-500">
+              <PartyPopper className="text-amber-500 animate-bounce w-6 h-6" />
               Task Completed!
             </DialogTitle>
           </DialogHeader>
 
-          <div className="py-4 min-h-[100px] flex flex-col justify-center">
+          <div className="py-3 sm:py-4 min-h-[80px] sm:min-h-[100px] flex flex-col justify-center overflow-hidden">
             {isLoadingAI ? (
-              <div className="flex flex-col items-center justify-center gap-4 py-4 text-muted-foreground animate-pulse">
+              <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 py-4 text-muted-foreground animate-pulse">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <p className="font-medium">Updating Log Book</p>
+                  <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+                  <p className="font-medium text-sm sm:text-base">Updating Log Book</p>
                 </div>
                 <p className="text-xs opacity-70">Synthesizing your achievement...</p>
               </div>
             ) : (
-              <p className="text-lg text-foreground leading-relaxed">
+              <p className="text-base sm:text-lg text-foreground leading-relaxed break-words">
                 {motivationalMessage || "Great job finishing your task! Keep up the momentum!"}
               </p>
             )}
           </div>
 
-          <div className="flex flex-col gap-3 mt-6">
+          <div className="flex flex-col gap-2.5 sm:gap-3 mt-4 sm:mt-6 shrink-0">
             {!isLoadingAI && suggestedTask && (
-              <Button onClick={handleStartSuggestedTask} className="w-full h-12 text-md shadow-lg transition-all active:scale-95 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-none text-white">
+              <Button 
+                onClick={handleStartSuggestedTask} 
+                className="w-full h-11 sm:h-12 text-sm sm:text-base font-bold shadow-lg transition-all active:scale-95 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 border-none text-white whitespace-normal break-words"
+              >
                 Start: {suggestedTask}
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
               </Button>
             )}
             <Button
@@ -1873,7 +1840,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                 setShowMotivationalDialog(false);
                 router.push('/');
               }}
-              className="w-full h-12 border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+              className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
             >
               Back to Home
             </Button>

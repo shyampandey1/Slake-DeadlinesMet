@@ -55,9 +55,9 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   const { startTimer, updateTimer, clearTimer, activeTimer, setFocusInterval } = useActiveTimer();
   const { toast } = useToast();
 
-  // Agent DM persistent floating HUD state: default active
-  const [isOpen, setIsOpenState] = useState<boolean>(true);
-  const isOpenRef = useRef(true);
+  // Agent DM floating HUD state: hidden by default (activated via voice button)
+  const [isOpen, setIsOpenState] = useState<boolean>(false);
+  const isOpenRef = useRef(false);
   const setIsOpen = useCallback((open: boolean) => {
     isOpenRef.current = open;
     setIsOpenState(open);

@@ -180,8 +180,8 @@ function RoutinePageComponent() {
             <HamburgerMenu />
         </div>
       </header>
-       <main className="flex-1 overflow-y-auto pt-24 pb-20">
-        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 space-y-8">
+       <main className="flex-1 overflow-y-auto overflow-x-hidden pt-24 pb-20 min-w-0">
+        <div className="w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 space-y-8 min-w-0 overflow-x-hidden">
             {Object.entries(professions).map(([group, professionList]) => (
                 <Card key={group} className="overflow-hidden">
                     <CardHeader>
@@ -238,70 +238,77 @@ function RoutinePageComponent() {
                     </CardTitle>
                     <CardDescription>Select your energy synchronization template for {profile || "your routine"}.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full min-w-0">
                     <Button 
                         variant={reformerPreference === 'morning_primer' ? 'default' : 'outline'}
                         onClick={() => handleTemplateChange('morning_primer')}
                         className={cn(
-                            "flex flex-col items-start gap-1 h-auto p-4 text-left transition-all",
+                            "w-full max-w-full min-w-0 flex flex-col items-start gap-1.5 h-auto p-4 text-left whitespace-normal break-words transition-all",
                             reformerPreference === 'morning_primer' ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20" : "hover:border-emerald-500/50"
                         )}
                     >
                         <span className="font-bold flex items-center gap-1.5">
                             🌅 The Morning Primer
                         </span>
-                        <span className="text-xs opacity-80">(M+O+V+E) before core work; (R+S) at day's end with 8 hydration reminders & visual breaks.</span>
+                        <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
+                            (M+O+V+E) before core work; (R+S) at day's end with 8 hydration reminders & visual breaks.
+                        </span>
                     </Button>
                     <Button 
                         variant={reformerPreference === 'evening_restorer' ? 'default' : 'outline'}
                         onClick={() => handleTemplateChange('evening_restorer')}
                         className={cn(
-                            "flex flex-col items-start gap-1 h-auto p-4 text-left transition-all",
+                            "w-full max-w-full min-w-0 flex flex-col items-start gap-1.5 h-auto p-4 text-left whitespace-normal break-words transition-all",
                             reformerPreference === 'evening_restorer' ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20" : "hover:border-indigo-500/50"
                         )}
                     >
                         <span className="font-bold flex items-center gap-1.5">
                             🌙 The Evening Restorer
                         </span>
-                        <span className="text-xs opacity-80">(E) at wake-up; (M+O+V+R+S) in a consolidated recovery block before sleep with 8 hydration reminders & visual breaks.</span>
+                        <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
+                            (E) at wake-up; (M+O+V+R+S) in a consolidated recovery block before sleep with 8 hydration reminders & visual breaks.
+                        </span>
                     </Button>
                 </CardContent>
             </Card>
 
-            <div ref={routineRef} className="pt-4 scroll-mt-24">
-              <div className="flex justify-between items-center mb-6">
+            <div ref={routineRef} className="pt-4 scroll-mt-24 min-w-0">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
                 <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline">
-                        <RotateCw className="w-4 h-4 mr-2"/>
-                        Reset Routine
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
-                  </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            <RotateCw className="w-4 h-4 mr-2"/>
+                            Reset Routine
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
-              <Button 
-                variant="outline" 
-                onClick={handleGenerateAIRoutine} 
-                disabled={isGeneratingAI}
-                className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2 transition-all hover:border-blue-400/50"
-              >
-                {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 text-blue-400" />}
-                {isGeneratingAI ? "Designing Schedule..." : "Auto-Plan Routine"}
-              </Button>
-            </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleGenerateAIRoutine} 
+                    disabled={isGeneratingAI}
+                    className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2 transition-all hover:border-blue-400/50"
+                  >
+                    {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 text-blue-400" />}
+                    {isGeneratingAI ? "Designing Schedule..." : "Auto-Plan Routine"}
+                  </Button>
+                </div>
+              </div>
             
             {tasksLoading ? renderSkeleton() : (
               <Accordion 
