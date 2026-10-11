@@ -124,25 +124,31 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
 
     if (timeInMinutes >= sunriseStart && timeInMinutes < sunriseEnd) {
         const progress = (timeInMinutes - sunriseStart) / (sunriseEnd - sunriseStart);
-        skyClass = 'from-indigo-300/70 via-orange-300/70 to-amber-200/70';
+        // Cool sky above transitioning down to warm morning glow at the horizon
+        skyClass = 'from-indigo-950 via-sky-800 to-amber-500/80';
         sunMoonY = 60 - progress * 50;
         sunMoonX = progress * 100;
         sunMoonOpacity = 1;
     } else if (timeInMinutes >= dayStart && timeInMinutes < dayEnd) {
         const progress = (timeInMinutes - dayStart) / (dayEnd - dayStart);
-        skyClass = isSunnyDay ? 'from-amber-300/80 to-orange-400/80' : 'from-sky-400/80 to-sky-600/80';
+        // Deep blue sky on top transitioning down to bright warm atmospheric horizon
+        skyClass = isSunnyDay 
+            ? 'from-sky-700 via-sky-500 to-amber-400/80' 
+            : 'from-sky-800 via-sky-600 to-slate-400/80';
         sunMoonY = 10 + progress * 5;
         sunMoonX = 50;
         sunMoonOpacity = 1;
     } else if (timeInMinutes >= sunsetStart && timeInMinutes < sunsetEnd) {
         const progress = (timeInMinutes - sunsetStart) / (sunsetEnd - sunsetStart);
-        skyClass = 'from-amber-300/70 via-orange-400/70 to-indigo-400/70';
+        // Deep dusk twilight blue on top transitioning down to warm sunset ember at bottom
+        skyClass = 'from-indigo-950 via-purple-900 to-orange-500/85';
         sunMoonY = 15 + progress * 45;
         sunMoonX = 100 - progress * 100;
         sunMoonOpacity = 1;
     } else {
         isNight = true;
-        skyClass = 'from-indigo-900/80 to-slate-900/80';
+        // Deep night zenith blue on top to dark horizon at bottom
+        skyClass = 'from-slate-950 via-indigo-950 to-slate-900';
         const nightDurationAfterSunset = (24 * 60) - sunsetEnd;
         const nightDurationBeforeSunrise = sunriseStart;
         
@@ -186,7 +192,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
         <div className="relative w-full h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[30rem] min-h-[320px]">
              <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  {isClient ? (
-                     <div className={cn("absolute inset-0 bg-gradient-to-br transition-all duration-3000 ease-in-out", skyClass)}>
+                     <div className={cn("absolute inset-0 bg-gradient-to-b transition-all duration-3000 ease-in-out", skyClass)}>
                          {/* Stars and Clouds ... */}
                          <div className="absolute inset-0 opacity-100">
                              <MotionCloud
