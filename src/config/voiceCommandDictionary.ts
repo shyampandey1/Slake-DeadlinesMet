@@ -16,8 +16,8 @@ export interface CommandDefinition {
   coinsAwarded?: number;
   coopAction?: 'invite' | 'start_sprint' | 'pause_group';
   rewardsAction?: 'redeem' | 'withdraw' | 'pin_certificate' | 'check_balance';
-  sensorType?: 'eye_tracking' | 'water_sounds' | 'ambient_noise';
-  sensorState?: 'on' | 'off' | 'toggle';
+  sensorType?: 'eye_tracking' | 'water_sounds' | 'ambient_noise' | 'breathing_chimes' | 'haptics';
+  sensorState?: 'on' | 'off' | 'toggle' | 'calibrate';
   speechFeedback: string;
   description: string;
 }
@@ -36,7 +36,7 @@ function buildDatasetCommandDefinitions(): CommandDefinition[] {
     }
 
     let coopAction: 'invite' | 'start_sprint' | 'pause_group' | undefined;
-    if (item.actionType === 'INVITE_PARTNER') coopAction = 'invite';
+    if (item.actionType === 'INVITE_PARTNER' || item.actionType === 'START_DUET') coopAction = 'invite';
     if (item.actionType === 'BROADCAST_START') coopAction = 'start_sprint';
     if (item.actionType === 'BROADCAST_PAUSE') coopAction = 'pause_group';
 
@@ -45,19 +45,37 @@ function buildDatasetCommandDefinitions(): CommandDefinition[] {
     if (item.actionType === 'PIN_CERTIFICATE') rewardsAction = 'pin_certificate';
     if (item.actionType === 'CHECK_BALANCE') rewardsAction = 'check_balance';
 
-    let sensorType: 'eye_tracking' | 'water_sounds' | 'ambient_noise' | undefined;
-    let sensorState: 'on' | 'off' | 'toggle' | undefined;
+    let sensorType: 'eye_tracking' | 'water_sounds' | 'ambient_noise' | 'breathing_chimes' | 'haptics' | undefined;
+    let sensorState: 'on' | 'off' | 'toggle' | 'calibrate' | undefined;
     if (item.actionType?.includes('EYE_TRACKING')) {
       sensorType = 'eye_tracking';
       sensorState = item.actionType.endsWith('ON') ? 'on' : 'off';
+    } else if (item.actionType === 'GAZE_CALIBRATE') {
+      sensorType = 'eye_tracking';
+      sensorState = 'calibrate';
     } else if (item.actionType === 'AUDIO_WATER_ON') {
       sensorType = 'water_sounds';
       sensorState = 'on';
+    } else if (item.actionType === 'AUDIO_WATER_OFF') {
+      sensorType = 'water_sounds';
+      sensorState = 'off';
     } else if (item.actionType === 'AUDIO_BREATHE_ON') {
+      sensorType = 'breathing_chimes';
+      sensorState = 'on';
+    } else if (item.actionType === 'AUDIO_BREATHE_OFF') {
+      sensorType = 'breathing_chimes';
+      sensorState = 'off';
+    } else if (item.actionType === 'MUTE_ALL' || item.actionType === 'AUDIO_MUTE') {
+      sensorType = 'ambient_noise';
+      sensorState = 'off';
+    } else if (item.actionType === 'UNMUTE_ALL') {
       sensorType = 'ambient_noise';
       sensorState = 'on';
-    } else if (item.actionType === 'AUDIO_MUTE') {
-      sensorType = 'ambient_noise';
+    } else if (item.actionType === 'HAPTICS_ON') {
+      sensorType = 'haptics';
+      sensorState = 'on';
+    } else if (item.actionType === 'HAPTICS_OFF') {
+      sensorType = 'haptics';
       sensorState = 'off';
     }
 

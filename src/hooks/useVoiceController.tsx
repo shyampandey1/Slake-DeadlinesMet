@@ -189,8 +189,14 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         switch (intent.action) {
           case 'NAVIGATE': {
             if (intent.targetRoute) {
-              const route = intent.targetRoute === '/analytics' ? '/logbook' : intent.targetRoute;
-              routerRef.current.push(route);
+              if (intent.targetRoute === 'WINDOW_BACK') {
+                if (typeof window !== 'undefined') {
+                  window.history.back();
+                }
+              } else {
+                const route = intent.targetRoute === '/analytics' ? '/logbook' : intent.targetRoute;
+                routerRef.current.push(route);
+              }
             }
             break;
           }
@@ -268,8 +274,20 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             }
             break;
           }
+          case 'TIMER_RESTART': {
+            const curTimer = activeTimerRef.current;
+            if (curTimer) {
+              const expectedEndTime = Date.now() + (curTimer.initialDuration * 60 * 1000);
+              updateTimerRef.current({ isPaused: false, expectedEndTime });
+              toastRef.current({
+                title: 'Timer Restarted ⏱️',
+                description: 'Session reset to start.',
+              });
+            }
+            break;
+          }
           case 'TIMER_EXTEND': {
-            const extendMins = intent.extendMinutes || 5;
+            const extendMins = intent.durationMinutes || intent.extendMinutes || 5;
             const curTimer = activeTimerRef.current;
             if (curTimer) {
               const newInitial = curTimer.initialDuration + extendMins;
@@ -282,12 +300,45 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             }
             break;
           }
+          case 'TIMER_REDUCE': {
+            const reduceMins = intent.durationMinutes || 5;
+            const curTimer = activeTimerRef.current;
+            if (curTimer) {
+              const newInitial = Math.max(1, curTimer.initialDuration - reduceMins);
+              const newExpected = Math.max(Date.now(), curTimer.expectedEndTime - (reduceMins * 60 * 1000));
+              updateTimerRef.current({ initialDuration: newInitial, expectedEndTime: newExpected });
+              toastRef.current({
+                title: 'Timer Reduced ⏱️',
+                description: `Reduced by ${reduceMins} minutes.`,
+              });
+            }
+            break;
+          }
           case 'TIMER_SET_INTERVAL': {
-            const interval = intent.intervalMinutes || 10;
+            const interval = intent.durationMinutes !== undefined ? intent.durationMinutes : (intent.intervalMinutes || 10);
             setFocusIntervalRef.current(interval);
             toastRef.current({
               title: 'Interval Alerts Configured 🔔',
-              description: `You will be alerted every ${interval} minutes.`,
+              description: interval === 0 ? 'Interval reminders disabled.' : `Alert every ${interval} minutes.`,
+            });
+            break;
+          }
+          case 'TIMER_SKIP': {
+            toastRef.current({
+              title: 'Skipping Task ⏭️',
+              description: 'Moving to the next routine task.',
+            });
+            break;
+          }
+          case 'ROUTINE_CONTROL': {
+            if (intent.targetRoute) {
+              routerRef.current.push(intent.targetRoute);
+            } else {
+              routerRef.current.push('/routine');
+            }
+            toastRef.current({
+              title: 'Routine Control',
+              description: intent.speechFeedback,
             });
             break;
           }
@@ -356,7 +407,6 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             }
             break;
           }
-// Handled above by unified TIMER_START / TASK_CREATE full screen launcher
           case 'COOP_ACTION': {
             routerRef.current.push('/reformers');
             toastRef.current({
@@ -368,8 +418,21 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           case 'REWARDS_ACTION':
           case 'REDEEM_TRIGGER': {
             routerRef.current.push('/rewards');
+            toastRef.current({
+              title: 'Achievement Center',
+              description: intent.speechFeedback,
+            });
             break;
           }
+          case 'ANALYTICS_ACTION': {
+            routerRef.current.push('/logbook');
+            toastRef.current({
+              title: 'Productivity Analytics',
+              description: intent.speechFeedback,
+            });
+            break;
+          }
+          case 'SENSOR_TOGGLE':
           case 'SENSOR_ENVIRONMENT_TOGGLE': {
             if (typeof window !== 'undefined') {
               window.dispatchEvent(
@@ -390,8 +453,29 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             });
             break;
           }
+          case 'SYSTEM_CONTROL': {
+            if (intent.actionType === 'DISMISS') {
+              setIsOpen(false);
+            } else if (intent.actionType === 'THEME_TOGGLE') {
+              if (typeof window !== 'undefined') {
+                document.documentElement.classList.toggle('dark');
+              }
+            } else if (intent.actionType === 'SCROLL_DOWN') {
+              if (typeof window !== 'undefined') {
+                window.scrollBy({ top: 300, behavior: 'smooth' });
+              }
+            } else if (intent.actionType === 'SCROLL_UP') {
+              if (typeof window !== 'undefined') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }
+            toastRef.current({
+              title: 'System Control',
+              description: intent.speechFeedback || 'Command executed.',
+            });
+            break;
+          }
           case 'MODAL_DISMISS': {
-            // Dismiss and close Agent DM
             setIsOpen(false);
             break;
           }
