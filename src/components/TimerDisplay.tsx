@@ -268,10 +268,69 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     setOfflineNotificationsEnabled(saved === 'true');
   }, []);
 
+  const togglePause = useCallback((forceState?: boolean) => {
+    const nextPaused = typeof forceState === 'boolean' ? forceState : !isPaused;
+    setIsPaused(nextPaused);
+    updateTimer({ isPaused: nextPaused }, timeRemainingRef.current);
+    ensureAudioInitialized();
+
+    const currentCoOpId = session?.id || coOpSessionId || activeTimer?.coOpSessionId || "";
+    const newEndTime = Date.now() + timeRemainingRef.current * 1000;
+
+    if (nextPaused) {
+      expectedEndTimeRef.current = null;
+    } else {
+      expectedEndTimeRef.current = newEndTime;
+    }
+
+    updateUserProfileData({
+      activeSession: {
+        taskName,
+        duration: effectiveDuration,
+        expectedEndTime: newEndTime,
+        isPaused: nextPaused,
+        category: category || "",
+        color: color || "",
+        coOpSessionId: currentCoOpId,
+        timeLeftWhenPaused: nextPaused ? timeRemainingRef.current : null
+      }
+    });
+
+    if (session) {
+      updateSession({
+        isPaused: nextPaused,
+        timeLeftWhenPaused: nextPaused ? timeRemainingRef.current : null,
+        status: nextPaused ? "waiting" : "running",
+        expectedEndTime: nextPaused ? null : newEndTime
+      });
+    }
+
+    if (nextPaused) {
+      cancelScheduledNotification();
+    } else {
+      showCompletionNotification(true);
+    }
+  }, [
+    isPaused,
+    updateTimer,
+    ensureAudioInitialized,
+    session,
+    coOpSessionId,
+    activeTimer?.coOpSessionId,
+    taskName,
+    effectiveDuration,
+    category,
+    color,
+    updateUserProfileData,
+    updateSession,
+    cancelScheduledNotification,
+    showCompletionNotification
+  ]);
+
   const handleSkipTask = useCallback(() => {
     const currentIndex = userRoutine.findIndex(t => t.name.toLowerCase() === taskName.toLowerCase());
     const nextTask = currentIndex !== -1 && currentIndex < userRoutine.length - 1 ? userRoutine[currentIndex + 1] : null;
-    
+
     clearTimer();
     setFlashState('none');
     if (session) {
@@ -292,7 +351,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         duration: String(nextTask.duration),
       });
       if (nextTask.category) params.set("category", nextTask.category);
-      
+
       let colorVal = undefined;
       if (nextTask.category && presetTasks[nextTask.category]?.color) {
         const colorClassMatch = presetTasks[nextTask.category].color.match(/bg-[a-z]+-\d+/);
@@ -301,7 +360,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         }
       }
       if (colorVal) params.set("color", colorVal);
-      
+
       router.push(`/timer?${params.toString()}`);
     } else {
       toast({
@@ -311,6 +370,32 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       router.push("/");
     }
   }, [taskName, userRoutine, session, updateSession, clearTimer, router, toast, presetTasks]);
+
+  // Listen to voice commands triggered by Agent DM
+  useEffect(() => {
+    const handleVoiceTimerAction = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail.action === 'TIMER_PAUSE') {
+        togglePause(true);
+      } else if (detail.action === 'TIMER_RESUME') {
+        togglePause(false);
+      } else if (detail.action === 'TIMER_STOP') {
+        handleEndEarly();
+      } else if (detail.action === 'TIMER_SKIP') {
+        handleSkipTask();
+      } else if (detail.action === 'TIMER_RESTART') {
+        const resetSeconds = Math.round(effectiveDuration * 60);
+        timeRemainingRef.current = resetSeconds;
+        setTimeRemaining(resetSeconds);
+        expectedEndTimeRef.current = Date.now() + resetSeconds * 1000;
+        setIsPaused(false);
+        updateTimer({ isPaused: false, expectedEndTime: expectedEndTimeRef.current }, resetSeconds);
+      }
+    };
+
+    window.addEventListener('slake-timer-voice-action', handleVoiceTimerAction);
+    return () => window.removeEventListener('slake-timer-voice-action', handleVoiceTimerAction);
+  }, [togglePause, handleEndEarly, handleSkipTask, effectiveDuration, updateTimer]);
 
   // Sync Hydration Audio with play state and volume settings
   useEffect(() => {
@@ -1650,49 +1735,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
                     {/* Pause / Resume Action with 1.5s Gaze/Cursor Dwell */}
                     <DwellButton
-                      onDwellTrigger={() => {
-                        const newPaused = !isPaused;
-                        setIsPaused(newPaused);
-                        updateTimer({ isPaused: newPaused }, timeRemaining);
-                        ensureAudioInitialized();
-
-                        const currentCoOpId = session?.id || coOpSessionId || activeTimer?.coOpSessionId || "";
-                        const newEndTime = newPaused ? (Date.now() + timeRemaining * 1000) : (Date.now() + timeRemaining * 1000);
-
-                        if (newPaused) {
-                            expectedEndTimeRef.current = null;
-                        } else {
-                            expectedEndTimeRef.current = newEndTime;
-                        }
-
-                        updateUserProfileData({
-                            activeSession: {
-                                taskName,
-                                duration: effectiveDuration,
-                                expectedEndTime: newEndTime,
-                                isPaused: newPaused,
-                                category: category || "",
-                                color: color || "",
-                                coOpSessionId: currentCoOpId,
-                                timeLeftWhenPaused: newPaused ? timeRemaining : null
-                            }
-                        });
-                        
-                        if (session) {
-                            updateSession({ 
-                                isPaused: newPaused, 
-                                timeLeftWhenPaused: newPaused ? timeRemaining : null,
-                                status: newPaused ? "waiting" : "running",
-                                expectedEndTime: newPaused ? null : newEndTime
-                            });
-                        }
-
-                        if (newPaused) {
-                          cancelScheduledNotification();
-                        } else {
-                          showCompletionNotification(true);
-                        }
-                      }}
+                      onDwellTrigger={() => togglePause()}
                       size="icon"
                       variant="ghost"
                       title={isPaused ? "Resume (Dwell 1.5s or Click)" : "Pause (Dwell 1.5s or Click)"}

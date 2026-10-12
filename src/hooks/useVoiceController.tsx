@@ -253,14 +253,23 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           }
           case 'TIMER_PAUSE': {
             updateTimerRef.current({ isPaused: true });
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('slake-timer-voice-action', { detail: { action: 'TIMER_PAUSE' } }));
+            }
             break;
           }
           case 'TIMER_RESUME': {
             updateTimerRef.current({ isPaused: false });
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('slake-timer-voice-action', { detail: { action: 'TIMER_RESUME' } }));
+            }
             break;
           }
           case 'TIMER_STOP': {
             clearTimerRef.current();
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('slake-timer-voice-action', { detail: { action: 'TIMER_STOP' } }));
+            }
             if (intent.actionType === 'ABORT') {
               toastRef.current({
                 title: 'Timer Reset ⏱️',
@@ -279,11 +288,14 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             if (curTimer) {
               const expectedEndTime = Date.now() + (curTimer.initialDuration * 60 * 1000);
               updateTimerRef.current({ isPaused: false, expectedEndTime });
-              toastRef.current({
-                title: 'Timer Restarted ⏱️',
-                description: 'Session reset to start.',
-              });
             }
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('slake-timer-voice-action', { detail: { action: 'TIMER_RESTART' } }));
+            }
+            toastRef.current({
+              title: 'Timer Restarted ⏱️',
+              description: 'Session reset to start.',
+            });
             break;
           }
           case 'TIMER_EXTEND': {
@@ -324,6 +336,9 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             break;
           }
           case 'TIMER_SKIP': {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('slake-timer-voice-action', { detail: { action: 'TIMER_SKIP' } }));
+            }
             toastRef.current({
               title: 'Skipping Task ⏭️',
               description: 'Moving to the next routine task.',
