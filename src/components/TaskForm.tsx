@@ -29,6 +29,7 @@ import AddTaskDialog from "./AddTaskDialog";
 import type { UserPresetTask, Preset } from "@/types";
 import { cn } from "@/lib/utils";
 import { categoryConfig } from "@/lib/routines";
+import { getLocalDateString } from "@/lib/dailyCoins";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "./ui/carousel";
 import { Slider } from "./ui/slider";
 import { Badge } from "./ui/badge";
@@ -241,11 +242,16 @@ export default function TaskForm() {
       });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
     const completedCounts: Record<string, number> = {};
     loggedTasks.forEach(t => {
-      if (t.completed && t.createdAt && typeof t.createdAt === 'string' && t.createdAt.startsWith(todayStr)) {
-        completedCounts[t.name] = (completedCounts[t.name] || 0) + 1;
+      if (t.completed && t.createdAt) {
+        const taskDateStr = typeof t.createdAt === 'string'
+          ? getLocalDateString(new Date(t.createdAt))
+          : '';
+        if (taskDateStr === todayStr || (typeof t.createdAt === 'string' && t.createdAt.startsWith(todayStr))) {
+          completedCounts[t.name] = (completedCounts[t.name] || 0) + 1;
+        }
       }
     });
 
@@ -325,9 +331,25 @@ export default function TaskForm() {
     const activeKey = categoryKeys.includes("Today's Events") ? "Today's Events" : activeCategory;
 
     if (activeKey) {
-      const activeIndex = categoryKeys.findIndex(category => category === activeKey);
-      if (activeIndex !== -1) {
-        scrollTo(activeIndex);
+      let targetIndex = categoryKeys.findIndex(category => category === activeKey);
+      if (targetIndex !== -1) {
+        const activeBlockTasks = mergedTasks[activeKey]?.tasks || [];
+        const allActiveCompleted =
+          activeBlockTasks.length > 0 && activeBlockTasks.every((t: any) => t.isCompleted);
+
+        if (allActiveCompleted) {
+          // Advance to the next time block that still has incomplete tasks
+          for (let offset = 1; offset < categoryKeys.length; offset++) {
+            const candidateIdx = (targetIndex + offset) % categoryKeys.length;
+            const candidateKey = categoryKeys[candidateIdx];
+            const candidateTasks = mergedTasks[candidateKey]?.tasks || [];
+            if (candidateTasks.some((t: any) => !t.isCompleted)) {
+              targetIndex = candidateIdx;
+              break;
+            }
+          }
+        }
+        scrollTo(targetIndex);
       }
     } else {
       scrollTo(0);

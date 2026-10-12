@@ -23,7 +23,8 @@ import {
 import type { Task, UserPresetTask, Preset, ProfileType, UserEvent } from '@/types';
 import { useProfile } from './useProfile';
 import { getDay, set, subDays } from 'date-fns';
-import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, wrapRoutineWithMOVERS, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
+import { defaultRoutines, ROUTINE_TEMPLATE_VERSION, profileToRoutineMap, categoryConfig, wrapRoutineWithMOVERS, commonEveningWindDown, commonBedtimeRoutine, computeCategoryTimeRanges, computeActiveCategory, getAvailableCategories as getCats, getAvailableIcons as getIcons } from '@/lib/routines';
+import { getLocalDateString } from '@/lib/dailyCoins';
 import { format as formatDate, parse, compareDesc } from 'date-fns';
 
 // Re-export for easier access in other components
@@ -171,7 +172,6 @@ export function useTasks() {
 
           // --- LOGBOOK DAILY COINS SYNC ---
           try {
-              const { getLocalDateString } = require('@/lib/dailyCoins');
               const localTodayStr = getLocalDateString();
               
               const dbDailyCoins = userTasks
@@ -230,6 +230,16 @@ export function useTasks() {
       createdAt: new Date().toISOString(),
     };
 
+    if (task.completed && task.earnedCoins && task.earnedCoins > 0) {
+      const profile = profileDataRef.current;
+      const currentTotal = (profile?.slakeCoins ?? profile?.slakeCredits ?? 0) + task.earnedCoins;
+      updateUserProfileData({
+        slakeCoins: currentTotal,
+        slakeCredits: currentTotal,
+        slakeBalance: currentTotal,
+      } as any);
+    }
+
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
       setTasks(prev => {
@@ -246,15 +256,6 @@ export function useTasks() {
 
     const encryptedName = await encryptText(task.name, user.uid);
     await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
-
-    if (task.completed && task.earnedCoins && task.earnedCoins > 0) {
-      const profile = profileDataRef.current;
-      const currentTotal = (profile?.slakeCoins ?? profile?.slakeCredits ?? 0) + task.earnedCoins;
-      updateUserProfileData({
-        slakeCoins: currentTotal,
-        slakeCredits: currentTotal,
-      } as any);
-    }
   }, [user, isOffline, isSyncEnabled, updateUserProfileData]);
 
   const clearTasks = async () => {
@@ -429,7 +430,44 @@ export function usePresetTasks() {
                     }
                     parsedData[cat].tasks = uniqueTasks;
                 }
-                setPresetTasks(parsedData);
+                if (!parsedData['Evening Wind-down'] || parsedData['Evening Wind-down'].tasks.length === 0) {
+                    parsedData['Evening Wind-down'] = {
+                        color: categoryConfig['Evening Wind-down']?.color || 'bg-indigo-800 text-white',
+                        tasks: [
+                            ...commonEveningWindDown.map((t, idx) => ({
+                                ...t,
+                                id: `local_def_ewd_${idx}`,
+                                order: 900 + idx,
+                                profession: effectiveProfile,
+                            })),
+                            {
+                                name: 'Drink a glass of water',
+                                duration: 1,
+                                icon: 'Droplets',
+                                category: 'Evening Wind-down',
+                                id: 'local_def_ewd_water',
+                                order: 905,
+                                profession: effectiveProfile,
+                            },
+                        ] as UserPresetTask[],
+                    };
+                }
+                if (!parsedData['Bedtime Routine'] || parsedData['Bedtime Routine'].tasks.length === 0) {
+                    parsedData['Bedtime Routine'] = {
+                        color: categoryConfig['Bedtime Routine']?.color || 'bg-slate-800 text-white',
+                        tasks: commonBedtimeRoutine.map((t, idx) => ({
+                            ...t,
+                            id: `local_def_btr_${idx}`,
+                            order: 950 + idx,
+                            profession: effectiveProfile,
+                        })) as UserPresetTask[],
+                    };
+                }
+                const sortedCached: Preset = {};
+                Object.keys(parsedData)
+                    .sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+                    .forEach(key => { sortedCached[key] = parsedData[key]; });
+                setPresetTasks(sortedCached);
             } else {
                  const routineKey = profileToRoutineMap[effectiveProfile];
                  const defaultTasks = routineKey ? defaultRoutines.routines[routineKey] || [] : [];
@@ -519,6 +557,41 @@ export function usePresetTasks() {
                     acc[category].tasks.push(task);
                     return acc;
                 }, {});
+
+                // Ensure 7-9 PM Evening Wind-down and 10 PM-12 AM Bedtime Routine blocks are present for all users
+                if (!newPreset['Evening Wind-down'] || newPreset['Evening Wind-down'].tasks.length === 0) {
+                    newPreset['Evening Wind-down'] = {
+                        color: categoryConfig['Evening Wind-down']?.color || 'bg-indigo-800 text-white',
+                        tasks: [
+                            ...commonEveningWindDown.map((t, idx) => ({
+                                ...t,
+                                id: `local_def_ewd_${idx}`,
+                                order: 900 + idx,
+                                profession: effectiveProfile,
+                            })),
+                            {
+                                name: 'Drink a glass of water',
+                                duration: 1,
+                                icon: 'Droplets',
+                                category: 'Evening Wind-down',
+                                id: 'local_def_ewd_water',
+                                order: 905,
+                                profession: effectiveProfile,
+                            },
+                        ] as UserPresetTask[],
+                    };
+                }
+                if (!newPreset['Bedtime Routine'] || newPreset['Bedtime Routine'].tasks.length === 0) {
+                    newPreset['Bedtime Routine'] = {
+                        color: categoryConfig['Bedtime Routine']?.color || 'bg-slate-800 text-white',
+                        tasks: commonBedtimeRoutine.map((t, idx) => ({
+                            ...t,
+                            id: `local_def_btr_${idx}`,
+                            order: 950 + idx,
+                            profession: effectiveProfile,
+                        })) as UserPresetTask[],
+                    };
+                }
 
                 const sortedPreset: Preset = {};
                 Object.keys(newPreset).sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
@@ -778,131 +851,23 @@ export function usePresetTasks() {
      return;
   };
 
+  const [clockTick, setClockTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setClockTick(t => t + 1);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   const categoryTimeRanges = useMemo(() => {
-    const ranges: { [category: string]: { start: Date, end: Date } } = {};
-    if (Object.keys(presetTasks).length === 0) return ranges;
-
-    const today = new Date();
-    
-    const timeBlocks = {
-        'Morning Routine': { start: 6, end: 9 },
-        'Primary Work Session': { start: 9, end: 13 },
-        'Lunch Break': { start: 13, end: 14 },
-        'Afternoon Session': { start: 14, end: 17 },
-        'Post-Work Decompression': { start: 17, end: 19 },
-        'Evening Routine': { start: 19, end: 21 },
-        'Bedtime Routine': { start: 21, end: 24 }, 
-        'Work & Focus': { start: 9, end: 17 }, 
-        'Breaks & Meals': { start: 12, end: 14 }, 
-        'Health & Wellness': {start: 17, end: 19 }, 
-        'Evening Wind-down': { start: 19, end: 21 },
-        // Content Creator / Creative
-        'Morning Kickstart': { start: 7, end: 8.5 },
-        'Pre-Production': { start: 8.5, end: 10.5 },
-        'Production Block': { start: 10.5, end: 13 },
-        'Post-Production': { start: 14, end: 17 },
-        'Evening & Close': { start: 17, end: 22 },
-        // Software Engineer / Tech
-        'System Initialization': { start: 8.5, end: 10 },
-        'Sync & Sprint': { start: 10, end: 13 },
-        'Architecture & Logic': { start: 13, end: 16 },
-        'Deployment & Decompression': { start: 16, end: 22 },
-        // Entrepreneur / Business
-        'Visionary Morning': { start: 6, end: 8 },
-        'Strategic Execution': { start: 8, end: 13 },
-        'Operations': { start: 13, end: 18 },
-        'Networking & Rest': { start: 18, end: 22.5 },
-        // Medical Rep
-        'Field Prep': { start: 7.5, end: 9 },
-        'Clinic Visits': { start: 9, end: 13 },
-        'Product Demos & Reporting': { start: 14, end: 17 },
-        'Inventory & Relax': { start: 18, end: 22 },
-        // Student
-        'Learning Ready': { start: 7.5, end: 9 },
-        'Academics I': { start: 9, end: 13 },
-        'Academics II': { start: 14, end: 17 },
-        'Review & Rest': { start: 18, end: 23 },
-        // On-The-Go
-        'Morning Prep': { start: 6, end: 9 },
-        'On the Road': { start: 9, end: 17 },
-        'Post-Work Admin': { start: 17, end: 18 },
-        'Evening & Bedtime': { start: 18, end: 24 },
-        // Healthcare
-        'Pre-Shift Routine': { start: 5, end: 7 },
-        'During Shift': { start: 7, end: 19 },
-        'Post-Shift Decompression': { start: 19, end: 21 },
-        // Day Off
-        'Morning Recovery': { start: 7, end: 12 },
-        'Afternoon Life Admin & Recharge': { start: 12, end: 18 },
-        'Evening & Bedtime Reset': { start: 18, end: 24 },
-        // Protocol & Missing Categories
-        'Morning Protocol': { start: 8, end: 9 },
-        'MOVERS Protocol': { start: 8, end: 9 },
-        'Late Hustle': { start: 20, end: 22 },
-        'Entertainment & Gaming': { start: 21, end: 23 },
-        'Evening Protocol': { start: 22.5, end: 23.5 },
-    };
-    
-    Object.keys(presetTasks).forEach(category => {
-        const categoryLookup = category as keyof typeof timeBlocks;
-        let block = timeBlocks[categoryLookup];
-
-        // Fallback for categories not in timeBlocks
-        if (!block) {
-            const config = categoryConfig[category];
-            if (config) {
-                let hour = 12;
-                if (config.order === 1) hour = 7;
-                else if (config.order === 2) hour = 9;
-                else if (config.order === 3) hour = 13;
-                else if (config.order === 4) hour = 16;
-                else if (config.order === 5) hour = 19;
-                else if (config.order >= 6 && config.order < 90) hour = 21;
-                else if (config.order >= 90) hour = 23;
-                
-                block = { start: hour, end: hour + 1 };
-            } else {
-                // Absolute fallback
-                block = { start: 12, end: 13 };
-            }
-        }
-
-        if (block) {
-            const startHour = Math.floor(block.start);
-            const startMin = Math.round((block.start % 1) * 60);
-            const endHour = Math.floor(block.end);
-            const endMin = Math.round((block.end % 1) * 60);
-
-            ranges[category] = {
-                start: set(today, { hours: startHour, minutes: startMin, seconds: 0, milliseconds: 0 }),
-                end: set(today, { hours: endHour, minutes: endMin, seconds: 0, milliseconds: 0 }),
-            };
-        }
-    });
-
-    return ranges;
-  }, [presetTasks]);
-
+    void clockTick;
+    return computeCategoryTimeRanges(presetTasks, new Date());
+  }, [presetTasks, clockTick]);
 
   const activeCategory = useMemo(() => {
-      const now = new Date();
-      
-      const matchingCategories = Object.entries(categoryTimeRanges)
-          .filter(([_, range]) => now >= range.start && now < range.end)
-          .map(([category]) => category);
-      
-      if (matchingCategories.length === 0) return null;
-      if (matchingCategories.length === 1) return matchingCategories[0];
-      
-      const availableMatchingCategories = matchingCategories.filter(category => presetTasks[category]);
-      
-      if (availableMatchingCategories.length > 0) {
-          availableMatchingCategories.sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99));
-          return availableMatchingCategories[0];
-      }
-      
-      return matchingCategories[0];
-  }, [categoryTimeRanges, presetTasks]);
+    void clockTick;
+    return computeActiveCategory(presetTasks, categoryTimeRanges, undefined, new Date());
+  }, [categoryTimeRanges, presetTasks, clockTick]);
 
   useEffect(() => {
     const syncOfflinePresets = async () => {

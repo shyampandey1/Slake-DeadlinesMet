@@ -45,6 +45,7 @@ import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { getTaskCategoryDetails } from "@/lib/categorization";
+import { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins, calculateTaskCoins } from "@/lib/dailyCoins";
 import { useToast } from "@/hooks/use-toast";
 import { SkipForward } from "lucide-react";
 import { useHydrationAudio } from "@/hooks/useHydrationAudio";
@@ -127,6 +128,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const [showMotivationalDialog, setShowMotivationalDialog] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [suggestedTask, setSuggestedTask] = useState<string | undefined>("");
+  const [lastEarnedCoins, setLastEarnedCoins] = useState<number>(0);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [flashState, setFlashState] = useState<FlashState>('none');
   const [focusInterval, setFocusInterval] = useState<number | null>(contextFocusInterval || null);
@@ -463,7 +465,11 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       currentTaskStatus: "Idle",
       activeSession: null
     });
-    const timeSpentInSeconds = Math.round(effectiveDuration * 60) - timeRemainingRef.current;
+
+    const totalSeconds = Math.max(60, Math.round(effectiveDuration * 60));
+    const timeSpentInSeconds = timeRemainingRef.current <= 0
+      ? totalSeconds
+      : Math.max(0, totalSeconds - timeRemainingRef.current);
     const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
 
     const finalCategory = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
@@ -473,28 +479,31 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     let isFalse = false;
 
     if (completed) {
-       // False entry logic
-       if (timeSpentInSeconds < 10) {
-           isFalse = true;
-           finalCompleted = false;
-           alert("False Entry Detected: Completion time was unnaturally fast. No rewards added.");
-       } else {
-           // Timer awards: Math.max(10, durationMinutes * 10), capped at 250/day
-           const durationAward = Math.max(10, actualDuration * 10);
-           try {
-               const { getCachedDailyCoins } = require('@/lib/dailyCoins');
-               const { amount: cachedToday } = getCachedDailyCoins();
-               const remainingDailyAllowance = Math.max(0, 250 - cachedToday);
-               earnedCoins = Math.min(durationAward, remainingDailyAllowance);
-           } catch {
-               earnedCoins = Math.min(250, durationAward);
-           }
-       }
+      // Only flag false entry if user aborted within < 3 seconds while timer still had full time left
+      if (timeSpentInSeconds < 3 && timeRemainingRef.current > 0) {
+        isFalse = true;
+        finalCompleted = false;
+        toast({
+          title: "Session Too Short",
+          description: "Spend at least a few seconds focused on the task to earn DM Coins.",
+          variant: "destructive",
+        });
+      } else {
+        earnedCoins = calculateTaskCoins({
+          taskName,
+          category: taskCategory || finalCategory,
+          actualDurationMinutes: timeRemainingRef.current <= 0 ? effectiveDuration : actualDuration,
+          initialDurationMinutes: effectiveDuration,
+          streakDays: profileData?.streak?.currentStreak || 0,
+        });
+      }
     }
+
+    setLastEarnedCoins(earnedCoins);
 
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
       name: taskName,
-      duration: actualDuration,
+      duration: timeRemainingRef.current <= 0 ? effectiveDuration : actualDuration,
       initialDuration: effectiveDuration,
       completed: finalCompleted,
       category: finalCategory,
@@ -503,15 +512,14 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     };
 
     if (finalCompleted && earnedCoins > 0) {
-       // Optimistic daily coins cache write
-       try {
-           const { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } = require('@/lib/dailyCoins');
-           const todayStr = getLocalDateString();
-           const { amount: cachedAmount } = getCachedDailyCoins();
-           setCachedDailyCoins(cachedAmount + earnedCoins, todayStr);
-       } catch (e) {
-           console.warn("Failed to write daily coins optimistically", e);
-       }
+      // Optimistic daily coins cache write
+      try {
+        const todayStr = getLocalDateString();
+        const { amount: cachedAmount } = getCachedDailyCoins();
+        setCachedDailyCoins(cachedAmount + earnedCoins, todayStr);
+      } catch (e) {
+        console.warn("Failed to write daily coins optimistically", e);
+      }
     }
 
     try {
@@ -525,20 +533,45 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
       setShowMotivationalDialog(true);
       toast({
         title: "Task Conquered! 🎉",
-        description: `+${earnedCoins} DM coins earned!`,
+        description: `+${earnedCoins} DM Coins earned for "${taskName}"!`,
+        className: "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-bold rounded-2xl border-none shadow-2xl shadow-orange-500/20",
       });
 
+      // Compute smart local next-task fallback from routine in case AI is offline
+      const currentRoutineIdx = userRoutine.findIndex(
+        (t) => t.name.toLowerCase() === taskName.toLowerCase()
+      );
+      const fallbackNextTask =
+        currentRoutineIdx !== -1 && currentRoutineIdx + 1 < userRoutine.length
+          ? userRoutine[currentRoutineIdx + 1].name
+          : userRoutine.find((t) => t.name.toLowerCase() !== taskName.toLowerCase())?.name;
+
       try {
+        const pastTasks = tasks
+          .slice(0, 5)
+          .map((t) => ({ taskName: t.name, duration: t.duration, completionStatus: t.completed }));
+        const now = new Date();
+        const localHour = now.getHours() + now.getMinutes() / 60;
         const result = await generateMotivationalMessage({
-          taskName,
-          category: finalCategory,
-          userRoutine: userRoutine.map((t) => t.name),
+          taskName: newTask.name,
+          duration: newTask.duration,
+          completionStatus: true,
+          userRoutine: userRoutine.map((t) => ({
+            name: t.name,
+            duration: Number(t.duration) || 15,
+            category: t.category || finalCategory,
+          })),
+          pastTasks,
+          currentCategory: taskCategory || newTask.category,
+          localTime: now.toISOString(),
+          localHour,
         });
         setMotivationalMessage(result.message);
-        setSuggestedTask(result.suggestedTask);
+        setSuggestedTask(result.suggestedNextTask || fallbackNextTask);
       } catch (error) {
         console.error("Failed to generate motivational message:", error);
         setMotivationalMessage("Outstanding focus! Every completed session moves you closer to mastery.");
+        setSuggestedTask(fallbackNextTask);
       } finally {
         setIsLoadingAI(false);
       }
@@ -552,10 +585,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     updateUserProfileData,
     effectiveDuration,
     taskName,
+    taskCategory,
     profileData?.profile,
+    profileData?.streak?.currentStreak,
     addTask,
     toast,
     userRoutine,
+    tasks,
     router
   ]);
 
@@ -1471,7 +1507,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                       <div className="relative w-full h-full flex items-center justify-center z-0 overflow-visible">
                         {/* Ambient Iris Aura Glow */}
                         <div 
-                          className="absolute w-36 h-28 sm:w-44 sm:h-32 rounded-full pointer-events-none transition-all duration-1000 ease-out"
+                          className="absolute w-40 h-32 sm:w-48 sm:h-36 rounded-full pointer-events-none transition-all duration-1000 ease-out"
                           style={{
                             background: 'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.08) 50%, transparent 75%)',
                             filter: 'blur(10px)',
@@ -1479,8 +1515,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                           }}
                         />
 
-                        {/* Vector Eye SVG Stage */}
-                        <div className="relative w-40 h-28 sm:w-48 sm:h-32 flex items-center justify-center">
+                        {/* Vector Eye SVG Stage - Enlarged & Naturally Proportioned */}
+                        <div className="relative w-44 h-32 sm:w-52 sm:h-36 flex items-center justify-center">
                           <svg
                             viewBox="0 0 200 120"
                             className="w-full h-full overflow-visible drop-shadow-[0_4px_24px_rgba(245,158,11,0.25)]"
@@ -1488,10 +1524,17 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                             <defs>
                               {/* Sclera organic gradient */}
                               <linearGradient id="scleraGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#1e222a" stopOpacity="0.95" />
-                                <stop offset="50%" stopColor="#0f1115" stopOpacity="0.98" />
-                                <stop offset="100%" stopColor="#090a0d" stopOpacity="1" />
+                                <stop offset="0%" stopColor="#1e2430" stopOpacity="0.96" />
+                                <stop offset="50%" stopColor="#12161f" stopOpacity="0.98" />
+                                <stop offset="100%" stopColor="#090b10" stopOpacity="1" />
                               </linearGradient>
+
+                              {/* Spherical Eyeball Shading */}
+                              <radialGradient id="eyeballSphereGrad" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stopColor="#2a3142" stopOpacity="0.55" />
+                                <stop offset="70%" stopColor="#151922" stopOpacity="0.35" />
+                                <stop offset="100%" stopColor="#090b10" stopOpacity="0" />
+                              </radialGradient>
 
                               {/* Iris golden amber gradient */}
                               <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
@@ -1507,85 +1550,93 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                                 <stop offset="100%" stopColor="#0f172a" />
                               </linearGradient>
 
-                              {/* Clip Path defining the natural Almond Eye Opening */}
+                              {/* Clip Path defining the wide, natural Cubic Bezier Eye Opening */}
                               <clipPath id="eyeOpeningClip">
-                                <path d="M 15 60 Q 100 8 185 60 Q 100 112 15 60 Z" />
+                                <path d="M 8 60 C 42 6, 158 6, 192 60 C 158 114, 42 114, 8 60 Z" />
                               </clipPath>
                             </defs>
 
-                            {/* Outer Ethereal Contour Ring */}
+                            {/* Static Outer Orbital Socket Contour (non-rotating) */}
                             <path
-                              d="M 15 60 Q 100 6 185 60 Q 100 114 15 60 Z"
+                              d="M 4 60 C 38 -2, 162 -2, 196 60 C 162 122, 38 122, 4 60 Z"
                               fill="none"
-                              stroke="rgba(245, 158, 11, 0.35)"
-                              strokeWidth="1.5"
-                              strokeDasharray="4 3"
-                              className="opacity-70 animate-[spin_60s_linear_infinite] origin-center"
+                              stroke="rgba(245, 158, 11, 0.25)"
+                              strokeWidth="1.2"
+                              strokeDasharray="4 4"
+                              className="opacity-60"
                             />
 
-                            {/* Eye Sclera (Eyeball base) */}
+                            {/* Eye Sclera (Wide Open Eyeball Base) */}
                             <path
-                              d="M 15 60 Q 100 8 185 60 Q 100 112 15 60 Z"
+                              d="M 8 60 C 42 6, 158 6, 192 60 C 158 114, 42 114, 8 60 Z"
                               fill="url(#scleraGrad)"
-                              stroke="rgba(251, 191, 36, 0.45)"
-                              strokeWidth="1.5"
+                              stroke="rgba(251, 191, 36, 0.5)"
+                              strokeWidth="1.6"
                             />
 
-                            {/* Eye Interior clipped to eye opening */}
+                            {/* Eye Interior clipped to wide eye opening */}
                             <g clipPath="url(#eyeOpeningClip)">
                               {/* Inner soft horizon guides */}
-                              <line x1="30" y1="60" x2="170" y2="60" stroke="rgba(245, 158, 11, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
-                              <line x1="100" y1="20" x2="100" y2="100" stroke="rgba(245, 158, 11, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
+                              <line x1="20" y1="60" x2="180" y2="60" stroke="rgba(245, 158, 11, 0.1)" strokeWidth="1" strokeDasharray="3 3" />
+                              <line x1="100" y1="14" x2="100" y2="106" stroke="rgba(245, 158, 11, 0.1)" strokeWidth="1" strokeDasharray="3 3" />
 
-                              {/* Dynamic Moving Iris & Pupil Group */}
+                              {/* Dynamic Moving Eyeball, Iris & Pupil Group */}
                               <g
                                 style={{
                                   transform:
                                     eyePhase === 'look-up'
-                                      ? 'translate(0px, -20px)'
+                                      ? 'translate(0px, -15px)'
                                       : eyePhase === 'look-down'
-                                      ? 'translate(0px, 20px)'
+                                      ? 'translate(0px, 15px)'
                                       : eyePhase === 'look-left'
-                                      ? 'translate(-30px, 0px)'
+                                      ? 'translate(-28px, 0px)'
                                       : eyePhase === 'look-right'
-                                      ? 'translate(30px, 0px)'
-                                      : eyePhase === 'roll'
-                                      ? 'translate(0px, 0px)'
+                                      ? 'translate(28px, 0px)'
                                       : 'translate(0px, 0px)',
                                   transition: eyePhase === 'roll' ? 'none' : 'transform 0.65s cubic-bezier(0.34, 1.25, 0.64, 1)',
                                 }}
                                 className={cn(
                                   "origin-center",
-                                  eyePhase === 'roll' && "animate-[spin_4s_linear_infinite]"
+                                  eyePhase === 'roll' && "animate-eye-orbit"
                                 )}
                               >
+                                {/* Subtle 3D Spherical Eyeball Volume */}
+                                <circle
+                                  cx="100"
+                                  cy="60"
+                                  r="36"
+                                  fill="url(#eyeballSphereGrad)"
+                                  stroke="rgba(255, 255, 255, 0.05)"
+                                  strokeWidth="0.75"
+                                />
+
                                 {/* Outer Iris Luminous Aura */}
                                 <circle
                                   cx="100"
                                   cy="60"
-                                  r={eyePhase === 'focus-near-far' ? 33 : 28}
-                                  fill="rgba(245, 158, 11, 0.25)"
+                                  r={eyePhase === 'focus-near-far' ? 23 : 19.5}
+                                  fill="rgba(245, 158, 11, 0.24)"
                                   className="transition-all duration-700"
                                 />
 
-                                {/* Iris Body with Vector Gradient */}
+                                {/* Proportionally Scaled Iris Body */}
                                 <circle
                                   cx="100"
                                   cy="60"
-                                  r={eyePhase === 'focus-near-far' ? 29 : 25}
+                                  r={eyePhase === 'focus-near-far' ? 20 : 17}
                                   fill="url(#irisGrad)"
-                                  stroke="rgba(254, 243, 199, 0.6)"
-                                  strokeWidth="1.2"
+                                  stroke="rgba(254, 243, 199, 0.65)"
+                                  strokeWidth="1.1"
                                   className="transition-all duration-700 shadow-lg"
                                 />
 
                                 {/* Delicate Iris Crypts & Striations */}
                                 {Array.from({ length: 16 }).map((_, striationIdx) => {
                                   const rad = (striationIdx * 22.5 * Math.PI) / 180;
-                                  const x1 = 100 + Math.cos(rad) * 11;
-                                  const y1 = 60 + Math.sin(rad) * 11;
-                                  const x2 = 100 + Math.cos(rad) * 23;
-                                  const y2 = 60 + Math.sin(rad) * 23;
+                                  const x1 = 100 + Math.cos(rad) * 7.5;
+                                  const y1 = 60 + Math.sin(rad) * 7.5;
+                                  const x2 = 100 + Math.cos(rad) * 15.5;
+                                  const y2 = 60 + Math.sin(rad) * 15.5;
                                   return (
                                     <line
                                       key={striationIdx}
@@ -1594,7 +1645,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                                       x2={x2}
                                       y2={y2}
                                       stroke="rgba(254, 243, 199, 0.35)"
-                                      strokeWidth="0.75"
+                                      strokeWidth="0.7"
                                     />
                                   );
                                 })}
@@ -1605,20 +1656,20 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                                   cy="60"
                                   r={
                                     eyePhase === 'focus-near-far'
-                                      ? 14
+                                      ? 9
                                       : eyePhase === 'close-eyes'
-                                      ? 8
-                                      : 10
+                                      ? 5
+                                      : 6.5
                                   }
                                   fill="#000000"
                                   stroke="rgba(245, 158, 11, 0.5)"
-                                  strokeWidth="1"
+                                  strokeWidth="0.9"
                                   className="transition-all duration-700"
                                 />
 
-                                {/* Specular Catchlights (Brings realism & life to the eye) */}
-                                <circle cx="94" cy="53" r="3.2" fill="#ffffff" className="opacity-90" />
-                                <circle cx="106" cy="67" r="1.6" fill="#fde68a" className="opacity-75" />
+                                {/* Specular Catchlights */}
+                                <circle cx="95.5" cy="55" r="2.3" fill="#ffffff" className="opacity-90" />
+                                <circle cx="104.5" cy="64.5" r="1.2" fill="#fde68a" className="opacity-75" />
                               </g>
 
                               {/* Soothing Eyelids Closing Simulation */}
@@ -1626,10 +1677,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                               <path
                                 d={
                                   eyePhase === 'close-eyes'
-                                    ? "M 10 60 Q 100 68 190 60 L 190 0 L 10 0 Z"
+                                    ? "M 6 60 C 42 66, 158 66, 194 60 L 194 0 L 6 0 Z"
                                     : eyePhase === 'blink'
-                                    ? "M 10 60 Q 100 48 190 60 L 190 0 L 10 0 Z"
-                                    : "M 10 60 Q 100 4 190 60 L 190 0 L 10 0 Z"
+                                    ? "M 6 60 C 42 46, 158 46, 194 60 L 194 0 L 6 0 Z"
+                                    : "M 6 60 C 42 4, 158 4, 194 60 L 194 0 L 6 0 Z"
                                 }
                                 fill="url(#lidGrad)"
                                 stroke="rgba(245, 158, 11, 0.7)"
@@ -1643,10 +1694,10 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
                               <path
                                 d={
                                   eyePhase === 'close-eyes'
-                                    ? "M 10 60 Q 100 56 190 60 L 190 120 L 10 120 Z"
+                                    ? "M 6 60 C 42 56, 158 56, 194 60 L 194 120 L 6 120 Z"
                                     : eyePhase === 'blink'
-                                    ? "M 10 60 Q 100 70 190 60 L 190 120 L 10 120 Z"
-                                    : "M 10 60 Q 100 116 190 60 L 190 120 L 10 120 Z"
+                                    ? "M 6 60 C 42 74, 158 74, 194 60 L 194 120 L 6 120 Z"
+                                    : "M 6 60 C 42 116, 158 116, 194 60 L 194 120 L 6 120 Z"
                                 }
                                 fill="url(#lidGrad)"
                                 stroke="rgba(245, 158, 11, 0.7)"
@@ -1963,10 +2014,18 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         >
           {showMotivationalDialog && <CoinParticles />}
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-headline text-xl sm:text-2xl text-amber-500">
-              <PartyPopper className="text-amber-500 animate-bounce w-6 h-6" />
-              Task Completed!
-            </DialogTitle>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <DialogTitle className="flex items-center gap-2 font-headline text-xl sm:text-2xl text-amber-500">
+                <PartyPopper className="text-amber-500 animate-bounce w-6 h-6" />
+                Task Completed!
+              </DialogTitle>
+              {lastEarnedCoins > 0 && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-400 font-bold text-xs sm:text-sm shadow-[0_0_16px_rgba(245,158,11,0.2)]">
+                  <span>🪙</span>
+                  <span>+{lastEarnedCoins} DM Coins</span>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
           <div className="py-3 sm:py-4 min-h-[80px] sm:min-h-[100px] flex flex-col justify-center overflow-hidden">
@@ -2008,6 +2067,19 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
           </div>
         </DialogContent>
       </Dialog>
+
+      <style jsx global>{`
+        @keyframes eye-orbit {
+          0%   { transform: translate(0px, -14px); }
+          25%  { transform: translate(22px, 0px); }
+          50%  { transform: translate(0px, 14px); }
+          75%  { transform: translate(-22px, 0px); }
+          100% { transform: translate(0px, -14px); }
+        }
+        .animate-eye-orbit {
+          animation: eye-orbit 3.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        }
+      `}</style>
 
       {/* Dynamic Hydration Water-Level Background Simulation */}
       {isHydrationTask && <HydrationBackground progress={progress} />}

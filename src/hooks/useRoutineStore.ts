@@ -1,16 +1,23 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useProfile } from './useProfile';
 import { usePresetTasks } from './useFirestore';
-import { wrapRoutineWithMOVERS } from '@/lib/routines';
-import { categoryConfig } from '@/lib/routines';
+import { wrapRoutineWithMOVERS, categoryConfig, computeCategoryTimeRanges, computeActiveCategory } from '@/lib/routines';
 import type { Preset, UserPresetTask } from '@/types';
 
 export function useRoutineStore() {
     const { profileData, reformerPreference } = useProfile();
     const presetTasksData = usePresetTasks();
     const { presetTasks, loading } = presetTasksData;
+
+    const [clockTick, setClockTick] = useState(0);
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setClockTick(t => t + 1);
+        }, 30000);
+        return () => clearInterval(timer);
+    }, []);
 
     const wrappedPresetTasks = useMemo(() => {
         if (!profileData?.isReformersEnrolled || loading || !presetTasks) {
@@ -76,8 +83,20 @@ export function useRoutineStore() {
         }
     }, [presetTasks, profileData, reformerPreference, loading]);
 
+    const categoryTimeRanges = useMemo(() => {
+        void clockTick;
+        return computeCategoryTimeRanges(wrappedPresetTasks, new Date());
+    }, [wrappedPresetTasks, clockTick]);
+
+    const activeCategory = useMemo(() => {
+        void clockTick;
+        return computeActiveCategory(wrappedPresetTasks, categoryTimeRanges, undefined, new Date());
+    }, [wrappedPresetTasks, categoryTimeRanges, clockTick]);
+
     return {
         ...presetTasksData,
-        presetTasks: wrappedPresetTasks
+        presetTasks: wrappedPresetTasks,
+        categoryTimeRanges,
+        activeCategory,
     };
 }
