@@ -1116,23 +1116,16 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
            finalCompleted = false;
            alert("False Entry Detected: Completion time was unnaturally fast. No rewards added.");
        } else {
-           // Task 3: Granular lifestyle disciplines scoring matrix
-           let baseCoins = 15; // default fallback
-           const catLower = (finalCategory || '').toLowerCase();
-           if (catLower === 'productivity') {
-               baseCoins = 50;
-           } else if (catLower === 'fitness') {
-               baseCoins = 40;
-           } else if (catLower === 'meditation') {
-               baseCoins = 30;
-           } else if (catLower === 'creativity') {
-               baseCoins = 30;
-           } else if (catLower === 'hydration') {
-               baseCoins = 15;
-           } else if (catLower === 'hygiene') {
-               baseCoins = 15;
+           // Timer awards: Math.max(10, durationMinutes * 10), capped at 250/day
+           const durationAward = Math.max(10, actualDuration * 10);
+           try {
+               const { getCachedDailyCoins } = require('@/lib/dailyCoins');
+               const { amount: cachedToday } = getCachedDailyCoins();
+               const remainingDailyAllowance = Math.max(0, 250 - cachedToday);
+               earnedCoins = Math.min(durationAward, remainingDailyAllowance);
+           } catch {
+               earnedCoins = Math.min(250, durationAward);
            }
-           earnedCoins = baseCoins;
        }
     }
 

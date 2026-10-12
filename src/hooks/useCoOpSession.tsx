@@ -208,12 +208,14 @@ export const useCoOpSession = (sessionId?: string, autoDetect: boolean = false) 
                         timeLeftWhenPaused: remaining,
                     });
                 }
+            } else if (actionType === 'BROADCAST_STOP' || coopAction === 'stop_group') {
+                endSession();
             }
         };
 
         window.addEventListener("slake-coop-voice-action", handleCoOpVoiceAction);
         return () => window.removeEventListener("slake-coop-voice-action", handleCoOpVoiceAction);
-    }, [sessionId, session?.id, session?.initialDuration, session?.expectedEndTime, session?.timeLeftWhenPaused, updateSession]);
+    }, [sessionId, session?.id, session?.initialDuration, session?.expectedEndTime, session?.timeLeftWhenPaused, updateSession, endSession]);
 
     return { session, loading, updateSession, createSession, joinSession, endSession };
 };
