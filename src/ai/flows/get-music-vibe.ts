@@ -1,19 +1,12 @@
-
 'use server';
 
-
 /**
- * @fileOverview Determines a music vibe based on a task description and suggests a royalty-free track.
- *
- * - getMusicForTask - A function that suggests a music genre and track for a task.
- * - GetMusicForTaskInput - The input type for the getMusicForTask function.
- * - GetMusicForTaskOutput - The return type for the getMusicForTask function.
+ * @fileOverview Determines a music vibe based on a task description using JEV TypeSafe SystemOne.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
 import { getMusicLibrary } from './get-music-library';
-import type { MusicTrack } from '@/types';
+import { callTypeSafeSystemOne, createChoiceQuestion } from '@/lib/jevClient';
 
 const GetMusicForTaskInputSchema = z.object({
   taskName: z.string().describe('The name of the task the user is working on.'),
@@ -27,40 +20,37 @@ const GetMusicForTaskOutputSchema = z.object({
 });
 export type GetMusicForTaskOutput = z.infer<typeof GetMusicForTaskOutputSchema>;
 
-
 export async function getMusicForTask(input: GetMusicForTaskInput): Promise<GetMusicForTaskOutput> {
-  return getMusicForTaskFlow(input);
-}
+  const { tracks } = await getMusicLibrary();
+  const availableVibes = [...new Set(tracks.map((t) => t.vibe))];
 
-const getMusicForTaskFlow = ai.defineFlow(
-  {
-    name: 'getMusicForTaskFlow',
-    inputSchema: GetMusicForTaskInputSchema,
-    outputSchema: GetMusicForTaskOutputSchema,
-  },
-  async (input) => {
-    const { tracks } = await getMusicLibrary();
-    const availableVibes = [...new Set(tracks.map(t => t.vibe))];
+  let selectedVibe = 'Focus';
+  try {
+    const criteria: Record<string, string> = {};
+    for (const v of availableVibes) {
+      criteria[v] = `Acoustic vibe matching ${v} state`;
+    }
 
-    const vibeChoicePrompt = ai.definePrompt({
-        name: 'vibeChoicePrompt',
-        input: { schema: z.object({ taskName: z.string(), availableVibes: z.array(z.string()) }) },
-        output: { schema: z.object({ vibe: z.string() }) },
-        prompt: `Based on the task name, choose the best music vibe from the list.
-        Task: {{{taskName}}}
-        Available Vibes: {{{availableVibes}}}`,
+    const res = await callTypeSafeSystemOne({
+      state: { taskName: input.taskName, availableVibes },
+      questions: {
+        vibe: createChoiceQuestion(criteria, 'Select the optimal background music vibe for this task.'),
+      },
     });
-
-    const { output } = await vibeChoicePrompt({ taskName: input.taskName, availableVibes });
-    const selectedVibe = output?.vibe || 'Focus';
-
-    // Find a track that matches the selected vibe
-    const matchingTrack = tracks.find(t => t.vibe === selectedVibe) || tracks.find(t => t.vibe === 'Focus')!;
-    
-    return {
-        vibe: selectedVibe,
-        trackName: matchingTrack.trackName,
-        trackUrl: matchingTrack.trackUrl
-    };
+    if (res.answers?.vibe?.choice && availableVibes.includes(res.answers.vibe.choice)) {
+      selectedVibe = res.answers.vibe.choice;
+    }
+  } catch {
+    const lower = input.taskName.toLowerCase();
+    if (/meditat|breath|relax|rest|wind|read/i.test(lower)) selectedVibe = 'Relax';
+    else if (/workout|exercise|gym|run|sprint/i.test(lower)) selectedVibe = 'Boost';
   }
-);
+
+  const matchingTrack = tracks.find((t) => t.vibe === selectedVibe) || tracks[0];
+
+  return {
+    vibe: selectedVibe,
+    trackName: matchingTrack.trackName,
+    trackUrl: matchingTrack.trackUrl,
+  };
+}

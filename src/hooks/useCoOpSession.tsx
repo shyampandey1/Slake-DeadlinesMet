@@ -175,5 +175,45 @@ export const useCoOpSession = (sessionId?: string, autoDetect: boolean = false) 
         }
     }, [sessionId, session?.id, user?.uid]);
 
+    // Listen for Coach voice broadcast commands (BROADCAST_START / BROADCAST_PAUSE)
+    useEffect(() => {
+        const handleCoOpVoiceAction = (e: Event) => {
+            const detail = (e as CustomEvent).detail || {};
+            const actionType = detail.actionType;
+            const coopAction = detail.coopAction;
+            const durationMins = detail.durationMinutes || session?.initialDuration || 25;
+
+            if (actionType === 'BROADCAST_START' || coopAction === 'start_sprint') {
+                const now = Date.now();
+                const expectedEndTime = now + durationMins * 60 * 1000;
+                if (sessionId || session?.id) {
+                    updateSession({
+                        status: "running",
+                        isPaused: false,
+                        startTime: now,
+                        expectedEndTime,
+                        timeLeftWhenPaused: null,
+                    });
+                }
+            } else if (actionType === 'BROADCAST_PAUSE' || coopAction === 'pause_group') {
+                if (sessionId || session?.id) {
+                    const remaining =
+                        session?.expectedEndTime && session.expectedEndTime > Date.now()
+                            ? Math.max(0, Math.round((session.expectedEndTime - Date.now()) / 1000))
+                            : (session?.timeLeftWhenPaused ?? durationMins * 60);
+                    updateSession({
+                        status: "waiting",
+                        isPaused: true,
+                        expectedEndTime: null,
+                        timeLeftWhenPaused: remaining,
+                    });
+                }
+            }
+        };
+
+        window.addEventListener("slake-coop-voice-action", handleCoOpVoiceAction);
+        return () => window.removeEventListener("slake-coop-voice-action", handleCoOpVoiceAction);
+    }, [sessionId, session?.id, session?.initialDuration, session?.expectedEndTime, session?.timeLeftWhenPaused, updateSession]);
+
     return { session, loading, updateSession, createSession, joinSession, endSession };
 };

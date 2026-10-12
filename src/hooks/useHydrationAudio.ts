@@ -203,9 +203,19 @@ export function useHydrationAudio() {
   useEffect(() => {
     const handleToggle = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
-      if (detail.actionType === 'AUDIO_WATER_ON' || (detail.sensorType === 'water_sounds' && detail.sensorState === 'on')) {
+      if (
+        detail.actionType === 'AUDIO_WATER_ON' ||
+        detail.actionType === 'UNMUTE_ALL' ||
+        (detail.sensorType === 'water_sounds' && detail.sensorState === 'on')
+      ) {
         startHydrationAudio();
-      } else if (detail.actionType === 'AUDIO_MUTE' || (detail.sensorType === 'ambient_noise' && detail.sensorState === 'off')) {
+      } else if (
+        detail.actionType === 'AUDIO_WATER_OFF' ||
+        detail.actionType === 'AUDIO_MUTE' ||
+        detail.actionType === 'MUTE_ALL' ||
+        (detail.sensorType === 'water_sounds' && detail.sensorState === 'off') ||
+        (detail.sensorType === 'ambient_noise' && detail.sensorState === 'off')
+      ) {
         stopHydrationAudio();
       }
     };

@@ -1,17 +1,11 @@
-
 'use server';
 
-
 /**
- * @fileOverview Suggests a category for a task based on its name.
- *
- * - categorizeTask - A function that suggests a category for a task.
- * - CategorizeTaskInput - The input type for the function.
- * - CategorizeTaskOutput - The return type for the function.
+ * @fileOverview Suggests a category for a task based on its name using JEV TypeSafe SystemOne.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
+import { callTypeSafeSystemOne, createChoiceQuestion } from '@/lib/jevClient';
 
 const CategorizeTaskInputSchema = z.object({
   taskName: z.string().describe('The name of the task to be categorized.'),
@@ -24,60 +18,51 @@ const CategorizeTaskOutputSchema = z.object({
 });
 export type CategorizeTaskOutput = z.infer<typeof CategorizeTaskOutputSchema>;
 
-export async function categorizeTask(input: CategorizeTaskInput): Promise<CategorizeTaskOutput> {
-  return categorizeTaskFlow(input);
+function fallbackCategorize(taskName: string, availableCategories: string[]): string {
+  const lower = taskName.toLowerCase();
+  if (/water|hydrate|drink|coffee|meal|breakfast|lunch|dinner|snack/i.test(lower)) {
+    return availableCategories.find((c) => /break|meal|hydrat/i.test(c)) || availableCategories[0] || 'Work & Focus';
+  }
+  if (/meditat|breath|workout|exercise|gym|stretch|walk|run|eye|sleep/i.test(lower)) {
+    return availableCategories.find((c) => /health|well|fit|meditat/i.test(c)) || availableCategories[0] || 'Work & Focus';
+  }
+  if (/read|journal|write|evening|wind|reflect/i.test(lower)) {
+    return availableCategories.find((c) => /evening|creat|wind/i.test(c)) || availableCategories[0] || 'Work & Focus';
+  }
+  if (/morning|bed|plan|primer/i.test(lower)) {
+    return availableCategories.find((c) => /morning/i.test(c)) || availableCategories[0] || 'Work & Focus';
+  }
+  return availableCategories.find((c) => /work|focus|prod/i.test(c)) || availableCategories[0] || 'Work & Focus';
 }
 
-const prompt = ai.definePrompt({
-  name: 'categorizeTaskPrompt',
-  input: {schema: CategorizeTaskInputSchema},
-  output: {schema: CategorizeTaskOutputSchema},
-  prompt: `You are an expert at categorizing tasks. Based on the task name provided by the user, select the single most appropriate category from the available list.
-
-  Task Name: {{{taskName}}}
-
-  Available Categories:
-  {{#each availableCategories}}
-  - {{{this}}}
-  {{/each}}
-  
-  Your response must only contain the single best category. If no category seems to fit well, default to 'Work & Focus'.
-
-  Example 1:
-  Task Name: "Read a chapter of a book"
-  Expected output: { "category": "Evening Wind-down" }
-  
-  Example 2:
-  Task Name: "Morning run"
-  Expected output: { "category": "Health & Wellness" }
-
-  Example 3:
-  Task Name: "Deploy the new feature"
-  Expected output: { "category": "Work & Focus" }
-  `,
-});
-
-const categorizeTaskFlow = ai.defineFlow(
-  {
-    name: 'categorizeTaskFlow',
-    inputSchema: CategorizeTaskInputSchema,
-    outputSchema: CategorizeTaskOutputSchema,
-  },
-  async input => {
-    if (!input.taskName.trim()) {
-        return { category: 'Work & Focus' };
-    }
-    try {
-      const {output} = await prompt(input);
-      // Ensure the returned category is one of the available ones
-      if (output && input.availableCategories.includes(output.category)) {
-        return output;
-      }
-      return { category: 'Work & Focus' };
-    } catch(e) {
-      console.error("AI call for task categorization failed, returning default", e);
-      // Fallback in case of quota errors or other failures
-      return { category: 'Work & Focus' };
-    }
+export async function categorizeTask(input: CategorizeTaskInput): Promise<CategorizeTaskOutput> {
+  const { taskName, availableCategories } = input;
+  if (!taskName || !taskName.trim() || !availableCategories.length) {
+    return { category: 'Work & Focus' };
   }
-);
+
+  try {
+    const criteria: Record<string, string> = {};
+    for (const cat of availableCategories) {
+      criteria[cat] = `Task best fits into the ${cat} discipline`;
+    }
+
+    const response = await callTypeSafeSystemOne({
+      state: { taskName, availableCategories },
+      questions: {
+        selectedCategory: createChoiceQuestion(
+          criteria,
+          'Select the single most appropriate category for the provided task name.'
+        ),
+      },
+    });
+
+    const chosen = response.answers?.selectedCategory?.choice;
+    if (chosen && availableCategories.includes(chosen)) {
+      return { category: chosen };
+    }
+    return { category: fallbackCategorize(taskName, availableCategories) };
+  } catch (error) {
+    return { category: fallbackCategorize(taskName, availableCategories) };
+  }
+}

@@ -134,6 +134,13 @@ export default function GazeTracker({ onPauseToggle, onStop, onSkip, isPaused, i
         }
       } else if (actionType === 'TOGGLE_EYE_TRACKING_OFF' || (sensorType === 'eye_tracking' && sensorState === 'off')) {
         stopCamera();
+      } else if (actionType === 'GAZE_CALIBRATE' || (sensorType === 'eye_tracking' && sensorState === 'calibrate')) {
+        if (status === 'off' || status === 'failsafe') {
+          startCamera();
+        } else {
+          setCalibrationStep('pause');
+          setStatus('calibrating');
+        }
       }
     };
 

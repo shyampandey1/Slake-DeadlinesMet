@@ -266,18 +266,12 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     : (category === 'Hydration' ? 'Drink a Glass of Water' : 'Focus Session');
 
   const durLabel = finalSeconds < 60
-    ? `${finalSeconds} seconds`
-    : finalMinutes === 1 ? '1 minute' : `${finalMinutes} minutes`;
+    ? `${finalSeconds}s`
+    : `${finalMinutes}m`;
 
-  // Companion-style speech feedback
-  let speechFeedback = `Starting ${durLabel} for ${finalName}. Let's focus!`;
-  if (category === 'Hydration') {
-    speechFeedback = `Starting a quick ${durLabel} hydration break. Enjoy your water!`;
-  } else if (category === 'Meditation') {
-    speechFeedback = `Starting ${durLabel} for ${finalName}. Take a deep breath and relax.`;
-  } else if (category === 'Fitness') {
-    speechFeedback = `Starting ${durLabel} for ${finalName}. Let's get moving!`;
-  }
+  // Concise (< 6 words) confirmation
+  const shortTitle = finalName.split(/\s+/).slice(0, 3).join(' ');
+  const speechFeedback = `Starting ${durLabel} ${shortTitle}.`;
 
   return {
     action: 'TIMER_START',
@@ -297,6 +291,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const transcript = (body?.transcript || '').trim();
+    const matchedDomain = body?.matchedDomain as string | undefined;
     const currentRoute = body?.currentRoute || '/';
     const activeTimerState = body?.activeTimerState;
 
@@ -304,55 +299,119 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Transcript is required' }, { status: 400 });
     }
 
-    // 1. Check local canonical dictionary and fast deterministic parser
+    // 1. Check local canonical dictionary and deterministic slot parser
     const localResult = parseVoiceCommand(transcript, currentRoute);
 
-    // 2. Validate against JEV TypeSafe Decision Engine if ambiguity exists
+    // 2. Tier 3: JEV TypeSafe Parametric Extraction constrained by matchedDomain
     try {
-      if (localResult.confidence && localResult.confidence < 0.90) {
+      if ((localResult.confidence && localResult.confidence < 0.90) || matchedDomain) {
         const state = {
           transcript,
+          matchedDomain: matchedDomain || 'GENERAL',
           currentRoute,
           activeTimer: activeTimerState,
         };
 
+        const domainCriteriaMap: Record<string, Record<string, string>> = {
+          TIMER: {
+            TIMER_START: 'Begin a countdown or focus session',
+            TIMER_PAUSE: 'Pause the running timer',
+            TIMER_RESUME: 'Resume a paused timer',
+            TIMER_STOP: 'Stop or finish the active timer',
+            TIMER_RESTART: 'Restart the active timer',
+            TIMER_EXTEND: 'Add minutes to the active timer',
+            TIMER_REDUCE: 'Subtract minutes from the active timer',
+            TIMER_SET_INTERVAL: 'Configure recurring milestone alert intervals',
+            TIMER_SKIP: 'Skip to the next task in routine',
+          },
+          NAVIGATION: {
+            NAVIGATE: 'Navigate to a screen or route in the app',
+          },
+          ROUTINE: {
+            TIMER_START: 'Start a routine task timer immediately',
+            TASK_CREATE: 'Schedule or start a routine task',
+            TASK_LOG_QUICK: 'Log a completed habit in past tense',
+            ROUTINE_CONTROL: 'Switch routine wrapper or template',
+            ROUTINE_COMPLETE_TASK: 'Mark active routine task as completed',
+          },
+          COOP: {
+            COOP_ACTION: 'Manage co-op partner or group sprint session',
+          },
+          SENSORS: {
+            SENSOR_TOGGLE: 'Toggle eye tracking, gaze control, audio, or haptics',
+          },
+          REWARDS: {
+            REWARDS_ACTION: 'Check coin balance, redeem payout, or pin certificate',
+          },
+          ANALYTICS: {
+            ANALYTICS_ACTION: 'Analyze weekly performance or check MOVERS score',
+          },
+        };
+
+        const constrainedCriteria =
+          (matchedDomain && domainCriteriaMap[matchedDomain]) || {
+            TIMER_START: 'Start a countdown or focus session for a task',
+            TIMER_PAUSE: 'Pause the running timer',
+            TIMER_RESUME: 'Resume a paused timer',
+            TIMER_STOP: 'Stop, end, or finish the active timer',
+            TIMER_RESTART: 'Restart the current active timer',
+            TIMER_EXTEND: 'Add more minutes to the current timer',
+            TIMER_REDUCE: 'Subtract minutes from the current timer',
+            TIMER_SET_INTERVAL: 'Configure recurring milestone alert intervals',
+            TIMER_SKIP: 'Skip to the next task in routine',
+            TASK_LOG_QUICK: 'Log an already completed habit',
+            TASK_CREATE: 'Create or start a new routine task',
+            NAVIGATE: 'Transition to a different screen in the app',
+            ROUTINE_CONTROL: 'Apply routine templates or change wrapper',
+            COOP_ACTION: 'Manage co-op sessions or group timers',
+            SENSOR_TOGGLE: 'Toggle sensors, gaze control, haptics, or soundscapes',
+            REWARDS_ACTION: 'Access rewards, cash redemption, or certificates',
+            ANALYTICS_ACTION: 'View analytics or generate JEV insights',
+            SYSTEM_CONTROL: 'Dismiss HUD, toggle dark mode, or scroll',
+          };
+
         const questions: Record<string, TypeSafeQuestion> = {
           intentAction: {
             type: 'choice',
-            instructions: 'Classify the primary voice intent of the user transcript.',
+            instructions: `Classify the primary voice intent constrained to domain ${matchedDomain || 'ALL'}.`,
+            criteria: constrainedCriteria,
+          },
+          targetRouteSlot: {
+            type: 'choice',
+            instructions: 'Select the target route if this command navigates or opens a view.',
             criteria: {
-              TIMER_START: 'User wants to begin a countdown or focus session for a task',
-              TIMER_PAUSE: 'User wants to pause their running timer',
-              TIMER_RESUME: 'User wants to resume a paused timer',
-              TIMER_STOP: 'User wants to stop, end, or finish the active timer',
-              TIMER_RESTART: 'User wants to restart the current active timer from the beginning',
-              TIMER_EXTEND: 'User wants to add more minutes to the current timer',
-              TIMER_REDUCE: 'User wants to reduce or subtract minutes from the current timer',
-              TIMER_SET_INTERVAL: 'User wants to configure recurring milestone alert intervals',
-              TIMER_SKIP: 'User wants to skip to the next task in their routine',
-              TASK_LOG_QUICK: 'User explicitly stated an action is already completed in past tense',
-              TASK_CREATE: 'User wants to schedule or add a new task to their routine',
-              NAVIGATE: 'User wants to transition to a different screen or page in the app',
-              ROUTINE_CONTROL: 'User wants to apply routine templates, change primer/restorer wrapper, or reorder tasks',
-              COOP_ACTION: 'User wants to manage co-op cluster sessions, invite peers, or control group timers',
-              SENSOR_TOGGLE: 'User wants to toggle sensors, dwell gaze, haptics, or audio soundscapes',
-              REWARDS_ACTION: 'User wants to access rewards, cash redemption, view certificates, or check coins',
-              ANALYTICS_ACTION: 'User wants to view analytics, generate AI insights, or evaluate their routine',
-              SYSTEM_CONTROL: 'User wants to dismiss HUD, toggle dark mode, change voice speed or profile, or scroll',
-              MODAL_DISMISS: 'User wants to close, cancel, or dismiss the voice HUD',
+              '/': 'Home dashboard',
+              '/routine': 'Daily routine planner',
+              '/reformers': 'Reformers League & Co-Op hub',
+              '/rewards': 'Achievement Center & Slake Coins',
+              '/logbook': 'Task Log Book & Analytics',
+              '/presets': 'Preset routine templates',
+              '/settings': 'Application settings',
+              '/timer': 'Active fullscreen timer',
             },
           },
         };
 
         const jevResponse = await callTypeSafeSystemOne({ state, questions });
         const chosenAction = jevResponse.answers?.intentAction?.choice as any;
+        const chosenRoute = jevResponse.answers?.targetRouteSlot?.choice as VoiceRoute | undefined;
 
-        if (chosenAction) {
+        if (chosenAction && localResult.confidence && localResult.confidence < 0.90) {
           localResult.action = chosenAction;
+          if (chosenAction === 'NAVIGATE' && chosenRoute && !localResult.targetRoute) {
+            localResult.targetRoute = chosenRoute;
+            localResult.speechFeedback = `Opening ${chosenRoute.replace('/', '') || 'home'}.`;
+          }
         }
       }
     } catch (jevErr) {
       console.warn('[JEV Voice Intent] Upstream JEV TypeSafe fallback:', jevErr);
+    }
+
+    // Ensure speechFeedback is concise (< 6 words) when generated dynamically
+    const words = (localResult.speechFeedback || '').trim().split(/\s+/);
+    if (words.length > 6) {
+      localResult.speechFeedback = words.slice(0, 6).join(' ').replace(/[,.!?;:]*$/, '.');
     }
 
     return NextResponse.json(VoiceIntentPayloadSchema.parse(localResult));

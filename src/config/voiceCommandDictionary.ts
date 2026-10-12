@@ -546,3 +546,197 @@ export const getFewShotExamples = () => {
     speechFeedback: cmd.speechFeedback
   }));
 };
+
+export function normalizeVoiceSpeech(text: string): string {
+  let lower = text.toLowerCase().trim();
+  const numMap: [RegExp, string][] = [
+    [/\bhalf\s+a\s+minute\b/gi, '30 seconds'],
+    [/\bhalf\s+an\s+hour\b/gi, '30 minutes'],
+    [/\ba\s+minute\b/gi, '1 minute'],
+    [/\bone\s+minute\b/gi, '1 minute'],
+    [/\btwo\s+minutes\b/gi, '2 minutes'],
+    [/\bthree\s+minutes\b/gi, '3 minutes'],
+    [/\bfour\s+minutes\b/gi, '4 minutes'],
+    [/\bfive\s+minutes\b/gi, '5 minutes'],
+    [/\bten\s+minutes\b/gi, '10 minutes'],
+    [/\bfifteen\s+minutes\b/gi, '15 minutes'],
+    [/\btwenty\s+minutes\b/gi, '20 minutes'],
+    [/\bthirty\s+seconds\b/gi, '30 seconds'],
+    [/\bthirty\s+minutes\b/gi, '30 minutes'],
+    [/\bforty\s+five\s+minutes\b/gi, '45 minutes'],
+    [/\bsixty\s+minutes\b/gi, '60 minutes'],
+    [/\ban\s+hour\b/gi, '60 minutes'],
+    [/\bone\s+hour\b/gi, '60 minutes'],
+  ];
+  for (const [pat, val] of numMap) {
+    lower = lower.replace(pat, val);
+  }
+  lower = lower.replace(/\bbreating\b/gi, 'breathing');
+  lower = lower.replace(/\bbreth\b/gi, 'breath');
+  lower = lower.replace(/\bbrething\b/gi, 'breathing');
+  lower = lower.replace(/\boxigen\b/gi, 'oxygen');
+  lower = lower.replace(/[?.!,]+$/g, '').trim();
+  return lower;
+}
+
+export function extractVoiceDuration(text: string): { durationMinutes?: number; durationSeconds?: number } {
+  const norm = normalizeVoiceSpeech(text);
+  const secMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:sec|second|seconds|s\b)/i);
+  if (secMatch) {
+    const sec = parseFloat(secMatch[1]);
+    return {
+      durationSeconds: sec,
+      durationMinutes: Math.round((sec / 60) * 100) / 100,
+    };
+  }
+  const minMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:min|minute|minutes|m\b)/i);
+  if (minMatch) {
+    const min = parseFloat(minMatch[1]);
+    return {
+      durationMinutes: min,
+      durationSeconds: Math.round(min * 60),
+    };
+  }
+  const hrMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:hour|hours|hr|hrs|h\b)/i);
+  if (hrMatch) {
+    const hr = parseFloat(hrMatch[1]);
+    return {
+      durationMinutes: hr * 60,
+      durationSeconds: Math.round(hr * 3600),
+    };
+  }
+  return {};
+}
+
+function toTitleCaseLocal(str: string): string {
+  const minor = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'of', 'in']);
+  const words = str.split(/\s+/).filter(Boolean);
+  return words.map((w, idx) => {
+    const lower = w.toLowerCase();
+    if (idx !== 0 && minor.has(lower)) return lower;
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }).join(' ');
+}
+
+/**
+ * Tier 1 Zero-Latency Local Dictionary & Regex Matcher (0ms execution on client).
+ * Returns a strongly-typed VoiceIntentPayload if an exact phrase or canonical regex matches, else null.
+ */
+export function matchLocalVoiceCommand(transcript: string): import('@/types/voice').VoiceIntentPayload | null {
+  const norm = normalizeVoiceSpeech(transcript);
+  if (!norm) return null;
+
+  const extracted = extractVoiceDuration(norm);
+  const hasDuration = extracted.durationSeconds !== undefined || extracted.durationMinutes !== undefined;
+
+  // 1. Exact or prefix/suffix utterance match against JEV_VOICE_DATASET
+  for (const record of JEV_VOICE_DATASET) {
+    if (record.intent === 'TASK_LOG_QUICK') {
+      if (hasDuration) continue;
+      if (/^(?:drink|make|do|start|begin|take|perform|set)\b/i.test(norm)) continue;
+    }
+
+    const matchedUtterance = record.utterances.some((u) => {
+      const nu = normalizeVoiceSpeech(u);
+      return norm === nu;
+    });
+
+    if (matchedUtterance) {
+      const finalMinutes = record.durationMinutes || extracted.durationMinutes;
+      const finalSeconds = extracted.durationSeconds || (finalMinutes ? finalMinutes * 60 : undefined);
+
+      let taskName: string | undefined = undefined;
+      if (record.intent === 'TASK_CREATE' || record.intent === 'TIMER_START') {
+        const first = record.utterances[0] || '';
+        taskName = first
+          .replace(/^(?:start|begin|do|run)\s+/i, '')
+          .replace(/\s+(?:timer|session|break|exercise|sprint|block|review)$/i, '')
+          .trim();
+        taskName = toTitleCaseLocal(taskName);
+      } else if (record.intent === 'TASK_LOG_QUICK') {
+        taskName = toTitleCaseLocal(record.utterances[0]);
+      }
+
+      return {
+        action: record.intent as any,
+        actionType: record.actionType,
+        targetRoute: record.targetRoute as any,
+        taskName,
+        category: record.category as any,
+        durationMinutes: finalMinutes,
+        durationSeconds: finalSeconds,
+        coinsAwarded: record.coinsAwarded,
+        earnedCoins: record.coinsAwarded,
+        extendMinutes: record.actionType === 'EXTEND' ? record.durationMinutes : undefined,
+        intervalMinutes: record.actionType === 'SET_INTERVAL' ? record.durationMinutes : undefined,
+        speechFeedback: record.speechFeedback,
+        confidence: 0.99,
+      };
+    }
+  }
+
+  // 2. Match against VOICE_COMMAND_DICTIONARY phrases & regex patterns
+  for (const cmd of VOICE_COMMAND_DICTIONARY) {
+    if (cmd.action === 'TASK_LOG_QUICK') {
+      if (hasDuration) continue;
+      if (/^(?:drink|make|do|start|begin|take|perform|set)\b/i.test(norm)) continue;
+    }
+
+    const isExactPhrase = cmd.phrases.some((p) => normalizeVoiceSpeech(p) === norm);
+    let isPatternMatch = false;
+    let matchedGroup: string | undefined;
+
+    for (const pat of cmd.patterns) {
+      const match = norm.match(pat);
+      if (match) {
+        isPatternMatch = true;
+        matchedGroup = match[1];
+        break;
+      }
+    }
+
+    if (isExactPhrase || isPatternMatch) {
+      let durationMinutes = extracted.durationMinutes || cmd.durationMinutes;
+      let durationSeconds = extracted.durationSeconds || cmd.durationSeconds;
+
+      if (!durationMinutes && matchedGroup) {
+        const val = parseFloat(matchedGroup);
+        if (!isNaN(val)) {
+          durationMinutes = val;
+          durationSeconds = val * 60;
+        }
+      }
+
+      let feedback = cmd.speechFeedback;
+      if (cmd.taskName && (cmd.action === 'TIMER_START' || cmd.action === 'TASK_CREATE') && hasDuration) {
+        const durLabel =
+          durationSeconds && durationSeconds < 60
+            ? `${durationSeconds}s`
+            : `${durationMinutes}m`;
+        feedback = `Starting ${durLabel} ${cmd.taskName}.`;
+      }
+
+      return {
+        action: cmd.action,
+        actionType: cmd.actionType,
+        taskName: cmd.taskName,
+        category: cmd.category,
+        targetRoute: cmd.targetRoute,
+        durationMinutes,
+        durationSeconds,
+        extendMinutes: cmd.extendMinutes,
+        intervalMinutes: cmd.intervalMinutes,
+        earnedCoins: cmd.earnedCoins || cmd.coinsAwarded,
+        coinsAwarded: cmd.coinsAwarded || cmd.earnedCoins,
+        coopAction: cmd.coopAction,
+        rewardsAction: cmd.rewardsAction,
+        sensorType: cmd.sensorType,
+        sensorState: cmd.sensorState,
+        speechFeedback: feedback,
+        confidence: 0.98,
+      };
+    }
+  }
+
+  return null;
+}

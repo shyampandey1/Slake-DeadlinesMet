@@ -383,6 +383,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         handleEndEarly();
       } else if (detail.action === 'TIMER_SKIP') {
         handleSkipTask();
+      } else if (detail.action === 'ROUTINE_COMPLETE_TASK') {
+        handleSaveTask(true);
       } else if (detail.action === 'TIMER_RESTART') {
         const resetSeconds = Math.round(effectiveDuration * 60);
         timeRemainingRef.current = resetSeconds;
@@ -1173,9 +1175,13 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         className: "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-bold rounded-2xl border-none shadow-2xl shadow-orange-500/20",
       });
 
-      // Let's also update profile credits live so it feels immediate
+      // Update profile slakeCoins & slakeCredits live so it feels immediate
       if (profileData && earnedCoins > 0) {
-         updateUserProfileData({ slakeCredits: (profileData.slakeCredits || 0) + earnedCoins });
+         const baseCoins = profileData.slakeCoins ?? profileData.slakeCredits ?? 0;
+         updateUserProfileData({
+           slakeCoins: baseCoins + earnedCoins,
+           slakeCredits: baseCoins + earnedCoins,
+         });
       }
       try {
         const pastTasks = tasks.slice(0, 5).map(t => ({ taskName: t.name, duration: t.duration, completionStatus: t.completed }));
@@ -1242,7 +1248,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
         <div className="flex items-center gap-2 pl-3 sm:pl-6 border-l border-white/20">
           <WeatherIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <div className="flex flex-col">
-            <span className="text-xl font-bold">{weatherData.temp}°</span>
+            <span data-weather-indicator className="text-xl font-bold">{weatherData.temp}°</span>
             <span className="text-[10px] sm:text-xs uppercase opacity-70 tracking-tighter max-w-[80px] sm:max-w-none truncate">{location}</span>
           </div>
         </div>

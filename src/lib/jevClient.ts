@@ -34,6 +34,48 @@ export type TypeSafeQuestion =
   | TypeSafeScoreQuestion
   | TypeSafeNoulQuestion;
 
+/**
+ * Typed wrapper for JEV TypeSafe 'choice' primitive
+ */
+export function createChoiceQuestion(
+  criteria: Record<string, string>,
+  instructions?: string
+): TypeSafeChoiceQuestion {
+  return {
+    type: 'choice',
+    instructions,
+    criteria,
+  };
+}
+
+/**
+ * Typed wrapper for JEV TypeSafe 'score' primitive
+ */
+export function createScoreQuestion(
+  criteria: string[],
+  instructions?: string
+): TypeSafeScoreQuestion {
+  return {
+    type: 'score',
+    instructions,
+    criteria,
+  };
+}
+
+/**
+ * Typed wrapper for JEV TypeSafe 'noul' primitive
+ */
+export function createNoulQuestion(
+  instructions?: string,
+  criteria?: { true?: string; false?: string }
+): TypeSafeNoulQuestion {
+  return {
+    type: 'noul',
+    instructions,
+    criteria,
+  };
+}
+
 export interface TypeSafeSystemOneRequest {
   model?: string;
   state: any;
@@ -62,7 +104,8 @@ export async function callTypeSafeSystemOne(
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const endpoint = `${JEV_API_BASE_URL.replace(/\/+$/, '')}/systemone`;
+    const cleanBase = JEV_API_BASE_URL.replace(/\/+$/, '');
+    const endpoint = cleanBase.endsWith('/systemone') ? cleanBase : `${cleanBase}/systemone`;
 
     const bodyPayload = {
       model: request.model || JEV_MODEL,

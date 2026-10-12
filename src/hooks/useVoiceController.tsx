@@ -9,6 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useActiveTimer } from '@/hooks/useActiveTimer';
 import { useToast } from '@/hooks/use-toast';
 import { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } from '@/lib/dailyCoins';
+import { evaluateVoiceInterceptors } from '@/lib/voiceInterceptors';
+import { matchLocalVoiceCommand } from '@/config/voiceCommandDictionary';
+import { evaluateSemanticGate, ensureDomainAnchorsInitialized } from '@/lib/semanticGate';
 
 export interface VoiceContextValue {
   // Visibility / HUD toggle state
@@ -358,6 +361,11 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             break;
           }
           case 'ROUTINE_COMPLETE_TASK': {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('slake-timer-voice-action', { detail: { action: 'ROUTINE_COMPLETE_TASK' } })
+              );
+            }
             const curTimer = activeTimerRef.current;
             if (curTimer?.taskName) {
               const existing = tasksRef.current.find(
@@ -381,6 +389,10 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
                 description: `${curTimer.taskName} marked as completed. Session logged!`,
               });
             } else {
+              const firstIncomplete = tasksRef.current.find((t) => !t.completed);
+              if (firstIncomplete) {
+                await toggleTaskCompletionRef.current(firstIncomplete.id);
+              }
               toastRef.current({
                 title: 'Routine Completed',
                 description: intent.speechFeedback || 'Active task finished.',
@@ -423,6 +435,17 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             break;
           }
           case 'COOP_ACTION': {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('slake-coop-voice-action', {
+                  detail: {
+                    actionType: intent.actionType,
+                    coopAction: intent.coopAction,
+                    durationMinutes: intent.durationMinutes,
+                  },
+                })
+              );
+            }
             routerRef.current.push('/reformers');
             toastRef.current({
               title: 'Co-op Reformers Hub',
@@ -508,7 +531,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     [speakFeedback, triggerHaptic, setAgentState, setIsOpen]
   );
 
-  // Send completed transcript to API
+  // Three-Tier Voice Intent Resolution Pipeline
   const processTranscript = useCallback(
     async (finalTranscript: string) => {
       const clean = finalTranscript.trim();
@@ -525,9 +548,48 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       triggerHaptic([30, 50, 30]);
 
       try {
+        // --- TIER 1A: Zero-Mutation Conversational Interceptors (Weather, Time, Identity) ---
+        const intercepted = evaluateVoiceInterceptors(clean);
+        if (intercepted.intercepted && intercepted.speechResponse) {
+          setDetectedIntent({
+            action: 'SYSTEM_CONTROL',
+            actionType: intercepted.interceptorType,
+            speechFeedback: intercepted.speechResponse,
+            confidence: 1.0,
+          });
+          await speakFeedback(intercepted.speechResponse);
+          return;
+        }
+
+        // --- TIER 1B: Local Zero-Latency Dictionary & Regex Match (0ms network roundtrip) ---
+        const localMatch = matchLocalVoiceCommand(clean);
+        if (localMatch) {
+          setDetectedIntent(localMatch);
+          await executeIntent(localMatch);
+          return;
+        }
+
+        // --- TIER 2: Client-Side WebGPU Semantic Gate (EmbeddingGemma / MiniLM) ---
+        const gateResult = await evaluateSemanticGate(clean);
+        if (!gateResult.passed || gateResult.domain === 'OUT_OF_DOMAIN') {
+          // Reject out-of-domain hallucinations with double-pulse error haptic [40, 60, 40]
+          triggerHaptic([40, 60, 40]);
+          const rejectionSpeech = 'I only control your routine and timer.';
+          setDetectedIntent({
+            action: 'SYSTEM_CONTROL',
+            actionType: 'OUT_OF_DOMAIN',
+            speechFeedback: rejectionSpeech,
+            confidence: 0,
+          });
+          await speakFeedback(rejectionSpeech);
+          return;
+        }
+
+        // --- TIER 3: JEV TypeSafe Parametric Extraction Constrained by Matched Domain ---
         const curTimer = activeTimerRef.current;
         const payload: VoiceCommandRequest = {
           transcript: clean,
+          matchedDomain: gateResult.domain,
           currentRoute: pathnameRef.current,
           activeTimerState: curTimer
             ? {
@@ -551,11 +613,11 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         const data: VoiceIntentPayload = await res.json();
         setDetectedIntent(data);
 
-        // Automatically execute high confidence matches
-        if ((data.confidence || 0) >= 0.85) {
+        if ((data.confidence || 0) >= 0.80) {
           await executeIntent(data);
         } else {
-          setAgentState('IDLE');
+          triggerHaptic([40, 60, 40]);
+          await speakFeedback('I only control your routine and timer.');
         }
       } catch (err: any) {
         console.error('[Agent DM] Voice processing error:', err);
@@ -566,7 +628,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         isProcessingRef.current = false;
       }
     },
-    [triggerHaptic, executeIntent, setAgentState]
+    [triggerHaptic, executeIntent, speakFeedback, setAgentState]
   );
 
   // Stop listening gracefully and finalize transcript
@@ -755,6 +817,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   // High-level toggle methods
   const openAgentDM = useCallback(() => {
     setIsOpen(true);
+    ensureDomainAnchorsInitialized().catch(() => {});
     // Short tick to allow UI to mount before mic stream initialization
     setTimeout(() => {
       startListening();

@@ -246,7 +246,16 @@ export function useTasks() {
 
     const encryptedName = await encryptText(task.name, user.uid);
     await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
-  }, [user, isOffline, isSyncEnabled]);
+
+    if (task.completed && task.earnedCoins && task.earnedCoins > 0) {
+      const profile = profileDataRef.current;
+      const currentTotal = (profile?.slakeCoins ?? profile?.slakeCredits ?? 0) + task.earnedCoins;
+      updateUserProfileData({
+        slakeCoins: currentTotal,
+        slakeCredits: currentTotal,
+      } as any);
+    }
+  }, [user, isOffline, isSyncEnabled, updateUserProfileData]);
 
   const clearTasks = async () => {
     if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) return; // Added signout check

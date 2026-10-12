@@ -1,9 +1,13 @@
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+/**
+ * @fileOverview Unified AI entry point redirecting legacy references to JEV TypeSafe SystemOne.
+ * Zero Genkit dependencies remain in the production runtime.
+ */
 
-const apiKey = process.env.GEMINI_API_KEY;
-
-export const ai = genkit({
-  plugins: [googleAI({ apiKey })],
-  model: 'googleai/gemini-1.5-flash',
-});
+export {
+  callTypeSafeSystemOne,
+  createChoiceQuestion,
+  createScoreQuestion,
+  createNoulQuestion,
+  JEV_MODEL,
+  JEV_API_BASE_URL,
+} from '@/lib/jevClient';

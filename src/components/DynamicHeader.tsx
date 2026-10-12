@@ -262,7 +262,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 group hover:bg-white/20 transition-all duration-300">
                                     <WeatherIcon className="h-4 w-4 text-white/90" />
                                     <div className="flex flex-col items-start leading-none gap-0.5">
-                                        <span className="text-sm font-bold">{weatherData.temp}°</span>
+                                        <span data-weather-indicator className="text-sm font-bold">{weatherData.temp}°</span>
                                         {weatherData.name && <span className="text-[10px] font-medium opacity-70 uppercase tracking-tighter">{weatherData.name}</span>}
                                     </div>
                                 </div>

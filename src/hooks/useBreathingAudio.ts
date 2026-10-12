@@ -189,10 +189,20 @@ export function useBreathingAudio() {
   useEffect(() => {
     const handleToggle = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
-      if (detail.actionType === 'AUDIO_BREATHE_ON' || (detail.sensorType === 'breathing_chimes' && detail.sensorState === 'on')) {
+      if (
+        detail.actionType === 'AUDIO_BREATHE_ON' ||
+        detail.actionType === 'UNMUTE_ALL' ||
+        (detail.sensorType === 'breathing_chimes' && detail.sensorState === 'on')
+      ) {
         initBreathingAudio();
         playBreathingChime('inhale');
-      } else if (detail.actionType === 'AUDIO_MUTE' || (detail.sensorType === 'ambient_noise' && detail.sensorState === 'off')) {
+      } else if (
+        detail.actionType === 'AUDIO_BREATHE_OFF' ||
+        detail.actionType === 'AUDIO_MUTE' ||
+        detail.actionType === 'MUTE_ALL' ||
+        (detail.sensorType === 'breathing_chimes' && detail.sensorState === 'off') ||
+        (detail.sensorType === 'ambient_noise' && detail.sensorState === 'off')
+      ) {
         stopBreathingAudio();
       }
     };

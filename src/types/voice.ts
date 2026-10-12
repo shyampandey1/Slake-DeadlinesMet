@@ -1156,7 +1156,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
     "intent": "SYSTEM_CONTROL",
     "actionType": "SCROLL_UP",
     "coinsAwarded": 0,
-    "speechFeedback": "Scrolling to top.`",
+    "speechFeedback": "Scrolling to top.",
     "utterances": [
       "scroll up"
     ]
@@ -1228,6 +1228,7 @@ export type VoiceIntentPayload = z.infer<typeof VoiceIntentPayloadSchema>;
 
 export interface VoiceCommandRequest {
   transcript: string;
+  matchedDomain?: string;
   currentRoute?: string;
   activeTimerState?: {
     isRunning: boolean;
