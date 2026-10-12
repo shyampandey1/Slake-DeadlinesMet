@@ -440,6 +440,125 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     }
   }, [taskName, userRoutine, session, updateSession, clearTimer, router, toast, presetTasks]);
 
+  const handleEndEarly = useCallback(() => {
+    setIsPaused(true);
+    setIsFinished(true);
+    if (session) {
+      updateSession({ status: "finished", isPaused: true });
+    }
+    updateUserProfileData({
+      currentTaskStatus: "Idle",
+      activeSession: null
+    });
+  }, [session, updateSession, updateUserProfileData]);
+
+  const handleSaveTask = useCallback(async (completed: boolean) => {
+    setIsFinished(false);
+    clearTimer();
+    setFlashState('none');
+    if (session) {
+      updateSession({ status: "finished" });
+    }
+    updateUserProfileData({
+      currentTaskStatus: "Idle",
+      activeSession: null
+    });
+    const timeSpentInSeconds = Math.round(effectiveDuration * 60) - timeRemainingRef.current;
+    const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
+
+    const finalCategory = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
+
+    let finalCompleted = completed;
+    let earnedCoins = 0;
+    let isFalse = false;
+
+    if (completed) {
+       // False entry logic
+       if (timeSpentInSeconds < 10) {
+           isFalse = true;
+           finalCompleted = false;
+           alert("False Entry Detected: Completion time was unnaturally fast. No rewards added.");
+       } else {
+           // Timer awards: Math.max(10, durationMinutes * 10), capped at 250/day
+           const durationAward = Math.max(10, actualDuration * 10);
+           try {
+               const { getCachedDailyCoins } = require('@/lib/dailyCoins');
+               const { amount: cachedToday } = getCachedDailyCoins();
+               const remainingDailyAllowance = Math.max(0, 250 - cachedToday);
+               earnedCoins = Math.min(durationAward, remainingDailyAllowance);
+           } catch {
+               earnedCoins = Math.min(250, durationAward);
+           }
+       }
+    }
+
+    const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
+      name: taskName,
+      duration: actualDuration,
+      initialDuration: effectiveDuration,
+      completed: finalCompleted,
+      category: finalCategory,
+      earnedCoins: earnedCoins,
+      isFalseEntry: isFalse,
+    };
+
+    if (finalCompleted && earnedCoins > 0) {
+       // Optimistic daily coins cache write
+       try {
+           const { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } = require('@/lib/dailyCoins');
+           const todayStr = getLocalDateString();
+           const { amount: cachedAmount } = getCachedDailyCoins();
+           setCachedDailyCoins(cachedAmount + earnedCoins, todayStr);
+       } catch (e) {
+           console.warn("Failed to write daily coins optimistically", e);
+       }
+    }
+
+    try {
+      await addTask(newTask);
+    } catch (e) {
+      console.error("Failed to save completed task to history:", e);
+    }
+
+    if (finalCompleted) {
+      setIsLoadingAI(true);
+      setShowMotivationalDialog(true);
+      toast({
+        title: "Task Conquered! 🎉",
+        description: `+${earnedCoins} DM coins earned!`,
+      });
+
+      try {
+        const result = await generateMotivationalMessage({
+          taskName,
+          category: finalCategory,
+          userRoutine: userRoutine.map((t) => t.name),
+        });
+        setMotivationalMessage(result.message);
+        setSuggestedTask(result.suggestedTask);
+      } catch (error) {
+        console.error("Failed to generate motivational message:", error);
+        setMotivationalMessage("Outstanding focus! Every completed session moves you closer to mastery.");
+      } finally {
+        setIsLoadingAI(false);
+      }
+    } else {
+      router.push("/");
+    }
+  }, [
+    clearTimer,
+    session,
+    updateSession,
+    updateUserProfileData,
+    effectiveDuration,
+    taskName,
+    profileData?.profile,
+    addTask,
+    toast,
+    userRoutine,
+    router
+  ]);
+
   // Listen to voice commands triggered by Agent DM
   useEffect(() => {
     const handleVoiceTimerAction = (e: Event) => {
@@ -466,7 +585,7 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
     window.addEventListener('slake-timer-voice-action', handleVoiceTimerAction);
     return () => window.removeEventListener('slake-timer-voice-action', handleVoiceTimerAction);
-  }, [togglePause, handleEndEarly, handleSkipTask, effectiveDuration, updateTimer]);
+  }, [togglePause, handleEndEarly, handleSkipTask, handleSaveTask, effectiveDuration, updateTimer]);
 
   // Sync Hydration Audio with play state and volume settings
   useEffect(() => {
@@ -988,18 +1107,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
     };
   }, []);
 
-  const handleEndEarly = () => {
-    setIsPaused(true);
-    setIsFinished(true);
-    if (session) {
-      updateSession({ status: "finished", isPaused: true });
-    }
-    updateUserProfileData({
-      currentTaskStatus: "Idle",
-      activeSession: null
-    });
-  };
-
   const handleStartSuggestedTask = () => {
     if (!suggestedTask) return;
     
@@ -1087,122 +1194,6 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
   const handleInteraction = () => {
     showUI();
     ensureAudioInitialized();
-  };
-
-  const handleSaveTask = async (completed: boolean) => {
-    setIsFinished(false);
-    clearTimer();
-    setFlashState('none');
-    if (session) {
-      updateSession({ status: "finished" });
-    }
-    updateUserProfileData({
-      currentTaskStatus: "Idle",
-      activeSession: null
-    });
-    const timeSpentInSeconds = Math.round(effectiveDuration * 60) - timeRemaining;
-    const actualDuration = Math.max(1, Math.round(timeSpentInSeconds / 60));
-
-    const finalCategory = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
-
-    let finalCompleted = completed;
-    let earnedCoins = 0;
-    let isFalse = false;
-
-    if (completed) {
-       // False entry logic
-       if (timeSpentInSeconds < 10) {
-           isFalse = true;
-           finalCompleted = false;
-           alert("False Entry Detected: Completion time was unnaturally fast. No rewards added.");
-       } else {
-           // Timer awards: Math.max(10, durationMinutes * 10), capped at 250/day
-           const durationAward = Math.max(10, actualDuration * 10);
-           try {
-               const { getCachedDailyCoins } = require('@/lib/dailyCoins');
-               const { amount: cachedToday } = getCachedDailyCoins();
-               const remainingDailyAllowance = Math.max(0, 250 - cachedToday);
-               earnedCoins = Math.min(durationAward, remainingDailyAllowance);
-           } catch {
-               earnedCoins = Math.min(250, durationAward);
-           }
-       }
-    }
-
-    const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
-      name: taskName,
-      duration: actualDuration,
-      initialDuration: effectiveDuration,
-      completed: finalCompleted,
-      category: finalCategory,
-      earnedCoins: earnedCoins,
-      isFalseEntry: isFalse,
-    };
-
-    if (finalCompleted && earnedCoins > 0) {
-       // Optimistic daily coins cache write
-       try {
-           const { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } = require('@/lib/dailyCoins');
-           const todayStr = getLocalDateString();
-           const { amount: cachedAmount } = getCachedDailyCoins();
-           setCachedDailyCoins(cachedAmount + earnedCoins, todayStr);
-       } catch (e) {
-           console.warn("Failed to write daily coins optimistically", e);
-       }
-    }
-
-    try {
-        await addTask(newTask);
-    } catch (e) {
-        console.error("Failed to save task to history:", e);
-    }
-
-    if (finalCompleted) {
-      setIsLoadingAI(true);
-      setShowMotivationalDialog(true);
-      
-      // In-App Reward dynamic toast
-      toast({
-        title: "Task Conquered! 🎉",
-        description: `+${earnedCoins} Slake Coins Rewarded for this task!`,
-        className: "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-bold rounded-2xl border-none shadow-2xl shadow-orange-500/20",
-      });
-
-      // Update profile slakeCoins & slakeCredits live so it feels immediate
-      if (profileData && earnedCoins > 0) {
-         const baseCoins = profileData.slakeCoins ?? profileData.slakeCredits ?? 0;
-         updateUserProfileData({
-           slakeCoins: baseCoins + earnedCoins,
-           slakeCredits: baseCoins + earnedCoins,
-         });
-      }
-      try {
-        const pastTasks = tasks.slice(0, 5).map(t => ({ taskName: t.name, duration: t.duration, completionStatus: t.completed }));
-        const now = new Date();
-        const localHour = now.getHours() + now.getMinutes() / 60;
-        const result = await generateMotivationalMessage({
-          taskName: newTask.name,
-          duration: newTask.duration,
-          completionStatus: true,
-          userRoutine: userRoutine,
-          pastTasks: pastTasks,
-          currentCategory: newTask.category,
-          localTime: now.toISOString(),
-          localHour: localHour,
-        });
-        setMotivationalMessage(result.message);
-        setSuggestedTask(result.suggestedNextTask);
-      } catch (error: any) {
-        console.warn("AI generation error (likely quota limit):", error.message);
-        // Silently fallback to a simple success state
-        setMotivationalMessage("Great job finishing your task! Keep up the momentum!");
-        setSuggestedTask(undefined);
-      } finally {
-        setIsLoadingAI(false);
-      }
-    } else {
-      router.push("/");
-    }
   };
 
   const handleMotivationalDialogChange = (open: boolean) => {
