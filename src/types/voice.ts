@@ -52,6 +52,7 @@ export type VoiceAgentState = 'IDLE' | 'LISTENING' | 'THINKING' | 'EXECUTING' | 
 export interface JevVoiceRecord {
   utterances: string[];
   intent: string;
+  taskName?: string;
   category?: 'Productivity' | 'Hydration' | 'Fitness' | 'Meditation' | 'Hygiene' | 'Creativity';
   durationMinutes?: number;
   targetRoute?: string;
@@ -379,6 +380,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Meditation",
     "category": "Meditation",
     "durationMinutes": 10,
     "coinsAwarded": 30,
@@ -387,45 +389,55 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
       "start meditation",
       "meditate 10 minutes",
       "begin mindfulness",
-      "10 minute meditation"
+      "10 minute meditation",
+      "calm my mind",
+      "mindfulness meditation"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Meditation",
     "category": "Meditation",
     "durationMinutes": 5,
     "coinsAwarded": 30,
     "speechFeedback": "Starting 5-minute meditation.",
     "utterances": [
       "start 5 minute meditation",
-      "quick mental reset"
+      "quick mental reset",
+      "5 minute mindfulness"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Deep Breathing",
     "category": "Meditation",
     "durationMinutes": 4,
     "coinsAwarded": 30,
     "speechFeedback": "Starting 4-minute oxygenation.",
     "utterances": [
       "start deep breathing",
+      "deep breathing",
       "oxygenation session",
       "box breathing 4 minutes",
-      "pranayama flow"
+      "pranayama flow",
+      "breathing exercise"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Deep Breathing",
     "category": "Meditation",
     "durationMinutes": 2,
     "coinsAwarded": 30,
     "speechFeedback": "Starting 2-minute breathing.",
     "utterances": [
-      "start 2 minute breathing"
+      "start 2 minute breathing",
+      "quick breathing exercise"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Visualization",
     "category": "Productivity",
     "durationMinutes": 10,
     "coinsAwarded": 30,
@@ -439,6 +451,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Morning Workout",
     "category": "Fitness",
     "durationMinutes": 20,
     "coinsAwarded": 40,
@@ -446,11 +459,13 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
     "utterances": [
       "start workout",
       "exercise for 20 minutes",
-      "morning workout"
+      "morning workout",
+      "morning warm-up workout"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Workout Session",
     "category": "Fitness",
     "durationMinutes": 30,
     "coinsAwarded": 40,
@@ -461,29 +476,34 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Mobility & Stretch",
     "category": "Fitness",
     "durationMinutes": 10,
     "coinsAwarded": 40,
     "speechFeedback": "Starting 10-minute stretch.",
     "utterances": [
       "start 10 minute stretch",
-      "mobility routine"
+      "mobility routine",
+      "stretch break"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Reading a Book",
     "category": "Creativity",
     "durationMinutes": 15,
     "coinsAwarded": 30,
     "speechFeedback": "Starting 15-minute reading.",
     "utterances": [
       "start reading",
+      "read a book",
       "read positive 15 minutes",
       "wisdom reading"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Reading a Book",
     "category": "Creativity",
     "durationMinutes": 20,
     "coinsAwarded": 30,
@@ -494,6 +514,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Scribing & Journaling",
     "category": "Creativity",
     "durationMinutes": 10,
     "coinsAwarded": 30,
@@ -501,11 +522,13 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
     "utterances": [
       "start scribing",
       "journal for 10 minutes",
-      "evening intention journaling"
+      "evening intention journaling",
+      "write in journal"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Scribing & Journaling",
     "category": "Creativity",
     "durationMinutes": 5,
     "coinsAwarded": 30,
@@ -516,6 +539,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Deep Work Sprint",
     "category": "Productivity",
     "durationMinutes": 45,
     "coinsAwarded": 50,
@@ -523,11 +547,13 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
     "utterances": [
       "start deep work",
       "code for 45 minutes",
-      "focus block 45 minutes"
+      "focus block 45 minutes",
+      "deep work sprint"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Focus Session",
     "category": "Productivity",
     "durationMinutes": 30,
     "coinsAwarded": 50,
@@ -538,6 +564,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Deep Work Sprint",
     "category": "Productivity",
     "durationMinutes": 60,
     "coinsAwarded": 50,
@@ -548,44 +575,61 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Drink a Glass of Water",
     "category": "Hydration",
-    "durationMinutes": 2,
-    "coinsAwarded": 15,
-    "speechFeedback": "Starting hydration break.",
+    "durationMinutes": 1,
+    "coinsAwarded": 30,
+    "speechFeedback": "Starting 1-minute water break.",
     "utterances": [
+      "drink a glass of water",
+      "drink glass of water",
+      "drink water",
       "drink water timer",
-      "drink a glass of water"
+      "drink some water",
+      "have a glass of water",
+      "get a glass of water",
+      "hydrate",
+      "water break",
+      "hydration break",
+      "time to drink water"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Clean Workspace",
     "category": "Hygiene",
     "durationMinutes": 5,
-    "coinsAwarded": 15,
+    "coinsAwarded": 25,
     "speechFeedback": "Starting workspace hygiene.",
     "utterances": [
       "clean workspace",
       "make my bed",
+      "set the bed",
       "set work table"
     ]
   },
   {
     "intent": "TASK_CREATE",
+    "taskName": "Eye Strain Exercise",
     "category": "Hygiene",
     "durationMinutes": 2,
-    "coinsAwarded": 15,
-    "speechFeedback": "Starting eye rest break.",
+    "coinsAwarded": 35,
+    "speechFeedback": "Starting 2-minute eye exercise.",
     "utterances": [
       "take eye strain break",
-      "20-20-20 eye rest"
+      "eye strain exercise",
+      "20-20-20 eye rest",
+      "rest my eyes",
+      "eye exercise"
     ]
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Drink a Glass of Water",
     "category": "Hydration",
     "actionType": "LOG_QUICK",
-    "coinsAwarded": 15,
-    "speechFeedback": "Logged. Plus 15 coins!",
+    "coinsAwarded": 25,
+    "speechFeedback": "Water logged. Plus 25 coins!",
     "utterances": [
       "log water",
       "drank a glass of water",
@@ -595,10 +639,11 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Set the Bed",
     "category": "Hygiene",
     "actionType": "LOG_QUICK",
-    "coinsAwarded": 15,
-    "speechFeedback": "Bed logged. Plus 15!",
+    "coinsAwarded": 25,
+    "speechFeedback": "Bed logged. Plus 25 coins!",
     "utterances": [
       "bed made",
       "made my bed"
@@ -606,10 +651,11 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Clean Workspace",
     "category": "Hygiene",
     "actionType": "LOG_QUICK",
-    "coinsAwarded": 15,
-    "speechFeedback": "Workspace logged. Plus 15!",
+    "coinsAwarded": 25,
+    "speechFeedback": "Workspace logged. Plus 25!",
     "utterances": [
       "desk cleaned",
       "table organized"
@@ -617,16 +663,18 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Eye Strain Exercise",
     "category": "Hygiene",
     "actionType": "LOG_QUICK",
-    "coinsAwarded": 15,
-    "speechFeedback": "Eye rest logged. Plus 15!",
+    "coinsAwarded": 35,
+    "speechFeedback": "Eye rest logged. Plus 35!",
     "utterances": [
       "eye exercise done"
     ]
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Quick Stretch",
     "category": "Fitness",
     "actionType": "LOG_QUICK",
     "coinsAwarded": 40,
@@ -639,6 +687,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Meditation",
     "category": "Meditation",
     "actionType": "LOG_QUICK",
     "coinsAwarded": 30,
@@ -649,6 +698,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Reading a Book",
     "category": "Creativity",
     "actionType": "LOG_QUICK",
     "coinsAwarded": 30,
@@ -659,6 +709,7 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
   },
   {
     "intent": "TASK_LOG_QUICK",
+    "taskName": "Scribing & Journaling",
     "category": "Creativity",
     "actionType": "LOG_QUICK",
     "coinsAwarded": 30,

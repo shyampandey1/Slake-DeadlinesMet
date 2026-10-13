@@ -1,15 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Sparkles, Volume2, CheckCircle2, ChevronDown, X, Clock, Droplets, Dumbbell, BrainCircuit, GripVertical } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  Sparkles,
+  Volume2,
+  CheckCircle2,
+  ChevronDown,
+  X,
+  Clock,
+  Droplets,
+  Dumbbell,
+  BrainCircuit,
+  GripVertical,
+  Search,
+  CornerDownLeft,
+  Eye,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useVoiceController } from "@/hooks/useVoiceController";
+import { useTasks } from "@/hooks/useFirestore";
+import {
+  searchCommandsAndTasksWithEmbeddingGemma,
+  SemanticSearchMatch,
+} from "@/lib/semanticGate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function AgentDM() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [nlQuery, setNlQuery] = useState("");
+  const [semanticMatches, setSemanticMatches] = useState<SemanticSearchMatch[]>([]);
 
   const {
     isOpen,
@@ -24,9 +48,39 @@ export default function AgentDM() {
     startListening,
     stopListening,
     cancelListening,
+    executeIntent,
+    processTextCommand,
     waveformFrequencies,
     error,
   } = useVoiceController();
+
+  const { tasks } = useTasks();
+
+  // Live EmbeddingGemma semantic search when user types in the Agent DM modal
+  useEffect(() => {
+    let active = true;
+    const trimmed = nlQuery.trim();
+    if (!trimmed) {
+      setSemanticMatches([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const matches = await searchCommandsAndTasksWithEmbeddingGemma(trimmed, tasks || [], 4);
+        if (active) {
+          setSemanticMatches(matches);
+        }
+      } catch {
+        if (active) setSemanticMatches([]);
+      }
+    }, 120);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [nlQuery, tasks]);
 
   // If user taps the mic or HUD pill while speaking, interrupt and transition to LISTENING
   const handlePillClick = () => {
@@ -43,11 +97,12 @@ export default function AgentDM() {
   };
 
   const quickActions = [
-    { label: "Log Water (+15 SC)", icon: Droplets, phrase: "log water" },
-    { label: "Bed Made (+15 SC)", icon: CheckCircle2, phrase: "bed made" },
-    { label: "Quick Stretch (+40 SC)", icon: Dumbbell, phrase: "quick stretch done" },
-    { label: "Meditation 10m", icon: BrainCircuit, phrase: "start meditation for 10 minutes" },
-    { label: "Deep Work 45m", icon: Clock, phrase: "deep work 45 minutes" },
+    { label: "Drink Water (1m)", icon: Droplets, phrase: "drink a glass of water" },
+    { label: "Eye Exercise (2m)", icon: Eye, phrase: "eye strain exercise" },
+    { label: "Log Water (+25 DM)", icon: Droplets, phrase: "log water" },
+    { label: "Bed Made (+25 DM)", icon: CheckCircle2, phrase: "bed made" },
+    { label: "Meditation 10m", icon: BrainCircuit, phrase: "start meditation" },
+    { label: "Deep Work 45m", icon: Clock, phrase: "start deep work" },
   ];
 
   // Derive audio-reactive frequencies (16 equalizer bars)
@@ -175,7 +230,7 @@ export default function AgentDM() {
 
                 {agentState === 'THINKING' && (
                   <span className="text-xs font-bold text-blue-300 font-mono tracking-wide animate-pulse">
-                    Parsing Intent...
+                    EmbeddingGemma...
                   </span>
                 )}
 
@@ -255,10 +310,10 @@ export default function AgentDM() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-headline text-lg text-emerald-400">
               <Sparkles className="w-5 h-5 text-emerald-400" />
-              Agent DM • Voice Intelligence HUD
+              Agent DM • Voice & Semantic Search HUD
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-xs">
-              Hands-free voice execution powered by Studio-Grade Neural TTS & JEV TypeSafe Decision Engine.
+              Powered by Client-Side EmbeddingGemma Semantic Intent Search & JEV TypeSafe Engine.
             </DialogDescription>
           </DialogHeader>
 
@@ -270,14 +325,72 @@ export default function AgentDM() {
                 <span className="text-emerald-400 font-bold">{agentState}</span>
               </div>
               <p className="text-sm font-medium text-slate-200 min-h-[24px] italic">
-                {transcript ? '"' + transcript + '"' : detectedIntent?.speechFeedback || "Ready for voice command..."}
+                {transcript ? '"' + transcript + '"' : detectedIntent?.speechFeedback || "Ready for voice or natural language command..."}
               </p>
+            </div>
+
+            {/* EmbeddingGemma Natural Language Command & Task Search */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400/90 font-mono flex items-center gap-1.5">
+                <Search className="w-3 h-3" />
+                EmbeddingGemma Natural Language Search
+              </span>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!nlQuery.trim()) return;
+                  const cmd = nlQuery.trim();
+                  setNlQuery("");
+                  setModalOpen(false);
+                  processTextCommand(cmd);
+                }}
+                className="flex gap-2"
+              >
+                <Input
+                  value={nlQuery}
+                  onChange={(e) => setNlQuery(e.target.value)}
+                  placeholder="e.g. drink a glass of water, rest my eyes, meditate..."
+                  className="bg-white/5 border-white/15 text-xs text-white placeholder:text-slate-500 h-9 rounded-xl focus-visible:ring-emerald-500/50"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs gap-1"
+                >
+                  Run <CornerDownLeft className="w-3 h-3" />
+                </Button>
+              </form>
+
+              {semanticMatches.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  {semanticMatches.map((m, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setNlQuery("");
+                        setModalOpen(false);
+                        executeIntent(m.intent);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-left transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-emerald-200 truncate">{m.label}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{m.intent.speechFeedback}</p>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                        {Math.round(m.similarity * 100)}% match
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Quick Action Chips */}
             <div className="space-y-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                Suggested Commands
+                Instant Voice Commands
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {quickActions.map((action, i) => (
@@ -287,7 +400,7 @@ export default function AgentDM() {
                     size="sm"
                     onClick={() => {
                       setModalOpen(false);
-                      startListening();
+                      processTextCommand(action.phrase);
                     }}
                     className="justify-start gap-2 h-9 text-xs bg-white/5 border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-slate-200 hover:text-white"
                   >

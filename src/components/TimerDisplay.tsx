@@ -68,6 +68,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Music, Settings2 } from "lucide-react";
 import { ambientSounds, soundtracks } from "@/hooks/useAudioSettings";
+import { sanitizeSpeechTranscript, toTitleCaseLocal } from "@/config/voiceCommandDictionary";
 
 
 interface TimerDisplayProps {
@@ -96,7 +97,17 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 };
 
 
-export default function TimerDisplay({ taskName, initialDuration, category, color, expectedEndTime, coOpSessionId, forceRestart }: TimerDisplayProps) {
+export default function TimerDisplay({ taskName: rawTaskName, initialDuration, category, color, expectedEndTime, coOpSessionId, forceRestart }: TimerDisplayProps) {
+  const taskName = useMemo(() => {
+    const cleaned = sanitizeSpeechTranscript(rawTaskName || "Focus Session");
+    if (/^(?:drink(?:\s+a|\s+some)?(?:\s+glass\s+of)?\s+water|glass\s+of\s+water|hydrate)$/i.test(cleaned)) {
+      return "Drink a Glass of Water";
+    }
+    if (cleaned.toLowerCase() !== (rawTaskName || "").toLowerCase().trim()) {
+      return toTitleCaseLocal(cleaned);
+    }
+    return rawTaskName || "Focus Session";
+  }, [rawTaskName]);
   const router = useRouter();
   const { toast } = useToast();
   const { tasks, addTask } = useTasks();
@@ -118,7 +129,8 @@ export default function TimerDisplay({ taskName, initialDuration, category, colo
 
   // Check if this task is a breathing/oxygenation task
   const isBreathingTask = taskName.toLowerCase().includes("breath") || taskName.toLowerCase().includes("oxygen") || taskName.toLowerCase().includes("pranayama");
-  const effectiveDuration = (initialDuration && initialDuration > 0) ? initialDuration : (isBreathingTask ? 3 : 15);
+  const isDefaultWaterTask = taskName === "Drink a Glass of Water";
+  const effectiveDuration = (initialDuration && initialDuration > 0) ? initialDuration : (isDefaultWaterTask ? 1 : isBreathingTask ? 3 : 15);
 
   const [timeRemaining, setTimeRemaining] = useState(Math.round(effectiveDuration * 60));
   

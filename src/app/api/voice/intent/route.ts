@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { VoiceIntentPayloadSchema, VoiceIntentPayload, VoiceCategory, VoiceRoute, JEV_VOICE_DATASET } from '@/types/voice';
 import { callTypeSafeSystemOne, TypeSafeQuestion } from '@/lib/jevClient';
-import { VOICE_COMMAND_DICTIONARY } from '@/config/voiceCommandDictionary';
+import { VOICE_COMMAND_DICTIONARY, sanitizeSpeechTranscript } from '@/config/voiceCommandDictionary';
 
 /**
- * Normalizes speech input: converts spoken numbers, handles ASR typos, lowercases
+ * Normalizes speech input: sanitizes ASR progressive stutters, converts spoken numbers, handles ASR typos, lowercases
  */
 function normalizeSpeech(text: string): string {
-  let lower = text.toLowerCase().trim();
+  let lower = sanitizeSpeechTranscript(text).toLowerCase().trim();
 
   // Spoken number normalization
   const numMap: [RegExp, string][] = [
@@ -119,18 +119,18 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     });
 
     if (matchedUtterance) {
-      let finalMinutes = record.durationMinutes || extracted.durationMinutes;
+      let finalMinutes = extracted.durationMinutes || record.durationMinutes;
       let finalSeconds = extracted.durationSeconds || (finalMinutes ? finalMinutes * 60 : undefined);
 
-      let taskName: string | undefined = undefined;
-      if (record.intent === 'TASK_CREATE' || record.intent === 'TIMER_START') {
+      let taskName: string | undefined = record.taskName;
+      if (!taskName && (record.intent === 'TASK_CREATE' || record.intent === 'TIMER_START')) {
         const first = record.utterances[0] || '';
         taskName = first
           .replace(/^(?:start|begin|do|run)\s+/i, '')
           .replace(/\s+(?:timer|session|break|exercise|sprint|block|review)$/i, '')
           .trim();
         taskName = toTitleCase(taskName);
-      } else if (record.intent === 'TASK_LOG_QUICK') {
+      } else if (!taskName && record.intent === 'TASK_LOG_QUICK') {
         taskName = toTitleCase(record.utterances[0]);
       }
 
@@ -197,11 +197,11 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
       }
 
       let feedback = cmd.speechFeedback;
-      if (cmd.taskName && (cmd.action === 'TIMER_START' || cmd.action === 'TASK_CREATE')) {
+      if (cmd.taskName && (cmd.action === 'TIMER_START' || cmd.action === 'TASK_CREATE') && hasDuration) {
         const durLabel = (durationSeconds && durationSeconds < 60)
           ? `${durationSeconds} seconds`
           : durationMinutes === 1 ? '1 minute' : `${durationMinutes} minutes`;
-        feedback = `Starting ${durLabel} for ${cmd.taskName}. Let's make it count!`;
+        feedback = `Starting ${durLabel} ${cmd.taskName}.`;
       }
 
       return {
@@ -231,15 +231,15 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
   if (/drink|water|hydrate/i.test(norm)) category = 'Hydration';
   else if (/breath|oxygen|meditat|mindful|calm|zen/i.test(norm)) category = 'Meditation';
   else if (/stretch|workout|run|squat|pushup|gym|exercise|fitness/i.test(norm)) category = 'Fitness';
-  else if (/bed|clean|tidy|hygiene|wash|shower/i.test(norm)) category = 'Hygiene';
+  else if (/bed|clean|tidy|hygiene|wash|shower|eye/i.test(norm)) category = 'Hygiene';
   else if (/read|book|journal|write|draw|paint|scribe/i.test(norm)) category = 'Creativity';
 
-  // Category defaults when no duration was explicitly spoken
+  // Category defaults when no duration was explicitly spoken (1 minute for Hydration!)
   const CATEGORY_DEFAULTS: Record<VoiceCategory, { minutes: number; coins: number }> = {
-    Hydration: { minutes: 2, coins: 15 },
+    Hydration: { minutes: 1, coins: 30 },
     Meditation: { minutes: 10, coins: 30 },
     Fitness: { minutes: 20, coins: 40 },
-    Hygiene: { minutes: 5, coins: 15 },
+    Hygiene: { minutes: 5, coins: 25 },
     Creativity: { minutes: 15, coins: 30 },
     Productivity: { minutes: 25, coins: 50 },
   };
@@ -250,15 +250,17 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
 
   // Clean task name: strip command verbs and explicit durations while preserving natural task names
   let cleanTask = norm
-    .replace(/\b(?:start|begin|do|run|set|session|timer|countdown)\b/gi, ' ')
+    .replace(/\b(?:please|can\s+you|i\s+want\s+to|let'?s|time\s+to|start|begin|do|run|set|session|timer|countdown)\b/gi, ' ')
     .replace(/\b(?:for|in)\s+\d+(?:\.\d+)?\s*(?:sec|second|seconds|min|minute|minutes|hour|hours|hr|hrs)\b/gi, ' ')
     .replace(/\b\d+(?:\.\d+)?\s*(?:sec|second|seconds|min|minute|minutes|hour|hours|hr|hrs)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  // If input was a bare hydration phrase, ensure a polished, complete name
-  if (/^(?:glass\s+of\s+water|water|hydrate)$/i.test(cleanTask)) {
-    cleanTask = 'Drink a glass of water';
+  // Map any hydration phrase to the canonical "Drink a Glass of Water"
+  if (category === 'Hydration' || /\b(?:water|hydrate|hydration)\b/i.test(cleanTask)) {
+    cleanTask = 'Drink a Glass of Water';
+  } else if (/\b(?:eye\s+strain|eye\s+exercise|rest\s+(?:my\s+)?eyes|20-20-20)\b/i.test(cleanTask)) {
+    cleanTask = 'Eye Strain Exercise';
   }
 
   const finalName = cleanTask
@@ -267,10 +269,12 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
 
   const durLabel = finalSeconds < 60
     ? `${finalSeconds}s`
-    : `${finalMinutes}m`;
+    : finalMinutes === 1 ? '1-minute' : `${finalMinutes}-minute`;
 
   // Concise (< 6 words) confirmation
-  const shortTitle = finalName.split(/\s+/).slice(0, 3).join(' ');
+  const shortTitle = finalName === 'Drink a Glass of Water'
+    ? 'water break'
+    : finalName.split(/\s+/).slice(0, 3).join(' ');
   const speechFeedback = `Starting ${durLabel} ${shortTitle}.`;
 
   return {
@@ -290,7 +294,8 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const transcript = (body?.transcript || '').trim();
+    const rawTranscript = (body?.transcript || '').trim();
+    const transcript = sanitizeSpeechTranscript(rawTranscript);
     const matchedDomain = body?.matchedDomain as string | undefined;
     const currentRoute = body?.currentRoute || '/';
     const activeTimerState = body?.activeTimerState;

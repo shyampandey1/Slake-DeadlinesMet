@@ -10,8 +10,17 @@ import { useActiveTimer } from '@/hooks/useActiveTimer';
 import { useToast } from '@/hooks/use-toast';
 import { getLocalDateString, getCachedDailyCoins, setCachedDailyCoins } from '@/lib/dailyCoins';
 import { evaluateVoiceInterceptors } from '@/lib/voiceInterceptors';
-import { matchLocalVoiceCommand } from '@/config/voiceCommandDictionary';
-import { evaluateSemanticGate, ensureDomainAnchorsInitialized } from '@/lib/semanticGate';
+import {
+  matchLocalVoiceCommand,
+  sanitizeSpeechTranscript,
+  assembleSpeechRecognitionResults,
+} from '@/config/voiceCommandDictionary';
+import {
+  evaluateSemanticGate,
+  ensureDomainAnchorsInitialized,
+  ensureIntentEmbeddingsInitialized,
+  searchCommandsAndTasksWithEmbeddingGemma,
+} from '@/lib/semanticGate';
 
 export interface VoiceContextValue {
   // Visibility / HUD toggle state
@@ -39,6 +48,7 @@ export interface VoiceContextValue {
   stopListening: () => void;
   cancelListening: () => void;
   executeIntent: (intent: VoiceIntentPayload) => Promise<void>;
+  processTextCommand: (text: string) => Promise<void>;
   speakFeedback: (text: string) => void;
 }
 
@@ -531,10 +541,10 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     [speakFeedback, triggerHaptic, setAgentState, setIsOpen]
   );
 
-  // Three-Tier Voice Intent Resolution Pipeline
+  // Three-Tier Voice Intent Resolution Pipeline with EmbeddingGemma Semantic Intent Generation
   const processTranscript = useCallback(
     async (finalTranscript: string) => {
-      const clean = finalTranscript.trim();
+      const clean = sanitizeSpeechTranscript(finalTranscript);
       if (!clean) {
         setAgentState('IDLE');
         setIsProcessing(false);
@@ -542,6 +552,8 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         return;
       }
 
+      // Update displayed transcript with sanitized text so HUD never shows stuttered ASR fragments
+      setTranscriptState(clean);
       setAgentState('THINKING');
       setIsProcessing(true);
       isProcessingRef.current = true;
@@ -569,9 +581,18 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           return;
         }
 
-        // --- TIER 2: Client-Side WebGPU Semantic Gate (EmbeddingGemma / MiniLM) ---
+        // --- TIER 2: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
         const gateResult = await evaluateSemanticGate(clean);
         if (!gateResult.passed || gateResult.domain === 'OUT_OF_DOMAIN') {
+          // Before rejecting, check if the query semantically matches one of the user's own routine tasks
+          const routineMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, tasksRef.current || [], 1);
+          if (routineMatches.length > 0 && routineMatches[0].similarity >= 0.72) {
+            const matchedIntent = routineMatches[0].intent;
+            setDetectedIntent(matchedIntent);
+            await executeIntent(matchedIntent);
+            return;
+          }
+
           // Reject out-of-domain hallucinations with double-pulse error haptic [40, 60, 40]
           triggerHaptic([40, 60, 40]);
           const rejectionSpeech = 'I only control your routine and timer.';
@@ -583,6 +604,24 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           });
           await speakFeedback(rejectionSpeech);
           return;
+        }
+
+        // If EmbeddingGemma resolved a high-confidence canonical intent or user routine task directly, execute it!
+        if (gateResult.resolvedIntent && (gateResult.resolvedIntent.confidence || 0) >= 0.82) {
+          setDetectedIntent(gateResult.resolvedIntent);
+          await executeIntent(gateResult.resolvedIntent);
+          return;
+        }
+
+        // Check user's custom/preset routine tasks via EmbeddingGemma semantic search
+        if (gateResult.domain === 'ROUTINE' && tasksRef.current && tasksRef.current.length > 0) {
+          const routineMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, tasksRef.current, 1);
+          if (routineMatches.length > 0 && routineMatches[0].similarity >= 0.76) {
+            const matchedIntent = routineMatches[0].intent;
+            setDetectedIntent(matchedIntent);
+            await executeIntent(matchedIntent);
+            return;
+          }
         }
 
         // --- TIER 3: JEV TypeSafe Parametric Extraction Constrained by Matched Domain ---
@@ -615,6 +654,9 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
 
         if ((data.confidence || 0) >= 0.80) {
           await executeIntent(data);
+        } else if (gateResult.resolvedIntent) {
+          setDetectedIntent(gateResult.resolvedIntent);
+          await executeIntent(gateResult.resolvedIntent);
         } else {
           triggerHaptic([40, 60, 40]);
           await speakFeedback('I only control your routine and timer.');
@@ -628,7 +670,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         isProcessingRef.current = false;
       }
     },
-    [triggerHaptic, executeIntent, speakFeedback, setAgentState]
+    [triggerHaptic, executeIntent, speakFeedback, setAgentState, setTranscriptState]
   );
 
   // Stop listening gracefully and finalize transcript
@@ -647,7 +689,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       } catch (e) {}
     }
 
-    const currentText = transcriptRef.current.trim();
+    const currentText = sanitizeSpeechTranscript(transcriptRef.current);
     if (currentText) {
       processTranscript(currentText);
     } else {
@@ -712,15 +754,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       };
 
       recognition.onresult = (event: any) => {
-        let currentTranscript = '';
-        for (let i = event.results.length - 1; i >= event.resultIndex && i >= 0; i--) {
-          // get the most up to date interim / final
-        }
-        let full = '';
-        for (let i = 0; i < event.results.length; i++) {
-          full += event.results[i][0].transcript;
-        }
-
+        const full = assembleSpeechRecognitionResults(event.results);
         setTranscriptState(full);
 
         if (silenceTimerRef.current) {
@@ -728,14 +762,14 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           silenceTimerRef.current = null;
         }
 
-        // Auto-finalize after 1200ms of silence once speech has been heard
+        // Auto-finalize after 1100ms of silence once speech has been heard
         if (full.trim()) {
           silenceTimerRef.current = setTimeout(() => {
-            if (isListeningRef.current && full.trim()) {
+            if (isListeningRef.current && transcriptRef.current.trim()) {
               isProcessingRef.current = true;
               stopListening();
             }
-          }, 1200);
+          }, 1100);
         }
       };
 
@@ -768,9 +802,10 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         isStartingRef.current = false;
         if (isListeningRef.current && !isProcessingRef.current) {
           // If ended naturally and we have text, process it
-          if (transcriptRef.current.trim()) {
+          const cleanFinal = sanitizeSpeechTranscript(transcriptRef.current);
+          if (cleanFinal) {
             isListeningRef.current = false;
-            processTranscript(transcriptRef.current);
+            processTranscript(cleanFinal);
           } else {
             isListeningRef.current = false;
             setAgentState('IDLE');
@@ -789,7 +824,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       setError(err.message || 'Error starting microphone.');
       setAgentState('IDLE');
     }
-  }, [triggerHaptic, processTranscript, stopListening, setAgentState, setTranscriptState]);
+  }, [triggerHaptic, processTranscript, stopListening, setAgentState, setTranscriptState, ensureAudioContextRunning]);
 
   // Cancel listening and reset transcript
   const cancelListening = useCallback(() => {
@@ -818,6 +853,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   const openAgentDM = useCallback(() => {
     setIsOpen(true);
     ensureDomainAnchorsInitialized().catch(() => {});
+    ensureIntentEmbeddingsInitialized().catch(() => {});
     // Short tick to allow UI to mount before mic stream initialization
     setTimeout(() => {
       startListening();
@@ -871,6 +907,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     stopListening,
     cancelListening,
     executeIntent,
+    processTextCommand: processTranscript,
     speakFeedback,
   };
 

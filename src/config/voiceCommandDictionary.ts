@@ -25,8 +25,8 @@ export interface CommandDefinition {
 // Convert dataset entries from JEV_VOICE_DATASET into structured CommandDefinitions
 function buildDatasetCommandDefinitions(): CommandDefinition[] {
   return JEV_VOICE_DATASET.map((item: JevVoiceRecord) => {
-    let taskName: string | undefined = undefined;
-    if (item.intent === 'TASK_CREATE') {
+    let taskName: string | undefined = item.taskName;
+    if (!taskName && item.intent === 'TASK_CREATE') {
       const first = item.utterances[0] || '';
       taskName = first
         .replace(/^(?:start|begin|do|run)\s+/i, '')
@@ -347,29 +347,54 @@ const FLEXIBLE_COMMANDS: CommandDefinition[] = [
   },
   {
     action: 'TASK_CREATE',
-    taskName: 'Drink Water',
-    phrases: ['drink water timer', 'drink a glass of water', 'hydrate 2 minutes', 'water break'],
+    taskName: 'Drink a Glass of Water',
+    phrases: [
+      'drink a glass of water',
+      'drink glass of water',
+      'drink water',
+      'drink water timer',
+      'drink some water',
+      'have a glass of water',
+      'get a glass of water',
+      'hydrate',
+      'water break',
+      'hydration break',
+      'time to drink water',
+    ],
     patterns: [
-      /(?:start|begin|do)?\s*(?:drink\s+water|hydrate|water\s+break)(?:\s+timer|\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
+      /(?:start|begin|do|let'?s|i\s+want\s+to|time\s+to|need\s+to)?\s*(?:drink(?:\s+a|\s+some)?(?:\s+glass\s+of|\s+cup\s+of)?\s+water|have\s+a\s+glass\s+of\s+water|get\s+a\s+glass\s+of\s+water|glass\s+of\s+water|hydrate|water\s+break|hydration\s+break)(?:\s+timer|\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
     ],
     category: 'Hydration',
-    durationMinutes: 2,
-    coinsAwarded: 15,
-    speechFeedback: 'Starting hydration break.',
-    description: 'Hydration break timer'
+    durationMinutes: 1,
+    coinsAwarded: 30,
+    speechFeedback: 'Starting 1-minute water break.',
+    description: 'Hydration break timer (1 minute)'
   },
   {
     action: 'TASK_CREATE',
     taskName: 'Clean Workspace',
-    phrases: ['clean workspace', 'make my bed', 'set work table', 'desk tidy 5 minutes'],
+    phrases: ['clean workspace', 'make my bed', 'set the bed', 'set work table', 'desk tidy 5 minutes'],
     patterns: [
-      /(?:start|begin|do)?\s*(?:clean\s+workspace|tidy\s+desk|make\s+bed|set\s+work\s+table)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
+      /(?:start|begin|do)?\s*(?:clean\s+workspace|tidy\s+desk|make\s+(?:my\s+)?bed|set\s+(?:the\s+)?bed|set\s+work\s+table)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
     ],
     category: 'Hygiene',
     durationMinutes: 5,
-    coinsAwarded: 15,
+    coinsAwarded: 25,
     speechFeedback: 'Starting workspace hygiene.',
     description: 'Workspace hygiene & environment setup'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Eye Strain Exercise',
+    phrases: ['eye strain exercise', 'take eye strain break', '20-20-20 eye rest', 'rest my eyes', 'eye exercise'],
+    patterns: [
+      /(?:start|begin|do|take)?\s*(?:eye\s+strain(?:\s+exercise|\s+break)?|20-20-20\s+eye\s+rest|rest\s+(?:my\s+)?eyes|eye\s+exercise)(?:\s+in|\s+for|\s+of)?\s*(\d+(?:\.\d+)?| half )?\s*(?:sec|second|seconds|s|min|minute|minutes|m)?/i
+    ],
+    category: 'Hygiene',
+    durationMinutes: 2,
+    coinsAwarded: 35,
+    speechFeedback: 'Starting 2-minute eye exercise.',
+    description: 'Eye strain relief & 20-20-20 exercise'
   },
 
   // 4. One-shot quick logging (Explicit past-tense only)
@@ -547,8 +572,161 @@ export const getFewShotExamples = () => {
   }));
 };
 
+/**
+ * Cleans up mobile/Android Web Speech API progressive prefix duplication,
+ * glued word repetitions (e.g. "Drinkdrinkdrink Glassdrink Glass Ofdrink Glass of Water"),
+ * and adjacent word stutters.
+ */
+export function sanitizeSpeechTranscript(raw: string): string {
+  if (!raw) return '';
+  let text = raw.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+
+  // 1. Collapse repeated glued root words (e.g. "drinkdrinkdrink" -> "drink")
+  text = text.replace(/\b([a-z]{3,})\1+\b/gi, '$1');
+
+  // 2. If the first word was glued onto the end of subsequent partial tokens (e.g. "glassdrink", "ofdrink"),
+  // split those glued boundaries into separate words
+  const firstWordMatch = text.match(/^([a-z]{3,})\b/i);
+  if (firstWordMatch) {
+    const firstWord = firstWordMatch[1].toLowerCase();
+    const gluedRegex = new RegExp(`\\b([a-z]{2,})(${firstWord})\\b`, 'gi');
+    text = text.replace(gluedRegex, '$1 $2');
+  }
+
+  // 3. Progressive prefix deduplication:
+  // If tokens[0..k-1] is a prefix (or subset in order) of tokens[k..], drop the partial prefix tokens[0..k-1]
+  let tokens = text.split(/\s+/).filter(Boolean);
+  let changed = true;
+  let safety = 0;
+  while (changed && tokens.length > 1 && safety < 25) {
+    changed = false;
+    safety++;
+
+    // Collapse immediate adjacent duplicate words ("drink drink" -> "drink")
+    const deduped: string[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      if (i === 0 || tokens[i].toLowerCase() !== tokens[i - 1].toLowerCase()) {
+        deduped.push(tokens[i]);
+      } else {
+        changed = true;
+      }
+    }
+    tokens = deduped;
+
+    // Check if the leading word repeats at index k, and tokens[0..k-1] is a progressive prefix of tokens[k..]
+    const leadLower = tokens[0]?.toLowerCase();
+    for (let k = 1; k < tokens.length; k++) {
+      if (tokens[k].toLowerCase() === leadLower) {
+        const prefixLen = k;
+        const remainingLen = tokens.length - k;
+        if (prefixLen <= remainingLen) {
+          // Check if every word in tokens[0..k-1] appears in order at the start of tokens[k..]
+          // (allowing optional filler articles like "a"/"the" in the fuller phrase)
+          let pIdx = 0;
+          let rIdx = k;
+          while (pIdx < k && rIdx < tokens.length) {
+            const pWord = tokens[pIdx].toLowerCase();
+            const rWord = tokens[rIdx].toLowerCase();
+            if (pWord === rWord || rWord.startsWith(pWord)) {
+              pIdx++;
+              rIdx++;
+            } else if (['a', 'an', 'the', 'some', 'my'].includes(rWord)) {
+              rIdx++;
+            } else {
+              break;
+            }
+          }
+          if (pIdx === k) {
+            tokens = tokens.slice(k);
+            changed = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return tokens.join(' ').trim();
+}
+
+/**
+ * Safely assembles a Web Speech API SpeechRecognitionResultList without
+ * concatenating Android Chrome's cumulative progressive results.
+ */
+export function assembleSpeechRecognitionResults(results: ArrayLike<any>): string {
+  if (!results || !results.length) return '';
+  let accumulated = '';
+
+  for (let i = 0; i < results.length; i++) {
+    const res = results[i];
+    const rawSeg = (res?.[0]?.transcript || '').trim();
+    if (!rawSeg) continue;
+
+    if (!accumulated) {
+      accumulated = rawSeg;
+      continue;
+    }
+
+    const accLower = accumulated.toLowerCase();
+    const segLower = rawSeg.toLowerCase();
+
+    // Case 1: New result is a cumulative superset of accumulated (Android Chrome behavior)
+    if (segLower.startsWith(accLower)) {
+      accumulated = rawSeg;
+      continue;
+    }
+
+    // Case 2: New result is identical or already at the end of accumulated
+    if (accLower === segLower || accLower.endsWith(segLower)) {
+      continue;
+    }
+
+    // Case 3: Check if segLower is a progressive expansion of accLower with articles inserted (e.g. "drink glass" -> "drink a glass of water")
+    const accTokens = accLower.split(/\s+/).filter(Boolean);
+    const segTokens = segLower.split(/\s+/).filter(Boolean);
+    if (accTokens.length > 0 && segTokens.length >= accTokens.length && accTokens[0] === segTokens[0]) {
+      let aIdx = 0;
+      for (let sIdx = 0; sIdx < segTokens.length && aIdx < accTokens.length; sIdx++) {
+        if (segTokens[sIdx] === accTokens[aIdx] || segTokens[sIdx].startsWith(accTokens[aIdx])) {
+          aIdx++;
+        }
+      }
+      if (aIdx === accTokens.length) {
+        accumulated = rawSeg;
+        continue;
+      }
+    }
+
+    // Case 4: Word-level suffix-prefix overlap between accumulated and rawSeg
+    const accWords = accumulated.split(/\s+/);
+    const segWords = rawSeg.split(/\s+/);
+    let overlap = 0;
+    const maxOverlap = Math.min(accWords.length, segWords.length);
+    for (let k = maxOverlap; k >= 1; k--) {
+      const accSuffix = accWords.slice(accWords.length - k).join(' ').toLowerCase();
+      const segPrefix = segWords.slice(0, k).join(' ').toLowerCase();
+      if (accSuffix === segPrefix) {
+        overlap = k;
+        break;
+      }
+    }
+
+    if (overlap > 0) {
+      const remainder = segWords.slice(overlap).join(' ');
+      if (remainder) {
+        accumulated = `${accumulated} ${remainder}`;
+      }
+    } else {
+      accumulated = `${accumulated} ${rawSeg}`;
+    }
+  }
+
+  return sanitizeSpeechTranscript(accumulated);
+}
+
 export function normalizeVoiceSpeech(text: string): string {
-  let lower = text.toLowerCase().trim();
+  let lower = sanitizeSpeechTranscript(text).toLowerCase().trim();
   const numMap: [RegExp, string][] = [
     [/\bhalf\s+a\s+minute\b/gi, '30 seconds'],
     [/\bhalf\s+an\s+hour\b/gi, '30 minutes'],
@@ -608,7 +786,7 @@ export function extractVoiceDuration(text: string): { durationMinutes?: number; 
   return {};
 }
 
-function toTitleCaseLocal(str: string): string {
+export function toTitleCaseLocal(str: string): string {
   const minor = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'of', 'in']);
   const words = str.split(/\s+/).filter(Boolean);
   return words.map((w, idx) => {
@@ -642,18 +820,18 @@ export function matchLocalVoiceCommand(transcript: string): import('@/types/voic
     });
 
     if (matchedUtterance) {
-      const finalMinutes = record.durationMinutes || extracted.durationMinutes;
+      const finalMinutes = extracted.durationMinutes || record.durationMinutes;
       const finalSeconds = extracted.durationSeconds || (finalMinutes ? finalMinutes * 60 : undefined);
 
-      let taskName: string | undefined = undefined;
-      if (record.intent === 'TASK_CREATE' || record.intent === 'TIMER_START') {
+      let taskName: string | undefined = record.taskName;
+      if (!taskName && (record.intent === 'TASK_CREATE' || record.intent === 'TIMER_START')) {
         const first = record.utterances[0] || '';
         taskName = first
           .replace(/^(?:start|begin|do|run)\s+/i, '')
           .replace(/\s+(?:timer|session|break|exercise|sprint|block|review)$/i, '')
           .trim();
         taskName = toTitleCaseLocal(taskName);
-      } else if (record.intent === 'TASK_LOG_QUICK') {
+      } else if (!taskName && record.intent === 'TASK_LOG_QUICK') {
         taskName = toTitleCaseLocal(record.utterances[0]);
       }
 
