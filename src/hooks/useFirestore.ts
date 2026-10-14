@@ -34,7 +34,7 @@ export const getAvailableIcons = getIcons;
 
 export function useTasks() {
   const { user, isOffline, isSyncEnabled } = useAuth();
-  const { profileData, updateUserProfileData } = useProfile();
+  const { profileData, updateUserProfileData, incrementUserCoins } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const TASKS_CACHE_KEY = 'user_tasks';
@@ -231,13 +231,10 @@ export function useTasks() {
     };
 
     if (task.completed && task.earnedCoins && task.earnedCoins > 0) {
-      const profile = profileDataRef.current;
-      const currentTotal = (profile?.slakeCoins ?? profile?.slakeCredits ?? 0) + task.earnedCoins;
-      updateUserProfileData({
-        slakeCoins: currentTotal,
-        slakeCredits: currentTotal,
-        slakeBalance: currentTotal,
-      } as any);
+      const earned = Number(task.earnedCoins) || 0;
+      if (earned > 0) {
+        await incrementUserCoins(earned);
+      }
     }
 
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
@@ -256,7 +253,7 @@ export function useTasks() {
 
     const encryptedName = await encryptText(task.name, user.uid);
     await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
-  }, [user, isOffline, isSyncEnabled, updateUserProfileData]);
+  }, [user, isOffline, isSyncEnabled, updateUserProfileData, incrementUserCoins]);
 
   const clearTasks = async () => {
     if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) return; // Added signout check

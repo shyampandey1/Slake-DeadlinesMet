@@ -13,6 +13,12 @@ import {
   normalizeVoiceSpeech,
   extractVoiceDuration,
   toTitleCaseLocal,
+  computeLevenshteinDistance,
+  computeDiceCoefficient,
+  extractTaskQueryFromSpeech,
+  computeTokenSimilarity,
+  computeFuzzyTokenAlignment,
+  TASK_STOP_WORDS,
 } from '@/config/voiceCommandDictionary';
 
 export type SemanticDomain =
@@ -165,32 +171,10 @@ function mapIntentToDomain(intent: string): Exclude<SemanticDomain, 'OUT_OF_DOMA
 }
 
 /**
- * Computes token Jaccard + stem overlap score in [0, 1] to reinforce EmbeddingGemma cosine similarity.
+ * Computes token Jaccard + stem + fuzzy alignment score in [0, 1] to reinforce EmbeddingGemma cosine similarity.
  */
 function computeLexicalOverlap(queryTokens: string[], targetTokens: string[]): number {
-  if (queryTokens.length === 0 || targetTokens.length === 0) return 0;
-  const stopWords = new Set(['a', 'an', 'the', 'to', 'for', 'of', 'in', 'on', 'my', 'please', 'can', 'you', 'i', 'want', 'need', 'lets', 'let']);
-  const qFiltered = queryTokens.filter((t) => !stopWords.has(t));
-  const tFiltered = targetTokens.filter((t) => !stopWords.has(t));
-
-  const qSet = qFiltered.length > 0 ? qFiltered : queryTokens;
-  const tSet = tFiltered.length > 0 ? tFiltered : targetTokens;
-
-  let matches = 0;
-  for (const qt of qSet) {
-    if (
-      tSet.some(
-        (tt) =>
-          tt === qt ||
-          (qt.length >= 4 && tt.startsWith(qt.slice(0, 4))) ||
-          (tt.length >= 4 && qt.startsWith(tt.slice(0, 4)))
-      )
-    ) {
-      matches++;
-    }
-  }
-
-  return matches / Math.max(qSet.length, tSet.length);
+  return computeFuzzyTokenAlignment(queryTokens, targetTokens);
 }
 
 /**
@@ -306,7 +290,10 @@ export interface SemanticSearchMatch {
  * Evaluates an incoming voice transcript against the 7 in-domain anchor clusters
  * AND the EmbeddingGemma Intent Exemplar Index.
  */
-export async function evaluateSemanticGate(transcript: string): Promise<SemanticGateResult> {
+export async function evaluateSemanticGate(
+  transcript: string,
+  userTasks: Array<{ name: string; duration?: number; category?: string }> = []
+): Promise<SemanticGateResult> {
   const sanitized = sanitizeSpeechTranscript(transcript);
   const clean = normalizeVoiceSpeech(sanitized);
   if (!clean) {
@@ -431,6 +418,23 @@ export async function evaluateSemanticGate(transcript: string): Promise<Semantic
     };
   }
 
+  // Also evaluate against user's personalized routine tasks via EmbeddingGemma
+  if (userTasks && userTasks.length > 0) {
+    const taskMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, userTasks, 2);
+    if (taskMatches.length > 0 && taskMatches[0].similarity >= 0.52) {
+      const top = taskMatches[0];
+      const secondSim = taskMatches[1]?.similarity || 0;
+      if (top.similarity >= 0.65 || (top.similarity - secondSim) >= 0.10) {
+        if (top.similarity > maxSimilarity || !resolvedIntent) {
+          maxSimilarity = top.similarity;
+          bestDomain = 'TIMER';
+          bestPhrase = top.phrase;
+          resolvedIntent = top.intent;
+        }
+      }
+    }
+  }
+
   if (maxSimilarity < SEMANTIC_GATE_THRESHOLD) {
     return {
       passed: false,
@@ -527,7 +531,21 @@ export async function searchCommandsAndTasksWithEmbeddingGemma(
     }
   }
 
-  // 2. Score user's personalized routine tasks via EmbeddingGemma
+  // 2. Score user's personalized routine tasks via EmbeddingGemma + Fuzzy/Phonetic alignment
+  const cleanCoreTaskQuery = extractTaskQueryFromSpeech(clean);
+  const coreQueryVector =
+    cleanCoreTaskQuery && cleanCoreTaskQuery !== clean
+      ? await embedText(cleanCoreTaskQuery)
+      : queryVector;
+  const coreQueryDetVector =
+    cleanCoreTaskQuery && cleanCoreTaskQuery !== clean
+      ? computeDeterministicSemanticVector(cleanCoreTaskQuery)
+      : queryDetVector;
+  const coreQueryTokens = (cleanCoreTaskQuery || clean)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
   const seenTaskNames = new Set<string>();
   for (const task of userTasks) {
     if (!task?.name) continue;
@@ -542,15 +560,38 @@ export async function searchCommandsAndTasksWithEmbeddingGemma(
       Promise.resolve(computeDeterministicSemanticVector(taskNorm)),
     ]);
 
+    // Neural cosine similarity against both full query and extracted core query
     let neuralSim = 0;
     if (queryVector.length === taskVec.length) {
-      neuralSim = cosineSimilarity(queryVector, taskVec);
+      const fullNeural = cosineSimilarity(queryVector, taskVec);
+      const coreNeural = cosineSimilarity(coreQueryVector, taskVec);
+      neuralSim = Math.max(fullNeural, coreNeural);
     }
-    const detSim = cosineSimilarity(queryDetVector, taskDetVec);
-    const lexSim = computeLexicalOverlap(queryTokens, taskTokens);
+    const detSim = Math.max(
+      cosineSimilarity(queryDetVector, taskDetVec),
+      cosineSimilarity(coreQueryDetVector, taskDetVec)
+    );
+
+    // Fuzzy token alignment & Character n-gram Sørensen-Dice similarity
+    const lexSim = Math.max(
+      computeLexicalOverlap(queryTokens, taskTokens),
+      computeLexicalOverlap(coreQueryTokens, taskTokens)
+    );
+    const diceSim = Math.max(
+      computeDiceCoefficient(clean, taskNorm),
+      computeDiceCoefficient(cleanCoreTaskQuery || clean, taskNorm)
+    );
+    const lexicalCombined = Math.max(
+      lexSim * 0.65 + diceSim * 0.35,
+      diceSim,
+      lexSim
+    );
+
+    // Composite similarity score combining neural EmbeddingGemma and robust subword/token matching
     const similarity = Math.max(
-      neuralSim * 0.70 + lexSim * 0.30,
-      detSim * 0.68 + lexSim * 0.32,
+      neuralSim * 0.40 + lexicalCombined * 0.60,
+      detSim * 0.35 + lexicalCombined * 0.65,
+      lexicalCombined * 0.88,
       neuralSim
     );
 
@@ -559,32 +600,41 @@ export async function searchCommandsAndTasksWithEmbeddingGemma(
     const durSecs =
       extracted.durationSeconds !== undefined ? extracted.durationSeconds : Math.round(durMins * 60);
 
-    let mappedCat: VoiceCategory = 'Productivity';
-    if (/water|hydrat/i.test(task.name)) mappedCat = 'Hydration';
-    else if (/meditat|breath|oxygen/i.test(task.name)) mappedCat = 'Meditation';
-    else if (/workout|warm-up|stretch|exercise|walk|gym/i.test(task.name)) mappedCat = 'Fitness';
-    else if (/bed|hygiene|shower|clean|eye/i.test(task.name)) mappedCat = 'Hygiene';
-    else if (/read|scrib|journal|sketch|design|write/i.test(task.name)) mappedCat = 'Creativity';
+    let mappedCat: any = task.category || 'Productivity';
+    if (!task.category) {
+      if (/water|hydrat/i.test(task.name)) mappedCat = 'Hydration';
+      else if (/meditat|breath|oxygen/i.test(task.name)) mappedCat = 'Meditation';
+      else if (/workout|warm-up|stretch|exercise|walk|gym/i.test(task.name)) mappedCat = 'Fitness';
+      else if (/bed|hygiene|shower|clean|eye/i.test(task.name)) mappedCat = 'Hygiene';
+      else if (/read|scrib|journal|sketch|design|write/i.test(task.name)) mappedCat = 'Creativity';
+    }
 
     const key = `TASK_CREATE:${task.name.toLowerCase()}`;
     const existing = resultsByKey.get(key);
     if (!existing || similarity > existing.similarity) {
+      const durLabel =
+        durSecs < 60
+          ? `${durSecs}s`
+          : durMins === 1
+          ? '1-minute'
+          : `${durMins}-minute`;
+
       resultsByKey.set(key, {
         label: `${task.name} (${durMins}m)`,
         phrase: `start ${task.name.toLowerCase()}`,
         similarity,
-        domain: 'ROUTINE',
+        domain: 'TIMER',
         intent: {
-          action: 'TASK_CREATE',
+          action: 'TIMER_START',
           actionType: 'START',
           taskName: task.name,
           category: mappedCat,
           durationMinutes: durMins,
           durationSeconds: durSecs,
-          coinsAwarded: 35,
-          earnedCoins: 35,
-          speechFeedback: `Starting ${durMins === 1 ? '1-minute' : `${durMins}-minute`} ${task.name}.`,
-          confidence: Number(Math.min(0.99, Math.max(0.8, similarity)).toFixed(2)),
+          coinsAwarded: 50,
+          earnedCoins: 50,
+          speechFeedback: `Starting ${durLabel} ${task.name}.`,
+          confidence: Number(Math.min(0.99, Math.max(0.85, similarity)).toFixed(2)),
         },
       });
     }

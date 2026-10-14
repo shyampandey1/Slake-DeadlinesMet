@@ -918,3 +918,140 @@ export function matchLocalVoiceCommand(transcript: string): import('@/types/voic
 
   return null;
 }
+
+/**
+ * Computes Levenshtein edit distance between two strings.
+ */
+export function computeLevenshteinDistance(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const d = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+    }
+  }
+  return d[m][n];
+}
+
+/**
+ * Computes character bigram Sørensen-Dice coefficient in [0, 1] for spelling error resilience.
+ */
+export function computeDiceCoefficient(str1: string, str2: string): number {
+  const clean1 = str1.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const clean2 = str2.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!clean1 || !clean2) return 0;
+  if (clean1 === clean2) return 1.0;
+  const b1 = new Set<string>();
+  for (let i = 0; i < clean1.length - 1; i++) {
+    b1.add(clean1.slice(i, i + 2));
+  }
+  const b2 = new Set<string>();
+  for (let i = 0; i < clean2.length - 1; i++) {
+    b2.add(clean2.slice(i, i + 2));
+  }
+  if (b1.size === 0 || b2.size === 0) return 0;
+  let intersection = 0;
+  for (const b of b1) {
+    if (b2.has(b)) intersection++;
+  }
+  return (2 * intersection) / (b1.size + b2.size);
+}
+
+/**
+ * Strips voice command verbs, conversational prefixes, and duration modifiers
+ * to extract the raw candidate task name from spoken audio transcripts.
+ */
+export function extractTaskQueryFromSpeech(text: string): string {
+  let s = text.toLowerCase().trim();
+  // Strip leading command prefixes and articles
+  s = s.replace(
+    /^(?:please\s+|can\s+you\s+|i\s+(?:want|need)\s+to\s+|let'?s\s+|time\s+(?:to|for)\s+|start\s+(?:a\s+|the\s+)?|begin\s+(?:a\s+|the\s+)?|do\s+(?:a\s+|the\s+)?|run\s+(?:a\s+|the\s+)?|launch\s+(?:a\s+|the\s+)?|timer\s+(?:for|on)\s+|focus\s+on\s+|work\s+on\s+|a\s+|an\s+|the\s+)+/i,
+    ''
+  );
+  // Strip trailing duration phrases (e.g., "for 90 minutes", "for an hour", "in 15 mins")
+  s = s.replace(
+    /\s+(?:for|in)\s+\d+(?:\.\d+)?\s*(?:sec|second|seconds|min|minute|minutes|hour|hours|hr|hrs).*$/i,
+    ''
+  );
+  // Strip trailing fillers
+  s = s.replace(/\s+(?:timer|session|block|countdown|task)$/i, '');
+  return s.trim();
+}
+
+/**
+ * Stop words for task matching
+ */
+export const TASK_STOP_WORDS = new Set([
+  'start', 'begin', 'do', 'run', 'launch', 'timer', 'session', 'task',
+  'a', 'an', 'the', 'and', 'or', 'to', 'for', 'of', 'in', 'on', 'with',
+  'my', 'your', 'please', 'can', 'you', 'i', 'want', 'need', 'lets', 'let', '&'
+]);
+
+/**
+ * Computes fuzzy token similarity between two words in [0, 1].
+ */
+export function computeTokenSimilarity(t1: string, t2: string): number {
+  if (t1 === t2) return 1.0;
+  if (t1.startsWith(t2) || t2.startsWith(t1)) {
+    const minL = Math.min(t1.length, t2.length);
+    if (minL >= 3) return 0.88;
+  }
+  const maxL = Math.max(t1.length, t2.length);
+  const dist = computeLevenshteinDistance(t1, t2);
+  if (dist <= 2 && maxL >= 4) {
+    return Math.max(0, 1 - dist / maxL);
+  }
+  return 0;
+}
+
+/**
+ * Computes token Jaccard + stem + fuzzy alignment score in [0, 1].
+ */
+export function computeFuzzyTokenAlignment(queryTokens: string[], targetTokens: string[]): number {
+  const qFiltered = queryTokens.filter((t) => !TASK_STOP_WORDS.has(t));
+  const tFiltered = targetTokens.filter((t) => !TASK_STOP_WORDS.has(t));
+  const qSet = qFiltered.length > 0 ? qFiltered : queryTokens;
+  const tSet = tFiltered.length > 0 ? tFiltered : targetTokens;
+  if (qSet.length === 0 || tSet.length === 0) return 0;
+
+  let matchedScore = 0;
+  for (const qt of qSet) {
+    let best = 0;
+    for (const tt of tSet) {
+      const s = computeTokenSimilarity(qt, tt);
+      if (s > best) best = s;
+    }
+    matchedScore += best;
+  }
+
+  return matchedScore / Math.max(qSet.length, tSet.length);
+}
+
+/**
+ * Scores task candidate match using fuzzy token alignment and character Dice coefficient.
+ */
+export function scoreTaskMatch(query: string, targetName: string): number {
+  const qClean = extractTaskQueryFromSpeech(query);
+  const tNorm = normalizeVoiceSpeech(targetName);
+  const qTokens = (qClean || normalizeVoiceSpeech(query))
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  const tTokens = tNorm
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const tokenScore = computeFuzzyTokenAlignment(qTokens, tTokens);
+  const diceScore = Math.max(
+    computeDiceCoefficient(query, tNorm),
+    computeDiceCoefficient(qClean, tNorm)
+  );
+
+  return Math.max(tokenScore * 0.65 + diceScore * 0.35, tokenScore, diceScore);
+}

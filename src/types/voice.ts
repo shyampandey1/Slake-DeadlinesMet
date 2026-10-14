@@ -1287,4 +1287,9 @@ export interface VoiceCommandRequest {
     taskName?: string;
     remainingSeconds?: number;
   };
+  existingTasks?: Array<{
+    name: string;
+    duration?: number;
+    category?: string;
+  }>;
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { VoiceIntentPayloadSchema, VoiceIntentPayload, VoiceCategory, VoiceRoute, JEV_VOICE_DATASET } from '@/types/voice';
 import { callTypeSafeSystemOne, TypeSafeQuestion } from '@/lib/jevClient';
-import { VOICE_COMMAND_DICTIONARY, sanitizeSpeechTranscript } from '@/config/voiceCommandDictionary';
+import { VOICE_COMMAND_DICTIONARY, sanitizeSpeechTranscript, scoreTaskMatch } from '@/config/voiceCommandDictionary';
 
 /**
  * Normalizes speech input: sanitizes ASR progressive stutters, converts spoken numbers, handles ASR typos, lowercases
@@ -100,7 +100,11 @@ function toTitleCase(str: string): string {
 /**
  * Parses transcripts against JEV Voice Dataset and canonical dictionary
  */
-function parseVoiceCommand(transcript: string, currentRoute: string = '/'): VoiceIntentPayload {
+function parseVoiceCommand(
+  transcript: string,
+  currentRoute: string = '/',
+  existingTasks: Array<{ name: string; duration?: number; category?: string }> = []
+): VoiceIntentPayload {
   const norm = normalizeSpeech(transcript);
   const extracted = extractDuration(norm);
   const hasDuration = extracted.durationSeconds !== undefined || extracted.durationMinutes !== undefined;
@@ -226,6 +230,45 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     }
   }
 
+  // 2.5 Match against user's existing tasks (fuzzy token & dice similarity)
+  if (existingTasks && existingTasks.length > 0) {
+    let bestMatch: { name: string; duration?: number; category?: string } | null = null;
+    let bestScore = 0;
+    let runnerUpScore = 0;
+
+    for (const t of existingTasks) {
+      if (!t?.name) continue;
+      const s = scoreTaskMatch(transcript, t.name);
+      if (s > bestScore) {
+        runnerUpScore = bestScore;
+        bestScore = s;
+        bestMatch = t;
+      } else if (s > runnerUpScore) {
+        runnerUpScore = s;
+      }
+    }
+
+    if (bestMatch && bestScore >= 0.52 && (bestScore >= 0.65 || (bestScore - runnerUpScore) >= 0.10)) {
+      const finalMinutes = extracted.durationMinutes !== undefined ? extracted.durationMinutes : (bestMatch.duration || 15);
+      const finalSeconds = extracted.durationSeconds !== undefined ? extracted.durationSeconds : (finalMinutes * 60);
+      const durLabel = finalSeconds < 60 ? `${finalSeconds}s` : finalMinutes === 1 ? '1-minute' : `${finalMinutes}-minute`;
+      const cat = (bestMatch.category as any) || 'Productivity';
+
+      return {
+        action: 'TIMER_START',
+        actionType: 'START',
+        taskName: bestMatch.name,
+        durationMinutes: finalMinutes,
+        durationSeconds: finalSeconds,
+        category: cat,
+        coinsAwarded: 50,
+        earnedCoins: 50,
+        speechFeedback: `Starting ${durLabel} ${bestMatch.name}.`,
+        confidence: Number(Math.min(0.99, Math.max(0.88, bestScore)).toFixed(2)),
+      };
+    }
+  }
+
   // 3. Fallback Dynamic Task Matching (e.g. "drink a glass of water", "code for 20 minutes", "read 15 minutes")
   let category: VoiceCategory = 'Productivity';
   if (/drink|water|hydrate/i.test(norm)) category = 'Hydration';
@@ -255,6 +298,9 @@ function parseVoiceCommand(transcript: string, currentRoute: string = '/'): Voic
     .replace(/\b\d+(?:\.\d+)?\s*(?:sec|second|seconds|min|minute|minutes|hour|hours|hr|hrs)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  // Strip leading articles ('a ', 'an ', 'the ') so ASR phonetics never generate "A ..."
+  cleanTask = cleanTask.replace(/^(?:a|an|the)\s+/i, '').trim();
 
   // Map any hydration phrase to the canonical "Drink a Glass of Water"
   if (category === 'Hydration' || /\b(?:water|hydrate|hydration)\b/i.test(cleanTask)) {
@@ -304,8 +350,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Transcript is required' }, { status: 400 });
     }
 
-    // 1. Check local canonical dictionary and deterministic slot parser
-    const localResult = parseVoiceCommand(transcript, currentRoute);
+    const existingTasks = (body?.existingTasks || []) as Array<{ name: string; duration?: number; category?: string }>;
+
+    // 1. Check local canonical dictionary, existing tasks, and deterministic slot parser
+    const localResult = parseVoiceCommand(transcript, currentRoute, existingTasks);
 
     // 2. Tier 3: JEV TypeSafe Parametric Extraction constrained by matchedDomain
     try {

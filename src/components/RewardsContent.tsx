@@ -26,14 +26,24 @@ export function RewardsContent() {
   const { user } = useAuth();
   const router = useRouter();
   
-  const currentCoins = profileData?.slakeCoins ?? profileData?.slakeCredits ?? 0;
+  const currentCoins = Math.max(
+    Number(profileData?.slakeCoins) || 0,
+    Number(profileData?.slakeCredits) || 0,
+    Number(profileData?.coins) || 0,
+    Number(profileData?.slakeBalance) || 0
+  );
   const [credits, setCredits] = useState(currentCoins);
   
   useEffect(() => {
     if (profileData) {
-      setCredits(profileData.slakeCoins ?? profileData.slakeCredits ?? 0);
+      setCredits(Math.max(
+        Number(profileData.slakeCoins) || 0,
+        Number(profileData.slakeCredits) || 0,
+        Number(profileData.coins) || 0,
+        Number(profileData.slakeBalance) || 0
+      ));
     }
-  }, [profileData?.slakeCoins, profileData?.slakeCredits]);
+  }, [profileData?.slakeCoins, profileData?.slakeCredits, profileData?.coins, profileData?.slakeBalance]);
 
   const userCurrency = (profileData?.currency || "INR").toUpperCase();
   const cSym = userCurrency === "USD" ? "$" : userCurrency === "EUR" ? "€" : "₹";
@@ -62,7 +72,12 @@ export function RewardsContent() {
                  name: data.displayName || "Anonymous Reformer",
                  avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
                  streak: data.streak?.currentStreak || 0,
-                 coins: (data as any).slakeCoins ?? data.slakeCredits ?? 0,
+                 coins: Math.max(
+                     Number((data as any).slakeCoins) || 0,
+                     Number(data.slakeCredits) || 0,
+                     Number(data.coins) || 0,
+                     Number((data as any).slakeBalance) || 0
+                 ),
                  daysElapsed: data.streak?.highestStreak || 0,
                  certificates: Math.floor((data.streak?.highestStreak || 0) / 3) + Math.floor(((data as any).totalTasks || 0) / 10),
                  city: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
@@ -85,7 +100,12 @@ export function RewardsContent() {
                      name: data.displayName || "Anonymous Reformer",
                      avatar: data.displayPicture || `https://api.dicebear.com/9.x/avataaars/svg?seed=${uid}`,
                      streak: data.streak?.currentStreak || 0,
-                     coins: (data as any).slakeCoins ?? data.slakeCredits ?? 0,
+                     coins: Math.max(
+                         Number((data as any).slakeCoins) || 0,
+                         Number(data.slakeCredits) || 0,
+                         Number(data.coins) || 0,
+                         Number((data as any).slakeBalance) || 0
+                     ),
                      daysElapsed: data.streak?.highestStreak || 0,
                      certificates: Math.floor((data.streak?.highestStreak || 0) / 3) + Math.floor(((data as any).totalTasks || 0) / 10),
                      city: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),

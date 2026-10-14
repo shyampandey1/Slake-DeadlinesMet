@@ -112,6 +112,7 @@ export type UserProfile = {
     customProfessions?: CustomProfession[];
     daysOff?: Day[];
     routineVersions?: { [key: string]: number };
+    slakeCoins?: number;
     slakeCredits?: number;
     coins?: number;
     streak?: StreakData;

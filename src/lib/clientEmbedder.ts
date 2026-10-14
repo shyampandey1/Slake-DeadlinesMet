@@ -246,6 +246,20 @@ export function computeDeterministicSemanticVector(text: string): EmbeddingVecto
     }
     const idx = 32 + (Math.abs(h) % (dim - 32));
     vec[idx] += 1.0;
+
+    // Project character trigrams for robust subword/fuzzy spelling resilience
+    if (token.length >= 3) {
+      for (let i = 0; i <= token.length - 3; i++) {
+        const tri = token.slice(i, i + 3);
+        let th = 2166136261;
+        for (let j = 0; j < 3; j++) {
+          th ^= tri.charCodeAt(j);
+          th = Math.imul(th, 16777619);
+        }
+        const tidx = 32 + (Math.abs(th) % (dim - 32));
+        vec[tidx] += 0.45;
+      }
+    }
   }
 
   return normalizeVector(vec);

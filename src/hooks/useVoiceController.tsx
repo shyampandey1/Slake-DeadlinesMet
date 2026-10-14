@@ -4,7 +4,10 @@ import React, { createContext, useContext, useState, useRef, useCallback, useEff
 import { useRouter, usePathname } from 'next/navigation';
 import { VoiceIntentPayload, VoiceCommandRequest, VoiceAgentState } from '@/types/voice';
 import { useAgentAudio } from '@/hooks/useAgentAudio';
-import { useTasks } from '@/hooks/useFirestore';
+import { useTasks, usePresetTasks } from '@/hooks/useFirestore';
+import { useProfile } from '@/hooks/useProfile';
+import { defaultRoutines, profileToRoutineMap } from '@/lib/routines';
+import type { ProfileType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveTimer } from '@/hooks/useActiveTimer';
 import { useToast } from '@/hooks/use-toast';
@@ -65,8 +68,71 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   const pathname = usePathname();
   const { user } = useAuth();
   const { addTask, tasks, toggleTaskCompletion } = useTasks();
+  const { profileData } = useProfile();
+  const { presetTasks } = usePresetTasks();
   const { startTimer, updateTimer, clearTimer, activeTimer, setFocusInterval } = useActiveTimer();
   const { toast } = useToast();
+
+  // Consolidate all existing candidate tasks: active daily tasks + routine preset tasks + default template tasks
+  const candidateTasks = React.useMemo(() => {
+    const list: Array<{ name: string; duration?: number; category?: string; id?: string }> = [];
+    const seen = new Set<string>();
+
+    // 1. Active daily tasks for today
+    for (const t of tasks || []) {
+      if (!t?.name) continue;
+      const key = t.name.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push({
+          name: t.name,
+          duration: t.duration || t.initialDuration || 15,
+          category: t.category,
+          id: t.id,
+        });
+      }
+    }
+
+    // 2. Preset tasks from user routine presets
+    if (presetTasks) {
+      for (const [catName, catObj] of Object.entries(presetTasks)) {
+        if (catObj && Array.isArray(catObj.tasks)) {
+          for (const pt of catObj.tasks) {
+            if (!pt?.name) continue;
+            const key = pt.name.toLowerCase().trim();
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push({
+                name: pt.name,
+                duration: pt.duration || 15,
+                category: pt.category || catName,
+                id: pt.id,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Default routine template tasks for user profile
+    const effectiveProfile = (profileData?.profile || 'Entrepreneur') as ProfileType;
+    const routineKey = profileToRoutineMap[effectiveProfile] || 'entrepreneurRoutine';
+    const defTasks = defaultRoutines.routines[routineKey] || [];
+    for (const dt of defTasks) {
+      if (!dt?.name) continue;
+      const key = dt.name.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push({
+          name: dt.name,
+          duration: dt.duration || 15,
+          category: dt.category,
+        });
+      }
+    }
+
+    return list;
+  }, [tasks, presetTasks, profileData?.profile]);
 
   // Agent DM floating HUD state: hidden by default (activated via voice button)
   const [isOpen, setIsOpenState] = useState<boolean>(false);
@@ -95,6 +161,9 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
 
   const tasksRef = useRef(tasks);
   useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
+  const candidateTasksRef = useRef(candidateTasks);
+  useEffect(() => { candidateTasksRef.current = candidateTasks; }, [candidateTasks]);
 
   const toggleTaskCompletionRef = useRef(toggleTaskCompletion);
   useEffect(() => { toggleTaskCompletionRef.current = toggleTaskCompletion; }, [toggleTaskCompletion]);
@@ -221,16 +290,21 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             const category = (intent.category as any) || 'Productivity';
             const expectedEndTime = Date.now() + (durationSecs * 1000);
 
-            // 1. Add to routine in background if user is logged in
+            // 1. Add to routine in background if user is logged in and task is not already in today's tasks
             const curUser = userRef.current;
             if (curUser?.uid) {
-              addTaskRef.current({
-                name: taskName,
-                duration: Math.max(1, Math.round(durationMins)),
-                initialDuration: Math.max(1, Math.round(durationMins)),
-                completed: false,
-                category: category,
-              }).catch(() => {});
+              const existing = tasksRef.current?.find(
+                (t) => t.name.toLowerCase().trim() === taskName.toLowerCase().trim()
+              );
+              if (!existing) {
+                addTaskRef.current({
+                  name: taskName,
+                  duration: Math.max(1, Math.round(durationMins)),
+                  initialDuration: Math.max(1, Math.round(durationMins)),
+                  completed: false,
+                  category: category,
+                }).catch(() => {});
+              }
             }
 
             // 2. Start active background timer
@@ -489,7 +563,6 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
                     actionType: intent.actionType,
                     sensorType: intent.sensorType,
                     sensorState: intent.sensorState,
-                    speechFeedback: intent.speechFeedback,
                     ...intent,
                   },
                 })
@@ -581,18 +654,39 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           return;
         }
 
-        // --- TIER 2: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
-        const gateResult = await evaluateSemanticGate(clean);
-        if (!gateResult.passed || gateResult.domain === 'OUT_OF_DOMAIN') {
-          // Before rejecting, check if the query semantically matches one of the user's own routine tasks
-          const routineMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, tasksRef.current || [], 1);
-          if (routineMatches.length > 0 && routineMatches[0].similarity >= 0.72) {
-            const matchedIntent = routineMatches[0].intent;
+        // --- TIER 2A: Search Existing Routine & Preset Tasks with Embedded Gemma ---
+        const existingCandidates = candidateTasksRef.current || [];
+        const taskMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, existingCandidates, 3);
+        if (taskMatches.length > 0) {
+          const topMatch = taskMatches[0];
+          const runnerUpSim = taskMatches[1]?.similarity || 0;
+          const isTaskIntent =
+            topMatch.intent.action === 'TIMER_START' || topMatch.intent.action === 'TASK_CREATE';
+
+          // If matched an existing task above threshold (0.52 with margin >= 0.10, or >= 0.65)
+          if (
+            isTaskIntent &&
+            topMatch.similarity >= 0.52 &&
+            (topMatch.similarity >= 0.65 || (topMatch.similarity - runnerUpSim) >= 0.10)
+          ) {
+            const matchedIntent = topMatch.intent;
             setDetectedIntent(matchedIntent);
             await executeIntent(matchedIntent);
             return;
           }
 
+          // If matched a canonical voice command exemplar with high confidence (>= 0.76)
+          if (!isTaskIntent && topMatch.similarity >= 0.76) {
+            const matchedIntent = topMatch.intent;
+            setDetectedIntent(matchedIntent);
+            await executeIntent(matchedIntent);
+            return;
+          }
+        }
+
+        // --- TIER 2B: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
+        const gateResult = await evaluateSemanticGate(clean, existingCandidates);
+        if (!gateResult.passed || gateResult.domain === 'OUT_OF_DOMAIN') {
           // Reject out-of-domain hallucinations with double-pulse error haptic [40, 60, 40]
           triggerHaptic([40, 60, 40]);
           const rejectionSpeech = 'I only control your routine and timer.';
@@ -607,21 +701,10 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         }
 
         // If EmbeddingGemma resolved a high-confidence canonical intent or user routine task directly, execute it!
-        if (gateResult.resolvedIntent && (gateResult.resolvedIntent.confidence || 0) >= 0.82) {
+        if (gateResult.resolvedIntent && (gateResult.resolvedIntent.confidence || 0) >= 0.80) {
           setDetectedIntent(gateResult.resolvedIntent);
           await executeIntent(gateResult.resolvedIntent);
           return;
-        }
-
-        // Check user's custom/preset routine tasks via EmbeddingGemma semantic search
-        if (gateResult.domain === 'ROUTINE' && tasksRef.current && tasksRef.current.length > 0) {
-          const routineMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, tasksRef.current, 1);
-          if (routineMatches.length > 0 && routineMatches[0].similarity >= 0.76) {
-            const matchedIntent = routineMatches[0].intent;
-            setDetectedIntent(matchedIntent);
-            await executeIntent(matchedIntent);
-            return;
-          }
         }
 
         // --- TIER 3: JEV TypeSafe Parametric Extraction Constrained by Matched Domain ---
@@ -637,6 +720,11 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
                 taskName: curTimer.taskName,
               }
             : undefined,
+          existingTasks: existingCandidates.map((t) => ({
+            name: t.name,
+            duration: t.duration,
+            category: t.category,
+          })),
         };
 
         const res = await fetch('/api/voice/intent', {
