@@ -31,6 +31,17 @@ import { Menu, User, BookText, ClipboardList, Calendar, Settings, Sparkles, Info
 
 const changelog = [
   {
+      version: "v2.5",
+      date: "Day 12",
+      features: [
+        { name: "Zero-Latency WebGPU Auto-Categorization & Anti-Spam", description: "Real-time client-side EmbeddingGemma-300M keystroke classification, 0.88 cosine similarity routine de-duplication with 1-click merge, and anti-spam coin protection.", icon: "brain-circuit" },
+        { name: "Smart Vector Co-Reformer Matchmaking", description: "Concatenated lifestyle vector profile ranking in VRAM paired with JEV TypeSafe synergy compatibility scoring and 1-click co-op sprint initiation.", icon: "users-2" },
+        { name: "Closed-Loop Gaze Telemetry & Adaptive Pacing", description: "Rolling 2-minute distraction and blink-rate tracking with proactive JEV pauses, Agent DM voice interventions, and 20-20-20 / Box Breathing micro-resets.", icon: "camera" },
+        { name: "Neural Memory Bank & Semantic RAG Search", description: "IndexedDB vector logs for completed sprints and Scribing journal entries with sub-20ms natural language search and JEV behavioral synthesis.", icon: "book-text" },
+        { name: "Anti-Gaming Trust Audit for UPI Payouts", description: "Deterministic pre-redemption verification evaluating engagement telemetry, task velocities, and coin legitimacy via JEV SystemOne trust scoring.", icon: "trophy" },
+      ]
+  },
+  {
       version: "v2.0",
       date: "Day 11",
       features: [

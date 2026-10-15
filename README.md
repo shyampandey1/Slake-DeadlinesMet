@@ -26,30 +26,45 @@ By unifying **Client-Side WebGPU Neural Execution**, deterministic **JEV TypeSaf
 
 ---
 
-## ⚡ What's New: The Neural Architecture Overhaul
+## ⚡ What's New: The Dual-Engine WebGPU & JEV TypeSafe Expansion (v2.5)
 
-### 💎 1. Client-Side WebGPU Semantic Gating (`EmbeddingGemma-300M`)
-Zero hallucination. Zero server overhead. Zero API keys.
-* **In-Browser Transformer Execution:** Powered by `@huggingface/transformers`, running `google/embeddinggemma-300m` (quantized `q8`) directly inside the browser using **WebGPU hardware acceleration** (with seamless WASM fallback to `all-MiniLM-L6-v2` for older devices).
-* **IndexedDB Weight Caching:** Model weights download once and cache locally, enabling instant, fully offline semantic inference.
-* **7-Domain Vector Gate:** Every voice utterance is mean-pooled and checked against high-dimensional anchor clusters (`TIMER`, `NAVIGATION`, `ROUTINE`, `COOP`, `SENSORS`, `REWARDS`, `SYSTEM`).
-* **Strict Out-of-Domain Rejection:** Commands below a cosine similarity threshold of `0.68` are rejected client-side before any network request or LLM is touched, eliminating runaway timer creation from random chat.
+### 💎 1. Zero-Latency Task Auto-Categorization & Anti-Spam Coin Shield
+* **Live Keystroke Categorization (15ms Debounce):** Real-time client-side embedding via `google/embeddinggemma-300m` against canonical anchors for the 6 Lifestyle Categories (`Productivity`, `Hydration`, `Fitness`, `Meditation`, `Hygiene`, `Creativity`). Automatically highlights matching category badges and suggests optimal default durations.
+* **Semantic Routine De-Duplication:** Evaluates new tasks against active routine tasks. Tasks with cosine similarity $\ge 0.88$ display an inline warning with 1-click merge and duration boost.
+* **Anti-Spam / Gibberish Coin Shield:** Commands or keyboard mash below $0.45$ similarity against canonical pillars are marked as unverified (`isVerifiedForCoins: false`), preventing spam reward farming while keeping timers operational.
 
-### 🛡️ 2. JEV TypeSafe SystemOne Decision Engine
-* **Deterministic Structured AI:** Powered by JEV SystemOne (`https://api.typesafe.ai/v1/systemone`) using strict `choice`, `score`, and `noul` primitives.
-* **Routine Optimization & Motivation:** Autonomous task scheduling and personalized encouragement executed with strict 20-second timeout guarantees and zero runtime schema drift.
-* **Zero Legacy Bloat:** Purged heavy legacy cloud frameworks in favor of a lean, reliable HTTP client contract with robust offline fallbacks.
+### 🤝 2. Smart Vector Co-Reformer Matchmaking & Synergy Engine
+* **User Lifestyle Vector Generation:** Concatenates user profession (`ProfileType`), active MOVERS routine (`morning_primer` vs `evening_restorer`), top 3 productive hours, and routine task titles into an embedding stored at `users/{userId}.lifestyleVector`.
+* **Client-Side Vector Ranking:** Ranks active online Reformers in client VRAM by cosine similarity to surface the top 5 compatible partners.
+* **JEV Synergy Evaluation (`/api/reformers/synergy`):** Deterministic evaluation via JEV TypeSafe SystemOne using `score` (`synergyScore`: 0–100) and `noul` primitives (`sharedStrength`, `recommendedSprintTopic`, `recommendedDurationMinutes`) with 1-click Co-Op session initiation.
 
-### 🎙️ 3. 3-Tier Zero-Latency Voice Intent Pipeline
+### 👁️ 3. Closed-Loop Sensor & Gaze Telemetry for Adaptive Pacing
+* **Rolling Distraction & Fatigue Telemetry:** 2-minute rolling window tracking `blinkRatePerMinute`, `gazeAwayCount`, `manualPauseCount`, and `elapsedMinutes` in `GazeTracker` and `TimerDisplay`.
+* **Proactive JEV Interventions (`/api/timer/adaptive-pacing`):** When gaze drops or distraction threshold triggers, JEV TypeSafe returns `choice` (`CONTINUE`, `TRIGGER_EYE_BREAK`, `TRIGGER_BREATHING_RESET`, `SPLIT_TASK`) and `noul` (`agentSpeechPrompt`).
+* **Tactile Micro-Resets:** Sprint auto-pauses with Agent DM audio alert, `[100, 50, 100]` haptic pulse, and a 2-minute 20-20-20 Eye Exercise or 4-4-4 Box Breathing micro-timer before resuming automatically.
+
+### 🧠 4. Neural Memory Bank & Semantic RAG Search (`/analytics`)
+* **Client-Side IndexedDB Vector Store (`deadlinesmet_vector_logs`):** Embedded completed sprint logs and Scribing (S) journal notes indexed locally with automatic backfill of historical Firestore entries.
+* **Instant Sub-20ms Neural Search:** Natural language search bar across the Log Book powered by WebGPU without server latency.
+* **JEV Behavioral Correlation Synthesis (`/api/analytics/rag-query`):** Synthesizes top retrieved vectors with JEV `noul` primitives (`directAnswer`, `behavioralCorrelation`, `actionableAdjustment`) with executive insights voiced by Agent DM.
+
+### 🛡️ 5. Automated Anti-Gaming & Trust Audit for UPI Payouts
+* **Pre-Redemption Telemetry Interception (`/api/rewards/audit-redemption`):** Analyzes the user's last 30 tasks, verified ratio, engagement percentage, and coin velocity.
+* **JEV SystemOne Trust Evaluation:** Strict scoring with `trustScore` (`score`: 0–100), `auditVerdict` (`choice`: `AUTO_APPROVED`, `MANUAL_REVIEW_FLAGGED`, `REJECTED_FARMING`), and `auditReasoning` (`noul`).
+* **Restored & Unified Reformer Coin Economy:** Unified `slakeCoins`, `slakeCredits`, `coins`, and `slakeBalance` fields with permanent data-loss protection and historical leaderboard balance restorations.
+
+---
+
+### 🎙️ 6. 3-Tier Zero-Latency Voice Intent Pipeline & Semantic Gating
 DeadlinesMet processes voice commands in sub-millisecond tiers:
 1. **Tier 1 (Instant Client Interceptor):** Microsecond regex parser handles instant navigation (`go home`, `open routine`), timer controls (`pause`, `resume`, `finish`), sensor toggles (`toggle eye tracking`), and live weather queries (`what's the weather`) by extracting cached DOM metrics with zero network latency.
-2. **Tier 2 (WebGPU Semantic Gate):** Pre-evaluates intent relevance in client VRAM before routing to external models.
+2. **Tier 2 (WebGPU Semantic Gate):** Pre-evaluates intent relevance in client VRAM via `google/embeddinggemma-300m` before routing to external models. Out-of-domain commands below $0.68$ are safely rejected client-side.
 3. **Tier 3 (JEV SystemOne Resolution):** Resolves ambiguous complex natural language instructions into precise actionable payloads.
 
-### 🎧 4. Agent DM Floating Neural HUD & Multimodal Bio-Sensors
-* **16-Bin Real-Time FFT Visualizer:** Agent DM features a floating responsive HUD with a Web Audio equalizer that bounces dynamically to speech synthesis frequencies.
-* **Natural Studio Neural TTS:** Ultra-clear synthesized speech feedback with smart pitch modulation, haptic state transitions, and automatic fallback to native Web Speech synthesis.
-* **Multimodal Gaze Tracking (Web Worker):** Hands-free gaze detection running in a dedicated background worker with Kalman filtering. Automatically triggers focus pauses when you look away from the workspace.
+### 🎧 7. Agent DM Floating Neural HUD & Multimodal Bio-Sensors
+* **16-Bin Real-Time FFT Visualizer:** Floating responsive HUD with Web Audio equalizer bouncing to synthesized speech frequencies.
+* **Natural Studio Neural TTS:** Synthesized speech feedback with smart pitch modulation, haptic state transitions, and fallback to native Web Speech synthesis.
+* **Multimodal Gaze Tracking (Web Worker):** Dedicated background worker with Kalman filtering for hands-free gaze detection.
 * **Procedural Soundscapes:** Native Web Audio synthesized water droplet harmonics (`useHydrationAudio`) and tuned 432Hz binaural meditation chimes (`useBreathingAudio`).
 
 ---
