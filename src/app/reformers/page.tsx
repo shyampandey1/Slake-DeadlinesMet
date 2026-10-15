@@ -26,6 +26,8 @@ import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { RewardsContent } from "@/components/RewardsContent";
+import { generateAndPersistLifestyleVector, rankCoReformersByVector, type CoReformerMatch } from "@/lib/lifestyleVector";
+import type { SynergyResponse } from "@/app/api/reformers/synergy/route";
 
 function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, enrolling: boolean }) {
     const movers = [
@@ -351,6 +353,156 @@ function ReformersPageContent() {
     const [showStartTogetherModal, setShowStartTogetherModal] = useState(false);
     const [coOpTaskToPropose, setCoOpTaskToPropose] = useState<any>(null);
     const [currentTime, setCurrentTime] = useState(Date.now());
+
+    // Subsystem 2: Smart Vector-Based Co-Reformer Matchmaking & Synergy Engine
+    const [myLifestyleVector, setMyLifestyleVector] = useState<number[]>(profileData?.lifestyleVector || []);
+    const [isMatchmakingModalOpen, setIsMatchmakingModalOpen] = useState(false);
+    const [isSearchingPartners, setIsSearchingPartners] = useState(false);
+    const [matchedCandidates, setMatchedCandidates] = useState<CoReformerMatch[]>([]);
+    const [selectedMatch, setSelectedMatch] = useState<CoReformerMatch | null>(null);
+    const [synergyData, setSynergyData] = useState<SynergyResponse | null>(null);
+    const [isSynergyLoading, setIsSynergyLoading] = useState(false);
+
+    useEffect(() => {
+        if (!user?.uid || !profileData) return;
+        const routineTasks = (tasks || []).map(t => ({ name: t.name, duration: t.duration, category: t.category }));
+        generateAndPersistLifestyleVector(user.uid, profileData, routineTasks).then((vec) => {
+            if (vec && vec.length > 0) {
+                setMyLifestyleVector(vec);
+            }
+        });
+    }, [user?.uid, profileData?.profile, profileData?.reformerPreference, tasks?.length]);
+
+    const handleFindPartner = async () => {
+        setIsMatchmakingModalOpen(true);
+        setIsSearchingPartners(true);
+        setSynergyData(null);
+        setSelectedMatch(null);
+
+        try {
+            let vec = myLifestyleVector;
+            if (!vec || vec.length === 0) {
+                const routineTasks = (tasks || []).map(t => ({ name: t.name, duration: t.duration, category: t.category }));
+                vec = await generateAndPersistLifestyleVector(user?.uid || '', profileData || {}, routineTasks);
+                setMyLifestyleVector(vec);
+            }
+
+            const candidates = liveMembers.map(m => ({
+                id: m.id,
+                name: m.name,
+                avatar: m.avatar,
+                profession: m.profession,
+                reformerPreference: (m as any).reformerPreference || 'morning_primer',
+                online: m.online,
+                status: m.status,
+                lifestyleVector: (m as any).lifestyleVector,
+            }));
+
+            const ranked = rankCoReformersByVector(vec, candidates, user?.uid);
+            setMatchedCandidates(ranked);
+
+            if (ranked.length > 0) {
+                const top = ranked[0];
+                setSelectedMatch(top);
+                setIsSynergyLoading(true);
+
+                const res = await fetch('/api/reformers/synergy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        currentUser: {
+                            id: user?.uid,
+                            displayName: profileData?.displayName || user?.displayName || 'Reformer',
+                            profile: profileData?.profile || 'General',
+                            reformerPreference: profileData?.reformerPreference || 'morning_primer',
+                            routineTasks: (tasks || []).slice(0, 5).map(t => t.name),
+                        },
+                        matchedPartner: {
+                            id: top.userId,
+                            name: top.name,
+                            profession: top.profession,
+                            reformerPreference: top.reformerPreference,
+                            routineTasks: ['Deep Work Sprint', 'Hydration Focus'],
+                            similarity: top.similarity,
+                        }
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setSynergyData(data);
+                }
+            }
+        } catch (err) {
+            console.error('Matchmaking error:', err);
+        } finally {
+            setIsSearchingPartners(false);
+            setIsSynergyLoading(false);
+        }
+    };
+
+    const handleSelectCandidate = async (candidate: CoReformerMatch) => {
+        setSelectedMatch(candidate);
+        setIsSynergyLoading(true);
+        try {
+            const res = await fetch('/api/reformers/synergy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    currentUser: {
+                        id: user?.uid,
+                        displayName: profileData?.displayName || user?.displayName || 'Reformer',
+                        profile: profileData?.profile || 'General',
+                        reformerPreference: profileData?.reformerPreference || 'morning_primer',
+                        routineTasks: (tasks || []).slice(0, 5).map(t => t.name),
+                    },
+                    matchedPartner: {
+                        id: candidate.userId,
+                        name: candidate.name,
+                        profession: candidate.profession,
+                        reformerPreference: candidate.reformerPreference,
+                        routineTasks: ['Deep Work Sprint', 'Hydration Focus'],
+                        similarity: candidate.similarity,
+                    }
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setSynergyData(data);
+            }
+        } catch (err) {
+            console.error('Synergy evaluation error:', err);
+        } finally {
+            setIsSynergyLoading(false);
+        }
+    };
+
+    const handleStartCoOpFromSynergy = async () => {
+        if (!selectedMatch || !user) return;
+        const sprintTopic = synergyData?.recommendedSprintTopic || 'Co-Op Synergy Sprint';
+        const sprintDuration = synergyData?.recommendedDurationMinutes || 25;
+
+        try {
+            const sid = await createSession({
+                taskName: sprintTopic,
+                initialDuration: sprintDuration,
+                participants: [user.uid, selectedMatch.userId],
+            });
+
+            if (sid) {
+                const params = new URLSearchParams({
+                    task: sprintTopic,
+                    duration: sprintDuration.toString(),
+                    coOpSessionId: sid,
+                    forceRestart: "true",
+                });
+                window.location.href = `/timer?${params.toString()}`;
+            }
+        } catch (err) {
+            console.error('Failed to start synergy session:', err);
+        }
+    };
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
@@ -1536,7 +1688,27 @@ function ReformersPageContent() {
                     </div>
                 )}
 
-                <div className="space-y-4 pt-6">
+                {/* Smart Vector-Based Co-Reformer Matchmaking Banner */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-teal-500/10 border border-emerald-500/30 shadow-lg mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <Sparkles className="w-5 h-5 animate-pulse" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-sm text-foreground">Find Co-Reformer Partner</h4>
+                            <p className="text-xs text-muted-foreground">Client-side WebGPU EmbeddingGemma & JEV TypeSafe Synergy Engine</p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={handleFindPartner}
+                        className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-black font-extrabold text-xs h-10 px-5 rounded-xl shadow-md transition-all active:scale-95"
+                    >
+                        <Zap className="w-3.5 h-3.5 mr-1.5" />
+                        Find Co-Reformer Partner
+                    </Button>
+                </div>
+
+                <div className="space-y-4 pt-2">
                     <h3 className="text-sm font-bold tracking-widest uppercase text-gray-500 flex items-center justify-between">
                         <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Global Leaderboard</span>
                         <span className="text-[10px] text-[#10b981] bg-[#10b981]/10 px-2 py-1 rounded-sm border border-[#10b981]/20">LIVE SYNC</span>
@@ -1938,7 +2110,130 @@ function ReformersPageContent() {
                             </div>
                         </motion.div>
                     </DialogContent>
-        </Dialog>
+                </Dialog>
+
+                {/* Co-Reformer Matchmaking & JEV Synergy Modal */}
+                <Dialog open={isMatchmakingModalOpen} onOpenChange={setIsMatchmakingModalOpen}>
+                    <DialogContent className="bg-card dark:bg-[#141414] border-emerald-500/30 text-foreground w-[96vw] max-w-xl max-h-[92vh] overflow-y-auto p-6 rounded-2xl shadow-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-black text-foreground flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-emerald-400" />
+                                Smart Co-Reformer Matchmaker
+                            </DialogTitle>
+                            <DialogDescription className="text-xs text-muted-foreground">
+                                Neural lifestyle embeddings via WebGPU Google EmbeddingGemma & JEV TypeSafe SystemOne
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {isSearchingPartners ? (
+                            <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
+                                <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
+                                <div>
+                                    <p className="font-bold text-sm text-foreground">Projecting Neural Lifestyle Vectors...</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Comparing habits, prime focus hours, and MOVERS routines across active reformers.</p>
+                                </div>
+                            </div>
+                        ) : matchedCandidates.length === 0 ? (
+                            <div className="py-10 text-center space-y-3">
+                                <p className="text-sm font-semibold text-muted-foreground">No active online reformers found for matchmaking at this moment.</p>
+                                <p className="text-xs text-muted-foreground/80">Invite friends or check back when reformers start their focus rituals!</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-5 pt-2">
+                                {/* Top 5 Vector Ranked Candidates */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Top Neural Matches (Ranked by Cosine Similarity)
+                                    </label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {matchedCandidates.map((c) => {
+                                            const isSelected = selectedMatch?.userId === c.userId;
+                                            return (
+                                                <button
+                                                    key={c.userId}
+                                                    type="button"
+                                                    onClick={() => handleSelectCandidate(c)}
+                                                    className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                                                        isSelected
+                                                            ? 'bg-emerald-500/15 border-emerald-500/50 ring-1 ring-emerald-500/50'
+                                                            : 'bg-muted/40 border-border/60 hover:bg-muted/70'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <Avatar className="w-10 h-10 shrink-0 border border-emerald-500/30">
+                                                            <AvatarImage src={c.avatar} />
+                                                            <AvatarFallback>{c.name.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-bold text-sm truncate text-foreground">{c.name}</p>
+                                                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                            </div>
+                                                            <p className="text-[11px] text-muted-foreground truncate">
+                                                                {c.profession} • {c.reformerPreference.replace('_', ' ')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-xs font-bold font-mono">
+                                                        {Math.round(c.similarity * 100)}% Match
+                                                    </Badge>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* JEV Synergy Evaluation Dynamic Card */}
+                                {selectedMatch && (
+                                    <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-950/40 via-background to-teal-950/40 border border-emerald-500/30 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                                                <Zap className="w-3.5 h-3.5" />
+                                                JEV TypeSafe Synergy Analysis
+                                            </span>
+                                            {isSynergyLoading && (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                                            )}
+                                        </div>
+
+                                        {isSynergyLoading ? (
+                                            <p className="text-xs text-muted-foreground animate-pulse py-2">
+                                                Querying JEV SystemOne (jev-latest) for compatibility and optimal sprint duration...
+                                            </p>
+                                        ) : synergyData ? (
+                                            <div className="space-y-2.5">
+                                                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                                                    <p className="font-extrabold text-emerald-300">
+                                                        {synergyData.compatibilityBadge}
+                                                    </p>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="p-2.5 rounded-lg bg-muted/40 border border-border/40">
+                                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Recommended Topic</span>
+                                                        <p className="font-semibold text-foreground mt-0.5">{synergyData.recommendedSprintTopic}</p>
+                                                    </div>
+                                                    <div className="p-2.5 rounded-lg bg-muted/40 border border-border/40">
+                                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Sprint Timer</span>
+                                                        <p className="font-semibold text-foreground mt-0.5">{synergyData.recommendedDurationMinutes} Minutes</p>
+                                                    </div>
+                                                </div>
+
+                                                <Button
+                                                    onClick={handleStartCoOpFromSynergy}
+                                                    className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-sm rounded-xl shadow-lg mt-2"
+                                                >
+                                                    <Activity className="w-4 h-4 mr-2" />
+                                                    Start Co-Op Session with {selectedMatch.name} ({synergyData.recommendedDurationMinutes}m)
+                                                </Button>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

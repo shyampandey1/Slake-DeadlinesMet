@@ -8,6 +8,7 @@ import {
   clientEmbedder,
 } from './clientEmbedder';
 import { JEV_VOICE_DATASET, VoiceIntentPayload, VoiceCategory } from '@/types/voice';
+import { LifestyleCategory } from '@/types';
 import {
   sanitizeSpeechTranscript,
   normalizeVoiceSpeech,
@@ -644,3 +645,215 @@ export async function searchCommandsAndTasksWithEmbeddingGemma(
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, topK);
 }
+
+// -----------------------------------------------------------------------------
+// Subsystem 1: Zero-Latency Task Auto-Categorization, De-Duplication & Anti-Spam
+// -----------------------------------------------------------------------------
+
+export const LIFESTYLE_PILLARS: LifestyleCategory[] = [
+  'Productivity',
+  'Hydration',
+  'Fitness',
+  'Meditation',
+  'Hygiene',
+  'Creativity',
+];
+
+export const LIFESTYLE_DEFAULT_DURATIONS: Record<LifestyleCategory, number> = {
+  Productivity: 45,
+  Hydration: 2,
+  Fitness: 20,
+  Meditation: 10,
+  Hygiene: 5,
+  Creativity: 15,
+};
+
+export const LIFESTYLE_CANONICAL_ANCHORS: Record<LifestyleCategory, string[]> = {
+  Productivity: [
+    'deep work focus sprint coding study work project tasks documentation research write report',
+    'coding sprint backend api review emails sprint planning analytical tasks study session',
+    'work task productivity backlog client presentation slide deck problem solving',
+  ],
+  Hydration: [
+    'drink water hydration h2o water bottle glass of water fluid intake drink full glass electrolytes',
+    'hydration check refill water bottle drink two glasses water drink warm water',
+    'stay hydrated drink water take sips of cold water electrolyte hydration',
+  ],
+  Fitness: [
+    'workout exercise gym stretching pushups squats cardio movement physical training',
+    'stretching bodyweight exercises core workout running jogging yoga fitness circuit',
+    'fitness training mobility routine morning stretch quick aerobic exercise push ups',
+  ],
+  Meditation: [
+    'meditation breathing mindfulness oxygenation pranayama calm zen silence breathing exercise',
+    'box breathing 4-4-4 diaphragmatic breathing mindfulness meditation still mind seated meditation',
+    'pranayama guided meditation deep inhales exhales calm mental state relaxation',
+  ],
+  Hygiene: [
+    'hygiene clean workspace dental floss shower freshen up wash face tidy room',
+    'clean desk make bed eye strain rest wash hands posture correction tidy up',
+    'personal grooming hygiene wash face refresh wipe desk clean environment',
+  ],
+  Creativity: [
+    'creative scribing sketch brainstorm journaling writing art design idea doodle',
+    'journaling scribing creative thinking brainstorm mind map novel writing sketch concept',
+    'creative design ideation journal writing sketching wireframe artistic exploration',
+  ],
+};
+
+interface PillarAnchorVector {
+  category: LifestyleCategory;
+  vector: EmbeddingVector;
+  deterministicVector: EmbeddingVector;
+}
+
+let cachedPillarVectors: PillarAnchorVector[] | null = null;
+let pillarInitPromise: Promise<PillarAnchorVector[]> | null = null;
+
+async function getPillarAnchorVectors(): Promise<PillarAnchorVector[]> {
+  if (cachedPillarVectors) return cachedPillarVectors;
+  if (pillarInitPromise) return pillarInitPromise;
+
+  pillarInitPromise = (async () => {
+    const vectors: PillarAnchorVector[] = [];
+    for (const category of LIFESTYLE_PILLARS) {
+      const phrases = LIFESTYLE_CANONICAL_ANCHORS[category] || [];
+      for (const phrase of phrases) {
+        const [vec, detVec] = await Promise.all([
+          embedText(phrase),
+          Promise.resolve(computeDeterministicSemanticVector(phrase)),
+        ]);
+        vectors.push({ category, vector: vec, deterministicVector: detVec });
+      }
+    }
+    cachedPillarVectors = vectors;
+    return vectors;
+  })();
+
+  return pillarInitPromise;
+}
+
+export interface TaskClassificationResult {
+  suggestedCategory: LifestyleCategory;
+  suggestedDuration: number;
+  categoryScores: Record<LifestyleCategory, number>;
+  maxCategorySimilarity: number;
+  isVerifiedForCoins: boolean;
+  duplicateWarning: {
+    existingTaskName: string;
+    existingTaskId?: string;
+    existingDuration?: number;
+    similarity: number;
+  } | null;
+}
+
+/**
+ * Live keystroke classification & de-duplication of user task titles using WebGPU embeddings
+ */
+export async function classifyTaskTitleWithEmbeddings(
+  title: string,
+  existingRoutineTasks: { name: string; duration?: number; id?: string }[] = []
+): Promise<TaskClassificationResult> {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) {
+    return {
+      suggestedCategory: 'Productivity',
+      suggestedDuration: 45,
+      categoryScores: {
+        Productivity: 0,
+        Hydration: 0,
+        Fitness: 0,
+        Meditation: 0,
+        Hygiene: 0,
+        Creativity: 0,
+      },
+      maxCategorySimilarity: 0,
+      isVerifiedForCoins: false,
+      duplicateWarning: null,
+    };
+  }
+
+  const [titleVector, titleDetVector, pillarVectors] = await Promise.all([
+    embedText(cleanTitle),
+    Promise.resolve(computeDeterministicSemanticVector(cleanTitle)),
+    getPillarAnchorVectors(),
+  ]);
+
+  // 1. Calculate similarity against 6 Lifestyle pillars
+  const categoryScores: Record<LifestyleCategory, number> = {
+    Productivity: 0,
+    Hydration: 0,
+    Fitness: 0,
+    Meditation: 0,
+    Hygiene: 0,
+    Creativity: 0,
+  };
+
+  for (const pillar of pillarVectors) {
+    let sim = 0;
+    if (titleVector.length === pillar.vector.length && titleVector.length > 0) {
+      sim = cosineSimilarity(titleVector, pillar.vector);
+    } else {
+      sim = cosineSimilarity(titleDetVector, pillar.deterministicVector);
+    }
+    if (sim > categoryScores[pillar.category]) {
+      categoryScores[pillar.category] = sim;
+    }
+  }
+
+  let bestCategory: LifestyleCategory = 'Productivity';
+  let maxScore = -1;
+  for (const cat of LIFESTYLE_PILLARS) {
+    const score = categoryScores[cat];
+    if (score > maxScore) {
+      maxScore = score;
+      bestCategory = cat;
+    }
+  }
+
+  // 2. Anti-Spam / Gibberish Coin Shield: If max similarity < 0.45, mark unverified for coins
+  const isVerifiedForCoins = maxScore >= 0.45;
+  const suggestedDuration = LIFESTYLE_DEFAULT_DURATIONS[bestCategory] || 25;
+
+  // 3. Semantic Routine De-Duplication: compare with existing tasks in routine
+  let duplicateWarning: TaskClassificationResult['duplicateWarning'] = null;
+  let highestDupSim = 0;
+
+  for (const task of existingRoutineTasks) {
+    if (!task?.name) continue;
+    const cleanExisting = task.name.trim();
+    if (!cleanExisting) continue;
+
+    const [existingVec, existingDetVec] = await Promise.all([
+      embedText(cleanExisting),
+      Promise.resolve(computeDeterministicSemanticVector(cleanExisting)),
+    ]);
+
+    let dupSim = 0;
+    if (titleVector.length === existingVec.length && titleVector.length > 0) {
+      dupSim = cosineSimilarity(titleVector, existingVec);
+    } else {
+      dupSim = cosineSimilarity(titleDetVector, existingDetVec);
+    }
+
+    if (dupSim >= 0.88 && dupSim > highestDupSim) {
+      highestDupSim = dupSim;
+      duplicateWarning = {
+        existingTaskName: task.name,
+        existingTaskId: task.id,
+        existingDuration: task.duration,
+        similarity: Number(dupSim.toFixed(3)),
+      };
+    }
+  }
+
+  return {
+    suggestedCategory: bestCategory,
+    suggestedDuration,
+    categoryScores,
+    maxCategorySimilarity: Number(maxScore.toFixed(3)),
+    isVerifiedForCoins,
+    duplicateWarning,
+  };
+}
+

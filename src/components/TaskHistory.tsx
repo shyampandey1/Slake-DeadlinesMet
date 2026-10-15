@@ -28,6 +28,11 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 import { Separator } from "./ui/separator";
 import { getProductivityInsights, type ProductivityInsightsOutput } from "@/ai/flows/get-productivity-insights";
 import type { InsightsPayload } from "@/app/api/analytics/insights/route";
+import { Input } from "./ui/input";
+import { backfillLogEmbeddings, searchLogsSemantic, type SearchResultLogRecord } from "@/lib/logVectorStore";
+import { useAgentAudio } from "@/hooks/useAgentAudio";
+import type { RagQueryResponse } from "@/app/api/analytics/rag-query/route";
+import { Search, Brain, Zap, Volume2 } from "lucide-react";
 
 function formatDuration(minutes: number): string {
     if (minutes === 0) return "0m";
@@ -67,6 +72,81 @@ function TaskLogBookContent() {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [insights, setInsights] = useState<ProductivityInsightsOutput | null>(null);
     const [insightsLoading, setInsightsLoading] = useState(false);
+
+    // Subsystem 4: Semantic RAG Search & Correlation Engine
+    const agentAudio = useAgentAudio();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<SearchResultLogRecord[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [ragExecutiveInsight, setRagExecutiveInsight] = useState<RagQueryResponse | null>(null);
+    const [isSynthesizingRag, setIsSynthesizingRag] = useState(false);
+    const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Backfill embeddings for last 50 tasks into IndexedDB on mount
+    useEffect(() => {
+        if (tasks && tasks.length > 0) {
+            backfillLogEmbeddings(tasks);
+        }
+    }, [tasks]);
+
+    // Instant Semantic Search (<20ms)
+    useEffect(() => {
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        const trimmed = searchQuery.trim();
+        if (!trimmed) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+        searchDebounceRef.current = setTimeout(async () => {
+            try {
+                const results = await searchLogsSemantic(trimmed, 10);
+                setSearchResults(results);
+            } catch (err) {
+                console.error("Semantic search error:", err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 30);
+
+        return () => {
+            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        };
+    }, [searchQuery]);
+
+    const handleAskAgentDM = async () => {
+        if (!searchQuery.trim()) return;
+        setIsSynthesizingRag(true);
+        try {
+            const results = searchResults.length > 0 ? searchResults : await searchLogsSemantic(searchQuery.trim(), 10);
+            const res = await fetch('/api/analytics/rag-query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: searchQuery.trim(),
+                    retrievedLogs: results,
+                    userProfile: {
+                        displayName: profileData?.displayName || 'Reformer',
+                        profile: profileData?.profile || 'General',
+                    }
+                })
+            });
+
+            if (res.ok) {
+                const data: RagQueryResponse = await res.json();
+                setRagExecutiveInsight(data);
+                if (data.speechSummary) {
+                    agentAudio.speak(data.speechSummary);
+                }
+            }
+        } catch (err) {
+            console.error("RAG synthesis error:", err);
+        } finally {
+            setIsSynthesizingRag(false);
+        }
+    };
 
     const loading = tasksLoading || profileLoading;
 
@@ -446,6 +526,103 @@ function TaskLogBookContent() {
 
     return (
         <div className="space-y-6 bg-background p-1">
+            {/* Subsystem 4: Instant Semantic Search Bar & Behavioral Correlation Engine */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/20 via-background to-blue-950/20 border border-purple-500/20 shadow-lg space-y-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAskAgentDM();
+                            }}
+                            placeholder="Search logs by concept or ask Agent DM... (e.g. 'when did I work on backend APIs')"
+                            className="pl-10 h-11 bg-card/60 border-border text-foreground text-xs sm:text-sm placeholder:text-muted-foreground focus-visible:ring-purple-500 rounded-xl"
+                        />
+                        {isSearching && (
+                            <Loader2 className="w-4 h-4 animate-spin text-purple-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        )}
+                    </div>
+                    <Button
+                        type="button"
+                        onClick={handleAskAgentDM}
+                        disabled={!searchQuery.trim() || isSynthesizingRag}
+                        className="h-11 px-5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 shrink-0"
+                    >
+                        {isSynthesizingRag ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4 text-purple-200" />}
+                        Ask Agent DM
+                    </Button>
+                </div>
+
+                {/* Instant Semantic Search Results (< 20ms) */}
+                {searchQuery.trim() && searchResults.length > 0 && (
+                    <div className="space-y-2 pt-1 border-t border-purple-500/10">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="font-bold uppercase tracking-wider text-[10px] text-purple-400 flex items-center gap-1">
+                                <Sparkles className="w-3 h-3" />
+                                Neural Semantic Matches ({searchResults.length})
+                            </span>
+                            <span className="text-[10px]">Ranked in &lt;20ms via WebGPU</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto no-scrollbar pr-1">
+                            {searchResults.map((res) => (
+                                <div
+                                    key={res.id}
+                                    className="p-2.5 rounded-xl bg-card/60 border border-border/60 hover:border-purple-500/30 text-left flex items-center justify-between text-xs transition-colors"
+                                >
+                                    <div className="min-w-0 pr-2">
+                                        <p className="font-semibold text-foreground truncate">{res.title}</p>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            {res.category} • {res.duration}m • {res.timestamp ? new Date(res.timestamp).toLocaleDateString() : ''}
+                                        </p>
+                                    </div>
+                                    <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-[10px] font-mono shrink-0">
+                                        {Math.round(res.similarity * 100)}% Match
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* JEV Behavioral Correlation Synthesis Executive Insight Card */}
+                {ragExecutiveInsight && (
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-purple-950/40 via-card to-indigo-950/40 border border-purple-500/30 space-y-3 animate-in fade-in zoom-in-95">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                                <Zap className="w-3.5 h-3.5 text-purple-400" />
+                                Executive Behavioral Synthesis
+                            </span>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => agentAudio.speak(ragExecutiveInsight.speechSummary)}
+                                className="h-7 px-2 text-purple-300 hover:text-purple-100 hover:bg-purple-500/20 text-xs gap-1 rounded-lg"
+                            >
+                                <Volume2 className="w-3.5 h-3.5" />
+                                Speak
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                            <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Direct Answer</span>
+                                <p className="font-medium text-foreground mt-0.5 leading-relaxed">{ragExecutiveInsight.directAnswer}</p>
+                            </div>
+                            <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Behavioral Correlation</span>
+                                <p className="font-medium text-foreground mt-0.5 leading-relaxed">{ragExecutiveInsight.behavioralCorrelation}</p>
+                            </div>
+                            <div className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-200">
+                                <span className="text-[10px] uppercase font-bold text-purple-300">Actionable Adjustment</span>
+                                <p className="font-semibold mt-0.5 leading-relaxed">{ragExecutiveInsight.actionableAdjustment}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold font-headline text-foreground">Statistics</h2>

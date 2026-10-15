@@ -16,6 +16,7 @@ export type Task = {
     category?: LifestyleCategory;
     earnedCoins?: number;
     isFalseEntry?: boolean;
+    isVerifiedForCoins?: boolean;
 };
 
 export type MockUser = {
@@ -46,6 +47,7 @@ export type UserPresetTask = PresetTask & {
     id?: string; // Default tasks won't have an ID
     isEvent?: boolean; // Flag to identify calendar events
     category: string;
+    isVerifiedForCoins?: boolean;
 };
 
 
@@ -177,6 +179,7 @@ export type UserProfile = {
         taskReminders?: boolean;
     };
     fcmTokens?: string[];
+    lifestyleVector?: number[];
 };
 
 export type UserEvent = {

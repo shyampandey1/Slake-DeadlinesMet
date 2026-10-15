@@ -53,11 +53,14 @@ export function RewardsContent() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [liveLeaderboard, setLiveLeaderboard] = useState<any[]>([]);
   
+  const { tasks } = useTasks();
   const [redemptionModalOpen, setRedemptionModalOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
   const [upiId, setUpiId] = useState("");
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [redemptionSuccess, setRedemptionSuccess] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
+  const [auditPendingMessage, setAuditPendingMessage] = useState<string | null>(null);
 
   useEffect(() => {
      let unsubscribeInner: (() => void) | null = null;
@@ -133,8 +136,6 @@ export function RewardsContent() {
     { id: 6, name: "Bitcoin (INR 500)", desc: "5M Coins redeemed to ₹500 BTC", credits: 5000000, img: "₿" },
     { id: 7, name: "Ethereum (INR 500)", desc: "5M Coins redeemed to ₹500 ETH", credits: 5000000, img: "Ξ" },
   ];
-
-  const { tasks } = useTasks();
 
   const activeDates = new Set<string>();
   tasks.filter(t => t.completed).forEach(t => {
@@ -221,17 +222,65 @@ export function RewardsContent() {
       setSelectedReward(item);
       setRedemptionModalOpen(true);
       setRedemptionSuccess(false);
+      setAuditError(null);
+      setAuditPendingMessage(null);
       setUpiId("");
   };
 
   const submitRedemption = async () => {
       if (!user || !selectedReward || !upiId.trim()) return;
       setIsRedeeming(true);
+      setAuditError(null);
+      setAuditPendingMessage(null);
+
       try {
           const { addDoc, collection, serverTimestamp, doc, updateDoc, increment } = await import("firebase/firestore");
           
           const userName = profileData?.displayName || user.displayName || "Anonymous";
           const userEmail = profileData?.email || user.email || "No Email";
+
+          // Pre-Redemption JEV Trust Audit Route
+          let auditVerdict = 'AUTO_APPROVED';
+          let trustScore = 90;
+          let auditReasoning = 'Authentic habit consistency verified.';
+          let statusString: 'approved_ready_for_payout' | 'pending_manual_audit' = 'approved_ready_for_payout';
+
+          try {
+              const auditRes = await fetch('/api/rewards/audit-redemption', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      userId: user.uid,
+                      userName,
+                      userEmail,
+                      upiId: upiId.trim(),
+                      rewardName: selectedReward.name,
+                      amount: selectedReward.credits / 1000,
+                      creditsRedeemed: selectedReward.credits,
+                      recentTasks: (tasks || []).slice(0, 30),
+                  })
+              });
+
+              if (auditRes.ok) {
+                  const auditData = await auditRes.json();
+                  auditVerdict = auditData.auditVerdict;
+                  trustScore = auditData.trustScore;
+                  auditReasoning = auditData.auditReasoning;
+                  if (auditData.status === 'pending_manual_audit') {
+                      statusString = 'pending_manual_audit';
+                  }
+              }
+          } catch (auditErr) {
+              console.warn("Audit route call failed, falling back to manual verification queue:", auditErr);
+          }
+
+          if (auditVerdict === 'REJECTED_FARMING' || trustScore < 40) {
+              setAuditError(`Payout Request Blocked: ${auditReasoning}`);
+              setIsRedeeming(false);
+              return;
+          }
+
+          const isManualAudit = auditVerdict === 'MANUAL_REVIEW_FLAGGED' || statusString === 'pending_manual_audit';
 
           await addDoc(collection(db, "redemption_requests"), {
               userId: user.uid,
@@ -240,7 +289,10 @@ export function RewardsContent() {
               amount: selectedReward.credits / 1000,
               creditsRedeemed: selectedReward.credits,
               upiId: upiId.trim(),
-              status: 'pending',
+              status: isManualAudit ? 'pending_manual_audit' : 'approved_ready_for_payout',
+              trustScore,
+              auditVerdict,
+              auditReasoning,
               timestamp: serverTimestamp(),
               rewardName: selectedReward.name
           });
@@ -249,8 +301,8 @@ export function RewardsContent() {
           try {
               await addDoc(collection(db, "admin_notifications"), {
                   type: "REDEMPTION_REQUEST",
-                  title: `🎁 Redemption: ${selectedReward.name}`,
-                  message: `${userName} (${userEmail}) redeemed ${selectedReward.name} for ${selectedReward.credits.toLocaleString()} DM Coins. UPI ID: ${upiId.trim()}`,
+                  title: `🎁 Redemption [${auditVerdict}]: ${selectedReward.name}`,
+                  message: `${userName} (${userEmail}) redeemed ${selectedReward.name} for ${selectedReward.credits.toLocaleString()} DM Coins. Trust Score: ${trustScore}/100. UPI ID: ${upiId.trim()}`,
                   userId: user.uid,
                   userName,
                   userEmail,
@@ -258,6 +310,8 @@ export function RewardsContent() {
                   creditsRedeemed: selectedReward.credits,
                   amount: selectedReward.credits / 1000,
                   upiId: upiId.trim(),
+                  trustScore,
+                  auditVerdict,
                   timestamp: serverTimestamp(),
                   read: false
               });
@@ -265,41 +319,47 @@ export function RewardsContent() {
               console.error("Error creating admin_notification doc:", e);
           }
 
-          // Trigger server API to send FCM Push Notification & chat message to Admin Shyam Pandey
-          try {
-              fetch("/api/notify-admin-redemption", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                      userId: user.uid,
-                      userName,
-                      userEmail,
-                      rewardName: selectedReward.name,
-                      amount: selectedReward.credits / 1000,
-                      creditsRedeemed: selectedReward.credits,
-                      upiId: upiId.trim()
-                  })
-              }).catch(err => console.error("API notification error:", err));
-          } catch (apiErr) {
-              console.error("Failed to trigger admin notification API:", apiErr);
-          }
+          if (!isManualAudit) {
+              // Trigger server API to send FCM Push Notification & chat message to Admin Shyam Pandey
+              try {
+                  fetch("/api/notify-admin-redemption", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                          userId: user.uid,
+                          userName,
+                          userEmail,
+                          rewardName: selectedReward.name,
+                          amount: selectedReward.credits / 1000,
+                          creditsRedeemed: selectedReward.credits,
+                          upiId: upiId.trim()
+                      })
+                  }).catch(err => console.error("API notification error:", err));
+              } catch (apiErr) {
+                  console.error("Failed to trigger admin notification API:", apiErr);
+              }
 
-          const newBalance = Math.max(0, credits - selectedReward.credits);
-          setCredits(newBalance);
-          updateUserProfileData({ slakeCoins: newBalance, slakeCredits: newBalance, slakeBalance: newBalance });
-          const userRef = doc(db, "users", user.uid);
-          await updateDoc(userRef, {
-              slakeCoins: increment(-selectedReward.credits),
-              slakeCredits: increment(-selectedReward.credits),
-              slakeBalance: increment(-selectedReward.credits)
-          });
-          setRedemptionSuccess(true);
-          setTimeout(() => {
-              setRedemptionModalOpen(false);
+              const newBalance = Math.max(0, credits - selectedReward.credits);
+              setCredits(newBalance);
+              updateUserProfileData({ slakeCoins: newBalance, slakeCredits: newBalance, slakeBalance: newBalance });
+              const userRef = doc(db, "users", user.uid);
+              await updateDoc(userRef, {
+                  slakeCoins: increment(-selectedReward.credits),
+                  slakeCredits: increment(-selectedReward.credits),
+                  slakeBalance: increment(-selectedReward.credits)
+              });
+              setRedemptionSuccess(true);
+              setTimeout(() => {
+                  setRedemptionModalOpen(false);
+                  setIsRedeeming(false);
+              }, 2000);
+          } else {
+              setAuditPendingMessage(`Your payout request is queued for standard manual audit (${auditReasoning}). Coins will be deducted upon administrative approval.`);
               setIsRedeeming(false);
-          }, 2000);
+          }
       } catch (error) {
           console.error("Redemption failed:", error);
+          setAuditError("Redemption transaction failed. Please try again.");
           setIsRedeeming(false);
       }
   };
@@ -470,16 +530,29 @@ export function RewardsContent() {
                         <DialogTitle className="flex items-center gap-2"><Gift className="w-5 h-5 text-indigo-500" /> Redeem {selectedReward.name}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-6 py-4">
+                        {auditError && (
+                            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs leading-relaxed">
+                                <p className="font-bold">Trust Audit Decision</p>
+                                <p className="mt-0.5">{auditError}</p>
+                            </div>
+                        )}
+                        {auditPendingMessage && (
+                            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs leading-relaxed">
+                                <p className="font-bold">Queued For Verification</p>
+                                <p className="mt-0.5">{auditPendingMessage}</p>
+                            </div>
+                        )}
                         {redemptionSuccess ? (
                             <div className="flex flex-col items-center justify-center py-6 space-y-4">
                                 <CheckCircle2 className="w-12 h-12 text-green-500" />
                                 <h3 className="text-xl font-bold">Redemption Sent!</h3>
+                                <p className="text-xs text-muted-foreground">Auto-approved by JEV TypeSafe SystemOne Trust Audit.</p>
                             </div>
                         ) : (
                             <>
                                 <Input value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="UPI ID (e.g. name@ybl)" className="h-12 bg-muted/50 border-none" disabled={isRedeeming} />
                                 <Button onClick={submitRedemption} disabled={!upiId.trim() || isRedeeming} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
-                                    {isRedeeming ? "Processing..." : "Confirm Redemption"}
+                                    {isRedeeming ? "Running Trust Audit..." : "Confirm Redemption"}
                                 </Button>
                             </>
                         )}

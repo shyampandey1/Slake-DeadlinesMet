@@ -69,6 +69,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Music, Settings2 } from "lucide-react";
 import { ambientSounds, soundtracks } from "@/hooks/useAudioSettings";
 import { sanitizeSpeechTranscript, toTitleCaseLocal } from "@/config/voiceCommandDictionary";
+import GazeTracker from "./GazeTracker";
+import { useAgentAudio } from "@/hooks/useAgentAudio";
+import { classifyTaskTitleWithEmbeddings } from "@/lib/semanticGate";
+import { saveLogVectorRecord } from "@/lib/logVectorStore";
+import { ShieldAlert, Sparkles as SparklesIcon, Activity as ActivityIcon, Eye as EyeIcon, Wind as WindIcon } from "lucide-react";
 
 
 interface TimerDisplayProps {
@@ -202,6 +207,118 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       }
     }
   }, []);
+
+  const agentAudio = useAgentAudio();
+  const [isTaskVerifiedForCoins, setIsTaskVerifiedForCoins] = useState<boolean>(true);
+  const [manualPauseCount, setManualPauseCount] = useState<number>(0);
+  const [activeIntervention, setActiveIntervention] = useState<'TRIGGER_EYE_BREAK' | 'TRIGGER_BREATHING_RESET' | null>(null);
+  const [interventionTimeRemaining, setInterventionTimeRemaining] = useState<number>(120);
+  const [lastPacingCheckTime, setLastPacingCheckTime] = useState<number>(0);
+  const gazeTelemetryRef = useRef({ blinkRatePerMinute: 18, gazeAwayCount: 0, baselineBlinkRate: 18 });
+
+  // Subsystem 1: Anti-Spam / Gibberish Coin Shield
+  useEffect(() => {
+    if (!taskName) return;
+    classifyTaskTitleWithEmbeddings(taskName, userRoutine).then((res) => {
+      setIsTaskVerifiedForCoins(res.isVerifiedForCoins);
+    }).catch(() => {
+      setIsTaskVerifiedForCoins(true);
+    });
+  }, [taskName, userRoutine]);
+
+  // Subsystem 3: Closed-Loop Sensor & Gaze Telemetry for Adaptive Pacing
+  const handleGazeTelemetry = useCallback(async (telemetry: { blinkRatePerMinute: number; gazeAwayCount: number; baselineBlinkRate: number }) => {
+    gazeTelemetryRef.current = telemetry;
+    const now = Date.now();
+    if (now - lastPacingCheckTime < 25_000) return;
+    if (isPaused || isFinished || activeIntervention) return;
+
+    const totalSeconds = Math.max(60, Math.round(effectiveDuration * 60));
+    const elapsedMinutes = Math.max(0, (totalSeconds - (timeRemainingRef.current || 0)) / 60);
+
+    const isProductivityTask = (taskCategory === "Productivity" || !["Hydration", "Meditation", "Fitness", "Hygiene"].includes(taskCategory || ""));
+    const isFatigueTriggered = (
+      telemetry.gazeAwayCount >= 6 ||
+      (telemetry.baselineBlinkRate > 0 && telemetry.blinkRatePerMinute < telemetry.baselineBlinkRate * 0.6 && isProductivityTask && elapsedMinutes >= 20)
+    );
+
+    if (isFatigueTriggered) {
+      setLastPacingCheckTime(now);
+      try {
+        const res = await fetch('/api/timer/adaptive-pacing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            blinkRatePerMinute: telemetry.blinkRatePerMinute,
+            baselineBlinkRate: telemetry.baselineBlinkRate,
+            gazeAwayCount: telemetry.gazeAwayCount,
+            manualPauseCount,
+            elapsedMinutes: Math.round(elapsedMinutes),
+            taskName,
+            category: taskCategory || "Productivity",
+          })
+        });
+
+        if (res.ok) {
+          const pacingData = await res.json();
+          if (pacingData.recommendedAction === 'TRIGGER_EYE_BREAK' || pacingData.recommendedAction === 'TRIGGER_BREATHING_RESET') {
+            setIsPaused(true);
+            updateTimer({ isPaused: true }, timeRemainingRef.current);
+            triggerHaptic([100, 50, 100]);
+
+            if (pacingData.agentSpeechPrompt) {
+              agentAudio.speak(pacingData.agentSpeechPrompt);
+            }
+
+            setActiveIntervention(pacingData.recommendedAction);
+            setInterventionTimeRemaining(pacingData.resetDurationSeconds || 120);
+
+            toast({
+              title: pacingData.recommendedAction === 'TRIGGER_EYE_BREAK' ? "Adaptive Pacing: 20-20-20 Eye Exercise" : "Adaptive Pacing: 4-4-4 Box Breathing",
+              description: pacingData.agentSpeechPrompt,
+              className: "bg-amber-950 border-amber-500/40 text-amber-200 font-bold rounded-2xl shadow-2xl",
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Adaptive pacing endpoint error:", err);
+      }
+    }
+  }, [isPaused, isFinished, activeIntervention, effectiveDuration, taskCategory, manualPauseCount, taskName, updateTimer, triggerHaptic, agentAudio, lastPacingCheckTime, toast]);
+
+  useEffect(() => {
+    const handleCustomGazeTelemetry = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        handleGazeTelemetry(detail);
+      }
+    };
+    window.addEventListener('slake-gaze-telemetry', handleCustomGazeTelemetry);
+    return () => window.removeEventListener('slake-gaze-telemetry', handleCustomGazeTelemetry);
+  }, [handleGazeTelemetry]);
+
+  useEffect(() => {
+    if (!activeIntervention) return;
+    const interval = setInterval(() => {
+      setInterventionTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setActiveIntervention(null);
+          setIsPaused(false);
+          updateTimer({ isPaused: false }, timeRemainingRef.current);
+          triggerHaptic([100]);
+          toast({
+            title: "Micro-Reset Complete! ⚡",
+            description: "Primary focus sprint resumed.",
+            className: "bg-emerald-950 border-emerald-500/40 text-emerald-200 font-bold rounded-2xl",
+          });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeIntervention, updateTimer, triggerHaptic, toast]);
 
   const ensureAudioInitialized = useCallback(() => {
     if (isHydrationTask && isAmbientEnabled) {
@@ -362,6 +479,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
 
     if (nextPaused) {
       expectedEndTimeRef.current = null;
+      setManualPauseCount((prev) => prev + 1);
     } else {
       expectedEndTimeRef.current = newEndTime;
     }
@@ -511,6 +629,10 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       }
     }
 
+    if (!isTaskVerifiedForCoins) {
+      earnedCoins = 0;
+    }
+
     setLastEarnedCoins(earnedCoins);
 
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
@@ -519,11 +641,12 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       initialDuration: effectiveDuration,
       completed: finalCompleted,
       category: finalCategory,
-      earnedCoins: earnedCoins,
+      earnedCoins: isTaskVerifiedForCoins ? earnedCoins : 0,
       isFalseEntry: isFalse,
+      isVerifiedForCoins: isTaskVerifiedForCoins,
     };
 
-    if (finalCompleted && earnedCoins > 0) {
+    if (finalCompleted && earnedCoins > 0 && isTaskVerifiedForCoins) {
       // Optimistic daily coins cache write
       try {
         const todayStr = getLocalDateString();
@@ -536,6 +659,17 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
 
     try {
       await addTask(newTask);
+      if (finalCompleted) {
+        saveLogVectorRecord({
+          id: `task_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          category: finalCategory,
+          title: taskName,
+          notes: '',
+          duration: newTask.duration,
+          coins: newTask.earnedCoins || 0,
+        }).catch((err) => console.warn('Log vector save error:', err));
+      }
     } catch (e) {
       console.error("Failed to save completed task to history:", e);
     }
@@ -1352,6 +1486,14 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
           {taskName}
         </h1>
 
+        {/* Anti-Spam / Gibberish Coin Shield Badge */}
+        {!isTaskVerifiedForCoins && (
+          <div className="mb-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold shadow-sm animate-in fade-in">
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>Custom Unverified Task (Timer Active • 0 Slake Coins)</span>
+          </div>
+        )}
+
         <div className="mb-4 sm:mb-8 flex flex-col items-center justify-center w-full">
           {!syncComplete ? (
             <div className="flex flex-col items-center justify-center p-12">
@@ -2095,6 +2237,57 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
 
       {/* Dynamic Hydration Water-Level Background Simulation */}
       {isHydrationTask && <HydrationBackground progress={progress} />}
+
+      {/* Subsystem 3: Adaptive Pacing Micro-Reset Overlay */}
+      {activeIntervention && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-2xl p-4 animate-in fade-in zoom-in-95">
+          <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl bg-neutral-950 border border-amber-500/40 text-center space-y-5 shadow-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+              {activeIntervention === 'TRIGGER_EYE_BREAK' ? <EyeIcon className="w-8 h-8 animate-pulse" /> : <WindIcon className="w-8 h-8 animate-pulse" />}
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400">
+                {activeIntervention === 'TRIGGER_EYE_BREAK' ? '20-20-20 Eye Exercise' : '4-4-4 Box Breathing'}
+              </span>
+              <h3 className="text-2xl font-black text-neutral-100 mt-1">Adaptive Pacing Micro-Reset</h3>
+              <p className="text-xs text-neutral-400 mt-2 leading-relaxed">
+                Sensor telemetry detected fatigue or excessive gaze drift. Take two minutes to refresh and restore cognitive focus.
+              </p>
+            </div>
+
+            <div className="py-2">
+              <span className="text-5xl font-black font-mono text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]">
+                {Math.floor(interventionTimeRemaining / 60)}:
+                {(interventionTimeRemaining % 60).toString().padStart(2, '0')}
+              </span>
+            </div>
+
+            <Button
+              onClick={() => {
+                setActiveIntervention(null);
+                setIsPaused(false);
+                updateTimer({ isPaused: false }, timeRemainingRef.current);
+              }}
+              variant="outline"
+              className="w-full h-11 border-neutral-800 text-neutral-300 hover:bg-neutral-900"
+            >
+              Skip Micro-Reset & Continue Task
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Background Gaze Tracking & Sensor Telemetry Engine */}
+      <div className="hidden">
+        <GazeTracker
+          onPauseToggle={togglePause}
+          onStop={handleEndEarly}
+          onSkip={handleSkipTask}
+          isPaused={isPaused}
+          isUIVisible={false}
+          onTelemetry={handleGazeTelemetry}
+        />
+      </div>
     </main>
   );
 }

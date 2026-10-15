@@ -230,11 +230,10 @@ export function useTasks() {
       createdAt: new Date().toISOString(),
     };
 
-    if (task.completed && task.earnedCoins && task.earnedCoins > 0) {
-      const earned = Number(task.earnedCoins) || 0;
-      if (earned > 0) {
-        await incrementUserCoins(earned);
-      }
+    const isVerified = task.isVerifiedForCoins !== false;
+    const earned = isVerified ? (Number(task.earnedCoins) || 0) : 0;
+    if (task.completed && earned > 0) {
+      await incrementUserCoins(earned);
     }
 
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;

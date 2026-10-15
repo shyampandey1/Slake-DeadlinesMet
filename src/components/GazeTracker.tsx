@@ -12,12 +12,17 @@ interface GazeTrackerProps {
   onSkip: () => void;
   isPaused: boolean;
   isUIVisible: boolean;
+  onTelemetry?: (telemetry: {
+    blinkRatePerMinute: number;
+    gazeAwayCount: number;
+    baselineBlinkRate: number;
+  }) => void;
 }
 
 type CalibrationStep = "idle" | "pause" | "stop" | "skip" | "complete";
 type TrackerStatus = "off" | "loading" | "calibrating" | "active" | "failsafe";
 
-export default function GazeTracker({ onPauseToggle, onStop, onSkip, isPaused, isUIVisible }: GazeTrackerProps) {
+export default function GazeTracker({ onPauseToggle, onStop, onSkip, isPaused, isUIVisible, onTelemetry }: GazeTrackerProps) {
   const { toast } = useToast();
   const [status, setStatus] = useState<TrackerStatus>("off");
   const [calibrationStep, setCalibrationStep] = useState<CalibrationStep>("idle");
@@ -52,6 +57,35 @@ export default function GazeTracker({ onPauseToggle, onStop, onSkip, isPaused, i
   const ratioHistoryRef = useRef<number[]>([]);
   const blinkStartRef = useRef<number | null>(null);
   const gazeTargetRef = useRef<"pause" | "stop" | "skip" | null>(null);
+
+  // Rolling 2-minute telemetry refs for adaptive pacing
+  const blinkTimestampsRef = useRef<number[]>([]);
+  const gazeAwayTimestampsRef = useRef<number[]>([]);
+  const baselineBlinkRateRef = useRef<number>(18);
+  const wasGazeAwayRef = useRef<boolean>(false);
+  const lastTelemetryEmitRef = useRef<number>(0);
+
+  const emitTelemetry = useCallback(() => {
+    const now = Date.now();
+    const twoMinAgo = now - 120_000;
+    blinkTimestampsRef.current = blinkTimestampsRef.current.filter((t) => t >= twoMinAgo);
+    gazeAwayTimestampsRef.current = gazeAwayTimestampsRef.current.filter((t) => t >= twoMinAgo);
+
+    const blinkRatePerMinute = Math.round(blinkTimestampsRef.current.length / 2);
+    const gazeAwayCount = gazeAwayTimestampsRef.current.length;
+    const baselineBlinkRate = baselineBlinkRateRef.current || 18;
+
+    const payload = {
+      blinkRatePerMinute,
+      gazeAwayCount,
+      baselineBlinkRate,
+    };
+
+    onTelemetry?.(payload);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slake-gaze-telemetry", { detail: payload }));
+    }
+  }, [onTelemetry]);
 
   useEffect(() => {
     pointsRef.current = points;
@@ -233,14 +267,32 @@ export default function GazeTracker({ onPauseToggle, onStop, onSkip, isPaused, i
                   
                   // Valid intentional blink click (between 80ms and 500ms)
                   if (duration >= 80 && duration <= 500) {
+                    blinkTimestampsRef.current.push(Date.now());
                     triggerBlinkClick();
                   }
                 }
               }
             }
 
+            const isGazeAway = Math.abs(offsetX) > 0.35 || Math.abs(offsetY) > 0.35;
+            if (isGazeAway && !wasGazeAwayRef.current) {
+              gazeAwayTimestampsRef.current.push(Date.now());
+            }
+            wasGazeAwayRef.current = isGazeAway;
+
             // Render privacy-safe neon AR face mesh in PIP
             drawPreviewOverlay(landmarks, topLeft, bottomRight);
+          } else {
+            if (!wasGazeAwayRef.current) {
+              gazeAwayTimestampsRef.current.push(Date.now());
+              wasGazeAwayRef.current = true;
+            }
+          }
+
+          const now = Date.now();
+          if (now - lastTelemetryEmitRef.current >= 3000) {
+            lastTelemetryEmitRef.current = now;
+            emitTelemetry();
           }
         }
       };

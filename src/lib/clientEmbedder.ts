@@ -270,3 +270,5 @@ export const clientEmbedder = ClientEmbedderSingleton.getInstance();
 export async function embedText(text: string): Promise<EmbeddingVector> {
   return clientEmbedder.embed(text);
 }
+
+export const computeClientEmbedding = embedText;
