@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { BookText, CheckCircle, Clock, Download, Droplets, FileDown, ImageDown, Play, ThumbsUp, X, Calendar as CalendarIcon, Wand2, Loader2, Sparkles, TrendingUp, Lightbulb, Target as TargetIcon, Dumbbell, BrainCircuit, ShowerHead, Palette, Laptop } from "lucide-react";
 import { format, isToday, isYesterday, parse, compareDesc, subDays, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay, subYears, differenceInDays } from "date-fns";
 import { useTasks } from "@/hooks/useFirestore";

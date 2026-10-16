@@ -606,7 +606,14 @@ function ReformersPageContent() {
                         Number(data.coins) || 0,
                         Number((data as any).slakeBalance) || 0
                     ),
-                    appAge: data.appAge !== undefined ? data.appAge : (data.createdAt ? Math.floor((new Date().getTime() - new Date(data.createdAt).getTime()) / 86400000) : 0),
+                    appAge: (() => {
+                        if (data.appAge !== undefined && !isNaN(Number(data.appAge))) return Number(data.appAge);
+                        if (data.createdAt) {
+                            const d = new Date(data.createdAt).getTime();
+                            if (!isNaN(d)) return Math.max(0, Math.floor((new Date().getTime() - d) / 86400000));
+                        }
+                        return 0;
+                    })(),
                     totalTasks: data.totalTasks || 0,
                     totalWaterGlasses: data.totalWaterGlasses || 0,
                     isEnrolled: data.isReformersEnrolled || false,
@@ -655,7 +662,10 @@ function ReformersPageContent() {
                                 member.totalTasks = snap.docs.length;
                                 const firstDate = snap.docs[0].data().createdAt;
                                 if (firstDate) {
-                                    member.appAge = Math.floor((new Date().getTime() - new Date(firstDate).getTime()) / 86400000);
+                                    const d = new Date(firstDate).getTime();
+                                    if (!isNaN(d)) {
+                                        member.appAge = Math.max(0, Math.floor((new Date().getTime() - d) / 86400000));
+                                    }
                                 }
                             }
 
@@ -1180,9 +1190,15 @@ function ReformersPageContent() {
         currentStreakLocal = profileData?.streak?.currentStreak || 0;
     }
 
-    const appAgeDays = tasks.length > 0
-        ? Math.floor((new Date().getTime() - new Date(tasks[tasks.length - 1].createdAt).getTime()) / 86400000)
-        : 0;
+    const appAgeDays = (profileData as any)?.appAge !== undefined && !isNaN(Number((profileData as any)?.appAge))
+        ? Number((profileData as any)?.appAge)
+        : (tasks && tasks.length > 0 && tasks[tasks.length - 1]?.createdAt && !isNaN(new Date(tasks[tasks.length - 1].createdAt).getTime()))
+            ? Math.floor((new Date().getTime() - new Date(tasks[tasks.length - 1].createdAt).getTime()) / 86400000)
+            : (profileData?.createdAt && !isNaN(new Date(profileData.createdAt).getTime()))
+                ? Math.floor((new Date().getTime() - new Date(profileData.createdAt).getTime()) / 86400000)
+                : 0;
+
+    const safeAppAgeDays = isNaN(appAgeDays) ? 0 : Math.max(0, appAgeDays);
 
     const myRankIndex = liveMembers.findIndex(m => m.id === user?.uid);
     const myRank = myRankIndex !== -1 ? myRankIndex + 1 : 'Unranked';
@@ -1553,7 +1569,7 @@ function ReformersPageContent() {
                                                 </div>
                                                 <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
                                                     <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">App Days</p>
-                                                    <p className="text-lg font-black text-foreground">{appAgeDays}D</p>
+                                                    <p className="text-lg font-black text-foreground">{safeAppAgeDays}D</p>
                                                 </div>
                                                 <div className="h-16 flex flex-col items-center justify-center text-center p-1 rounded-xl bg-background/50 border border-border/30">
                                                     <p className="text-[10px] uppercase text-muted-foreground font-black tracking-wider leading-tight">Coins</p>
@@ -1837,19 +1853,19 @@ function ReformersPageContent() {
 
                                         <div className="flex items-center gap-4 shrink-0">
                                             <div className="text-center">
-                                                <p className="text-xs font-bold text-foreground leading-tight">{member.appAge}</p>
+                                                <p className="text-xs font-bold text-foreground leading-tight">{isNaN(Number(member.appAge)) ? 0 : Math.max(0, Number(member.appAge))}</p>
                                                 <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Days</p>
                                             </div>
                                             <div className="text-center hidden sm:block">
-                                                <p className="text-xs font-bold text-foreground leading-tight">{member.totalTasks}</p>
+                                                <p className="text-xs font-bold text-foreground leading-tight">{isNaN(Number(member.totalTasks)) ? 0 : Math.max(0, Number(member.totalTasks))}</p>
                                                 <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Tasks</p>
                                             </div>
                                             <div className="text-center hidden md:block">
-                                                <p className="text-xs font-bold text-amber-600 dark:text-amber-500 leading-tight">{member.coins}</p>
+                                                <p className="text-xs font-bold text-amber-600 dark:text-amber-500 leading-tight">{isNaN(Number(member.coins)) ? 0 : Number(member.coins).toLocaleString()}</p>
                                                 <p className="text-[9px] uppercase tracking-widest text-amber-700/80 dark:text-amber-500/70 font-bold">DM Coins</p>
                                             </div>
                                             <div className="text-center pr-2 border-l border-border/50 pl-3 md:pl-4">
-                                                <p className="text-xs font-black text-foreground leading-tight">{member.streak}</p>
+                                                <p className="text-xs font-black text-foreground leading-tight">{isNaN(Number(member.streak)) ? 0 : Math.max(0, Number(member.streak))}</p>
                                                 <p className="text-[9px] uppercase tracking-widest text-emerald-600 dark:text-[#10b981] font-bold">Streak</p>
                                             </div>
                                         </div>
@@ -2005,27 +2021,27 @@ function ReformersPageContent() {
                                                             </div>
                                                             <div className="text-center w-full">
                                                                 <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">App Days</div>
-                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{member.appAge}D</div>
+                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{isNaN(Number(member.appAge)) ? 0 : Math.max(0, Number(member.appAge))}D</div>
                                                             </div>
                                                             <div className="text-center w-full">
                                                                 <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Logbook</div>
-                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{member.streak}</div>
+                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{isNaN(Number(member.streak)) ? 0 : Math.max(0, Number(member.streak))}</div>
                                                             </div>
                                                             <div className="text-center w-full">
                                                                 <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">DM Coins</div>
-                                                                <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-500 truncate">{member.coins}</div>
+                                                                <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-500 truncate">{isNaN(Number(member.coins)) ? 0 : Number(member.coins).toLocaleString()}</div>
                                                             </div>
                                                             <div className="text-center w-full">
                                                                 <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Certs</div>
-                                                                <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-[#10b981] truncate">{Math.floor(member.streak / 7)}</div>
+                                                                <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-[#10b981] truncate">{isNaN(Number(member.streak)) ? 0 : Math.floor(Math.max(0, Number(member.streak)) / 7)}</div>
                                                             </div>
                                                             <div className="text-center w-full">
                                                                 <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Tasks</div>
-                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{member.totalTasks}</div>
+                                                                <div className="text-base sm:text-lg font-black text-foreground truncate">{isNaN(Number(member.totalTasks)) ? 0 : Math.max(0, Number(member.totalTasks))}</div>
                                                             </div>
                                                             <div className="text-center w-full">
                                                                 <div className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1 truncate">Water</div>
-                                                                <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 truncate">{member.totalWaterGlasses}</div>
+                                                                <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 truncate">{isNaN(Number(member.totalWaterGlasses)) ? 0 : Math.max(0, Number(member.totalWaterGlasses))}</div>
                                                             </div>
                                                         </div>
 

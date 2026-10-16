@@ -36,10 +36,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 .genkit/*
+# environment and secrets
 .env*
+.env*.local
+env
+*.env
 
 # firebase
 firebase-debug.log
 firestore-debug.log
-.env*.local
 .firebase/

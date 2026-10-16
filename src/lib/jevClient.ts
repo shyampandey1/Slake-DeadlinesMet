@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
-export const JEV_API_KEY =
-  process.env.JEV_API_KEY ||
-  'apikey_210288a56a7ed0ab447aa1785bf5325a7936_eb450e49c35123befac0b51dffca0cd7d4f6fdbe34828be6ca7070d96a5a6637';
+export const JEV_API_KEY = process.env.JEV_API_KEY || '';
 
 export const JEV_API_BASE_URL =
   process.env.JEV_API_BASE_URL || 'https://api.typesafe.ai/v1';
