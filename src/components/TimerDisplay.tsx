@@ -71,9 +71,8 @@ import { ambientSounds, soundtracks } from "@/hooks/useAudioSettings";
 import { sanitizeSpeechTranscript, toTitleCaseLocal } from "@/config/voiceCommandDictionary";
 import GazeTracker from "./GazeTracker";
 import { useAgentAudio } from "@/hooks/useAgentAudio";
-import { classifyTaskTitleWithEmbeddings } from "@/lib/semanticGate";
 import { saveLogVectorRecord } from "@/lib/logVectorStore";
-import { ShieldAlert, Sparkles as SparklesIcon, Activity as ActivityIcon, Eye as EyeIcon, Wind as WindIcon } from "lucide-react";
+import { Sparkles as SparklesIcon, Activity as ActivityIcon, Eye as EyeIcon, Wind as WindIcon } from "lucide-react";
 
 
 interface TimerDisplayProps {
@@ -209,22 +208,11 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   }, []);
 
   const agentAudio = useAgentAudio();
-  const [isTaskVerifiedForCoins, setIsTaskVerifiedForCoins] = useState<boolean>(true);
   const [manualPauseCount, setManualPauseCount] = useState<number>(0);
   const [activeIntervention, setActiveIntervention] = useState<'TRIGGER_EYE_BREAK' | 'TRIGGER_BREATHING_RESET' | null>(null);
   const [interventionTimeRemaining, setInterventionTimeRemaining] = useState<number>(120);
   const [lastPacingCheckTime, setLastPacingCheckTime] = useState<number>(0);
   const gazeTelemetryRef = useRef({ blinkRatePerMinute: 18, gazeAwayCount: 0, baselineBlinkRate: 18 });
-
-  // Subsystem 1: Anti-Spam / Gibberish Coin Shield
-  useEffect(() => {
-    if (!taskName) return;
-    classifyTaskTitleWithEmbeddings(taskName, userRoutine).then((res) => {
-      setIsTaskVerifiedForCoins(res.isVerifiedForCoins);
-    }).catch(() => {
-      setIsTaskVerifiedForCoins(true);
-    });
-  }, [taskName, userRoutine]);
 
   // Subsystem 3: Closed-Loop Sensor & Gaze Telemetry for Adaptive Pacing
   const handleGazeTelemetry = useCallback(async (telemetry: { blinkRatePerMinute: number; gazeAwayCount: number; baselineBlinkRate: number }) => {
@@ -629,10 +617,6 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       }
     }
 
-    if (!isTaskVerifiedForCoins) {
-      earnedCoins = 0;
-    }
-
     setLastEarnedCoins(earnedCoins);
 
     const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
@@ -641,12 +625,12 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       initialDuration: effectiveDuration,
       completed: finalCompleted,
       category: finalCategory,
-      earnedCoins: isTaskVerifiedForCoins ? earnedCoins : 0,
+      earnedCoins: earnedCoins,
       isFalseEntry: isFalse,
-      isVerifiedForCoins: isTaskVerifiedForCoins,
+      isVerifiedForCoins: true,
     };
 
-    if (finalCompleted && earnedCoins > 0 && isTaskVerifiedForCoins) {
+    if (finalCompleted && earnedCoins > 0) {
       // Optimistic daily coins cache write
       try {
         const todayStr = getLocalDateString();
@@ -1486,13 +1470,6 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
           {taskName}
         </h1>
 
-        {/* Anti-Spam / Gibberish Coin Shield Badge */}
-        {!isTaskVerifiedForCoins && (
-          <div className="mb-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold shadow-sm animate-in fade-in">
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>Custom Unverified Task (Timer Active • 0 Slake Coins)</span>
-          </div>
-        )}
 
         <div className="mb-4 sm:mb-8 flex flex-col items-center justify-center w-full">
           {!syncComplete ? (
