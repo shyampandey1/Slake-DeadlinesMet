@@ -139,10 +139,10 @@ export default function NotificationBell() {
                                         <p className="text-gray-300 text-[11px] leading-snug">
                                             <span className="font-semibold text-white">{n.userName}</span> ({n.userEmail || 'No email'}) redeemed <span className="text-amber-400 font-bold">{n.creditsRedeemed?.toLocaleString() || n.credits?.toLocaleString()} Coins</span>.
                                         </p>
-                                        {n.upiId && (
-                                            <div className="bg-black/30 p-1.5 rounded text-[10px] font-mono text-emerald-400 border border-emerald-500/20 flex justify-between">
-                                                <span>UPI ID: {n.upiId}</span>
-                                                <span className="text-gray-400 uppercase">{n.status || 'Pending'}</span>
+                                        {(n.formattedPayout || n.upiId) && (
+                                            <div className="bg-black/30 p-1.5 rounded text-[10px] font-mono text-emerald-400 border border-emerald-500/20 flex justify-between gap-2">
+                                                <span className="truncate">{n.formattedPayout || `UPI ID: ${n.upiId}`}</span>
+                                                <span className="text-gray-400 uppercase shrink-0">{n.status || 'Pending'}</span>
                                             </div>
                                         )}
                                     </div>

@@ -19,14 +19,15 @@ function initAdmin() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId, userName, userEmail, rewardName, amount, creditsRedeemed, upiId } = body;
+    const { userId, userName, userEmail, rewardName, amount, creditsRedeemed, upiId, payoutMethod, payoutDetails, formattedPayout } = body;
 
     initAdmin();
 
     const formattedCredits = creditsRedeemed ? Number(creditsRedeemed).toLocaleString() : '0';
     const upiStr = upiId && upiId.trim() ? upiId.trim() : 'N/A';
+    const destinationStr = formattedPayout || (upiStr !== 'N/A' ? `UPI: ${upiStr}` : 'N/A');
     const title = `🎁 Reward Redemption: ${rewardName}`;
-    const notificationMessage = `${userName || 'A user'} (${userEmail || 'No email'}) redeemed ${rewardName} for ${formattedCredits} DM Coins. UPI ID: ${upiStr}`;
+    const notificationMessage = `${userName || 'A user'} (${userEmail || 'No email'}) redeemed ${rewardName} for ${formattedCredits} DM Coins. Destination: ${destinationStr}`;
 
     let fcmSentCount = 0;
 
@@ -46,6 +47,9 @@ export async function POST(req: Request) {
         creditsRedeemed: creditsRedeemed || 0,
         amount: amount || 0,
         upiId: upiStr,
+        payoutMethod: payoutMethod || 'UPI',
+        payoutDetails: payoutDetails || { upiId: upiStr },
+        formattedPayout: destinationStr,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
         read: false
       });
@@ -84,7 +88,7 @@ export async function POST(req: Request) {
             const message = {
               notification: {
                 title: title,
-                body: `${userName || 'User'} redeemed ${rewardName} (${formattedCredits} DM Coins). UPI: ${upiStr}`,
+                body: `${userName || 'User'} redeemed ${rewardName} (${formattedCredits} DM Coins). ${destinationStr}`,
               },
               tokens: adminUser.fcmTokens,
               data: {
@@ -92,7 +96,8 @@ export async function POST(req: Request) {
                 type: 'REDEMPTION_ALERT',
                 rewardName: rewardName || '',
                 userName: userName || '',
-                upiId: upiStr
+                upiId: upiStr,
+                payoutDetails: destinationStr
               }
             };
             const response = await admin.messaging().sendEachForMulticast(message);

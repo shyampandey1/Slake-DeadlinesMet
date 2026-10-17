@@ -1296,10 +1296,19 @@ function ReformersPageContent() {
                                         {redemptionRequests.length > 0 ? (
                                             redemptionRequests.map(r => (
                                                 <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-border rounded-xl bg-muted/20 gap-2">
-                                                    <div>
-                                                        <p className="font-bold text-sm text-foreground">{r.userName || "Anonymous"} <span className="text-xs font-normal text-muted-foreground">({r.userEmail || "No Email"})</span></p>
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="font-bold text-sm text-foreground">{r.userName || "Anonymous"} <span className="text-xs font-normal text-muted-foreground">({r.userEmail || "No Email"})</span></p>
+                                                            {r.payoutMethod && (
+                                                                <Badge variant="outline" className="text-[10px] uppercase font-mono font-bold bg-amber-500/10 border-amber-500/30 text-amber-400">
+                                                                    {r.payoutMethod.replace(/_/g, ' ')}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                         <p className="text-xs text-amber-400 font-semibold">{r.rewardName} • {r.creditsRedeemed ? Number(r.creditsRedeemed).toLocaleString() : (r.amount * 1000).toLocaleString()} Coins</p>
-                                                        {r.upiId && <p className="text-xs font-mono text-emerald-400 mt-0.5">UPI ID: {r.upiId}</p>}
+                                                        <p className="text-xs font-mono text-emerald-400 break-all">
+                                                            {r.formattedPayout || (r.upiId ? `UPI ID: ${r.upiId}` : "No destination recorded")}
+                                                        </p>
                                                     </div>
                                                     <div className="flex items-center gap-2 shrink-0">
                                                         <Badge variant={r.status === 'completed' ? 'default' : 'secondary'} className={r.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}>

@@ -20,6 +20,7 @@ import { useTasks } from "@/hooks/useFirestore";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot, orderBy, limit } from "firebase/firestore";
 import type { UserProfile } from "@/types";
+import { RedemptionModal, RedemptionPayload } from "./rewards/RedemptionModal";
 
 export function RewardsContent() {
   const { profileData, updateUserProfileData } = useProfile();
@@ -56,7 +57,6 @@ export function RewardsContent() {
   const { tasks } = useTasks();
   const [redemptionModalOpen, setRedemptionModalOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
-  const [upiId, setUpiId] = useState("");
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [redemptionSuccess, setRedemptionSuccess] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
@@ -224,11 +224,10 @@ export function RewardsContent() {
       setRedemptionSuccess(false);
       setAuditError(null);
       setAuditPendingMessage(null);
-      setUpiId("");
   };
 
-  const submitRedemption = async () => {
-      if (!user || !selectedReward || !upiId.trim()) return;
+  const submitRedemption = async (payload: RedemptionPayload) => {
+      if (!user || !selectedReward || !payload) return;
       setIsRedeeming(true);
       setAuditError(null);
       setAuditPendingMessage(null);
@@ -253,7 +252,7 @@ export function RewardsContent() {
                       userId: user.uid,
                       userName,
                       userEmail,
-                      upiId: upiId.trim(),
+                      upiId: payload.upiId,
                       rewardName: selectedReward.name,
                       amount: selectedReward.credits / 1000,
                       creditsRedeemed: selectedReward.credits,
@@ -288,7 +287,10 @@ export function RewardsContent() {
               userEmail,
               amount: selectedReward.credits / 1000,
               creditsRedeemed: selectedReward.credits,
-              upiId: upiId.trim(),
+              upiId: payload.upiId,
+              payoutMethod: payload.payoutMethod,
+              payoutDetails: payload.payoutDetails,
+              formattedPayout: payload.formattedPayout,
               status: isManualAudit ? 'pending_manual_audit' : 'approved_ready_for_payout',
               trustScore,
               auditVerdict,
@@ -302,14 +304,17 @@ export function RewardsContent() {
               await addDoc(collection(db, "admin_notifications"), {
                   type: "REDEMPTION_REQUEST",
                   title: `🎁 Redemption [${auditVerdict}]: ${selectedReward.name}`,
-                  message: `${userName} (${userEmail}) redeemed ${selectedReward.name} for ${selectedReward.credits.toLocaleString()} DM Coins. Trust Score: ${trustScore}/100. UPI ID: ${upiId.trim()}`,
+                  message: `${userName} (${userEmail}) redeemed ${selectedReward.name} for ${selectedReward.credits.toLocaleString()} DM Coins. Destination: ${payload.formattedPayout}`,
                   userId: user.uid,
                   userName,
                   userEmail,
                   rewardName: selectedReward.name,
                   creditsRedeemed: selectedReward.credits,
                   amount: selectedReward.credits / 1000,
-                  upiId: upiId.trim(),
+                  upiId: payload.upiId,
+                  payoutMethod: payload.payoutMethod,
+                  payoutDetails: payload.payoutDetails,
+                  formattedPayout: payload.formattedPayout,
                   trustScore,
                   auditVerdict,
                   timestamp: serverTimestamp(),
@@ -332,7 +337,10 @@ export function RewardsContent() {
                           rewardName: selectedReward.name,
                           amount: selectedReward.credits / 1000,
                           creditsRedeemed: selectedReward.credits,
-                          upiId: upiId.trim()
+                          upiId: payload.upiId,
+                          payoutMethod: payload.payoutMethod,
+                          payoutDetails: payload.payoutDetails,
+                          formattedPayout: payload.formattedPayout
                       })
                   }).catch(err => console.error("API notification error:", err));
               } catch (apiErr) {
@@ -352,7 +360,7 @@ export function RewardsContent() {
               setTimeout(() => {
                   setRedemptionModalOpen(false);
                   setIsRedeeming(false);
-              }, 2000);
+              }, 2500);
           } else {
               setAuditPendingMessage(`Your payout request is queued for standard manual audit (${auditReasoning}). Coins will be deducted upon administrative approval.`);
               setIsRedeeming(false);
@@ -523,43 +531,18 @@ export function RewardsContent() {
             </TabsContent>
         </Tabs>
 
-        {selectedReward && (
-            <Dialog open={redemptionModalOpen} onOpenChange={setRedemptionModalOpen}>
-                <DialogContent className="bg-card border-border text-foreground sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><Gift className="w-5 h-5 text-indigo-500" /> Redeem {selectedReward.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-6 py-4">
-                        {auditError && (
-                            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs leading-relaxed">
-                                <p className="font-bold">Trust Audit Decision</p>
-                                <p className="mt-0.5">{auditError}</p>
-                            </div>
-                        )}
-                        {auditPendingMessage && (
-                            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs leading-relaxed">
-                                <p className="font-bold">Queued For Verification</p>
-                                <p className="mt-0.5">{auditPendingMessage}</p>
-                            </div>
-                        )}
-                        {redemptionSuccess ? (
-                            <div className="flex flex-col items-center justify-center py-6 space-y-4">
-                                <CheckCircle2 className="w-12 h-12 text-green-500" />
-                                <h3 className="text-xl font-bold">Redemption Sent!</h3>
-                                <p className="text-xs text-muted-foreground">Auto-approved by JEV TypeSafe SystemOne Trust Audit.</p>
-                            </div>
-                        ) : (
-                            <>
-                                <Input value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="UPI ID (e.g. name@ybl)" className="h-12 bg-muted/50 border-none" disabled={isRedeeming} />
-                                <Button onClick={submitRedemption} disabled={!upiId.trim() || isRedeeming} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
-                                    {isRedeeming ? "Running Trust Audit..." : "Confirm Redemption"}
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
-        )}
+        <RedemptionModal
+            isOpen={redemptionModalOpen}
+            onClose={() => setRedemptionModalOpen(false)}
+            reward={selectedReward}
+            userEmail={profileData?.email || user?.email || ""}
+            userName={profileData?.displayName || user?.displayName || ""}
+            isRedeeming={isRedeeming}
+            redemptionSuccess={redemptionSuccess}
+            auditError={auditError}
+            auditPendingMessage={auditPendingMessage}
+            onSubmit={submitRedemption}
+        />
     </div>
   );
 }
