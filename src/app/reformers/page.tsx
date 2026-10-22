@@ -1004,7 +1004,7 @@ function ReformersPageContent() {
     };
 
     const handleFollow = async () => {
-        if (!selectedUser || !user?.uid) return;
+        if (!selectedUser || !user?.uid || selectedUser.id === user.uid) return;
         const newIsFollowing = !isFollowing;
         setIsFollowing(newIsFollowing);
         
@@ -1063,6 +1063,10 @@ function ReformersPageContent() {
     // Add this useEffect to check initial follow status and peer connection status
     useEffect(() => {
         if (selectedUser?.id && user?.uid) {
+            if (selectedUser.id === user.uid) {
+                setIsFollowing(false);
+                return;
+            }
             const checkPeerStatus = async () => {
                 const { getDoc, doc } = await import("firebase/firestore");
                 
@@ -2068,15 +2072,23 @@ function ReformersPageContent() {
                                                     </div>
                                                 )}
 
-                                                <div className="grid grid-cols-2 gap-3 pt-6 border-t border-border w-full">
-                                                    <Button onClick={handleFollow} className={`w-full font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80 border border-border' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
-                                                        {isFollowing ? "Following" : "Follow"}
-                                                    </Button>
-                                                    {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="w-full bg-muted hover:bg-muted/80 text-foreground h-12 px-3 shadow-md border border-border text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-2" /> Text</Button>}
+                                                {member.id === user?.uid ? (
+                                                    <div className="pt-6 border-t border-border w-full">
+                                                        <div className="w-full text-center text-xs font-bold py-3 px-4 text-emerald-400 bg-emerald-500/10 rounded-xl border border-emerald-500/20 shadow-sm flex items-center justify-center gap-2">
+                                                            <Sparkles className="w-4 h-4 text-emerald-400" />
+                                                            This is your Reformers profile
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3 pt-6 border-t border-border w-full">
+                                                        <Button onClick={handleFollow} className={`w-full font-extrabold h-12 text-xs sm:text-sm shadow-md transition-all ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80 border border-border' : 'bg-[#10b981] text-black hover:bg-[#059669]'}`}>
+                                                            {isFollowing ? "Following" : "Follow"}
+                                                        </Button>
+                                                        {!member.isPrivate && <Button onClick={() => setChatMode(true)} variant="secondary" className="w-full bg-muted hover:bg-muted/80 text-foreground h-12 px-3 shadow-md border border-border text-xs sm:text-sm"><MessageSquare className="w-4 h-4 mr-2" /> Text</Button>}
 
-                                                    <div className="col-span-2 space-y-2">
-                                                        {profileData?.coWorkerId === member.id ? (
-                                                            <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-sm bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
+                                                        <div className="col-span-2 space-y-2">
+                                                            {profileData?.coWorkerId === member.id ? (
+                                                                <Button onClick={() => handleUnlinkCoWorker(member.id)} variant="outline" className="w-full font-extrabold h-12 text-sm bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/20 leading-tight">
                                                                 Unlink Co-Reformer
                                                             </Button>
                                                         ) : (peerLatestData?.pendingCoWorkerId === user?.uid || member.pendingCoWorkerId === user?.uid) ? (
@@ -2099,6 +2111,7 @@ function ReformersPageContent() {
                                                         )}
                                                     </div>
                                                 </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}

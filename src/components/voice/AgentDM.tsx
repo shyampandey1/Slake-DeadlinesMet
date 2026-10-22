@@ -111,10 +111,23 @@ export default function AgentDM() {
       ? waveformFrequencies
       : new Array(16).fill(0);
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <>
       {/* Viewport Persistent Floating HUD Capsule */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-grab active:cursor-grabbing flex flex-col items-center gap-1.5 touch-none">
+      <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.15}
+        dragConstraints={{ left: -160, right: 160, top: 0, bottom: 650 }}
+        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-grab active:cursor-grabbing flex flex-col items-center gap-1.5 touch-none"
+      >
         <div
           onClick={handlePillClick}
           className={cn(
@@ -248,6 +261,8 @@ export default function AgentDM() {
               {/* Action Buttons: Modal expansion & Close button */}
               <div className="flex items-center gap-0.5 ml-1">
                 <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setModalOpen(true);
@@ -258,6 +273,8 @@ export default function AgentDM() {
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     closeAgentDM();
@@ -283,7 +300,7 @@ export default function AgentDM() {
                 </span>
               </motion.div>
             )}
-      </div>
+      </motion.div>
 
       {/* Expanded Interactive Command Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

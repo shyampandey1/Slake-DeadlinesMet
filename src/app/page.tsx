@@ -10,8 +10,13 @@ import { Button } from "@/components/ui/button";
 import { useProfile } from "@/hooks/useProfile";
 
 export default function Home() {
-  const { profileData } = useProfile();
+  const { profileData, loading } = useProfile();
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Check enrollment in Reformers League:
+  // 1. Live profile data
+  // 2. Local storage cached state to eliminate any flash on reload
+  const isEnrolled = profileData?.isReformersEnrolled || (typeof window !== "undefined" && localStorage.getItem('slake_reformers_enrolled') === 'true');
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -20,19 +25,32 @@ export default function Home() {
        if (refId) {
            localStorage.setItem('slake_referral_id', refId);
        }
+       if (profileData?.isReformersEnrolled) {
+           localStorage.setItem('slake_reformers_enrolled', 'true');
+       }
     }
     const timer = setInterval(() => {
       setCurrentDate(new Date());
     }, 60000); // Update every minute
     return () => clearInterval(timer);
-  }, []);
+  }, [profileData?.isReformersEnrolled]);
+
+  const currentCoins = Math.max(
+    Number(profileData?.slakeCoins) || 0,
+    Number(profileData?.slakeCredits) || 0,
+    Number(profileData?.coins) || 0,
+    Number(profileData?.slakeBalance) || 0
+  );
+
+  // Strictly guard: never flash while profile is loading, and never show if already enrolled in Reformers
+  const shouldShowDisciplineBanner = !loading && !!profileData && !isEnrolled && currentCoins === 0;
 
   return (
     <AuthWrapper>
       <div className="flex flex-col min-h-screen bg-background pb-20">
         <DynamicHeader currentDate={currentDate} />
         <main className="flex-1 w-full max-w-4xl mx-auto px-6 sm:px-10 md:px-14 lg:px-16 pt-2 -mt-24 sm:-mt-28 md:-mt-32 lg:-mt-40 relative z-10">
-          {(Math.max(Number(profileData?.slakeCoins) || 0, Number(profileData?.slakeCredits) || 0, Number(profileData?.coins) || 0, Number(profileData?.slakeBalance) || 0) === 0) && (
+          {shouldShowDisciplineBanner && (
             <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 shadow-xl shadow-orange-500/20 border border-white/10 overflow-hidden relative group">
                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
                   <Globe2 className="w-24 h-24 text-white" />

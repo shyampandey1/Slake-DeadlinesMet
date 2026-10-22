@@ -110,7 +110,8 @@ export default function NotificationBell() {
             <PopoverContent
                 align="end"
                 sideOffset={8}
-                className="w-72 sm:w-80 max-w-[85vw] rounded-2xl p-4 shadow-2xl border border-slate-800/80 backdrop-blur-xl bg-slate-950/95 text-white z-50 max-h-[85vh] overflow-y-auto no-scrollbar"
+                collisionPadding={16}
+                className="w-[calc(100vw-32px)] max-w-xs sm:w-80 rounded-2xl p-4 shadow-2xl border border-slate-800/80 backdrop-blur-xl bg-slate-950/95 text-white z-50 max-h-[85vh] overflow-y-auto no-scrollbar"
             >
                 <div className="space-y-4">
                     {/* Admin Alerts Section if Shyam Pandey */}
