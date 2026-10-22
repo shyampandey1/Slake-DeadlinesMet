@@ -4,7 +4,28 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Terminal, ShieldCheck } from "lucide-react";
+import { Terminal, ShieldCheck } from "lucide-react";
+
+function DeadlinesMetAppIcon({ className = "h-8 w-8 text-primary" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 512 512"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="DeadlinesMet Clock"
+    >
+      <circle cx="256" cy="256" r="200" stroke="currentColor" strokeWidth="32" />
+      <path d="M256 90V160" stroke="currentColor" strokeWidth="32" strokeLinecap="round" />
+      <path d="M256 422V352" stroke="currentColor" strokeWidth="32" strokeLinecap="round" />
+      <path d="M422 256H352" stroke="currentColor" strokeWidth="32" strokeLinecap="round" />
+      <path d="M160 256H90" stroke="currentColor" strokeWidth="32" strokeLinecap="round" />
+      <path d="M256 256V160" stroke="currentColor" strokeWidth="32" strokeLinecap="round" />
+      <path d="M256 256L330 182" stroke="currentColor" strokeWidth="32" strokeLinecap="round" />
+      <circle cx="256" cy="256" r="14" fill="currentColor" />
+    </svg>
+  );
+}
 
 interface AuthWrapperProps {
   children: ReactNode;
@@ -39,7 +60,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
       isLoadedRef.current = true;
 
       // 2. App Updates Notification
-      const currentVersion = "v2.5";
+      const currentVersion = "v2.8";
       const storedVersion = localStorage.getItem("slake_app_version");
       if (storedVersion !== currentVersion) {
         localStorage.setItem("slake_app_version", currentVersion);
@@ -113,7 +134,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
             {/* Glowing Inner Central Emblem */}
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary/30 to-indigo-500/20 flex items-center justify-center border border-white/5 shadow-inner animate-pulse">
-              <Sparkles className="h-7 w-7 text-primary" />
+              <DeadlinesMetAppIcon className="h-8 w-8 text-primary" />
             </div>
           </div>
 
