@@ -34,6 +34,7 @@ export default function AgentDM() {
   const [modalOpen, setModalOpen] = useState(false);
   const [nlQuery, setNlQuery] = useState("");
   const [semanticMatches, setSemanticMatches] = useState<SemanticSearchMatch[]>([]);
+  const constraintsRef = React.useRef<HTMLDivElement>(null);
 
   const {
     isOpen,
@@ -117,36 +118,44 @@ export default function AgentDM() {
 
   return (
     <>
-      {/* Viewport Persistent Floating HUD Capsule */}
-      <motion.div
-        drag
-        dragMomentum={false}
-        dragElastic={0.15}
-        dragConstraints={{ left: -160, right: 160, top: 0, bottom: 650 }}
-        initial={{ opacity: 0, y: -20, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-grab active:cursor-grabbing flex flex-col items-center gap-1.5 touch-none"
+      {/* Viewport-bounded Centered Container: prevents Tailwind translateX(-50%) conflict with Framer Motion drag */}
+      <div
+        ref={constraintsRef}
+        className="fixed inset-0 pointer-events-none z-50 overflow-hidden pt-4 pb-24 px-3 flex justify-center items-start"
       >
-        <div
-          onClick={handlePillClick}
-          className={cn(
-            "backdrop-blur-xl bg-slate-950/80 border border-emerald-500/20 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
-            "hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]",
-            isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
-            isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
-            isSpeaking && "border-emerald-400/80 shadow-[0_0_35px_rgba(16,185,129,0.45)] ring-2 ring-emerald-400/40",
-            isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
-          )}
+        <motion.div
+          drag
+          dragConstraints={constraintsRef}
+          dragMomentum={false}
+          dragElastic={0.08}
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className="pointer-events-auto select-none cursor-grab active:cursor-grabbing flex flex-col items-center gap-1.5 touch-none"
         >
-              {/* Drag Handle Grip */}
-              <div 
-                className="text-emerald-500/40 hover:text-emerald-400 cursor-grab active:cursor-grabbing -mr-1"
-                title="Drag to reposition Agent DM anywhere"
-              >
-                <GripVertical className="w-3.5 h-3.5" />
-              </div>
+          <div
+            className={cn(
+              "backdrop-blur-xl bg-slate-950/85 border border-emerald-500/25 shadow-2xl rounded-full px-3.5 py-1.5 flex items-center gap-2.5 transition-all duration-300",
+              "hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]",
+              isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
+              isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
+              isSpeaking && "border-emerald-400/80 shadow-[0_0_35px_rgba(16,185,129,0.45)] ring-2 ring-emerald-400/40",
+              isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
+            )}
+          >
+            {/* Drag Handle Grip */}
+            <div 
+              className="text-emerald-500/60 hover:text-emerald-400 cursor-grab active:cursor-grabbing py-1 pr-1 flex items-center"
+              title="Drag to reposition Agent DM anywhere"
+            >
+              <GripVertical className="w-4 h-4" />
+            </div>
 
+            {/* Central Interactive Content: Mic/Status & Label */}
+            <div
+              onClick={handlePillClick}
+              className="flex items-center gap-2.5 cursor-pointer py-1"
+            >
               {/* Status Indicator Icon */}
               <div className="relative flex items-center justify-center">
                 {agentState === 'IDLE' && (
@@ -257,50 +266,66 @@ export default function AgentDM() {
                   </div>
                 )}
               </div>
-
-              {/* Action Buttons: Modal expansion & Close button */}
-              <div className="flex items-center gap-0.5 ml-1">
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setModalOpen(true);
-                  }}
-                  className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                  title="Expand Agent DM Commands"
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closeAgentDM();
-                  }}
-                  className="p-1 rounded-full text-slate-400 hover:text-red-400 hover:bg-white/10 transition-colors"
-                  title="Close Agent DM"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
 
-            {/* Speaking Caption subtitle under HUD pill */}
-            {isSpeaking && detectedIntent?.speechFeedback && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="px-3 py-1 bg-slate-950/80 border border-emerald-500/20 backdrop-blur-md rounded-full shadow-lg max-w-[280px] sm:max-w-[360px] text-center"
+            {/* Action Buttons: Modal expansion & Dedicated Touch Close button */}
+            <div className="flex items-center gap-1 ml-1">
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setModalOpen(true);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setModalOpen(true);
+                }}
+                className="h-7 w-7 min-w-[28px] min-h-[28px] rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors cursor-pointer"
+                title="Expand Agent DM Commands"
+                aria-label="Expand Agent DM Commands"
               >
-                <span className="text-[11px] text-emerald-200 font-medium truncate inline-block w-full">
-                  "{detectedIntent.speechFeedback}"
-                </span>
-              </motion.div>
-            )}
-      </motion.div>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  closeAgentDM();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeAgentDM();
+                }}
+                className="h-7 w-7 min-w-[28px] min-h-[28px] rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-500/20 active:bg-red-500/30 transition-colors cursor-pointer"
+                title="Close Agent DM"
+                aria-label="Close Agent DM"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Speaking Caption subtitle under HUD pill */}
+          {isSpeaking && detectedIntent?.speechFeedback && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="px-3 py-1 bg-slate-950/80 border border-emerald-500/20 backdrop-blur-md rounded-full shadow-lg max-w-[280px] sm:max-w-[360px] text-center"
+            >
+              <span className="text-[11px] text-emerald-200 font-medium truncate inline-block w-full">
+                "{detectedIntent.speechFeedback}"
+              </span>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
 
       {/* Expanded Interactive Command Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

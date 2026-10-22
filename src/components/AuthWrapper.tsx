@@ -60,7 +60,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
       isLoadedRef.current = true;
 
       // 2. App Updates Notification
-      const currentVersion = "v2.8";
+      const currentVersion = "v2.9";
       const storedVersion = localStorage.getItem("slake_app_version");
       if (storedVersion !== currentVersion) {
         localStorage.setItem("slake_app_version", currentVersion);

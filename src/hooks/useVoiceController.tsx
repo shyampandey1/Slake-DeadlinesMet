@@ -134,24 +134,12 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
     return list;
   }, [tasks, presetTasks, profileData?.profile]);
 
-  // Agent DM floating HUD state: visible by default, dismissable, toggled via mic button
-  const [isOpen, setIsOpenState] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('slake_agent_dm_closed') !== 'true';
-    }
-    return true;
-  });
-  const isOpenRef = useRef(true);
+  // Agent DM floating HUD state: CLOSED by default; appears only when user touches voice icon
+  const [isOpen, setIsOpenState] = useState<boolean>(false);
+  const isOpenRef = useRef(false);
   const setIsOpen = useCallback((open: boolean) => {
     isOpenRef.current = open;
     setIsOpenState(open);
-    if (typeof window !== 'undefined') {
-      if (!open) {
-        localStorage.setItem('slake_agent_dm_closed', 'true');
-      } else {
-        localStorage.removeItem('slake_agent_dm_closed');
-      }
-    }
   }, []);
 
   const [agentState, setAgentStateInternal] = useState<VoiceAgentState>('IDLE');
