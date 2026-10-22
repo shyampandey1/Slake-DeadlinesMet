@@ -286,12 +286,32 @@ function ReformersOnboarding({ onEnroll, enrolling }: { onEnroll: () => void, en
 }
 
 function ReformersPageContent() {
+
     const { profileData, updateUserProfileData } = useProfile();
     const { user } = useAuth();
     const { location } = useWeather();
     const { tasks } = useTasks();
     const { activeTimer, startTimer } = useActiveTimer();
     const searchParams = useSearchParams();
+
+    // Auto-clean any legacy self-following artifact in Firestore
+    useEffect(() => {
+        if (!user?.uid) return;
+        const cleanSelfFollow = async () => {
+            try {
+                const selfFollowingRef = doc(db, "users", user.uid, "user_following", user.uid);
+                const selfFollowerRef = doc(db, "users", user.uid, "user_followers", user.uid);
+                const [fSnap, follSnap] = await Promise.all([getDoc(selfFollowingRef), getDoc(selfFollowerRef)]);
+                if (fSnap.exists() || follSnap.exists()) {
+                    const batch = writeBatch(db);
+                    if (fSnap.exists()) batch.delete(selfFollowingRef);
+                    if (follSnap.exists()) batch.delete(selfFollowerRef);
+                    await batch.commit();
+                }
+            } catch (e) { }
+        };
+        cleanSelfFollow();
+    }, [user?.uid]);
 
     const isEnrolled = profileData?.isReformersEnrolled || false;
     const [enrolling, setEnrolling] = useState(false);
@@ -349,6 +369,20 @@ function ReformersPageContent() {
     const [selectedUserFollowers, setSelectedUserFollowers] = useState(0);
     const [selectedUserFollowing, setSelectedUserFollowing] = useState(0);
     const [peerLatestData, setPeerLatestData] = useState<any>(null);
+
+    const isMemberMe = (m: any): boolean => {
+        if (!m) return false;
+        if (m.isMe) return true;
+        if (user?.uid && (m.id === user.uid || m.docId === user.uid || m.userId === user.uid)) return true;
+        if (profileData?.userId && (m.id === profileData.userId || m.docId === profileData.userId || m.userId === profileData.userId)) return true;
+        const myEmail = (user?.email || profileData?.email || '').toLowerCase().trim();
+        const mEmail = (m.email || '').toLowerCase().trim();
+        if (myEmail && mEmail && myEmail === mEmail) return true;
+        const myName = (profileData?.displayName || user?.displayName || '').toLowerCase().trim();
+        const mName = (m.name || '').toLowerCase().trim();
+        if (myName && mName && myName === mName) return true;
+        return false;
+    };
     const { session: activeCoOp, createSession, joinSession } = useCoOpSession(undefined, !!profileData?.coWorkerId);
     const [showStartTogetherModal, setShowStartTogetherModal] = useState(false);
     const [coOpTaskToPropose, setCoOpTaskToPropose] = useState<any>(null);
@@ -587,8 +621,25 @@ function ReformersPageContent() {
             snapshot.forEach(doc => {
                 const data = doc.data() as UserProfile;
                 const uid = data.userId || doc.id;
+                const docId = doc.id;
+                const dataEmail = (data.email || (data as any).userEmail || '').toLowerCase().trim();
+                const myEmail = (user?.email || profileData?.email || '').toLowerCase().trim();
+                const myName = (profileData?.displayName || user?.displayName || '').toLowerCase().trim();
+                const dataName = (data.displayName || '').toLowerCase().trim();
+
+                const isMe = Boolean(
+                    (user?.uid && (uid === user.uid || docId === user.uid)) ||
+                    (profileData?.userId && (uid === profileData.userId || docId === profileData.userId)) ||
+                    (myEmail && dataEmail && myEmail === dataEmail) ||
+                    (myName && dataName && myName === dataName)
+                );
+
                 members.push({
                     id: uid,
+                    docId,
+                    userId: data.userId || uid,
+                    email: dataEmail,
+                    isMe,
                     name: data.displayName || "Anonymous Reformer",
                     location: data.region?.includes('/') ? data.region.split('/').reverse()[0].replace('_', ' ') : (data.region || "Global"),
                     status: data.currentTaskStatus || "Idle",
@@ -1004,7 +1055,10 @@ function ReformersPageContent() {
     };
 
     const handleFollow = async () => {
-        if (!selectedUser || !user?.uid || selectedUser.id === user.uid) return;
+        if (!selectedUser || !user?.uid || isMemberMe(selectedUser) || selectedUser.id === user.uid) {
+            console.warn("Follow self blocked.");
+            return;
+        }
         const newIsFollowing = !isFollowing;
         setIsFollowing(newIsFollowing);
         
@@ -1063,7 +1117,7 @@ function ReformersPageContent() {
     // Add this useEffect to check initial follow status and peer connection status
     useEffect(() => {
         if (selectedUser?.id && user?.uid) {
-            if (selectedUser.id === user.uid) {
+            if (isMemberMe(selectedUser) || selectedUser.id === user.uid) {
                 setIsFollowing(false);
                 return;
             }
@@ -1137,6 +1191,10 @@ function ReformersPageContent() {
 
     const handleConnectCoWorker = async (peerId: string) => {
         if (!user) return;
+        if (peerId === user.uid || (selectedUser && isMemberMe(selectedUser))) {
+            alert("You cannot connect with yourself as a Co-Reformer.");
+            return;
+        }
         const peer = liveMembers.find(m => m.id === peerId);
         
         // Auto-accept if they already requested me
@@ -2072,12 +2130,19 @@ function ReformersPageContent() {
                                                     </div>
                                                 )}
 
-                                                {member.id === user?.uid ? (
-                                                    <div className="pt-6 border-t border-border w-full">
-                                                        <div className="w-full text-center text-xs font-bold py-3 px-4 text-emerald-400 bg-emerald-500/10 rounded-xl border border-emerald-500/20 shadow-sm flex items-center justify-center gap-2">
+                                                {isMemberMe(member) || (selectedUser && isMemberMe(selectedUser)) ? (
+                                                    <div className="pt-6 border-t border-border w-full flex flex-col items-center gap-3">
+                                                        <div className="w-full text-center text-xs font-bold py-3.5 px-4 text-emerald-400 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] flex items-center justify-center gap-2">
                                                             <Sparkles className="w-4 h-4 text-emerald-400" />
                                                             This is your Reformers profile
                                                         </div>
+                                                        <Button 
+                                                            onClick={() => { setSelectedUser(null); setSocialModalOpen(true); }}
+                                                            variant="outline"
+                                                            className="w-full font-bold text-xs h-10 border-border bg-card hover:bg-muted"
+                                                        >
+                                                            Edit Your Profile
+                                                        </Button>
                                                     </div>
                                                 ) : (
                                                     <div className="grid grid-cols-2 gap-3 pt-6 border-t border-border w-full">
