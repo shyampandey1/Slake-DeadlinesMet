@@ -26,6 +26,9 @@ import type { UserProfile } from "@/types";
 import { useTasks } from "@/hooks/useFirestore";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
 import { RewardsContent } from "@/components/RewardsContent";
+import { SharedRoutinesSection } from "@/components/routine/SharedRoutinesSection";
+import { useRoutineStore } from "@/hooks/useRoutineStore";
+import { toast } from "@/hooks/use-toast";
 import { generateAndPersistLifestyleVector, rankCoReformersByVector, type CoReformerMatch } from "@/lib/lifestyleVector";
 import type { SynergyResponse } from "@/app/api/reformers/synergy/route";
 
@@ -293,6 +296,7 @@ function ReformersPageContent() {
     const { tasks } = useTasks();
     const { activeTimer, startTimer } = useActiveTimer();
     const searchParams = useSearchParams();
+    const { importDMProfile, activeCustomProfile } = useRoutineStore();
 
     // Auto-clean any legacy self-following artifact in Firestore
     useEffect(() => {
@@ -1546,12 +1550,15 @@ function ReformersPageContent() {
                 </div>
 
                 <Tabs defaultValue="league" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-8 bg-card/80 backdrop-blur-md h-12 rounded-2xl border border-border/50 p-1">
+                    <TabsList className="grid w-full grid-cols-3 mb-8 bg-card/80 backdrop-blur-md h-12 rounded-2xl border border-border/50 p-1">
                         <TabsTrigger value="league" className="rounded-xl font-bold flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-black">
                             <Globe2 className="w-4 h-4" /> League
                         </TabsTrigger>
                         <TabsTrigger value="rewards" className="rounded-xl font-bold flex items-center gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-black">
                             <Trophy className="w-4 h-4" /> Rewards
+                        </TabsTrigger>
+                        <TabsTrigger value="shared_routines" className="rounded-xl font-bold flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+                            <Sparkles className="w-4 h-4" /> Routines (.dm)
                         </TabsTrigger>
                     </TabsList>
 
@@ -2190,6 +2197,19 @@ function ReformersPageContent() {
 
                     <TabsContent value="rewards">
                         <RewardsContent />
+                    </TabsContent>
+                    <TabsContent value="shared_routines" className="space-y-6">
+                        <SharedRoutinesSection
+                            currentRoutineVector={activeCustomProfile?.routineVector || profileData?.lifestyleVector}
+                            onApplyRoutine={async (dm) => {
+                                const profile = await importDMProfile(dm);
+                                toast({
+                                    title: 'Routine Applied!',
+                                    description: `"${dm.profileName}" is now active in your routine switcher.`,
+                                });
+                                return profile;
+                            }}
+                        />
                     </TabsContent>
                 </Tabs>
 

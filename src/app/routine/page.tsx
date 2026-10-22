@@ -1,11 +1,13 @@
 "use client";
-import { useState, useRef } from 'react';
-import React from 'react'; // Added this import
+
+import { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useProfile, professions, Profession } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
 import { useRoutineStore } from "@/hooks/useRoutineStore";
 import { icons } from "lucide-react"; 
 import { cn } from '@/lib/utils';
@@ -17,7 +19,25 @@ import HamburgerMenu from '@/components/HamburgerMenu';
 import { format } from 'date-fns';
 import AddTaskDialog from '@/components/AddTaskDialog';
 import type { UserPresetTask } from '@/types';
-import { Plus, RotateCw, Trash2, Sparkles, Loader2, Wand2 } from 'lucide-react';
+import {
+  Plus,
+  RotateCw,
+  Trash2,
+  Sparkles,
+  Loader2,
+  Wand2,
+  SlidersHorizontal,
+  ChevronDown,
+  Check,
+  Copy,
+  Edit2,
+  Download,
+  Share2,
+  Upload,
+  Calendar,
+  Layers,
+  CheckCircle2,
+} from 'lucide-react';
 import { generateAIRoutine } from '@/ai/flows/generate-routine';
 import {
   ContextMenu,
@@ -35,34 +55,88 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { defaultRoutines, profileToRoutineMap, applyMoversTemplate } from '@/lib/routines';
+import { RoutineTunerModal } from '@/components/routine/RoutineTunerModal';
+import { DMDropzone } from '@/components/routine/DMDropzone';
+import { SharedRoutinesSection } from '@/components/routine/SharedRoutinesSection';
+import { exportRoutineToDMFile, shareRoutineToCommunity } from '@/lib/dmFileHandler';
+import { toast } from '@/hooks/use-toast';
+import { DMRoutineAuthor, DMRoutineFileFormat } from '@/types/routineTuner';
 
-
-// This is the corrected Icon component
-const Icon = ({ name, ...props }: { name: string, [key: string]: any }) => {
+// Corrected Icon component
+const Icon = ({ name, ...props }: { name: string; [key: string]: any }) => {
   const LucideIcon = icons[name as keyof typeof icons];
-
-  if (!LucideIcon) {
-    return null;
-  }
-
+  if (!LucideIcon) return null;
   return React.createElement(LucideIcon, props);
 };
 
 function RoutinePageComponent() {
   const router = useRouter();
-  const { profile, setProfile, daysOff, setDaysOff, loading: profileLoading, profileData, reformerPreference, setReformerPreference } = useProfile();
-  const { presetTasks, loading: tasksLoading, categoryTimeRanges, addPresetTask, updatePresetTask, deletePresetTask, isDefaultTask, clearAndSetPresetTasks } = useRoutineStore();
+  const { user } = useAuth();
+  const {
+    profile,
+    setProfile,
+    daysOff,
+    setDaysOff,
+    profileData,
+    reformerPreference,
+    setReformerPreference,
+  } = useProfile();
+
+  const {
+    presetTasks,
+    loading: tasksLoading,
+    categoryTimeRanges,
+    addPresetTask,
+    updatePresetTask,
+    deletePresetTask,
+    isDefaultTask,
+    clearAndSetPresetTasks,
+    customProfiles,
+    activeProfileId,
+    activeCustomProfile,
+    saveCustomProfile,
+    setActiveProfile,
+    renameCustomProfile,
+    duplicateCustomProfile,
+    deleteCustomProfile,
+    importDMProfile,
+  } = useRoutineStore();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<(UserPresetTask & { category: string }) | undefined>(undefined);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  
+
+  // Routine Tuner Modal State
+  const [isTunerModalOpen, setIsTunerModalOpen] = useState(false);
+  const [isImportDropzoneOpen, setIsImportDropzoneOpen] = useState(false);
+
+  // Rename Dialog State
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [renameInputValue, setRenameInputValue] = useState('');
+
   const routineRef = useRef<HTMLDivElement>(null);
   const [openCategories, setOpenCategories] = useState<string[]>([]);
-  
-  // Update open categories when presetTasks changes (e.g., profession switch or reset)
-  React.useEffect(() => {
+
+  // Update open categories when presetTasks changes
+  useEffect(() => {
     const categories = Object.keys(presetTasks);
     if (categories.length > 0) {
       setOpenCategories(categories);
@@ -71,25 +145,28 @@ function RoutinePageComponent() {
 
   const handleProfessionSelect = (p: Profession & { activeColor?: string }) => {
     setProfile(p.name);
-    // Smooth scroll to routine section
+    // If currently viewing a custom profile, switch to default to view standard profession tasks
+    if (activeProfileId) {
+      setActiveProfile(null);
+    }
     setTimeout(() => {
-        routineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      routineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 300);
   };
 
   const handleDayOffToggle = (day: 'Saturday' | 'Sunday') => {
     const newDaysOff = daysOff.includes(day)
-      ? daysOff.filter(d => d !== day)
+      ? daysOff.filter((d) => d !== day)
       : [...daysOff, day];
     setDaysOff(newDaysOff);
   };
 
   const handleOpenDialog = (task?: UserPresetTask, category?: string) => {
-    const initialTask = task && category ? { ...task, category } : category ? { category } as any : undefined;
+    const initialTask = task && category ? { ...task, category } : category ? ({ category } as any) : undefined;
     setTaskToEdit(initialTask);
     setIsDialogOpen(true);
   };
-  
+
   const handleSaveTask = async (
     taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string },
     taskId?: string
@@ -124,29 +201,101 @@ function RoutinePageComponent() {
     if (!defaultTasksForProfile) return;
 
     await clearAndSetPresetTasks(profile, defaultTasksForProfile);
-  }
+  };
 
   const handleGenerateAIRoutine = async () => {
     if (!profile) return;
     setIsGeneratingAI(true);
     try {
       const aiRoutine = await generateAIRoutine({ profession: profile, daysOff });
-      
-      const flatTasks = Object.entries(aiRoutine.routines).flatMap(([category, { tasks }]) => 
-        tasks.map(task => ({ 
+      const flatTasks = Object.entries(aiRoutine.routines).flatMap(([category, { tasks }]) =>
+        tasks.map((task) => ({
           name: task.name,
           duration: Number(task.duration),
           icon: task.icon,
-          category: category // Use the key from the record as the category
+          category: category,
         }))
       );
-      
       await clearAndSetPresetTasks(profile, flatTasks);
     } catch (error) {
-      console.error("Failed to generate AI routine:", error);
+      console.error('Failed to generate AI routine:', error);
     } finally {
       setIsGeneratingAI(false);
     }
+  };
+
+  // Export Active Routine to .dm File
+  const handleExportActiveRoutine = async () => {
+    if (!activeCustomProfile) return;
+    const author: DMRoutineAuthor = {
+      uid: user?.uid || 'guest_user',
+      displayName: user?.displayName || profileData?.displayName || 'Reformer',
+      profession: profile || 'General',
+    };
+
+    try {
+      await exportRoutineToDMFile(activeCustomProfile, author);
+      toast({
+        title: 'Routine Exported',
+        description: `Exported "${activeCustomProfile.name}.dm" to your device.`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: err?.message || 'Could not export .dm container.',
+      });
+    }
+  };
+
+  // Share Active Routine with Reformers Community Hub
+  const handleShareActiveRoutine = async () => {
+    if (!activeCustomProfile) return;
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign In Required',
+        description: 'Please sign in to publish your routine to the Reformers Hub.',
+      });
+      return;
+    }
+
+    const author: DMRoutineAuthor = {
+      uid: user.uid,
+      displayName: user.displayName || profileData?.displayName || 'Reformer',
+      profession: profile || 'General',
+    };
+
+    try {
+      await shareRoutineToCommunity(activeCustomProfile, author);
+      toast({
+        title: 'Published to Reformers Hub! 🚀',
+        description: `"${activeCustomProfile.name}" is now live in the community marketplace.`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Publish Failed',
+        description: err?.message || 'Could not share routine to community.',
+      });
+    }
+  };
+
+  // Inline Rename Modal Handler
+  const openRenameDialog = () => {
+    if (!activeCustomProfile) return;
+    setRenameInputValue(activeCustomProfile.name);
+    setIsRenameDialogOpen(true);
+  };
+
+  const handleConfirmRename = async () => {
+    if (!activeCustomProfile || !renameInputValue.trim()) return;
+    await renameCustomProfile(activeCustomProfile.id, renameInputValue.trim());
+    setIsRenameDialogOpen(false);
+    toast({
+      title: 'Profile Renamed',
+      description: `Routine is now named "${renameInputValue.trim()}".`,
+    });
   };
 
   const categoriesWithColors = Object.entries(presetTasks).map(([name, { color }]) => ({ name, color }));
@@ -170,235 +319,522 @@ function RoutinePageComponent() {
 
   return (
     <>
-    <div className="flex flex-col h-screen">
-      <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-sm border-b border-border/50 z-10">
-        <div className="w-full flex h-20 items-center justify-between px-4 sm:px-6 md:px-8 lg:px-12">
-            <div className="flex flex-col gap-1">
-                <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90">Sync Routine</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">Select a profession to see the recommended routine.</p>
+      <div className="flex flex-col h-screen">
+        {/* Sticky Fixed Header */}
+        <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-md border-b border-border/50 z-10">
+          <div className="w-full flex h-20 items-center justify-between px-4 sm:px-6 md:px-8 lg:px-12">
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90">
+                  {activeCustomProfile ? activeCustomProfile.name : 'Sync Routine'}
+                </h1>
+                {activeCustomProfile && (
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Tuned Profile
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {activeCustomProfile
+                  ? `Customized MOVERS rhythm with zero overlapping blocks.`
+                  : 'Select a profession template or tune your custom routine.'}
+              </p>
             </div>
-            <HamburgerMenu />
-        </div>
-      </header>
-       <main className="flex-1 overflow-y-auto overflow-x-hidden pt-24 pb-20 min-w-0">
-        <div className="w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 space-y-8 min-w-0 overflow-x-hidden">
-            {Object.entries(professions).map(([group, professionList]) => (
-                <Card key={group} className="overflow-hidden">
+
+            <div className="flex items-center gap-2.5">
+              {/* Prominent 'Tune My Schedule' Button */}
+              <Button
+                size="sm"
+                onClick={() => setIsTunerModalOpen(true)}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 rounded-xl gap-1.5 h-10 px-3.5"
+              >
+                <Sparkles className="w-4 h-4 fill-black text-black" />
+                <span className="hidden sm:inline">Tune My Schedule</span>
+                <span className="sm:hidden">Tune</span>
+              </Button>
+
+              <HamburgerMenu />
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-24 pb-20 min-w-0">
+          <div className="w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 space-y-8 min-w-0 overflow-x-hidden">
+            
+            {/* Routine Profile Switcher & Fast Actions Bar */}
+            <Card className="border-border/60 bg-gradient-to-r from-card/80 to-background/50 backdrop-blur-xl">
+              <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-muted-foreground block">
+                      Active Routine Profile
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="h-10 text-xs sm:text-sm font-bold gap-2 rounded-xl border-border/80 bg-background/50 hover:border-purple-500/50"
+                          >
+                            <span className="truncate max-w-[180px] sm:max-w-[260px]">
+                              {activeCustomProfile
+                                ? activeCustomProfile.name
+                                : `Default: ${profile || 'Standard'}`}
+                            </span>
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64 rounded-2xl p-2">
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">
+                            Standard Templates
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => setActiveProfile(null)}
+                            className="rounded-xl flex items-center justify-between text-xs py-2 cursor-pointer"
+                          >
+                            <span>Default ({profile || 'General'})</span>
+                            {!activeCustomProfile && <Check className="w-4 h-4 text-emerald-400" />}
+                          </DropdownMenuItem>
+
+                          {customProfiles.length > 0 && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                Custom Tuned Profiles
+                              </DropdownMenuLabel>
+                              {customProfiles.map((cp) => (
+                                <DropdownMenuItem
+                                  key={cp.id}
+                                  onClick={() => setActiveProfile(cp.id)}
+                                  className="rounded-xl flex items-center justify-between text-xs py-2 cursor-pointer"
+                                >
+                                  <span className="truncate">{cp.name}</span>
+                                  {activeProfileId === cp.id && (
+                                    <Check className="w-4 h-4 text-emerald-400" />
+                                  )}
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          )}
+
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setIsTunerModalOpen(true)}
+                            className="rounded-xl text-xs py-2 text-emerald-400 cursor-pointer gap-2 font-bold"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" /> + Tune New Schedule
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
+                            className="rounded-xl text-xs py-2 text-purple-400 cursor-pointer gap-2"
+                          >
+                            <Upload className="w-3.5 h-3.5" /> Import .dm Routine
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Dropzone toggle button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
+                        className="h-10 text-xs rounded-xl gap-1.5 border-dashed"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="hidden sm:inline">Import .dm</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Controls if viewing a Custom Profile */}
+                {activeCustomProfile && (
+                  <div className="flex items-center gap-2 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-border/40">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsTunerModalOpen(true)}
+                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70 hover:border-emerald-500/50"
+                      title="Tweak anchor times and regenerate"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                      Tweak
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openRenameDialog}
+                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70"
+                      title="Rename this profile"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      Rename
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => duplicateCustomProfile(activeCustomProfile.id)}
+                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70"
+                      title="Duplicate profile"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                      Duplicate
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportActiveRoutine}
+                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70 hover:border-blue-500/50 text-blue-400"
+                      title="Download .dm container to device"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Export .dm
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleShareActiveRoutine}
+                      className="h-9 text-xs rounded-xl gap-1.5 border-purple-500/40 text-purple-400 hover:bg-purple-500/10"
+                      title="Publish routine to community"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      Share
+                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 text-xs rounded-xl text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Custom Routine?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{activeCustomProfile.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteCustomProfile(activeCustomProfile.id)}
+                            className="bg-destructive hover:bg-destructive/90 rounded-xl"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Collapsible Import .dm Dropzone Area */}
+            {isImportDropzoneOpen && (
+              <DMDropzone
+                onRoutineImported={async (dm) => {
+                  await importDMProfile(dm);
+                  setIsImportDropzoneOpen(false);
+                  toast({
+                    title: 'Routine Imported!',
+                    description: `Loaded "${dm.profileName}" into your routine profiles.`,
+                  });
+                }}
+              />
+            )}
+
+            {/* Profession Templates & Day Off (Show when on Default or for inspiration) */}
+            {!activeCustomProfile && (
+              <>
+                {Object.entries(professions).map(([group, professionList]) => (
+                  <Card key={group} className="overflow-hidden">
                     <CardHeader>
-                        <CardTitle className="font-headline text-lg">{group}</CardTitle>
+                      <CardTitle className="font-headline text-lg">{group}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex flex-wrap gap-4">
-                            {professionList.map((p) => {
-                                const isSelected = profile === p.name;
-                                
-                                return (
-                                <Button
-                                    key={p.name}
-                                    variant="outline"
-                                    onClick={() => handleProfessionSelect(p)}
-                                    className={cn(
-                                        "flex items-center gap-2 transition-colors duration-200 border-2 bg-transparent",
-                                        isSelected 
-                                            ? p.activeColor
-                                            : p.color
-                                    )}
-                                >
-                                    <Icon name={p.icon} className="h-4 w-4" />
-                                    {p.name}
-                                </Button>
-                            )})}
-                        </div>
+                      <div className="flex flex-wrap gap-4">
+                        {professionList.map((p) => {
+                          const isSelected = profile === p.name;
+                          return (
+                            <Button
+                              key={p.name}
+                              variant="outline"
+                              onClick={() => handleProfessionSelect(p)}
+                              className={cn(
+                                "flex items-center gap-2 transition-colors duration-200 border-2 bg-transparent",
+                                isSelected ? p.activeColor : p.color
+                              )}
+                            >
+                              <Icon name={p.icon} className="h-4 w-4" />
+                              {p.name}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </CardContent>
-                </Card>
-            ))}
+                  </Card>
+                ))}
 
-            <Card>
-                <CardHeader>
+                <Card>
+                  <CardHeader>
                     <CardTitle className="font-headline text-lg">Day Off Schedule</CardTitle>
                     <CardDescription>Select your days off to switch to a recovery-focused routine automatically.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center space-x-6">
+                  </CardHeader>
+                  <CardContent className="flex items-center space-x-6">
                     <div className="flex items-center space-x-2">
-                        <Checkbox id="saturday" checked={daysOff.includes('Saturday')} onCheckedChange={() => handleDayOffToggle('Saturday')} />
-                        <label htmlFor="saturday" className="text-sm font-medium leading-none">Saturday</label>
+                      <Checkbox
+                        id="saturday"
+                        checked={daysOff.includes('Saturday')}
+                        onCheckedChange={() => handleDayOffToggle('Saturday')}
+                      />
+                      <label htmlFor="saturday" className="text-sm font-medium leading-none">
+                        Saturday
+                      </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Checkbox id="sunday" checked={daysOff.includes('Sunday')} onCheckedChange={() => handleDayOffToggle('Sunday')} />
-                        <label htmlFor="sunday" className="text-sm font-medium leading-none">Sunday</label>
+                      <Checkbox
+                        id="sunday"
+                        checked={daysOff.includes('Sunday')}
+                        onCheckedChange={() => handleDayOffToggle('Sunday')}
+                      />
+                      <label htmlFor="sunday" className="text-sm font-medium leading-none">
+                        Sunday
+                      </label>
                     </div>
-                </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-emerald-500/30 bg-emerald-500/5">
-                <CardHeader>
+                <Card className="border-emerald-500/30 bg-emerald-500/5">
+                  <CardHeader>
                     <CardTitle className="font-headline text-lg flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-emerald-500" />
-                        18-Profession Universal MOVERS Wrapper
+                      <Sparkles className="w-5 h-5 text-emerald-500" />
+                      18-Profession Universal MOVERS Wrapper
                     </CardTitle>
                     <CardDescription>Select your energy synchronization template for {profile || "your routine"}.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full min-w-0">
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full min-w-0">
                     <Button 
-                        variant={reformerPreference === 'morning_primer' ? 'default' : 'outline'}
-                        onClick={() => handleTemplateChange('morning_primer')}
-                        className={cn(
-                            "w-full max-w-full min-w-0 flex flex-col items-start gap-1.5 h-auto p-4 text-left whitespace-normal break-words transition-all",
-                            reformerPreference === 'morning_primer' ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20" : "hover:border-emerald-500/50"
-                        )}
+                      variant={reformerPreference === 'morning_primer' ? 'default' : 'outline'}
+                      onClick={() => handleTemplateChange('morning_primer')}
+                      className={cn(
+                        "w-full max-w-full min-w-0 flex flex-col items-start gap-1.5 h-auto p-4 text-left whitespace-normal break-words transition-all",
+                        reformerPreference === 'morning_primer'
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20"
+                          : "hover:border-emerald-500/50"
+                      )}
                     >
-                        <span className="font-bold flex items-center gap-1.5">
-                            🌅 The Morning Primer
-                        </span>
-                        <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
-                            (M+O+V+E) before core work; (R+S) at day's end with 8 hydration reminders & visual breaks.
-                        </span>
+                      <span className="font-bold flex items-center gap-1.5">🌅 The Morning Primer</span>
+                      <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
+                        (M+O+V+E) before core work; (R+S) at day's end with 8 hydration reminders & visual breaks.
+                      </span>
                     </Button>
                     <Button 
-                        variant={reformerPreference === 'evening_restorer' ? 'default' : 'outline'}
-                        onClick={() => handleTemplateChange('evening_restorer')}
-                        className={cn(
-                            "w-full max-w-full min-w-0 flex flex-col items-start gap-1.5 h-auto p-4 text-left whitespace-normal break-words transition-all",
-                            reformerPreference === 'evening_restorer' ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20" : "hover:border-indigo-500/50"
-                        )}
+                      variant={reformerPreference === 'evening_restorer' ? 'default' : 'outline'}
+                      onClick={() => handleTemplateChange('evening_restorer')}
+                      className={cn(
+                        "w-full max-w-full min-w-0 flex flex-col items-start gap-1.5 h-auto p-4 text-left whitespace-normal break-words transition-all",
+                        reformerPreference === 'evening_restorer'
+                          ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20"
+                          : "hover:border-indigo-500/50"
+                      )}
                     >
-                        <span className="font-bold flex items-center gap-1.5">
-                            🌙 The Evening Restorer
-                        </span>
-                        <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
-                            (E) at wake-up; (M+O+V+R+S) in a consolidated recovery block before sleep with 8 hydration reminders & visual breaks.
-                        </span>
+                      <span className="font-bold flex items-center gap-1.5">🌙 The Evening Restorer</span>
+                      <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
+                        (E) at wake-up; (M+O+V+R+S) in a consolidated recovery block before sleep with 8 hydration reminders & visual breaks.
+                      </span>
                     </Button>
-                </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
+            {/* Routine Tasks Accordion Section */}
             <div ref={routineRef} className="pt-4 scroll-mt-24 min-w-0">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
-                <h2 className="text-2xl font-bold font-headline">Your Routine</h2>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <RotateCw className="w-4 h-4 mr-2"/>
-                            Reset Routine
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                          This will delete all custom tasks for your '{profile}' routine and restore the default template. This action cannot be undone.
-                      </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleResetRoutine}>Reset</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <div>
+                  <h2 className="text-2xl font-bold font-headline">
+                    {activeCustomProfile ? activeCustomProfile.name : 'Your Routine'}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {activeCustomProfile
+                      ? `Anchored: Wake ${activeCustomProfile.tuningAnswers.wakeUpTime} • Sleep ${activeCustomProfile.tuningAnswers.sleepTime} • ${activeCustomProfile.tasks.length} total blocks`
+                      : 'Preset habit sprints configured for your current focus mode.'}
+                  </p>
+                </div>
 
-                  <Button 
-                    variant="outline" 
+                <div className="flex items-center gap-2 flex-wrap">
+                  {!activeCustomProfile && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="rounded-xl">
+                          <RotateCw className="w-4 h-4 mr-2" />
+                          Reset Routine
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure you want to reset?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will delete custom preset tasks for '{profile}' and restore the default template.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleResetRoutine} className="rounded-xl">
+                            Reset
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+
+                  {!activeCustomProfile && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleGenerateAIRoutine} 
+                      disabled={isGeneratingAI}
+                      className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2 rounded-xl transition-all"
+                    >
+                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 text-blue-400" />}
+                      {isGeneratingAI ? "Designing..." : "Auto-Plan"}
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="outline"
                     size="sm"
-                    onClick={handleGenerateAIRoutine} 
-                    disabled={isGeneratingAI}
-                    className="bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/30 text-blue-400 gap-2 transition-all hover:border-blue-400/50"
+                    onClick={() => setIsTunerModalOpen(true)}
+                    className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 rounded-xl gap-1.5"
                   >
-                    {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 text-blue-400" />}
-                    {isGeneratingAI ? "Designing Schedule..." : "Auto-Plan Routine"}
+                    <Sparkles className="w-4 h-4" />
+                    {activeCustomProfile ? 'Tweak in Wizard' : 'Tune Schedule'}
                   </Button>
                 </div>
               </div>
-            
-            {tasksLoading ? renderSkeleton() : (
-              <Accordion 
-                type="multiple" 
-                value={openCategories} 
-                onValueChange={setOpenCategories} 
-                className="w-full space-y-4"
-              >
-                {Object.entries(presetTasks).map(([category, { color, tasks }]) => {
+
+              {tasksLoading ? renderSkeleton() : (
+                <Accordion 
+                  type="multiple" 
+                  value={openCategories} 
+                  onValueChange={setOpenCategories} 
+                  className="w-full space-y-4"
+                >
+                  {Object.entries(presetTasks).map(([category, { color, tasks }]) => {
                     const timeRange = categoryTimeRanges[category];
                     return (
-                  <AccordionItem value={category} key={category} className="border-none">
-                    <Card className="overflow-hidden">
-                      <AccordionTrigger className={cn("p-4 border-b", color)}>
-                          <div className="flex flex-col items-start text-left">
+                      <AccordionItem value={category} key={category} className="border-none">
+                        <Card className="overflow-hidden border-border/60">
+                          <AccordionTrigger className={cn("p-4 border-b", color)}>
+                            <div className="flex flex-col items-start text-left">
                               <h3 className="font-headline text-lg">{category}</h3>
                               {timeRange && (
-                                  <p className="text-xs text-inherit opacity-80">
-                                      {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
-                                  </p>
+                                <p className="text-xs text-inherit opacity-80">
+                                  {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
+                                </p>
                               )}
-                          </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="p-4">
-                          <div className="space-y-2">
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="p-4">
+                            <div className="space-y-2">
                               {tasks.map((task, index) => (
                                 <AlertDialog key={task.id || `${task.name}-${index}`}>
-                                <ContextMenu>
-                                  <ContextMenuTrigger disabled={isDefaultTask(task)}>
-                                    <Button
+                                  <ContextMenu>
+                                    <ContextMenuTrigger disabled={isDefaultTask(task)}>
+                                      <Button
                                         variant="outline"
-                                        className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal"
+                                        className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal rounded-xl border-border/70 hover:border-emerald-500/40"
                                         onClick={() => handleOpenDialog(task, category)}
                                       >
-                                      <div className="flex items-center gap-3">
-                                          <Icon name={task.icon} className="h-5 w-5 text-muted-foreground" />
+                                        <div className="flex items-center gap-3">
+                                          <Icon name={task.icon} className="h-5 w-5 text-muted-foreground shrink-0" />
                                           <div className="text-left">
-                                              <p className="font-medium">{task.name}</p>
-                                              <p className="text-xs text-muted-foreground">{task.duration} min</p>
+                                            <p className="font-medium text-sm">{task.name}</p>
+                                            <p className="text-xs text-muted-foreground">{task.duration} min</p>
                                           </div>
-                                      </div>
-                                  </Button>
-                                  </ContextMenuTrigger>
-                                  <ContextMenuContent>
+                                        </div>
+                                      </Button>
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent>
                                       <AlertDialogTrigger asChild>
                                         <ContextMenuItem className="text-destructive focus:text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Delete Task
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Delete Task
                                         </ContextMenuItem>
                                       </AlertDialogTrigger>
-                                  </ContextMenuContent>
-                                </ContextMenu>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the preset task "{task.name}". This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteTask(task.id!)} className="bg-destructive hover:bg-destructive/90">
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
+                                    </ContextMenuContent>
+                                  </ContextMenu>
+                                  <AlertDialogContent className="rounded-2xl">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will remove "{task.name}" from this routine category.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteTask(task.id!)} className="bg-destructive hover:bg-destructive/90 rounded-xl">
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
                                 </AlertDialog>
                               ))}
-                          </div>
-                          <CardFooter className="p-0 pt-4">
-                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                            </div>
+                            <CardFooter className="p-0 pt-4">
+                              <Button
+                                variant="ghost"
+                                className="w-full border-dashed border-2 rounded-xl"
+                                onClick={() => handleOpenDialog(undefined, category)}
+                              >
                                 <Plus className="w-4 h-4 mr-2" /> Add Task
-                            </Button>
-                          </CardFooter>
-                      </AccordionContent>
-                    </Card>
-                  </AccordionItem>
-                      )
-                })}
+                              </Button>
+                            </CardFooter>
+                          </AccordionContent>
+                        </Card>
+                      </AccordionItem>
+                    );
+                  })}
                 </Accordion>
               )}
             </div>
 
-            <div className="mt-6 flex justify-end">
-                <Button size="lg" onClick={() => router.push('/')}>Done</Button>
+            {/* Community Shared Routines Marketplace Section */}
+            <SharedRoutinesSection
+              currentRoutineVector={activeCustomProfile?.routineVector}
+              onApplyRoutine={async (dm) => {
+                const profile = await importDMProfile(dm);
+                setTimeout(() => {
+                  routineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 300);
+                return profile;
+              }}
+            />
+
+            <div className="mt-8 flex justify-end">
+              <Button size="lg" onClick={() => router.push('/')} className="rounded-xl font-bold px-8">
+                Done
+              </Button>
             </div>
-        </div>
-      </main>
-    </div>
-     <AddTaskDialog
+          </div>
+        </main>
+      </div>
+
+      {/* Task Dialog */}
+      <AddTaskDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSaveTask={handleSaveTask}
@@ -406,14 +842,59 @@ function RoutinePageComponent() {
         initialTask={taskToEdit}
         categories={categoriesWithColors}
       />
+
+      {/* Interactive Routine Tuner Modal */}
+      <RoutineTunerModal
+        isOpen={isTunerModalOpen}
+        onClose={() => setIsTunerModalOpen(false)}
+        onSaveProfile={async (newProfile) => {
+          await saveCustomProfile(newProfile);
+          toast({
+            title: 'Tuned Routine Activated! ✨',
+            description: `"${newProfile.name}" is now your active schedule.`,
+          });
+          setTimeout(() => {
+            routineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 300);
+        }}
+        defaultUserName={user?.displayName || profileData?.displayName || 'My'}
+        initialAnswers={activeCustomProfile?.tuningAnswers}
+        existingProfileId={activeCustomProfile?.id}
+      />
+
+      {/* Rename Profile Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Rename Routine Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              value={renameInputValue}
+              onChange={(e) => setRenameInputValue(e.target.value)}
+              placeholder="e.g. Shyam's Focus Routine"
+              className="text-base h-11"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmRename} className="rounded-xl font-bold">
+              Save Name
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
 export default function RoutinePage() {
-    return (
-        <AuthWrapper>
-            <RoutinePageComponent />
-        </AuthWrapper>
-    )
+  return (
+    <AuthWrapper>
+      <RoutinePageComponent />
+    </AuthWrapper>
+  );
 }

@@ -272,3 +272,47 @@ export async function embedText(text: string): Promise<EmbeddingVector> {
 }
 
 export const computeClientEmbedding = embedText;
+
+/**
+ * Builds a structured semantic descriptor for a tuned routine schedule to compute
+ * its WebGPU embeddinggemma-300m vector fingerprint for instant Co-Op matching.
+ */
+export function buildRoutineSemanticDescriptor(
+  tuning: {
+    profileName: string;
+    wakeUpTime: string;
+    sleepTime: string;
+    workOrCollegeStart: string;
+    workOrCollegeEnd: string;
+    studyOrResearchPreference: string;
+    studyDurationMinutes: number;
+    moversWrapperMode: string;
+    eveningCustomization: string[];
+  },
+  taskTitles: string[] = []
+): string {
+  const tasksSample = taskTitles.slice(0, 15).join(', ');
+  return `Schedule Profile: ${tuning.profileName}. Wake: ${tuning.wakeUpTime}, Sleep: ${tuning.sleepTime}. Work Window: ${tuning.workOrCollegeStart} to ${tuning.workOrCollegeEnd}. Study Deep Work: ${tuning.studyOrResearchPreference} (${tuning.studyDurationMinutes}m). MOVERS Protocol Wrapper: ${tuning.moversWrapperMode}. Evening Habits: ${tuning.eveningCustomization.join(', ') || 'relaxation'}. Task Routine Pillars: ${tasksSample || 'Meditation, Deep Work, Hydration, Recovery'}.`;
+}
+
+/**
+ * Computes a normalized vector embedding for a tuned routine.
+ */
+export async function computeRoutineVector(
+  tuning: {
+    profileName: string;
+    wakeUpTime: string;
+    sleepTime: string;
+    workOrCollegeStart: string;
+    workOrCollegeEnd: string;
+    studyOrResearchPreference: string;
+    studyDurationMinutes: number;
+    moversWrapperMode: string;
+    eveningCustomization: string[];
+  },
+  taskTitles: string[] = []
+): Promise<EmbeddingVector> {
+  const descriptor = buildRoutineSemanticDescriptor(tuning, taskTitles);
+  return computeClientEmbedding(descriptor);
+}
+
