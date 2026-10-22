@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import {
   RoutineTuningAnswers,
+  OccupationMode,
   StudyPreference,
   EveningActivity,
   MoversWrapperMode,
@@ -48,8 +49,11 @@ import {
   Clock,
   SlidersHorizontal,
   X,
+  GraduationCap,
+  Laptop,
+  Building2,
 } from 'lucide-react';
-import { TimePicker12h } from './TimePicker12h';
+import { NativeTimePicker } from './NativeTimePicker';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -63,9 +67,40 @@ interface RoutineTunerModalProps {
   currentProfession?: string;
 }
 
+const POPULAR_PROFESSIONS = [
+  { name: 'Student', icon: GraduationCap, mode: 'college' as const },
+  { name: 'Software Engineer', icon: Code, mode: 'work' as const },
+  { name: 'Entrepreneur', icon: Flame, mode: 'work' as const },
+  { name: 'Healthcare Professional', icon: Droplets, mode: 'work' as const },
+  { name: 'Designer', icon: Palette, mode: 'independent' as const },
+  { name: 'Writer', icon: PenSquare, mode: 'independent' as const },
+  { name: 'Analyst', icon: Target, mode: 'work' as const },
+  { name: 'Marketer', icon: Users, mode: 'work' as const },
+];
+
+const ALL_PROFESSION_CATEGORIES = [
+  {
+    category: 'Creative & Media',
+    professions: ['Architect', 'Content Creator', 'Designer', 'Writer'],
+  },
+  {
+    category: 'Business & Management',
+    professions: ['Consultant', 'Entrepreneur', 'Manager', 'Marketer'],
+  },
+  {
+    category: 'Technical & Health',
+    professions: ['Analyst', 'Healthcare Professional', 'IT Professional', 'Software Engineer', 'Researcher'],
+  },
+  {
+    category: 'General & Academic',
+    professions: ['Student', 'Educator', 'Freelancer', 'Sales', 'Medical Representative', 'Delivery Agent', 'General'],
+  },
+];
+
 const DEFAULT_ANSWERS: RoutineTuningAnswers = {
   profileName: "My Tuned Routine",
   profession: "General",
+  occupationMode: "work",
   wakeUpTime: '06:30',
   sleepTime: '23:00',
   workOrCollegeStart: '09:00',
@@ -163,12 +198,81 @@ export function RoutineTunerModal({
   const [sustainabilityScore, setSustainabilityScore] = useState<number>(94);
   const [optimizationSummary, setOptimizationSummary] = useState<string>('');
 
-  const [answers, setAnswers] = useState<RoutineTuningAnswers>(() => ({
-    ...DEFAULT_ANSWERS,
-    profileName: initialAnswers?.profileName || `${defaultUserName}'s Routine`,
-    profession: initialAnswers?.profession || currentProfession || 'General',
-    ...initialAnswers,
-  }));
+  const [answers, setAnswers] = useState<RoutineTuningAnswers>(() => {
+    const prof = initialAnswers?.profession || currentProfession || 'General';
+    const isCollege = prof.toLowerCase().includes('student');
+    const isIndep = ['writer', 'designer', 'freelancer', 'artist'].some((k) =>
+      prof.toLowerCase().includes(k)
+    );
+    const mode: OccupationMode =
+      initialAnswers?.occupationMode || (isCollege ? 'college' : isIndep ? 'independent' : 'work');
+
+    return {
+      ...DEFAULT_ANSWERS,
+      profileName: initialAnswers?.profileName || `${defaultUserName}'s ${prof} Routine`,
+      profession: prof,
+      occupationMode: mode,
+      ...initialAnswers,
+    };
+  });
+
+  // Sync state whenever the modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      setPreviewTasks([]);
+      const prof = initialAnswers?.profession || currentProfession || 'General';
+      const isCollege = prof.toLowerCase().includes('student');
+      const isIndep = ['writer', 'designer', 'freelancer', 'artist'].some((k) =>
+        prof.toLowerCase().includes(k)
+      );
+      const mode: OccupationMode =
+        initialAnswers?.occupationMode || (isCollege ? 'college' : isIndep ? 'independent' : 'work');
+
+      setAnswers({
+        ...DEFAULT_ANSWERS,
+        profileName: initialAnswers?.profileName || `${defaultUserName}'s ${prof} Routine`,
+        profession: prof,
+        occupationMode: mode,
+        ...initialAnswers,
+      });
+    }
+  }, [isOpen, initialAnswers, currentProfession, defaultUserName]);
+
+  const handleSelectProfession = (prof: string) => {
+    const isCollege = prof.toLowerCase().includes('student');
+    const isIndep = ['writer', 'designer', 'freelancer', 'artist'].some((k) =>
+      prof.toLowerCase().includes(k)
+    );
+    const newMode: OccupationMode = isCollege ? 'college' : isIndep ? 'independent' : 'work';
+
+    setAnswers((prev) => {
+      const shouldUpdateName =
+        !prev.profileName ||
+        prev.profileName.endsWith('Routine') ||
+        prev.profileName === 'My Tuned Routine';
+      const newName = shouldUpdateName
+        ? `${defaultUserName}'s ${prof} Routine`
+        : prev.profileName;
+
+      return {
+        ...prev,
+        profession: prof,
+        occupationMode: newMode,
+        profileName: newName,
+      };
+    });
+  };
+
+  const isCollege =
+    answers.occupationMode === 'college' ||
+    (answers.profession || '').toLowerCase().includes('student');
+
+  const isIndependent =
+    answers.occupationMode === 'independent' ||
+    ['freelancer', 'writer', 'designer'].some((k) =>
+      (answers.profession || '').toLowerCase().includes(k)
+    );
 
   // Calculate sleeping duration for preview in step 1
   const sleepDurationHours = useMemo(() => {
@@ -344,6 +448,125 @@ export function RoutineTunerModal({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
+                {/* SECTION A: Profession & Occupation Selection */}
+                <div className="space-y-3 p-4 rounded-2xl bg-card border border-border/70 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-bold flex items-center gap-2 text-foreground">
+                      <GraduationCap className="w-4 h-4 text-emerald-400" />
+                      Choose Your Profession / Domain
+                    </Label>
+                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                      {answers.profession || 'General'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Generated schedules directly adapt to your profession's real workflows (no generic corporate filler for students or researchers).
+                  </p>
+
+                  {/* Quick Pick Popular Profession Chips */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    {POPULAR_PROFESSIONS.map((p) => {
+                      const IconC = p.icon;
+                      const isSel = answers.profession === p.name;
+                      return (
+                        <button
+                          key={p.name}
+                          type="button"
+                          onClick={() => handleSelectProfession(p.name)}
+                          className={cn(
+                            'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-left',
+                            isSel
+                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold shadow-sm'
+                              : 'border-border/60 hover:border-emerald-500/40 text-muted-foreground hover:text-foreground bg-muted/20'
+                          )}
+                        >
+                          <IconC className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* All 19 Professions Select Dropdown */}
+                  <div className="pt-2">
+                    <label htmlFor="professionSelect" className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                      Or select from all 19 Reformer domains:
+                    </label>
+                    <select
+                      id="professionSelect"
+                      value={answers.profession}
+                      onChange={(e) => handleSelectProfession(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl bg-background border border-border/80 text-foreground text-xs font-medium focus:outline-none focus:border-emerald-500 [color-scheme:dark]"
+                    >
+                      {ALL_PROFESSION_CATEGORIES.map((cat) => (
+                        <optgroup key={cat.category} label={cat.category}>
+                          {cat.professions.map((prof) => (
+                            <option key={prof} value={prof}>
+                              {prof}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Occupation / Schedule Mode Toggle */}
+                  <div className="pt-3 border-t border-border/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                        Schedule Framework Mode:
+                      </Label>
+                      <span className="text-[11px] font-mono text-muted-foreground">
+                        {answers.occupationMode === 'college'
+                          ? '🎓 College & Academics'
+                          : answers.occupationMode === 'independent'
+                          ? '💻 Independent / Remote'
+                          : '🏢 Office / Corporate'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateAnswer('occupationMode', 'college')}
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold border transition-all',
+                          answers.occupationMode === 'college'
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-300 shadow-sm'
+                            : 'border-border/60 hover:border-blue-500/40 text-muted-foreground bg-muted/20'
+                        )}
+                      >
+                        🎓 College
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateAnswer('occupationMode', 'work')}
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold border transition-all',
+                          answers.occupationMode === 'work'
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
+                            : 'border-border/60 hover:border-emerald-500/40 text-muted-foreground bg-muted/20'
+                        )}
+                      >
+                        🏢 Office / Work
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateAnswer('occupationMode', 'independent')}
+                        className={cn(
+                          'flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold border transition-all',
+                          answers.occupationMode === 'independent'
+                            ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
+                            : 'border-border/60 hover:border-purple-500/40 text-muted-foreground bg-muted/20'
+                        )}
+                      >
+                        💻 Remote / Solo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION B: Waking & Sleeping Anchors */}
                 <div className="p-4 rounded-2xl bg-muted/40 border border-border/50">
                   <h3 className="text-sm font-bold flex items-center gap-2 mb-1">
                     <Sun className="w-4 h-4 text-amber-400" />
@@ -362,11 +585,8 @@ export function RoutineTunerModal({
                         <Sun className="w-4 h-4 text-amber-400" />
                         Time Leaving Bed
                       </Label>
-                      <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                        {formatTo12h(answers.wakeUpTime)}
-                      </span>
                     </div>
-                    <TimePicker12h
+                    <NativeTimePicker
                       id="wakeUpTime"
                       value={answers.wakeUpTime}
                       onChange={(val) => updateAnswer('wakeUpTime', val)}
@@ -383,11 +603,8 @@ export function RoutineTunerModal({
                         <Moon className="w-4 h-4 text-indigo-400" />
                         Target Sleep Time
                       </Label>
-                      <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
-                        {formatTo12h(answers.sleepTime)}
-                      </span>
                     </div>
-                    <TimePicker12h
+                    <NativeTimePicker
                       id="sleepTime"
                       value={answers.sleepTime}
                       onChange={(val) => updateAnswer('sleepTime', val)}
@@ -420,27 +637,44 @@ export function RoutineTunerModal({
               >
                 <div className="p-4 rounded-2xl bg-muted/40 border border-border/50">
                   <h3 className="text-sm font-bold flex items-center gap-2 mb-1">
-                    <Briefcase className="w-4 h-4 text-blue-400" />
-                    College or Office Hours & Commute
+                    {isCollege ? (
+                      <GraduationCap className="w-4 h-4 text-blue-400" />
+                    ) : isIndependent ? (
+                      <Laptop className="w-4 h-4 text-purple-400" />
+                    ) : (
+                      <Briefcase className="w-4 h-4 text-blue-400" />
+                    )}
+                    {isCollege
+                      ? 'College Class Hours & Campus Commute'
+                      : isIndependent
+                      ? 'Deep Production Hours & Studio Setup'
+                      : 'Office / Work Hours & Daily Commute'}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     Non-negotiable obligations are cordoned off with zero overlapping tasks.
                   </p>
                 </div>
 
-                {/* Work Hours Range */}
+                {/* Work / Class Hours Range with Native Clock Picker */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="workStart" className="text-sm font-semibold flex items-center gap-1.5">
-                        <Briefcase className="w-4 h-4 text-blue-400" />
-                        Work / College Start
+                        {isCollege ? (
+                          <GraduationCap className="w-4 h-4 text-blue-400" />
+                        ) : isIndependent ? (
+                          <Laptop className="w-4 h-4 text-purple-400" />
+                        ) : (
+                          <Briefcase className="w-4 h-4 text-blue-400" />
+                        )}
+                        {isCollege
+                          ? 'Class / Lecture Start'
+                          : isIndependent
+                          ? 'Studio / Deep Focus Start'
+                          : 'Work / Office Start'}
                       </Label>
-                      <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
-                        {formatTo12h(answers.workOrCollegeStart)}
-                      </span>
                     </div>
-                    <TimePicker12h
+                    <NativeTimePicker
                       id="workStart"
                       value={answers.workOrCollegeStart}
                       onChange={(val) => updateAnswer('workOrCollegeStart', val)}
@@ -449,14 +683,21 @@ export function RoutineTunerModal({
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="workEnd" className="text-sm font-semibold flex items-center gap-1.5">
-                        <Briefcase className="w-4 h-4 text-blue-400" />
-                        Work / College End
+                        {isCollege ? (
+                          <GraduationCap className="w-4 h-4 text-blue-400" />
+                        ) : isIndependent ? (
+                          <Laptop className="w-4 h-4 text-purple-400" />
+                        ) : (
+                          <Briefcase className="w-4 h-4 text-blue-400" />
+                        )}
+                        {isCollege
+                          ? 'Class / Lecture End'
+                          : isIndependent
+                          ? 'Studio / Deep Focus End'
+                          : 'Work / Office End'}
                       </Label>
-                      <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
-                        {formatTo12h(answers.workOrCollegeEnd)}
-                      </span>
                     </div>
-                    <TimePicker12h
+                    <NativeTimePicker
                       id="workEnd"
                       value={answers.workOrCollegeEnd}
                       onChange={(val) => updateAnswer('workOrCollegeEnd', val)}
@@ -468,7 +709,11 @@ export function RoutineTunerModal({
                 <div className="space-y-2.5">
                   <Label className="text-sm font-semibold flex items-center gap-1.5">
                     <Car className="w-4 h-4 text-amber-400" />
-                    Commute Duration (One-way)
+                    {isCollege
+                      ? 'Campus Commute Duration (One-way)'
+                      : isIndependent
+                      ? 'Workspace Transition / Setup (One-way)'
+                      : 'Commute Duration (One-way)'}
                   </Label>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {COMMUTE_OPTIONS.map((c) => (
@@ -491,7 +736,7 @@ export function RoutineTunerModal({
                   </div>
                 </div>
 
-                {/* Lunch Break */}
+                {/* Lunch Break with Native Time Picker */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
                     <div className="flex items-center justify-between">
@@ -499,11 +744,8 @@ export function RoutineTunerModal({
                         <Coffee className="w-4 h-4 text-emerald-400" />
                         Average Lunch Time
                       </Label>
-                      <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                        {formatTo12h(answers.lunchBreakTime)}
-                      </span>
                     </div>
-                    <TimePicker12h
+                    <NativeTimePicker
                       id="lunchTime"
                       value={answers.lunchBreakTime}
                       onChange={(val) => updateAnswer('lunchBreakTime', val)}

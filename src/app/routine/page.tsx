@@ -82,7 +82,7 @@ import { DMDropzone } from '@/components/routine/DMDropzone';
 import { SharedRoutinesSection } from '@/components/routine/SharedRoutinesSection';
 import { exportRoutineToDMFile, shareRoutineToCommunity } from '@/lib/dmFileHandler';
 import { toast } from '@/hooks/use-toast';
-import { DMRoutineAuthor, DMRoutineFileFormat } from '@/types/routineTuner';
+import { DMRoutineAuthor, DMRoutineFileFormat, CustomRoutineProfile } from '@/types/routineTuner';
 
 // Corrected Icon component
 const Icon = ({ name, ...props }: { name: string; [key: string]: any }) => {
@@ -130,6 +130,7 @@ function RoutinePageComponent() {
 
   // Routine Tuner Modal State
   const [isTunerModalOpen, setIsTunerModalOpen] = useState(false);
+  const [tunerProfileToEdit, setTunerProfileToEdit] = useState<CustomRoutineProfile | null>(null);
   const [isImportDropzoneOpen, setIsImportDropzoneOpen] = useState(false);
 
   // Rename Dialog State
@@ -340,7 +341,10 @@ function RoutinePageComponent() {
               {/* Prominent 'Tune My Schedule' Button */}
               <Button
                 size="sm"
-                onClick={() => setIsTunerModalOpen(true)}
+                onClick={() => {
+                  setTunerProfileToEdit(null);
+                  setIsTunerModalOpen(true);
+                }}
                 className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 rounded-xl gap-1.5 h-10 px-3.5 sm:px-4 shrink-0"
               >
                 <SlidersHorizontal className="w-4 h-4 text-black" />
@@ -386,7 +390,10 @@ function RoutinePageComponent() {
 
                   <Button
                     size="sm"
-                    onClick={() => setIsTunerModalOpen(true)}
+                    onClick={() => {
+                      setTunerProfileToEdit(activeCustomProfile || null);
+                      setIsTunerModalOpen(true);
+                    }}
                     className="h-8 sm:h-9 px-3 text-xs font-bold rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 shrink-0 gap-1.5 shadow-sm"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
@@ -445,7 +452,10 @@ function RoutinePageComponent() {
 
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => setIsTunerModalOpen(true)}
+                        onClick={() => {
+                          setTunerProfileToEdit(null);
+                          setIsTunerModalOpen(true);
+                        }}
                         className="rounded-xl text-xs py-2 text-emerald-400 cursor-pointer gap-2 font-bold"
                       >
                         <SlidersHorizontal className="w-3.5 h-3.5" /> + Tune New Schedule
@@ -737,7 +747,10 @@ function RoutinePageComponent() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setIsTunerModalOpen(true)}
+                      onClick={() => {
+                        setTunerProfileToEdit(null);
+                        setIsTunerModalOpen(true);
+                      }}
                       className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 rounded-xl gap-1.5"
                     >
                       <SlidersHorizontal className="w-4 h-4" />
@@ -867,7 +880,10 @@ function RoutinePageComponent() {
       {/* Interactive Routine Tuner Modal */}
       <RoutineTunerModal
         isOpen={isTunerModalOpen}
-        onClose={() => setIsTunerModalOpen(false)}
+        onClose={() => {
+          setIsTunerModalOpen(false);
+          setTunerProfileToEdit(null);
+        }}
         onSaveProfile={async (newProfile) => {
           await saveCustomProfile(newProfile);
           toast({
@@ -880,8 +896,8 @@ function RoutinePageComponent() {
         }}
         defaultUserName={user?.displayName || profileData?.displayName || 'My'}
         currentProfession={profile || 'General'}
-        initialAnswers={activeCustomProfile?.tuningAnswers}
-        existingProfileId={activeCustomProfile?.id}
+        initialAnswers={tunerProfileToEdit?.tuningAnswers}
+        existingProfileId={tunerProfileToEdit?.id}
       />
 
       {/* Rename Profile Dialog */}

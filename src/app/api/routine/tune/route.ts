@@ -80,10 +80,22 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const lunchDuration = Math.max(25, Math.min(90, answers.lunchDurationMinutes || 45));
   const commute = Math.max(0, Math.min(90, answers.commuteDurationMinutes || 0));
 
+  // Helper to round durations to clean 5-minute increments (minimum 15m)
+  const quantize5 = (mins: number) => Math.max(15, Math.round(mins / 5) * 5);
+
   // 2. Extract Authentic Tasks from Selected Profession Routine
   const profession = answers.profession || 'General';
   const routineKey = profileToRoutineMap[profession] || 'General';
   const rawRoutine = defaultRoutines.routines[routineKey] || defaultRoutines.routines['General'] || [];
+
+  const isCollege =
+    answers.occupationMode === 'college' ||
+    profession.toLowerCase().includes('student');
+  const isIndependent =
+    answers.occupationMode === 'independent' ||
+    profession.toLowerCase().includes('freelance') ||
+    profession.toLowerCase().includes('writer') ||
+    profession.toLowerCase().includes('artist');
 
   const profWorkTasks: { name: string; duration: number; icon: string }[] = [];
   const profEveningTasks: { name: string; duration: number; icon: string }[] = [];
@@ -149,13 +161,60 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     }
   }
 
-  // Fallbacks if profession routine had minimal tasks
+  // Domain-specific fallbacks if profession routine had minimal tasks
   if (profWorkTasks.length === 0) {
-    profWorkTasks.push(
-      { name: `${profession} Strategic Execution (Block 1)`, duration: 90, icon: 'Briefcase' },
-      { name: `${profession} Core Deliverables & Operations (Block 2)`, duration: 90, icon: 'Briefcase' }
-    );
+    if (isCollege) {
+      profWorkTasks.push(
+        { name: 'Core Academic Lectures & Theory Session', duration: 90, icon: 'BookOpen' },
+        { name: 'Problem Set Execution & Laboratory Projects', duration: 90, icon: 'GraduationCap' }
+      );
+    } else if (isIndependent) {
+      profWorkTasks.push(
+        { name: 'Core Creative Foundation & Concept Sprint', duration: 90, icon: 'Palette' },
+        { name: 'Deep Independent Production & Deliverables', duration: 90, icon: 'PenTool' }
+      );
+    } else {
+      profWorkTasks.push(
+        { name: `${profession} Strategic Execution & Core Focus`, duration: 90, icon: 'Briefcase' },
+        { name: `${profession} Core Deliverables & Operations`, duration: 90, icon: 'Briefcase' }
+      );
+    }
   }
+
+  // Domain-specific commute titles
+  const morningCommuteTitle = isCollege
+    ? 'Campus Transit & Daily Academic Primer'
+    : isIndependent
+    ? 'Morning Transition & Workspace Priming'
+    : 'Morning Commute & Mindful Transit / Audio Briefing';
+
+  const eveningCommuteTitle = isCollege
+    ? 'Campus Return Transit & Intellectual Decompression'
+    : isIndependent
+    ? 'Studio Close-Down & Cognitive Decompression'
+    : 'Evening Return Transit & Cognitive Decompression';
+
+  // Domain-specific mid-day and afternoon tasks
+  const preLunchSyncTitle = isCollege
+    ? 'Academic Milestone Review & Lecture Synthesis'
+    : isIndependent
+    ? 'Creative Project Alignment & Milestone Check'
+    : `${profession} Mid-Day Execution Review & Standup Sync`;
+  const preLunchSyncIcon = isCollege ? 'BookOpen' : isIndependent ? 'Palette' : 'Briefcase';
+
+  const pmSprintTitle = isCollege
+    ? 'Coursework Application & Research Sprint'
+    : isIndependent
+    ? 'Deep Production Sprint & Portfolio Implementation'
+    : `${profession} Strategic Execution & Milestone Sprint`;
+  const pmSprintIcon = isCollege ? 'GraduationCap' : isIndependent ? 'Layers' : 'Briefcase';
+
+  const pmWrapTitle = isCollege
+    ? "Daily Academic Review & Tomorrow's Class Prep"
+    : isIndependent
+    ? 'Studio Daily Milestone Review & Project Wrap-Up'
+    : `${profession} Daily Execution Wrap-Up & Milestone Review`;
+  const pmWrapIcon = isCollege ? 'BookOpen' : isIndependent ? 'CheckCircle2' : 'Briefcase';
 
   // =========================================================================
   // QUADRANT 1: MORNING PROTOCOL (wakeMins -> workStartMins)
@@ -351,13 +410,13 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     const commuteStart = Math.max(currentPointer, workStartMins - commute);
     tasks.push({
       id: makeId('commute_m'),
-      title: 'Morning Commute & Mindful Transit / Audio Briefing',
+      title: morningCommuteTitle,
       startTime: minutesToTime(commuteStart),
       durationMinutes: commute,
       category: 'Morning Protocol',
       isMoversPillar: false,
       coinsReward: 15,
-      icon: 'Car',
+      icon: isCollege ? 'GraduationCap' : isIndependent ? 'Coffee' : 'Car',
     });
   }
 
@@ -376,7 +435,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
   const overheadMorning = 6; // Hyd #2 (2m), Eye #1 (2m), Hyd #3 (2m)
   const netMorningWorkMins = Math.max(30, morningWorkBudget - overheadMorning);
-  const rawWorkBlockDur1 = Math.floor(netMorningWorkMins / morningProfTasks.length);
+  const rawWorkBlockDur1 = quantize5(netMorningWorkMins / morningProfTasks.length);
   const workBlockDur1 = Math.min(90, Math.max(30, rawWorkBlockDur1));
 
   morningProfTasks.forEach((pt, idx) => {
@@ -388,7 +447,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       category: 'Afternoon Execution',
       isMoversPillar: false,
       coinsReward: 30,
-      icon: pt.icon || 'Briefcase',
+      icon: pt.icon || (isCollege ? 'BookOpen' : 'Briefcase'),
     });
     currentPointer += workBlockDur1;
 
@@ -421,18 +480,18 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     }
   });
 
-  // If there is extra buffer before lunch, insert tactical sync
+  // If there is extra buffer before lunch, insert contextual sync
   if (lunchMins - 2 - currentPointer >= 20) {
-    const bufferDur = Math.min(45, lunchMins - 2 - currentPointer);
+    const bufferDur = quantize5(lunchMins - 2 - currentPointer);
     tasks.push({
       id: makeId('prof_am_sync'),
-      title: `${profession} Morning Execution Review & Standup Sync`,
+      title: preLunchSyncTitle,
       startTime: minutesToTime(currentPointer),
       durationMinutes: bufferDur,
       category: 'Afternoon Execution',
       isMoversPillar: false,
       coinsReward: 20,
-      icon: 'Briefcase',
+      icon: preLunchSyncIcon,
     });
     currentPointer += bufferDur;
   }
@@ -483,8 +542,12 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const pmTasksToUse =
     afternoonProfTasks.length > 0
       ? afternoonProfTasks
-      : [{ name: `${profession} Tactical Execution & Deliverables`, duration: 90, icon: 'Briefcase' }];
-  const rawWorkBlockDur2 = Math.floor(netAfternoonWorkMins / pmTasksToUse.length);
+      : isCollege
+      ? [{ name: 'Academic Application & Project Sprint', duration: 90, icon: 'GraduationCap' }]
+      : isIndependent
+      ? [{ name: 'Independent Production & Creative Deliverables', duration: 90, icon: 'Palette' }]
+      : [{ name: `${profession} Core Execution & Deliverables`, duration: 90, icon: 'Briefcase' }];
+  const rawWorkBlockDur2 = quantize5(netAfternoonWorkMins / pmTasksToUse.length);
   const workBlockDur2 = Math.min(90, Math.max(30, rawWorkBlockDur2));
 
   pmTasksToUse.forEach((pt, idx) => {
@@ -496,7 +559,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       category: 'Afternoon Execution',
       isMoversPillar: false,
       coinsReward: 30,
-      icon: pt.icon || 'Briefcase',
+      icon: pt.icon || (isCollege ? 'GraduationCap' : isIndependent ? 'Palette' : 'Briefcase'),
     });
     currentPointer += workBlockDur2;
 
@@ -545,32 +608,46 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   });
 
   // If afternoon still has remaining time before coreWorkEndMins, insert tactical execution sprint and wrap-up
-  if (coreWorkEndMins - currentPointer >= 45) {
-    const sprintDur = Math.min(75, Math.floor((coreWorkEndMins - currentPointer) * 0.6));
+  const remAfternoon = coreWorkEndMins - currentPointer;
+  if (remAfternoon >= 50) {
+    const sprintDur = quantize5(remAfternoon * 0.55);
     tasks.push({
       id: makeId('prof_pm_sprint'),
-      title: `${profession} Tactical Operations & Focused Implementation`,
+      title: pmSprintTitle,
       startTime: minutesToTime(currentPointer),
       durationMinutes: sprintDur,
       category: 'Afternoon Execution',
       isMoversPillar: false,
       coinsReward: 30,
-      icon: 'Briefcase',
+      icon: pmSprintIcon,
     });
     currentPointer += sprintDur;
-  }
 
-  if (coreWorkEndMins - currentPointer >= 15) {
     const wrapDur = coreWorkEndMins - currentPointer;
+    if (wrapDur >= 15) {
+      tasks.push({
+        id: makeId('prof_pm_wrap'),
+        title: pmWrapTitle,
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: wrapDur,
+        category: 'Afternoon Execution',
+        isMoversPillar: false,
+        coinsReward: 25,
+        icon: pmWrapIcon,
+      });
+      currentPointer += wrapDur;
+    }
+  } else if (remAfternoon >= 20) {
+    const wrapDur = remAfternoon;
     tasks.push({
       id: makeId('prof_pm_wrap'),
-      title: `${profession} Daily Execution Wrap-Up & Milestone Review`,
+      title: pmWrapTitle,
       startTime: minutesToTime(currentPointer),
       durationMinutes: wrapDur,
       category: 'Afternoon Execution',
       isMoversPillar: false,
       coinsReward: 25,
-      icon: 'Briefcase',
+      icon: pmWrapIcon,
     });
     currentPointer += wrapDur;
   }
@@ -590,13 +667,13 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   if (commute > 0) {
     tasks.push({
       id: makeId('commute_e'),
-      title: 'Evening Return Transit & Cognitive Decompression',
+      title: eveningCommuteTitle,
       startTime: minutesToTime(currentPointer),
       durationMinutes: commute,
       category: 'Evening Recharge & Growth',
       isMoversPillar: false,
       coinsReward: 15,
-      icon: 'Car',
+      icon: isCollege ? 'GraduationCap' : isIndependent ? 'Coffee' : 'Car',
     });
     currentPointer += commute;
 

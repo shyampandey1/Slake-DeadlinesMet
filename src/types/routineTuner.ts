@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export type StudyPreference = 'early_morning' | 'late_afternoon' | 'night_owl' | 'split_blocks';
 
+export type OccupationMode = 'work' | 'college' | 'independent';
+
 export type EveningActivity =
   | 'fitness'
   | 'family_social'
@@ -26,6 +28,7 @@ export type MoversPillarType =
 export interface RoutineTuningAnswers {
   profileName: string;
   profession?: string; // Selected profession (e.g. 'Entrepreneur', 'Software Engineer')
+  occupationMode?: OccupationMode; // 'work' | 'college' | 'independent'
   wakeUpTime: string; // HH:mm (24h)
   sleepTime: string; // HH:mm (24h)
   workOrCollegeStart: string; // HH:mm (24h)
@@ -106,6 +109,7 @@ export interface SharedCommunityRoutine {
 export const RoutineTuningAnswersSchema = z.object({
   profileName: z.string().min(1, 'Profile name is required'),
   profession: z.string().optional(),
+  occupationMode: z.enum(['work', 'college', 'independent']).optional(),
   wakeUpTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid wake up time (HH:mm)'),
   sleepTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid sleep time (HH:mm)'),
   workOrCollegeStart: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid work/college start (HH:mm)'),
