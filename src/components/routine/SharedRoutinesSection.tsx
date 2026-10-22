@@ -44,7 +44,8 @@ export function SharedRoutinesSection({
 }: SharedRoutinesSectionProps) {
   const { user } = useAuth();
   const { profileData } = useProfile();
-  const [routines, setRoutines] = useState<SharedCommunityRoutine[]>([]);
+  const [sharedColRoutines, setSharedColRoutines] = useState<SharedCommunityRoutine[]>([]);
+  const [userDocRoutines, setUserDocRoutines] = useState<SharedCommunityRoutine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function SharedRoutinesSection({
     return [];
   }, [currentRoutineVector, profileData?.lifestyleVector]);
 
-  // Subscribe to community shared routines
+  // 1. Subscribe to standalone `shared_routines` collection
   useEffect(() => {
     if (!db) {
       setLoading(false);
@@ -92,17 +93,77 @@ export function SharedRoutinesSection({
           }
         });
 
-        setRoutines(loaded);
+        setSharedColRoutines(loaded);
         setLoading(false);
       },
       (error) => {
-        console.warn('[SharedRoutines] Failed to fetch shared routines:', error);
+        console.warn('[SharedRoutines] Note on standalone shared_routines listener:', error);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
   }, []);
+
+  // 2. Subscribe to user profiles with published sharedRoutine in `users` collection
+  useEffect(() => {
+    if (!db) return;
+
+    const qUsers = query(collection(db, 'users'), limit(50));
+    const unsubscribe = onSnapshot(
+      qUsers,
+      (snapshot) => {
+        const loaded: SharedCommunityRoutine[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const sr = data?.sharedRoutine;
+          if (sr && sr.dmPayload) {
+            loaded.push({
+              id: sr.id || docSnap.id,
+              author: sr.author || {
+                uid: docSnap.id,
+                displayName: data.displayName || 'Reformer',
+                profession: data.profile || 'General',
+              },
+              profileName: sr.profileName || `${data.displayName || 'Reformer'}'s Routine`,
+              wakeTime: sr.wakeTime || '06:30',
+              sleepTime: sr.sleepTime || '23:00',
+              studyWindow: sr.studyWindow || 'split_blocks',
+              routineVector: sr.routineVector || data.lifestyleVector || [],
+              tasksCount: sr.tasksCount || (sr.dmPayload?.tasks?.length || 0),
+              sustainabilityScore: sr.sustainabilityScore || 90,
+              optimizationSummary: sr.optimizationSummary,
+              sharedAt: sr.sharedAt,
+              dmPayload: sr.dmPayload,
+            });
+          }
+        });
+
+        setUserDocRoutines(loaded);
+        setLoading(false);
+      },
+      (error) => {
+        console.warn('[SharedRoutines] Note on users sharedRoutine listener:', error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Unified deduplicated routines list
+  const routines = useMemo(() => {
+    const map = new Map<string, SharedCommunityRoutine>();
+    for (const r of sharedColRoutines) {
+      map.set(r.id, r);
+    }
+    for (const u of userDocRoutines) {
+      if (!map.has(u.id)) {
+        map.set(u.id, u);
+      }
+    }
+    return Array.from(map.values());
+  }, [sharedColRoutines, userDocRoutines]);
 
   // Compute similarity & rank routines
   const rankedRoutines = useMemo(() => {
