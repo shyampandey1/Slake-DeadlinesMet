@@ -47,6 +47,7 @@ import {
   Loader2,
   Clock,
   SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { TimePicker12h } from './TimePicker12h';
 import { cn } from '@/lib/utils';
@@ -284,33 +285,42 @@ export function RoutineTunerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="fixed inset-x-0 bottom-0 top-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:inset-auto z-50 flex flex-col w-full sm:w-[95vw] sm:max-w-2xl h-[92dvh] max-h-[92dvh] sm:h-[85dvh] sm:max-h-[820px] bg-background/95 backdrop-blur-2xl border-t sm:border border-border/70 p-0 overflow-hidden rounded-t-3xl sm:rounded-3xl shadow-2xl">
-        {/* Mobile bottom-sheet grab handle */}
-        <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mt-2.5 sm:hidden shrink-0" />
-
+      <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col w-[94vw] sm:w-[92vw] max-w-2xl h-[90dvh] max-h-[850px] bg-background/95 backdrop-blur-2xl border border-border/80 p-0 overflow-hidden rounded-3xl shadow-2xl">
         {/* Wizard Header & Progress Bar */}
         <div className="shrink-0 p-4 sm:p-5 border-b border-border/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
-          <div className="flex items-center justify-between mb-3 pr-8">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="flex items-center gap-2.5 min-w-0 pr-1">
               <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                 <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
               </span>
-              <div>
-                <DialogTitle className="text-base sm:text-lg font-bold font-headline leading-tight">
+              <div className="min-w-0">
+                <DialogTitle className="text-base sm:text-lg font-bold font-headline leading-tight truncate">
                   Interactive Routine Tuner
                 </DialogTitle>
-                <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground">
+                <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground truncate">
                   Step {step} of 5 • Tailoring {answers.profession || currentProfession || 'Reformer'} MOVERS
                 </DialogDescription>
               </div>
             </div>
-            <span className="text-[10px] sm:text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-              {step === 1 && 'Anchors'}
-              {step === 2 && 'Work & Commute'}
-              {step === 3 && 'Study & Evening'}
-              {step === 4 && 'MOVERS Protocol'}
-              {step === 5 && 'Preview & Save'}
-            </span>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] sm:text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                {step === 1 && 'Anchors'}
+                {step === 2 && 'Work & Commute'}
+                {step === 3 && 'Study & Evening'}
+                {step === 4 && 'MOVERS Protocol'}
+                {step === 5 && 'Preview & Save'}
+              </span>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                aria-label="Close dialog"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Animated 5-Step Bar */}
@@ -323,7 +333,7 @@ export function RoutineTunerModal({
         </div>
 
         {/* Wizard Steps Form (Scrollable body with touch containment and bottom breathing room) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-6 pb-12">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-6 pb-8">
           <AnimatePresence mode="wait">
             {/* STEP 1: Morning & Night Anchors */}
             {step === 1 && (
@@ -877,8 +887,8 @@ export function RoutineTunerModal({
           </AnimatePresence>
         </div>
 
-        {/* Wizard Footer Controls (Locked Sticky Bottom on Mobile with Safe Area Padding) */}
-        <div className="shrink-0 p-3.5 sm:p-5 border-t border-border/40 bg-card/95 backdrop-blur flex items-center justify-between gap-3 z-30 pb-[max(1.25rem,env(safe-area-inset-bottom,20px))] sm:pb-4">
+        {/* Wizard Footer Controls (Pinned Bottom) */}
+        <div className="shrink-0 p-4 sm:p-5 border-t border-border/40 bg-card/95 backdrop-blur flex items-center justify-between gap-3 z-30">
           {step > 1 ? (
             <Button
               type="button"
