@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slake-offline-cache-v2';
+const CACHE_NAME = 'slake-offline-cache-v2.5';
 const scheduledTimers = new Map();
 
 self.addEventListener("install", (event) => {

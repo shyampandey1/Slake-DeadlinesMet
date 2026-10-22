@@ -17,7 +17,7 @@ export default function ServiceWorkerRegistrar() {
     // 1. Instantly register Service Worker to handle incoming pushes
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js")
-        .then(() => console.log("Service Worker formally registered."))
+        .then((reg) => { console.log("Service Worker formally registered."); reg.update().catch(() => {}); })
         .catch(console.error);
     }
 
