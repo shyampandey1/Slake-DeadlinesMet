@@ -3,11 +3,37 @@ import { z } from 'zod';
 export const JEV_API_KEY = process.env.JEV_API_KEY || '';
 
 export const JEV_API_BASE_URL =
-  process.env.JEV_API_BASE_URL || 'https://api.typesafe.ai/v1';
+  process.env.JEV_API_BASE_URL || 'https://api.typesafe.ai/v1/systemone';
 
 export const JEV_MODEL = 'jev-latest';
 
-const TIMEOUT_MS = 20_000; // 20-second threshold to prevent hanging requests inside Vercel serverless functions
+const TIMEOUT_MS = 20_000; // Strict 20-second threshold to prevent hanging requests inside Vercel serverless functions
+
+/**
+ * Universal safe string extractor for JEV TypeSafe SystemOne responses.
+ * Guarantees that no object (e.g. { answer: '...' }, { choice: '...' }, { reasoning: '...' })
+ * is ever rendered or coerced into the string "[object Object]".
+ */
+export function extractJevText(val: unknown, fallback: string = ''): string {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>;
+    if (typeof obj.choice === 'string') return obj.choice;
+    if (typeof obj.answer === 'string') return obj.answer;
+    if (typeof obj.text === 'string') return obj.text;
+    if (typeof obj.content === 'string') return obj.content;
+    if (typeof obj.reasoning === 'string') return obj.reasoning;
+    if (typeof obj.response === 'string') return obj.response;
+    if (typeof obj.value === 'string') return obj.value;
+    if (typeof obj.label === 'string') return obj.label;
+    if (typeof obj.summary === 'string') return obj.summary;
+    if (obj.answer !== undefined && obj.answer !== null) return String(obj.answer);
+    if (obj.choice !== undefined && obj.choice !== null) return String(obj.choice);
+  }
+  return fallback;
+}
 
 export type TypeSafeChoiceQuestion = {
   type: 'choice';

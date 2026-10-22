@@ -46,8 +46,11 @@ export function useAgentAudio() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micSourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const isPlayingRef = useRef<boolean>(false);
+  const isListeningMicRef = useRef<boolean>(false);
 
   // Resume suspended AudioContext on user interaction
   const ensureAudioContextRunning = useCallback(async () => {
@@ -61,13 +64,14 @@ export function useAgentAudio() {
     }
   }, []);
 
-  // Update real-time frequency data loop via requestAnimationFrame
+  // Update real-time frequency data loop via requestAnimationFrame (Web Audio 16-bin FFT Analyser)
   const startVisualizerLoop = useCallback(() => {
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
 
     const updateLoop = () => {
       const shared = getSharedAudioContext();
-      if (shared && shared.analyser && isPlayingRef.current) {
+      const isActive = isPlayingRef.current || isListeningMicRef.current;
+      if (shared && shared.analyser && isActive) {
         const bufferLength = shared.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         shared.analyser.getByteFrequencyData(dataArray);
@@ -79,7 +83,7 @@ export function useAgentAudio() {
 
         for (let i = 0; i < bins; i++) {
           const val = dataArray[i * step] || 0;
-          normalized[i] = val / 255;
+          normalized[i] = Math.min(1.0, val / 255);
         }
 
         setWaveformFrequencies(normalized);
@@ -91,6 +95,47 @@ export function useAgentAudio() {
     };
 
     rafIdRef.current = requestAnimationFrame(updateLoop);
+  }, []);
+
+  const startMicVisualizer = useCallback(async () => {
+    try {
+      await ensureAudioContextRunning();
+      const shared = getSharedAudioContext();
+      if (!shared) return;
+
+      if (!micStreamRef.current && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+        if (stream) {
+          micStreamRef.current = stream;
+          try {
+            micSourceNodeRef.current = shared.ctx.createMediaStreamSource(stream);
+            micSourceNodeRef.current.connect(shared.analyser);
+          } catch (e) {
+            console.warn('[useAgentAudio] Mic stream source attach error:', e);
+          }
+        }
+      }
+      isListeningMicRef.current = true;
+      startVisualizerLoop();
+    } catch (err) {
+      console.warn('[useAgentAudio] Failed to start mic visualizer:', err);
+    }
+  }, [ensureAudioContextRunning, startVisualizerLoop]);
+
+  const stopMicVisualizer = useCallback(() => {
+    isListeningMicRef.current = false;
+    if (micSourceNodeRef.current) {
+      try {
+        micSourceNodeRef.current.disconnect();
+      } catch (e) {}
+      micSourceNodeRef.current = null;
+    }
+    if (micStreamRef.current) {
+      try {
+        micStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (e) {}
+      micStreamRef.current = null;
+    }
   }, []);
 
   const stopPlayback = useCallback(() => {
@@ -289,5 +334,7 @@ export function useAgentAudio() {
     isPlaying,
     waveformFrequencies,
     ensureAudioContextRunning,
+    startMicVisualizer,
+    stopMicVisualizer,
   };
 }

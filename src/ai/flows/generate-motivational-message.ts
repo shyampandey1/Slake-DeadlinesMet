@@ -6,7 +6,14 @@
  */
 
 import { z } from 'zod';
-import { callTypeSafeSystemOne } from '@/lib/jevClient';
+import {
+  callTypeSafeSystemOne,
+  createChoiceQuestion,
+  createScoreQuestion,
+  createNoulQuestion,
+  extractJevText,
+  TypeSafeQuestion,
+} from '@/lib/jevClient';
 
 const GenerateMotivationalMessageInputSchema = z.object({
   taskName: z.string().describe('The name of the completed task.'),
@@ -93,38 +100,43 @@ export async function generateMotivationalMessage(
       pastCompletionsCount: pastTasks.length,
     };
 
-    const questions: Record<string, any> = {
-      momentumScore: {
-        type: 'score',
-        instructions: 'Score user momentum and execution velocity on a 1-10 scale based on this completed block.',
-        criteria: ['1-3 (Slow)', '4-6 (Steady)', '7-8 (High Flow)', '9-10 (Elite Performance)'],
-      },
-      toneCategory: {
-        type: 'choice',
-        instructions: 'Select the optimal coaching tone for post-task reinforcement.',
-        criteria: {
+    const questions: Record<string, TypeSafeQuestion> = {
+      momentumScore: createScoreQuestion(
+        ['1-3 (Slow)', '4-6 (Steady)', '7-8 (High Flow)', '9-10 (Elite Performance)'],
+        'Score user momentum and execution velocity on a 1-10 scale based on this completed block.'
+      ),
+      toneCategory: createChoiceQuestion(
+        {
           Celebratory: 'Celebrate milestone achievement and hard effort with high energy.',
           Discipline: 'Emphasize consistency, habit compounding, and maintaining the streak.',
           Mindful: 'Encourage presence, clear breathing, and grounding after deep focus.',
           Recovery: 'Highlight rest, cellular hydration, and eye relaxation.',
         },
-      },
-      needsHydration: {
-        type: 'noul',
-        instructions: 'Should the user prioritize hydration and physical posture reset before their next session?',
-      },
+        'Select the optimal coaching tone for post-task reinforcement.'
+      ),
+      needsHydration: createNoulQuestion(
+        'Should the user prioritize hydration and physical posture reset before their next session?'
+      ),
     };
 
     const jevResponse = await callTypeSafeSystemOne({ state, questions });
     if (jevResponse?.answers) {
-      if (jevResponse.answers.toneCategory?.choice) {
-        toneCategory = jevResponse.answers.toneCategory.choice;
+      const extractedTone = extractJevText(jevResponse.answers.toneCategory);
+      if (extractedTone) {
+        toneCategory = extractedTone;
       }
-      if (typeof jevResponse.answers.momentumScore?.score === 'number') {
-        momentumScore = jevResponse.answers.momentumScore.score;
+      const scoreVal = typeof jevResponse.answers.momentumScore?.score === 'number'
+        ? jevResponse.answers.momentumScore.score
+        : typeof jevResponse.answers.momentumScore === 'number'
+        ? jevResponse.answers.momentumScore
+        : null;
+      if (scoreVal !== null) {
+        momentumScore = Math.min(10, Math.max(1, Math.round(scoreVal)));
       }
       if (jevResponse.answers.needsHydration?.answer !== undefined) {
         needsHydration = Boolean(jevResponse.answers.needsHydration.answer);
+      } else if (typeof jevResponse.answers.needsHydration === 'boolean') {
+        needsHydration = jevResponse.answers.needsHydration;
       }
     }
   } catch (err: any) {

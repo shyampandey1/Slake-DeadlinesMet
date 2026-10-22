@@ -4,6 +4,7 @@ import {
   createChoiceQuestion,
   createScoreQuestion,
   createNoulQuestion,
+  extractJevText,
 } from '@/lib/jevClient';
 
 export interface AuditRedemptionRequestBody {
@@ -156,17 +157,15 @@ export async function POST(req: NextRequest) {
         if (typeof jevResult.answers.trustScore === 'number') {
           trustScore = Math.min(100, Math.max(0, Math.round(jevResult.answers.trustScore)));
         }
-        const verdictAnswer = jevResult.answers.auditVerdict as string;
+        const verdictAnswer = extractJevText(jevResult.answers.auditVerdict, auditVerdict);
         if (
           verdictAnswer === 'AUTO_APPROVED' ||
           verdictAnswer === 'MANUAL_REVIEW_FLAGGED' ||
           verdictAnswer === 'REJECTED_FARMING'
         ) {
-          auditVerdict = verdictAnswer;
+          auditVerdict = verdictAnswer as AuditVerdict;
         }
-        if (jevResult.answers.auditReasoning) {
-          auditReasoning = String(jevResult.answers.auditReasoning);
-        }
+        auditReasoning = extractJevText(jevResult.answers.auditReasoning, auditReasoning);
       }
     } catch (jevErr) {
       console.warn('[AuditRedemption] JEV SystemOne fallback active:', jevErr);

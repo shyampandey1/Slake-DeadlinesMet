@@ -28,9 +28,15 @@ export default function CoReformerSyncWatcher() {
         const peer = snap.data() as UserProfile;
         const active = peer?.activeSession;
 
-        if (!active || !active.taskName) return;
+        const activeAny = active as any;
+        if (!active || !active.taskName || active.taskName.trim() === '') return;
+        if (activeAny.status === 'IDLE' || activeAny.isIdle || activeAny.currentTaskId === null) return;
 
         const now = Date.now();
+        const updatedAt = activeAny.updatedAtMillis || activeAny.startTime || 0;
+        // Ignore stale sessions older than 10 minutes
+        if (updatedAt && (now - updatedAt > 10 * 60 * 1000)) return;
+
         const expectedEndTime = active.expectedEndTime || 0;
         const isRunning = !active.isPaused && expectedEndTime > now;
         const isPausedWithTime = active.isPaused && (active.timeLeftWhenPaused ?? 0) > 0;

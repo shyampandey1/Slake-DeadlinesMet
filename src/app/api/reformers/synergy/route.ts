@@ -3,6 +3,7 @@ import {
   callTypeSafeSystemOne,
   createScoreQuestion,
   createNoulQuestion,
+  extractJevText,
 } from '@/lib/jevClient';
 
 export interface SynergyRequestBody {
@@ -91,14 +92,11 @@ export async function POST(req: NextRequest) {
         if (typeof jevResult.answers.synergyScore === 'number') {
           synergyScore = Math.min(100, Math.max(50, Math.round(jevResult.answers.synergyScore)));
         }
-        if (jevResult.answers.sharedStrength) {
-          sharedStrength = String(jevResult.answers.sharedStrength);
-        }
-        if (jevResult.answers.recommendedSprintTopic) {
-          recommendedSprintTopic = String(jevResult.answers.recommendedSprintTopic);
-        }
-        if (jevResult.answers.recommendedDurationMinutes) {
-          const parsed = parseInt(String(jevResult.answers.recommendedDurationMinutes), 10);
+        sharedStrength = extractJevText(jevResult.answers.sharedStrength, sharedStrength);
+        recommendedSprintTopic = extractJevText(jevResult.answers.recommendedSprintTopic, recommendedSprintTopic);
+        const durationText = extractJevText(jevResult.answers.recommendedDurationMinutes, '');
+        if (durationText) {
+          const parsed = parseInt(durationText, 10);
           if (!isNaN(parsed) && parsed > 0) {
             recommendedDurationMinutes = parsed;
           }
@@ -108,7 +106,15 @@ export async function POST(req: NextRequest) {
       console.warn('[SynergyRoute] JEV SystemOne fallback active:', jevErr);
     }
 
-    const compatibilityBadge = `${synergyScore}% Synergy • ${sharedStrength}`;
+    const formatPreference = (pref?: string) => {
+      if (!pref) return 'Flexible Focus Sessions';
+      const clean = pref.toLowerCase().replace(/_/g, ' ');
+      if (clean.includes('morning')) return 'Prefers Morning Focus Sessions';
+      if (clean.includes('evening')) return 'Prefers Evening Focus Sessions';
+      return 'Prefers Synchronized Focus Sessions';
+    };
+
+    const compatibilityBadge = `${synergyScore}% Routine Match • ${formatPreference(state.matchedPartner.wrapper)}`;
 
     const responsePayload: SynergyResponse = {
       synergyScore,

@@ -122,7 +122,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     isAmbientEnabled, setAmbientEnabled, selectedAmbient, setSelectedAmbient, ambientVolume, setAmbientVolume,
     isSoundtrackEnabled, setSoundtrackEnabled, selectedSoundtrack, setSelectedSoundtrack, soundtrackVolume, setSoundtrackVolume
   } = useAudioSettings();
-  const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized, focusInterval: contextFocusInterval } = useActiveTimer();
+  const { startTimer, clearTimer, updateTimer, activeTimer, isInitialized, focusInterval: contextFocusInterval, setFocusInterval: setContextFocusInterval } = useActiveTimer();
   const { weatherData, location } = useWeather();
   const { profileData, updateUserProfileData } = useProfile();
   const { user } = useAuth();
@@ -485,11 +485,13 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       }
     });
 
-    if (session) {
+    if (session || resolvedCoOpSessionId) {
       updateSession({
         isPaused: nextPaused,
         timeLeftWhenPaused: nextPaused ? timeRemainingRef.current : null,
-        status: nextPaused ? "waiting" : "running",
+        remainingSeconds: timeRemainingRef.current,
+        status: nextPaused ? "PAUSED" : "RUNNING",
+        updatedAtMillis: Date.now(),
         expectedEndTime: nextPaused ? null : newEndTime
       });
     }
@@ -522,7 +524,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
 
     clearTimer();
     setFlashState('none');
-    if (session) {
+    if (session || resolvedCoOpSessionId) {
       updateSession({ status: "finished" });
     }
     updateUserProfileData({
@@ -563,7 +565,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   const handleEndEarly = useCallback(() => {
     setIsPaused(true);
     setIsFinished(true);
-    if (session) {
+    if (session || resolvedCoOpSessionId) {
       updateSession({ status: "finished", isPaused: true });
     }
     updateUserProfileData({
@@ -576,7 +578,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     setIsFinished(false);
     clearTimer();
     setFlashState('none');
-    if (session) {
+    if (session || resolvedCoOpSessionId) {
       updateSession({ status: "finished" });
     }
     updateUserProfileData({
@@ -690,6 +692,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
             name: t.name,
             duration: Number(t.duration) || 15,
             category: t.category || finalCategory,
+            icon: (t as any).icon || 'BrainCircuit',
           })),
           pastTasks,
           currentCategory: taskCategory || newTask.category,
@@ -746,12 +749,23 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
         expectedEndTimeRef.current = Date.now() + resetSeconds * 1000;
         setIsPaused(false);
         updateTimer({ isPaused: false, expectedEndTime: expectedEndTimeRef.current }, resetSeconds);
+      } else if (detail.action === 'TIMER_SET_INTERVAL') {
+        const intervalMins = detail.intervalMinutes !== undefined ? detail.intervalMinutes : (detail.durationMinutes || 10);
+        setFocusInterval(intervalMins);
+        setContextFocusInterval?.(intervalMins);
+        setFlashState('three-times');
+        setTimeout(() => setFlashState('none'), 1200);
+        playTick();
+        toast({
+          title: "Interval Alert Configured 🔔",
+          description: intervalMins === 0 ? "Interval alerts disabled." : `Chimes every ${intervalMins} minutes.`,
+        });
       }
     };
 
     window.addEventListener('slake-timer-voice-action', handleVoiceTimerAction);
     return () => window.removeEventListener('slake-timer-voice-action', handleVoiceTimerAction);
-  }, [togglePause, handleEndEarly, handleSkipTask, handleSaveTask, effectiveDuration, updateTimer]);
+  }, [togglePause, handleEndEarly, handleSkipTask, handleSaveTask, effectiveDuration, updateTimer, setFocusInterval, setContextFocusInterval, toast]);
 
   // Sync Hydration Audio with play state and volume settings
   useEffect(() => {
@@ -1096,7 +1110,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
 
     // CO-OP SYNC ENGINE
     useEffect(() => {
-        if (!session || !resolvedCoOpSessionId || session.id !== resolvedCoOpSessionId || session.taskName !== taskName || !syncComplete || !user) return;
+        if (!session || !resolvedCoOpSessionId || session.id !== resolvedCoOpSessionId || !syncComplete || !user) return;
 
         // Auto-start session if it is still waiting while local timer is running
         if (session.status === "waiting" && !isPaused && session.createdBy === user.uid) {
@@ -1110,14 +1124,40 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
             return;
         }
 
-        const snapshotKey = `${session.id}_${session.status}_${session.isPaused}_${session.expectedEndTime}_${session.timeLeftWhenPaused}_${session.lastActionBy}_${session.lastActionAt?.toMillis?.() || session.lastActionAt?.seconds || ''}`;
+        const snapshotKey = `${session.id}_${session.status}_${session.isPaused}_${session.remainingSeconds}_${session.expectedEndTime}_${session.timeLeftWhenPaused}_${session.lastActionBy}_${session.updatedAtMillis || ''}`;
         if (lastSyncedSessionSnapshotRef.current === snapshotKey) return;
         lastSyncedSessionSnapshotRef.current = snapshotKey;
 
         // ONLY sync if the change did NOT originate from this user's current device action
         if (!session.lastActionBy || session.lastActionBy !== user.uid) {
             // Update local state from shared session
-            if (session.isPaused !== isPaused) {
+            const isPartnerPaused = session.status === "PAUSED" || session.status === "waiting" || session.isPaused === true;
+            const isPartnerRunning = (session.status === "RUNNING" || session.status === "running") && !session.isPaused;
+
+            if (isPartnerPaused && !isPaused) {
+                const rem = session.remainingSeconds ?? session.timeLeftWhenPaused ?? timeRemainingRef.current;
+                setIsPaused(true);
+                timeRemainingRef.current = rem;
+                setTimeRemaining(rem);
+                expectedEndTimeRef.current = null;
+                updateTimer({ isPaused: true, timeLeftWhenPaused: rem }, rem);
+                toast({
+                    title: "Partner Paused ⏸️",
+                    description: "Timer paused in lockstep with focus partner.",
+                });
+            } else if (isPartnerRunning && isPaused) {
+                const rem = session.remainingSeconds ?? session.timeLeftWhenPaused ?? timeRemainingRef.current;
+                const newExpected = session.expectedEndTime || (Date.now() + rem * 1000);
+                setIsPaused(false);
+                timeRemainingRef.current = rem;
+                setTimeRemaining(rem);
+                expectedEndTimeRef.current = newExpected;
+                updateTimer({ isPaused: false, expectedEndTime: newExpected }, rem);
+                toast({
+                    title: "Partner Resumed ▶️",
+                    description: "Timer resumed in lockstep with focus partner.",
+                });
+            } else if (session.isPaused !== isPaused) {
                 setIsPaused(session.isPaused);
                 updateTimer({ isPaused: session.isPaused }, session.timeLeftWhenPaused || undefined);
 
@@ -1214,7 +1254,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
         triggerHaptic([300, 100, 300]); // Expiration Burst vibration
         showCompletionNotification(false); // Immediate one
         clearTimer(); // End background tracking
-        if (session) {
+        if (session || resolvedCoOpSessionId) {
           updateSession({ status: "finished" });
         }
         updateUserProfileData({

@@ -3,6 +3,7 @@ import {
   callTypeSafeSystemOne,
   createChoiceQuestion,
   createNoulQuestion,
+  extractJevText,
 } from '@/lib/jevClient';
 
 export interface AdaptivePacingPayload {
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (jevResult && jevResult.answers) {
-        const actionAnswer = jevResult.answers.recommendedAction as string;
+        const actionAnswer = extractJevText(jevResult.answers.recommendedAction, recommendedAction);
         if (
           actionAnswer === 'CONTINUE' ||
           actionAnswer === 'TRIGGER_EYE_BREAK' ||
@@ -108,9 +109,7 @@ export async function POST(req: NextRequest) {
           recommendedAction = actionAnswer;
         }
 
-        if (jevResult.answers.agentSpeechPrompt) {
-          agentSpeechPrompt = String(jevResult.answers.agentSpeechPrompt);
-        }
+        agentSpeechPrompt = extractJevText(jevResult.answers.agentSpeechPrompt, agentSpeechPrompt);
       }
     } catch (jevErr) {
       console.warn('[AdaptivePacing] JEV SystemOne fallback active:', jevErr);

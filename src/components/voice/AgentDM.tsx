@@ -113,31 +113,19 @@ export default function AgentDM() {
 
   return (
     <>
-      {/* Viewport Floating HUD Capsule (Rendered conditionally when toggled on) */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="agent-dm-floating-hud"
-            drag
-            dragMomentum={false}
-            dragElastic={0.08}
-            initial={{ y: -60, opacity: 0, scale: 0.92 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -60, opacity: 0, scale: 0.92 }}
-            transition={{ type: "spring", stiffness: 420, damping: 26 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-grab active:cursor-grabbing flex flex-col items-center gap-1.5 touch-none"
-            onClick={handlePillClick}
-          >
-            <div
-              className={cn(
-                "backdrop-blur-xl bg-slate-950/90 border border-emerald-500/30 shadow-2xl rounded-full pl-2.5 pr-3.5 py-1.5 sm:py-2 flex items-center gap-2.5 sm:gap-3 transition-all duration-300",
-                "hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]",
-                isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
-                isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
-                isSpeaking && "border-emerald-400/80 shadow-[0_0_35px_rgba(16,185,129,0.45)] ring-2 ring-emerald-400/40",
-                isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
-              )}
-            >
+      {/* Viewport Persistent Floating HUD Capsule */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 select-none cursor-grab active:cursor-grabbing flex flex-col items-center gap-1.5 touch-none">
+        <div
+          onClick={handlePillClick}
+          className={cn(
+            "backdrop-blur-xl bg-slate-950/80 border border-emerald-500/20 shadow-2xl rounded-full px-4 py-2 flex items-center gap-3 transition-all duration-300",
+            "hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]",
+            isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
+            isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
+            isSpeaking && "border-emerald-400/80 shadow-[0_0_35px_rgba(16,185,129,0.45)] ring-2 ring-emerald-400/40",
+            isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
+          )}
+        >
               {/* Drag Handle Grip */}
               <div 
                 className="text-emerald-500/40 hover:text-emerald-400 cursor-grab active:cursor-grabbing -mr-1"
@@ -207,23 +195,18 @@ export default function AgentDM() {
                         "Listening..."
                       )}
                     </span>
-                    {/* Listening Rhythm Bars */}
+                    {/* Real-time 16-bin Audio-Reactive Waveform Equalizer */}
                     <div className="flex items-center gap-[2.5px] h-5 px-1">
-                      {[0.4, 0.8, 0.6, 1.0, 0.7, 0.9, 0.5, 0.85, 0.45, 0.75, 1.0, 0.65, 0.9, 0.5, 0.8, 0.35].map((baseHeight, idx) => (
-                        <motion.div
-                          key={idx}
-                          className="w-[2.5px] bg-emerald-400 rounded-full"
-                          animate={{
-                            height: ['4px', String(Math.max(6, baseHeight * 18)) + 'px', '4px'],
-                          }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 0.6 + (idx % 4) * 0.12,
-                            delay: idx * 0.04,
-                            ease: 'easeInOut',
-                          }}
-                        />
-                      ))}
+                      {activeFrequencies.map((freq, idx) => {
+                        const barHeight = Math.max(4, Math.min(22, Math.round(freq * 22)));
+                        return (
+                          <div
+                            key={idx}
+                            style={{ height: barHeight + 'px' }}
+                            className="w-[2.5px] bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-full transition-[height] duration-75 ease-out shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -300,9 +283,7 @@ export default function AgentDM() {
                 </span>
               </motion.div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
 
       {/* Expanded Interactive Command Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

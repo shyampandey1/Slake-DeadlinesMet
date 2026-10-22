@@ -109,8 +109,8 @@ export const DOMAIN_ANCHOR_PHRASES: Record<Exclude<SemanticDomain, 'OUT_OF_DOMAI
   ],
 };
 
-export const SEMANTIC_GATE_THRESHOLD = 0.65;
-export const SEMANTIC_INTENT_THRESHOLD = 0.72;
+export const SEMANTIC_GATE_THRESHOLD = 0.68;
+export const SEMANTIC_INTENT_THRESHOLD = 0.88;
 
 interface CachedAnchor {
   domain: Exclude<SemanticDomain, 'OUT_OF_DOMAIN'>;

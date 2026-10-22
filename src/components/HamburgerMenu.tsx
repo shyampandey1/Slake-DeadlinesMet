@@ -93,7 +93,7 @@ const changelog = [
         { name: "Rewards & Gamification", description: "Earn Slake Credits and view your global leaderboard position in the new Achievement Center.", icon: "trophy" },
         { name: "Shareable Certificates", description: "Export high-quality achievement cards for hydration, diet, and productivity streaks directly to your phone.", icon: "palette" },
         { name: "Health & Biometrics", description: "Added BMI tracking and Google Fit bindings inside settings to contextualize your physical data.", icon: "heart-pulse" },
-        { name: "Gemini 1.5 Flash Engine", description: "Upgraded our core Genkit AI engine to Gemini 1.5 for faster, smarter weekly insight generation.", icon: "brain-circuit" },
+        { name: "JEV TypeSafe SystemOne Engine", description: "Upgraded our core AI engine to JEV TypeSafe SystemOne for faster, smarter weekly insight generation.", icon: "brain-circuit" },
       ]
   },
   {

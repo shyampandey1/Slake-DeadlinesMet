@@ -13,7 +13,9 @@ export interface CoOpSession {
     expectedEndTime: number | null;
     isPaused: boolean;
     timeLeftWhenPaused: number | null;
-    status: "waiting" | "running" | "finished";
+    status: "waiting" | "running" | "finished" | "PAUSED" | "RUNNING" | "IDLE";
+    remainingSeconds?: number | null;
+    updatedAtMillis?: number | null;
     participants: string[];
     createdBy: string;
     lastActionBy: string;
@@ -100,6 +102,7 @@ export const useCoOpSession = (sessionId?: string, autoDetect: boolean = false) 
         try {
             await updateDoc(doc(db, "coop_sessions", targetId), {
                 ...updates,
+                updatedAtMillis: Date.now(),
                 lastActionBy: user.uid,
                 lastActionAt: serverTimestamp()
             });

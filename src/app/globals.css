@@ -3,6 +3,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+  touch-action: manipulation;
+}
+
 html {
   scrollbar-gutter: stable;
 }
@@ -92,6 +97,11 @@ html {
   }
   input,
   textarea,
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
   [contenteditable="true"],
   select,
   code,

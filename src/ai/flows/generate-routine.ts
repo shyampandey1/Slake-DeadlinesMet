@@ -61,15 +61,16 @@ export async function generateAIRoutine(input: GenerateRoutineInput): Promise<Ge
     });
 
     // 2. Synthesize canonical structured routine from 18-profession library
-    const matchedKey = (Object.keys(defaultRoutines).find(
+    const routinesMap = defaultRoutines.routines as Record<string, Array<{ name: string; duration: number; icon: string; category: string }>>;
+    const matchedKey = (Object.keys(routinesMap).find(
       (p) => p.toLowerCase() === profession.toLowerCase()
-    ) || 'General') as ProfileType;
+    ) || 'General');
 
-    const tasks = defaultRoutines[matchedKey] || defaultRoutines['General'];
+    const tasks = routinesMap[matchedKey] || routinesMap['General'] || [];
 
     const routines: Record<string, { color: string; tasks: Array<{ name: string; duration: number; icon: string; category: string }> }> = {};
 
-    tasks.forEach((t) => {
+    tasks.forEach((t: { name: string; duration: number; icon: string; category?: string }) => {
       const cat = t.category || 'General';
       if (!routines[cat]) {
         const config = (categoryConfig as any)[cat];
@@ -89,9 +90,10 @@ export async function generateAIRoutine(input: GenerateRoutineInput): Promise<Ge
     return { routines };
   } catch (error: any) {
     console.error('AI Routine Generation Error:', error);
-    const fallbackTasks = defaultRoutines['General'];
+    const routinesMap = defaultRoutines.routines as Record<string, Array<{ name: string; duration: number; icon: string; category: string }>>;
+    const fallbackTasks = routinesMap['General'] || [];
     const routines: Record<string, { color: string; tasks: any[] }> = {};
-    fallbackTasks.forEach((t) => {
+    fallbackTasks.forEach((t: { name: string; duration: number; icon: string; category?: string }) => {
       const cat = t.category || 'General';
       if (!routines[cat]) {
         routines[cat] = { color: 'bg-slate-800 text-white', tasks: [] };

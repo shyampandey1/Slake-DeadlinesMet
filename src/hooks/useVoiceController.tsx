@@ -149,11 +149,22 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [waveformAmplitudes] = useState<number[]>(() => new Array(16).fill(0.3));
   // Neural Voice Engine & Audio-reactive Waveform
-  const { speak: neuralSpeak, stopPlayback: stopNeuralPlayback, waveformFrequencies, ensureAudioContextRunning } = useAgentAudio();
+  const {
+    speak: neuralSpeak,
+    stopPlayback: stopNeuralPlayback,
+    waveformFrequencies,
+    ensureAudioContextRunning,
+    startMicVisualizer,
+    stopMicVisualizer,
+  } = useAgentAudio();
   const neuralSpeakRef = useRef(neuralSpeak);
   useEffect(() => { neuralSpeakRef.current = neuralSpeak; }, [neuralSpeak]);
   const stopNeuralPlaybackRef = useRef(stopNeuralPlayback);
   useEffect(() => { stopNeuralPlaybackRef.current = stopNeuralPlayback; }, [stopNeuralPlayback]);
+  const startMicVisualizerRef = useRef(startMicVisualizer);
+  useEffect(() => { startMicVisualizerRef.current = startMicVisualizer; }, [startMicVisualizer]);
+  const stopMicVisualizerRef = useRef(stopMicVisualizer);
+  useEffect(() => { stopMicVisualizerRef.current = stopMicVisualizer; }, [stopMicVisualizer]);
 
 
   const addTaskRef = useRef(addTask);
@@ -416,6 +427,17 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           case 'TIMER_SET_INTERVAL': {
             const interval = intent.durationMinutes !== undefined ? intent.durationMinutes : (intent.intervalMinutes || 10);
             setFocusIntervalRef.current(interval);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('slake-timer-voice-action', {
+                  detail: {
+                    action: 'TIMER_SET_INTERVAL',
+                    intervalMinutes: interval,
+                    durationMinutes: interval,
+                  },
+                })
+              );
+            }
             toastRef.current({
               title: 'Interval Alerts Configured 🔔',
               description: interval === 0 ? 'Interval reminders disabled.' : `Alert every ${interval} minutes.`,
@@ -654,40 +676,12 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           return;
         }
 
-        // --- TIER 2A: Search Existing Routine & Preset Tasks with Embedded Gemma ---
+        // --- TIER 2: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
         const existingCandidates = candidateTasksRef.current || [];
-        const taskMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, existingCandidates, 3);
-        if (taskMatches.length > 0) {
-          const topMatch = taskMatches[0];
-          const runnerUpSim = taskMatches[1]?.similarity || 0;
-          const isTaskIntent =
-            topMatch.intent.action === 'TIMER_START' || topMatch.intent.action === 'TASK_CREATE';
-
-          // If matched an existing task above threshold (0.52 with margin >= 0.10, or >= 0.65)
-          if (
-            isTaskIntent &&
-            topMatch.similarity >= 0.52 &&
-            (topMatch.similarity >= 0.65 || (topMatch.similarity - runnerUpSim) >= 0.10)
-          ) {
-            const matchedIntent = topMatch.intent;
-            setDetectedIntent(matchedIntent);
-            await executeIntent(matchedIntent);
-            return;
-          }
-
-          // If matched a canonical voice command exemplar with high confidence (>= 0.76)
-          if (!isTaskIntent && topMatch.similarity >= 0.76) {
-            const matchedIntent = topMatch.intent;
-            setDetectedIntent(matchedIntent);
-            await executeIntent(matchedIntent);
-            return;
-          }
-        }
-
-        // --- TIER 2B: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
         const gateResult = await evaluateSemanticGate(clean, existingCandidates);
-        if (!gateResult.passed || gateResult.domain === 'OUT_OF_DOMAIN') {
-          // Reject out-of-domain hallucinations with double-pulse error haptic [40, 60, 40]
+
+        // Strict OOD Rejection Gate (< 0.68 cosine similarity)
+        if (!gateResult.passed || gateResult.domain === 'OUT_OF_DOMAIN' || gateResult.maxSimilarity < 0.68) {
           triggerHaptic([40, 60, 40]);
           const rejectionSpeech = 'I only control your routine and timer.';
           setDetectedIntent({
@@ -700,14 +694,23 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           return;
         }
 
-        // If EmbeddingGemma resolved a high-confidence canonical intent or user routine task directly, execute it!
-        if (gateResult.resolvedIntent && (gateResult.resolvedIntent.confidence || 0) >= 0.80) {
+        // Direct Execution Gate (>= 0.88 similarity resolved intent)
+        if (gateResult.resolvedIntent && (gateResult.resolvedIntent.confidence || 0) >= 0.88) {
           setDetectedIntent(gateResult.resolvedIntent);
           await executeIntent(gateResult.resolvedIntent);
           return;
         }
 
-        // --- TIER 3: JEV TypeSafe Parametric Extraction Constrained by Matched Domain ---
+        // Check if matched user routine task with >= 0.88 similarity
+        const taskMatches = await searchCommandsAndTasksWithEmbeddingGemma(clean, existingCandidates, 2);
+        if (taskMatches.length > 0 && taskMatches[0].similarity >= 0.88) {
+          const matchedIntent = taskMatches[0].intent;
+          setDetectedIntent(matchedIntent);
+          await executeIntent(matchedIntent);
+          return;
+        }
+
+        // --- TIER 3: JEV TypeSafe Parametric Extraction (0.68 - 0.88 Similarity) ---
         const curTimer = activeTimerRef.current;
         const payload: VoiceCommandRequest = {
           transcript: clean,
@@ -763,6 +766,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
 
   // Stop listening gracefully and finalize transcript
   const stopListening = useCallback(() => {
+    stopMicVisualizerRef.current?.();
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -839,6 +843,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
         isListeningRef.current = true;
         setAgentState('LISTENING');
         triggerHaptic([50]);
+        startMicVisualizerRef.current?.();
       };
 
       recognition.onresult = (event: any) => {
@@ -862,6 +867,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       };
 
       recognition.onerror = (event: any) => {
+        stopMicVisualizerRef.current?.();
         console.warn('[Agent DM] Speech recognition event error:', event.error);
         isStartingRef.current = false;
 
@@ -887,6 +893,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       };
 
       recognition.onend = () => {
+        stopMicVisualizerRef.current?.();
         isStartingRef.current = false;
         if (isListeningRef.current && !isProcessingRef.current) {
           // If ended naturally and we have text, process it
@@ -916,6 +923,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
 
   // Cancel listening and reset transcript
   const cancelListening = useCallback(() => {
+    stopMicVisualizerRef.current?.();
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;

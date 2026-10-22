@@ -107,7 +107,11 @@ export default function NotificationBell() {
                     )}
                 </button>
             </PopoverTrigger>
-            <PopoverContent className="w-88 p-4 bg-slate-950/95 border border-white/10 text-white rounded-2xl shadow-2xl backdrop-blur-xl z-50 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <PopoverContent
+                align="end"
+                sideOffset={8}
+                className="w-72 sm:w-80 max-w-[85vw] rounded-2xl p-4 shadow-2xl border border-slate-800/80 backdrop-blur-xl bg-slate-950/95 text-white z-50 max-h-[85vh] overflow-y-auto no-scrollbar"
+            >
                 <div className="space-y-4">
                     {/* Admin Alerts Section if Shyam Pandey */}
                     {isAdmin && adminNotifications.length > 0 && (

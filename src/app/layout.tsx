@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,6 +15,14 @@ import AgentDM from "@/components/voice/AgentDM";
 import { VoiceProvider } from "@/hooks/useVoiceController";
 import { ThemeProvider } from "@/hooks/useTheme";
 import CoReformerSyncWatcher from "@/components/CoReformerSyncWatcher";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: "DeadlinesMet",

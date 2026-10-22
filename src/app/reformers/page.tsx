@@ -488,6 +488,7 @@ function ReformersPageContent() {
                 taskName: sprintTopic,
                 initialDuration: sprintDuration,
                 participants: [user.uid, selectedMatch.userId],
+                createdBy: user.uid,
             });
 
             if (sid) {
@@ -580,7 +581,7 @@ function ReformersPageContent() {
         if (!isEnrolled) return;
 
         // Note: We scan all users to populate friends automatically
-        const q = query(collection(db, "users"));
+        const q = query(collection(db, "users"), limit(50));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const members: any[] = [];
             snapshot.forEach(doc => {
@@ -823,7 +824,9 @@ function ReformersPageContent() {
             const isShyam = profileData?.displayName?.toLowerCase() === "shyam pandey" || profileData?.email === "shyamp028@gmail.com" || user?.email === "shyamp028@gmail.com";
             await updateUserProfileData({
                 reformersStatus: isShyam ? 'approved' : 'pending',
-                isReformersEnrolled: isShyam // Auto-enroll if admin
+                isReformersEnrolled: isShyam, // Auto-enroll if admin
+                activeSession: null,
+                currentTaskStatus: 'Idle'
             });
 
             setEnrolling(false);
@@ -1093,11 +1096,11 @@ function ReformersPageContent() {
         if (!user) return;
         try {
             const batch = writeBatch(db);
-            batch.update(doc(db, "users", user.uid), { coWorkerId: peerId, pendingCoWorkerId: "" });
-            batch.update(doc(db, "users", peerId), { coWorkerId: user.uid, pendingCoWorkerId: "" });
+            batch.update(doc(db, "users", user.uid), { coWorkerId: peerId, pendingCoWorkerId: "", activeSession: null, currentTaskStatus: 'Idle' });
+            batch.update(doc(db, "users", peerId), { coWorkerId: user.uid, pendingCoWorkerId: "", activeSession: null, currentTaskStatus: 'Idle' });
             await batch.commit();
             
-            updateUserProfileData({ coWorkerId: peerId, pendingCoWorkerId: "" });
+            updateUserProfileData({ coWorkerId: peerId, pendingCoWorkerId: "", activeSession: null, currentTaskStatus: 'Idle' });
             alert("🤝 You are now Co-Reformers! Stay focused together.");
         } catch (e) {
             console.error("Accept failed:", e);
@@ -1254,9 +1257,9 @@ function ReformersPageContent() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                     <div>
                         <h1 className="text-2xl font-black flex items-center gap-2 tracking-tight">
-                            <Globe2 className="text-[#10b981] w-6 h-6" /> Reformers
+                            <ShieldCheck className="text-[#10b981] w-6 h-6" /> Reformers Community
                         </h1>
-                        <p className="text-xs text-[#10b981] font-bold mt-1 tracking-widest">{location || (profileData?.region?.includes('/') ? profileData.region.split('/').reverse()[0].replace('_', ' ') : profileData?.region || "Global")} Region</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xl">Team up with people who share your daily goals, stay accountable together, and build lasting habits.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button
@@ -1717,19 +1720,19 @@ function ReformersPageContent() {
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-teal-500/10 border border-emerald-500/30 shadow-lg mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            <Sparkles className="w-5 h-5 animate-pulse" />
+                            <Users className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-sm text-foreground">Find Co-Reformer Partner</h4>
-                            <p className="text-xs text-muted-foreground">Client-side WebGPU EmbeddingGemma & JEV TypeSafe Synergy Engine</p>
+                            <h4 className="font-bold text-sm text-foreground">Find Your Focus Partner</h4>
+                            <p className="text-xs text-muted-foreground">Connect with someone who works on a similar schedule and shares your daily goals so you can stay focused together.</p>
                         </div>
                     </div>
                     <Button
                         onClick={handleFindPartner}
                         className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-black font-extrabold text-xs h-10 px-5 rounded-xl shadow-md transition-all active:scale-95"
                     >
-                        <Zap className="w-3.5 h-3.5 mr-1.5" />
-                        Find Co-Reformer Partner
+                        <Users className="w-3.5 h-3.5 mr-1.5" />
+                        Find Your Focus Partner
                     </Button>
                 </div>
 
@@ -2142,11 +2145,11 @@ function ReformersPageContent() {
                     <DialogContent className="bg-card dark:bg-[#141414] border-emerald-500/30 text-foreground w-[96vw] max-w-xl max-h-[92vh] overflow-y-auto p-6 rounded-2xl shadow-2xl">
                         <DialogHeader>
                             <DialogTitle className="text-xl font-black text-foreground flex items-center gap-2">
-                                <Sparkles className="w-5 h-5 text-emerald-400" />
-                                Smart Co-Reformer Matchmaker
+                                <Users className="w-5 h-5 text-emerald-400" />
+                                Find Your Focus Partner
                             </DialogTitle>
                             <DialogDescription className="text-xs text-muted-foreground">
-                                Neural lifestyle embeddings via WebGPU Google EmbeddingGemma & JEV TypeSafe SystemOne
+                                Connect with someone who works on a similar schedule and shares your daily goals so you can stay focused together.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -2154,8 +2157,8 @@ function ReformersPageContent() {
                             <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
                                 <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
                                 <div>
-                                    <p className="font-bold text-sm text-foreground">Projecting Neural Lifestyle Vectors...</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Comparing habits, prime focus hours, and MOVERS routines across active reformers.</p>
+                                    <p className="font-bold text-sm text-foreground">Finding matching focus partners...</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Checking routines and focus hours to find your best accountability partner.</p>
                                 </div>
                             </div>
                         ) : matchedCandidates.length === 0 ? (
@@ -2168,7 +2171,7 @@ function ReformersPageContent() {
                                 {/* Top 5 Vector Ranked Candidates */}
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                        Top Neural Matches (Ranked by Cosine Similarity)
+                                        Recommended Focus Partners
                                     </label>
                                     <div className="grid grid-cols-1 gap-2">
                                         {matchedCandidates.map((c) => {
@@ -2195,12 +2198,12 @@ function ReformersPageContent() {
                                                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                                                             </div>
                                                             <p className="text-[11px] text-muted-foreground truncate">
-                                                                {c.profession} • {c.reformerPreference.replace('_', ' ')}
+                                                                {c.profession} • {(c.reformerPreference || 'morning_primer').replace('_', ' ')}
                                                             </p>
                                                         </div>
                                                     </div>
                                                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-xs font-bold font-mono">
-                                                        {Math.round(c.similarity * 100)}% Match
+                                                        {Math.round(c.similarity * 100)}% Routine Match • {c.reformerPreference?.includes('morning') ? 'Morning Focus' : 'Evening Focus'}
                                                     </Badge>
                                                 </button>
                                             );
@@ -2214,7 +2217,7 @@ function ReformersPageContent() {
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                                                 <Zap className="w-3.5 h-3.5" />
-                                                JEV TypeSafe Synergy Analysis
+                                                Focus Compatibility & Shared Routine
                                             </span>
                                             {isSynergyLoading && (
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
@@ -2223,7 +2226,7 @@ function ReformersPageContent() {
 
                                         {isSynergyLoading ? (
                                             <p className="text-xs text-muted-foreground animate-pulse py-2">
-                                                Querying JEV SystemOne (jev-latest) for compatibility and optimal sprint duration...
+                                                Calculating routine synergy and optimal sprint duration...
                                             </p>
                                         ) : synergyData ? (
                                             <div className="space-y-2.5">

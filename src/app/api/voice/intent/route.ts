@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { VoiceIntentPayloadSchema, VoiceIntentPayload, VoiceCategory, VoiceRoute, JEV_VOICE_DATASET } from '@/types/voice';
-import { callTypeSafeSystemOne, TypeSafeQuestion } from '@/lib/jevClient';
+import { callTypeSafeSystemOne, TypeSafeQuestion, extractJevText } from '@/lib/jevClient';
 import { VOICE_COMMAND_DICTIONARY, sanitizeSpeechTranscript, scoreTaskMatch } from '@/config/voiceCommandDictionary';
 
 /**
@@ -446,8 +446,8 @@ export async function POST(req: Request) {
         };
 
         const jevResponse = await callTypeSafeSystemOne({ state, questions });
-        const chosenAction = jevResponse.answers?.intentAction?.choice as any;
-        const chosenRoute = jevResponse.answers?.targetRouteSlot?.choice as VoiceRoute | undefined;
+        const chosenAction = (extractJevText(jevResponse.answers?.intentAction, '') || (jevResponse.answers?.intentAction as any)?.choice) as any;
+        const chosenRoute = (extractJevText(jevResponse.answers?.targetRouteSlot, '') || (jevResponse.answers?.targetRouteSlot as any)?.choice) as VoiceRoute | undefined;
 
         if (chosenAction && localResult.confidence && localResult.confidence < 0.90) {
           localResult.action = chosenAction;

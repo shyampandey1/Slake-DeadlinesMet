@@ -5,7 +5,12 @@
  */
 
 import { z } from 'zod';
-import { callTypeSafeSystemOne } from '@/lib/jevClient';
+import {
+  callTypeSafeSystemOne,
+  createNoulQuestion,
+  createScoreQuestion,
+  TypeSafeQuestion,
+} from '@/lib/jevClient';
 
 const OrganizeRoutineInputSchema = z.object({
   description: z.string().describe("The user's description of their daily routine."),
@@ -125,21 +130,19 @@ export async function organizeRoutine(input: OrganizeRoutineInput): Promise<Orga
       sampleTaskNames: fallbackTasks.map((t) => t.name),
     };
 
-    const questions: Record<string, any> = {
-      isCompleteRoutine: {
-        type: 'noul',
-        instructions: 'Does this text describe a daily productivity routine with distinct sequential tasks?',
-      },
-      pacingScore: {
-        type: 'score',
-        instructions: 'Score the balance and sustainability of this described routine on a 10-point scale.',
-        criteria: [
+    const questions: Record<string, TypeSafeQuestion> = {
+      isCompleteRoutine: createNoulQuestion(
+        'Does this text describe a daily productivity routine with distinct sequential tasks?'
+      ),
+      pacingScore: createScoreQuestion(
+        [
           '0-2 (Overwhelmed)',
           '3-5 (Needs Structure)',
           '6-8 (Well Balanced)',
           '9-10 (Elite Flow)',
         ],
-      },
+        'Score the balance and sustainability of this described routine on a 10-point scale.'
+      ),
     };
 
     await callTypeSafeSystemOne({ state, questions }).catch((err) => {

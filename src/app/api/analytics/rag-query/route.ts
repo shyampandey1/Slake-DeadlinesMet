@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   callTypeSafeSystemOne,
   createNoulQuestion,
+  extractJevText,
 } from '@/lib/jevClient';
 
 export interface RetrievedLogPayload {
@@ -76,15 +77,9 @@ export async function POST(req: NextRequest) {
       });
 
       if (jevResult && jevResult.answers) {
-        if (jevResult.answers.directAnswer) {
-          directAnswer = String(jevResult.answers.directAnswer);
-        }
-        if (jevResult.answers.behavioralCorrelation) {
-          behavioralCorrelation = String(jevResult.answers.behavioralCorrelation);
-        }
-        if (jevResult.answers.actionableAdjustment) {
-          actionableAdjustment = String(jevResult.answers.actionableAdjustment);
-        }
+        directAnswer = extractJevText(jevResult.answers.directAnswer, directAnswer);
+        behavioralCorrelation = extractJevText(jevResult.answers.behavioralCorrelation, behavioralCorrelation);
+        actionableAdjustment = extractJevText(jevResult.answers.actionableAdjustment, actionableAdjustment);
       }
     } catch (jevErr) {
       console.warn('[RagQueryRoute] JEV SystemOne fallback active:', jevErr);
