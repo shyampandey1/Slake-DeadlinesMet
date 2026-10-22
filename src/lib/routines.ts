@@ -851,30 +851,57 @@ export const computeCategoryTimeRanges = (
     );
 
     if (hasExplicitTimes) {
+        // Find earliest start time across all categories to establish the circadian waking anchor
+        let circadianWakeMins = 1440;
+        Object.values(presetTasks).forEach((cat) => {
+            (cat.tasks || []).forEach((t) => {
+                if (typeof t.startTime === 'string' && t.startTime.includes(':')) {
+                    const [h, m] = t.startTime.split(':').map((v) => parseInt(v, 10));
+                    const mins = (h || 0) * 60 + (m || 0);
+                    if (mins >= 240 && mins < circadianWakeMins) {
+                        circadianWakeMins = mins;
+                    }
+                }
+            });
+        });
+        if (circadianWakeMins === 1440) circadianWakeMins = 360; // 06:00 fallback
+
+        // Helper to map time into continuous circadian minutes (post-midnight is mapped to next day: +1440)
+        const toCircadian = (mins: number) => (mins < circadianWakeMins ? mins + 1440 : mins);
+
+        // Helper to construct a Date on referenceDate or referenceDate + 1 day
+        const toCircadianDate = (circMins: number): Date => {
+            const d = new Date(referenceDate);
+            if (circMins >= 1440) {
+                d.setDate(d.getDate() + 1);
+                circMins -= 1440;
+            }
+            d.setHours(Math.floor(circMins / 60), circMins % 60, 0, 0);
+            return d;
+        };
+
         Object.keys(presetTasks).forEach((category) => {
             const tasks = presetTasks[category]?.tasks || [];
             const timedTasks = tasks.filter((t) => typeof t.startTime === 'string' && t.startTime.includes(':'));
 
             if (timedTasks.length > 0) {
-                let minStart = 1440;
+                let minStart = 2880;
                 let maxEnd = 0;
 
                 timedTasks.forEach((t) => {
                     const [h, m] = (t.startTime || '00:00').split(':').map((v) => parseInt(v, 10));
-                    const startMins = (h || 0) * 60 + (m || 0);
-                    const endMins = startMins + (t.duration || 15);
-                    if (startMins < minStart) minStart = startMins;
-                    if (endMins > maxEnd) maxEnd = endMins;
+                    const rawMins = (h || 0) * 60 + (m || 0);
+                    const startCirc = toCircadian(rawMins);
+                    const endCirc = startCirc + (t.duration || 15);
+                    if (startCirc < minStart) minStart = startCirc;
+                    if (endCirc > maxEnd) maxEnd = endCirc;
                 });
 
-                if (minStart < 1440 && maxEnd > 0) {
-                    const startDate = new Date(referenceDate);
-                    startDate.setHours(Math.floor(minStart / 60), minStart % 60, 0, 0);
-
-                    const endDate = new Date(referenceDate);
-                    endDate.setHours(Math.floor(maxEnd / 60), maxEnd % 60, 0, 0);
-
-                    ranges[category] = { start: startDate, end: endDate };
+                if (minStart < 2880 && maxEnd > 0) {
+                    ranges[category] = {
+                        start: toCircadianDate(minStart),
+                        end: toCircadianDate(maxEnd),
+                    };
                 }
             }
         });
@@ -914,7 +941,7 @@ export const computeCategoryTimeRanges = (
     });
 
     // 3. Mathematical Zero-Overlap Enforcement Pass:
-    // Sort all categories by start time, and clamp overlapping ranges so no two blocks overlap
+    // Sort all categories by categoryConfig[order], then chronological start time
     const sortedCategories = Object.keys(ranges).sort(
         (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99) || ranges[a].start.getTime() - ranges[b].start.getTime()
     );
@@ -923,6 +950,12 @@ export const computeCategoryTimeRanges = (
         const curCat = sortedCategories[i];
         const nextCat = sortedCategories[i + 1];
 
+        // Ensure next category does not start earlier than current category start
+        if (ranges[nextCat].start.getTime() < ranges[curCat].start.getTime()) {
+            ranges[nextCat].start = new Date(ranges[curCat].end.getTime());
+        }
+
+        // Clamp curCat end to nextCat start so categories are contiguous and zero-overlapping
         if (ranges[curCat].end.getTime() > ranges[nextCat].start.getTime()) {
             ranges[curCat].end = new Date(ranges[nextCat].start.getTime());
         }
