@@ -514,7 +514,11 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
     'Morning Primer': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
     'Morning Activation': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
     'MOVERS Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
-    'Morning Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
+    // The 4 Primary Reformers Tuned Routine Blocks
+    'Morning Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 10 },
+    'Afternoon Execution': { color: 'bg-blue-900 text-blue-100 border-blue-500/50', order: 30 },
+    'Evening Recharge & Growth': { color: 'bg-purple-900 text-purple-100 border-purple-500/50', order: 55 },
+    'Night Restoration': { color: 'bg-indigo-950 text-indigo-100 border-indigo-500/50', order: 80 },
     "Day's End Recovery": { color: 'bg-indigo-950 text-indigo-100 border-indigo-500/50', order: 78 },
     'Evening Restorer Block': { color: 'bg-indigo-950 text-indigo-100 border-indigo-500/50', order: 78 },
     'Evening Protocol': { color: 'bg-indigo-950 text-indigo-100 border-indigo-500/50', order: 78 },
@@ -642,7 +646,6 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
     'Morning Work Sprint': { color: 'bg-blue-800 text-white', order: 20 },
     'Nutrition & Energy': { color: 'bg-teal-800 text-white', order: 30 },
     'Midday Nutrition & Recharge': { color: 'bg-teal-800 text-white', order: 30 },
-    'Afternoon Execution': { color: 'bg-purple-800 text-white', order: 40 },
     'Deep Focus & Study': { color: 'bg-violet-900 text-violet-100 border-violet-500/50', order: 45 },
     'Evening Custom': { color: 'bg-slate-800 text-white', order: 55 },
 
@@ -694,6 +697,8 @@ export const CATEGORY_TIME_BLOCKS: { [category: string]: { start: number; end: n
     'Afternoon Execution': { start: 14.5, end: 17.5 },
     'Deep Focus & Study': { start: 17.5, end: 19.0 },
     'Evening Custom': { start: 19.0, end: 20.5 },
+    'Evening Recharge & Growth': { start: 17.5, end: 22.0 },
+    'Night Restoration': { start: 22.0, end: 24.0 },
     'Concept Phase': { start: 6.5, end: 8.5 },
     'Morning Flow': { start: 6.5, end: 8.5 },
     'Early Draft': { start: 6.5, end: 8.5 },
@@ -911,7 +916,7 @@ export const computeCategoryTimeRanges = (
     // 3. Mathematical Zero-Overlap Enforcement Pass:
     // Sort all categories by start time, and clamp overlapping ranges so no two blocks overlap
     const sortedCategories = Object.keys(ranges).sort(
-        (a, b) => ranges[a].start.getTime() - ranges[b].start.getTime()
+        (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99) || ranges[a].start.getTime() - ranges[b].start.getTime()
     );
 
     for (let i = 0; i < sortedCategories.length - 1; i++) {

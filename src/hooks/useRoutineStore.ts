@@ -75,10 +75,15 @@ function convertCustomProfileToPreset(profile: CustomRoutineProfile): Preset {
     return (categoryConfig[catName]?.order ?? 99) * 10;
   };
 
-  // Sort categories strictly by chronological start time so blocks never jump around
+  // Sort categories strictly by chronological order, breaking ties by task start time
   const sortedPreset: Preset = {};
   Object.keys(newPreset)
-    .sort((a, b) => getCatStartMins(a) - getCatStartMins(b))
+    .sort((a, b) => {
+      const orderA = categoryConfig[a]?.order ?? 99;
+      const orderB = categoryConfig[b]?.order ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+      return getCatStartMins(a) - getCatStartMins(b);
+    })
     .forEach((key) => {
       sortedPreset[key] = newPreset[key];
     });

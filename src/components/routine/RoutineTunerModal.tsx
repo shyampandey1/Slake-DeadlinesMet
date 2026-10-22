@@ -59,10 +59,12 @@ interface RoutineTunerModalProps {
   defaultUserName?: string;
   initialAnswers?: Partial<RoutineTuningAnswers>;
   existingProfileId?: string;
+  currentProfession?: string;
 }
 
 const DEFAULT_ANSWERS: RoutineTuningAnswers = {
   profileName: "My Tuned Routine",
+  profession: "General",
   wakeUpTime: '06:30',
   sleepTime: '23:00',
   workOrCollegeStart: '09:00',
@@ -152,6 +154,7 @@ export function RoutineTunerModal({
   defaultUserName = 'Reformer',
   initialAnswers,
   existingProfileId,
+  currentProfession = 'General',
 }: RoutineTunerModalProps) {
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -162,6 +165,7 @@ export function RoutineTunerModal({
   const [answers, setAnswers] = useState<RoutineTuningAnswers>(() => ({
     ...DEFAULT_ANSWERS,
     profileName: initialAnswers?.profileName || `${defaultUserName}'s Routine`,
+    profession: initialAnswers?.profession || currentProfession || 'General',
     ...initialAnswers,
   }));
 
@@ -293,7 +297,7 @@ export function RoutineTunerModal({
                   Interactive Routine Tuner
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Step {step} of 5 • Tailoring your Reformers MOVERS rhythm
+                  Step {step} of 5 • Tailoring {answers.profession || currentProfession || 'Reformer'} MOVERS rhythm
                 </DialogDescription>
               </div>
             </div>
@@ -831,11 +835,38 @@ export function RoutineTunerModal({
                   </div>
                 </div>
 
+                {/* 4 Clean Quadrants of the Day */}
+                <div className="p-4 rounded-2xl bg-card border border-border/60 space-y-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                    Structured 4-Quadrant Schedule:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                      <span className="font-semibold text-emerald-300">🌅 Morning Protocol</span>
+                      <span className="font-mono text-muted-foreground">{formatTo12h(answers.wakeUpTime)} → {formatTo12h(answers.workOrCollegeStart)}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+                      <span className="font-semibold text-blue-300">💼 Afternoon Execution</span>
+                      <span className="font-mono text-muted-foreground">{formatTo12h(answers.workOrCollegeStart)} → {formatTo12h(answers.workOrCollegeEnd)}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between">
+                      <span className="font-semibold text-purple-300">🌆 Evening Recharge</span>
+                      <span className="font-mono text-muted-foreground">{formatTo12h(answers.workOrCollegeEnd)} → Night</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
+                      <span className="font-semibold text-indigo-300">🌙 Night Restoration</span>
+                      <span className="font-mono text-muted-foreground">Wind-down → {formatTo12h(answers.sleepTime)}</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Task Count Summary */}
                 <div className="p-3 rounded-xl bg-muted/30 border border-border/40 text-xs flex items-center justify-between">
-                  <span className="text-muted-foreground">Total Generated Habit Blocks:</span>
+                  <span className="text-muted-foreground">
+                    Total Chronological Tasks ({answers.profession || currentProfession || 'Reformer'}):
+                  </span>
                   <span className="font-bold text-foreground font-mono">
-                    {previewTasks.length > 0 ? previewTasks.length : '30+'} Chronological Tasks
+                    {previewTasks.length > 0 ? previewTasks.length : '30+'} Tasks
                   </span>
                 </div>
               </motion.div>

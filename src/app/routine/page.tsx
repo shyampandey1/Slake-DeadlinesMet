@@ -858,6 +858,7 @@ function RoutinePageComponent() {
           }, 300);
         }}
         defaultUserName={user?.displayName || profileData?.displayName || 'My'}
+        currentProfession={profile || 'General'}
         initialAnswers={activeCustomProfile?.tuningAnswers}
         existingProfileId={activeCustomProfile?.id}
       />

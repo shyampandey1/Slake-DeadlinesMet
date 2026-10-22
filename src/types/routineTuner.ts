@@ -25,6 +25,7 @@ export type MoversPillarType =
 
 export interface RoutineTuningAnswers {
   profileName: string;
+  profession?: string; // Selected profession (e.g. 'Entrepreneur', 'Software Engineer')
   wakeUpTime: string; // HH:mm (24h)
   sleepTime: string; // HH:mm (24h)
   workOrCollegeStart: string; // HH:mm (24h)
@@ -104,6 +105,7 @@ export interface SharedCommunityRoutine {
 
 export const RoutineTuningAnswersSchema = z.object({
   profileName: z.string().min(1, 'Profile name is required'),
+  profession: z.string().optional(),
   wakeUpTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid wake up time (HH:mm)'),
   sleepTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid sleep time (HH:mm)'),
   workOrCollegeStart: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid work/college start (HH:mm)'),
