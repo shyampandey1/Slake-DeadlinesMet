@@ -1069,3 +1069,18 @@ export const applyMoversTemplate = (
         return enrichTasks([...morningPrimerBlock, ...filteredBase, ...daysEndRecovery]);
     }
 };
+
+
+/**
+ * Formats a 24-hour time string ("HH:mm") into a 12-hour formatted string ("h:mm AM/PM").
+ */
+export function formatTo12h(timeStr: string): string {
+  if (!timeStr) return '';
+  const [hStr, mStr] = timeStr.split(':');
+  let h = parseInt(hStr, 10);
+  if (isNaN(h)) return timeStr;
+  const period = h >= 12 ? 'PM' : 'AM';
+  let h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12.toString().padStart(2, '0')}:${mStr || '00'} ${period}`;
+}

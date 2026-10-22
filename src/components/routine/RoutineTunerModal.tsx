@@ -284,24 +284,27 @@ export function RoutineTunerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl w-[95vw] sm:w-full h-[90dvh] max-h-[850px] flex flex-col bg-background/95 backdrop-blur-2xl border-border/60 p-0 overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl">
+      <DialogContent className="fixed inset-x-0 bottom-0 top-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:inset-auto z-50 flex flex-col w-full sm:w-[95vw] sm:max-w-2xl h-[92dvh] max-h-[92dvh] sm:h-[85dvh] sm:max-h-[820px] bg-background/95 backdrop-blur-2xl border-t sm:border border-border/70 p-0 overflow-hidden rounded-t-3xl sm:rounded-3xl shadow-2xl">
+        {/* Mobile bottom-sheet grab handle */}
+        <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mt-2.5 sm:hidden shrink-0" />
+
         {/* Wizard Header & Progress Bar */}
-        <div className="shrink-0 p-4 sm:p-6 border-b border-border/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                <SlidersHorizontal className="w-5 h-5" />
+        <div className="shrink-0 p-4 sm:p-5 border-b border-border/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
+          <div className="flex items-center justify-between mb-3 pr-8">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
               </span>
               <div>
-                <DialogTitle className="text-lg sm:text-xl font-bold font-headline">
+                <DialogTitle className="text-base sm:text-lg font-bold font-headline leading-tight">
                   Interactive Routine Tuner
                 </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Step {step} of 5 • Tailoring {answers.profession || currentProfession || 'Reformer'} MOVERS rhythm
+                <DialogDescription className="text-[11px] sm:text-xs text-muted-foreground">
+                  Step {step} of 5 • Tailoring {answers.profession || currentProfession || 'Reformer'} MOVERS
                 </DialogDescription>
               </div>
             </div>
-            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span className="text-[10px] sm:text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
               {step === 1 && 'Anchors'}
               {step === 2 && 'Work & Commute'}
               {step === 3 && 'Study & Evening'}
@@ -319,8 +322,8 @@ export function RoutineTunerModal({
           </div>
         </div>
 
-        {/* Wizard Steps Form (Scrollable body with touch containment) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-6">
+        {/* Wizard Steps Form (Scrollable body with touch containment and bottom breathing room) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-6 pb-12">
           <AnimatePresence mode="wait">
             {/* STEP 1: Morning & Night Anchors */}
             {step === 1 && (
@@ -874,16 +877,15 @@ export function RoutineTunerModal({
           </AnimatePresence>
         </div>
 
-        {/* Wizard Footer Controls (Locked Sticky Bottom on Mobile) */}
-        <div className="shrink-0 p-3.5 sm:p-5 border-t border-border/40 bg-card/90 backdrop-blur flex items-center justify-between gap-3 z-10">
+        {/* Wizard Footer Controls (Locked Sticky Bottom on Mobile with Safe Area Padding) */}
+        <div className="shrink-0 p-3.5 sm:p-5 border-t border-border/40 bg-card/95 backdrop-blur flex items-center justify-between gap-3 z-30 pb-[max(1.25rem,env(safe-area-inset-bottom,20px))] sm:pb-4">
           {step > 1 ? (
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={handlePrevStep}
               disabled={isSubmitting}
-              className="gap-1.5 rounded-xl h-11"
+              className="gap-1.5 rounded-xl h-11 sm:h-12 px-4 font-semibold text-xs sm:text-sm"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
@@ -891,10 +893,9 @@ export function RoutineTunerModal({
             <Button
               type="button"
               variant="ghost"
-              size="sm"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-xl h-11 text-muted-foreground hover:text-foreground"
+              className="rounded-xl h-11 sm:h-12 px-4 text-xs sm:text-sm text-muted-foreground hover:text-foreground"
             >
               Cancel
             </Button>
@@ -903,10 +904,9 @@ export function RoutineTunerModal({
           {step < 5 ? (
             <Button
               type="button"
-              size="sm"
               onClick={handleNextStep}
               disabled={isSubmitting}
-              className="gap-1.5 rounded-xl h-11 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-500/20"
+              className="gap-2 rounded-xl h-11 sm:h-12 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 ml-auto"
             >
               {isSubmitting ? (
                 <>
@@ -922,10 +922,9 @@ export function RoutineTunerModal({
           ) : (
             <Button
               type="button"
-              size="sm"
               onClick={handleFinalSave}
               disabled={isSubmitting}
-              className="gap-2 rounded-xl h-11 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold shadow-lg shadow-emerald-500/25"
+              className="gap-2 rounded-xl h-11 sm:h-12 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 ml-auto"
             >
               {isSubmitting ? (
                 <>

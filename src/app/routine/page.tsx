@@ -37,6 +37,9 @@ import {
   Calendar,
   Layers,
   CheckCircle2,
+  Sun,
+  Moon,
+  MoreVertical,
 } from 'lucide-react';
 import { generateAIRoutine } from '@/ai/flows/generate-routine';
 import {
@@ -72,7 +75,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { defaultRoutines, profileToRoutineMap, applyMoversTemplate } from '@/lib/routines';
+import { defaultRoutines, profileToRoutineMap, applyMoversTemplate, formatTo12h } from '@/lib/routines';
 import { RoutineTunerModal } from '@/components/routine/RoutineTunerModal';
 import { DMDropzone } from '@/components/routine/DMDropzone';
 import { SharedRoutinesSection } from '@/components/routine/SharedRoutinesSection';
@@ -324,20 +327,11 @@ function RoutinePageComponent() {
         <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-md border-b border-border/50 z-10">
           <div className="w-full flex h-20 items-center justify-between px-4 sm:px-6 md:px-8 lg:px-12">
             <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90 truncate">
-                  {activeCustomProfile ? activeCustomProfile.name : 'Sync Routine'}
-                </h1>
-                {activeCustomProfile && (
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-                    Tuned Profile
-                  </span>
-                )}
-              </div>
+              <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90 truncate">
+                Daily Routine
+              </h1>
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {activeCustomProfile
-                  ? `Customized MOVERS rhythm with zero overlapping blocks.`
-                  : 'Select a profession template or tune your custom routine.'}
+                4-Quadrant Circadian Rhythm &amp; Reformers MOVERS Execution
               </p>
             </div>
 
@@ -346,7 +340,7 @@ function RoutinePageComponent() {
               <Button
                 size="sm"
                 onClick={() => setIsTunerModalOpen(true)}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 rounded-xl gap-1.5 h-10 px-3 sm:px-3.5 shrink-0"
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 rounded-xl gap-1.5 h-10 px-3.5 sm:px-4 shrink-0"
               >
                 <SlidersHorizontal className="w-4 h-4 text-black" />
                 <span className="hidden sm:inline">Tune My Schedule</span>
@@ -363,180 +357,205 @@ function RoutinePageComponent() {
           <div className="w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-12 py-6 space-y-8 min-w-0 overflow-x-hidden">
             
             {/* Routine Profile Switcher & Fast Actions Bar */}
-            <Card className="border-border/60 bg-gradient-to-r from-card/80 to-background/50 backdrop-blur-xl">
-              <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    <Layers className="w-5 h-5" />
+            <Card className="border-border/60 bg-gradient-to-r from-card/90 to-background/60 backdrop-blur-xl shadow-sm">
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0">
+                      <Layers className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Active Schedule
+                        </span>
+                        {activeCustomProfile ? (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Tuned Profile
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                            Default Template
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="h-10 text-xs sm:text-sm font-bold gap-2 rounded-xl border-border/80 bg-background/60 hover:border-purple-500/50"
+                            >
+                              <span className="truncate max-w-[170px] sm:max-w-[280px]">
+                                {activeCustomProfile
+                                  ? activeCustomProfile.name
+                                  : `Default (${profile || 'Standard'})`}
+                              </span>
+                              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-64 rounded-2xl p-2 z-50">
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">
+                              Standard Templates
+                            </DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => setActiveProfile(null)}
+                              className="rounded-xl flex items-center justify-between text-xs py-2 cursor-pointer"
+                            >
+                              <span>Default ({profile || 'General'})</span>
+                              {!activeCustomProfile && <Check className="w-4 h-4 text-emerald-400" />}
+                            </DropdownMenuItem>
+
+                            {customProfiles.length > 0 && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                  Custom Tuned Profiles
+                                </DropdownMenuLabel>
+                                {customProfiles.map((cp) => (
+                                  <DropdownMenuItem
+                                    key={cp.id}
+                                    onClick={() => setActiveProfile(cp.id)}
+                                    className="rounded-xl flex items-center justify-between text-xs py-2 cursor-pointer"
+                                  >
+                                    <span className="truncate">{cp.name}</span>
+                                    {activeProfileId === cp.id && (
+                                      <Check className="w-4 h-4 text-emerald-400" />
+                                    )}
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
+
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setIsTunerModalOpen(true)}
+                              className="rounded-xl text-xs py-2 text-emerald-400 cursor-pointer gap-2 font-bold"
+                            >
+                              <SlidersHorizontal className="w-3.5 h-3.5" /> + Tune New Schedule
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
+                              className="rounded-xl text-xs py-2 text-purple-400 cursor-pointer gap-2"
+                            >
+                              <Upload className="w-3.5 h-3.5" /> Import .dm Routine
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
+                          className="h-10 text-xs rounded-xl gap-1.5 border-dashed"
+                          title="Import a .dm routine file"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="hidden sm:inline">Import .dm</span>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-muted-foreground block">
-                      Active Routine Profile
-                    </span>
-                    <div className="flex items-center gap-2">
+
+                  {/* Profile Actions Toolbar */}
+                  {activeCustomProfile && (
+                    <div className="flex items-center gap-2 flex-wrap md:justify-end">
+                      <Button
+                        size="sm"
+                        onClick={() => setIsTunerModalOpen(true)}
+                        className="h-9 text-xs rounded-xl gap-1.5 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30 font-bold"
+                        title="Tweak anchor times and regenerate"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                        Tweak Schedule
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleShareActiveRoutine}
+                        className="h-9 text-xs rounded-xl gap-1.5 border-purple-500/40 text-purple-400 hover:bg-purple-500/10"
+                        title="Publish routine to community"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        Share
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportActiveRoutine}
+                        className="h-9 text-xs rounded-xl gap-1.5 border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+                        title="Download .dm container to device"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Export .dm
+                      </Button>
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="outline"
-                            className="h-10 text-xs sm:text-sm font-bold gap-2 rounded-xl border-border/80 bg-background/50 hover:border-purple-500/50"
+                            size="sm"
+                            className="h-9 w-9 p-0 rounded-xl hover:bg-muted/60"
+                            title="More profile options"
                           >
-                            <span className="truncate max-w-[180px] sm:max-w-[260px]">
-                              {activeCustomProfile
-                                ? activeCustomProfile.name
-                                : `Default: ${profile || 'Standard'}`}
-                            </span>
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            <MoreVertical className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64 rounded-2xl p-2">
-                          <DropdownMenuLabel className="text-xs text-muted-foreground">
-                            Standard Templates
-                          </DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => setActiveProfile(null)}
-                            className="rounded-xl flex items-center justify-between text-xs py-2 cursor-pointer"
-                          >
-                            <span>Default ({profile || 'General'})</span>
-                            {!activeCustomProfile && <Check className="w-4 h-4 text-emerald-400" />}
+                        <DropdownMenuContent align="end" className="w-48 rounded-2xl p-1.5 z-50">
+                          <DropdownMenuItem onClick={openRenameDialog} className="rounded-xl text-xs py-2 gap-2 cursor-pointer">
+                            <Edit2 className="w-3.5 h-3.5 text-muted-foreground" /> Rename Profile
                           </DropdownMenuItem>
-
-                          {customProfiles.length > 0 && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                Custom Tuned Profiles
-                              </DropdownMenuLabel>
-                              {customProfiles.map((cp) => (
-                                <DropdownMenuItem
-                                  key={cp.id}
-                                  onClick={() => setActiveProfile(cp.id)}
-                                  className="rounded-xl flex items-center justify-between text-xs py-2 cursor-pointer"
-                                >
-                                  <span className="truncate">{cp.name}</span>
-                                  {activeProfileId === cp.id && (
-                                    <Check className="w-4 h-4 text-emerald-400" />
-                                  )}
-                                </DropdownMenuItem>
-                              ))}
-                            </>
-                          )}
-
+                          <DropdownMenuItem onClick={() => duplicateCustomProfile(activeCustomProfile.id)} className="rounded-xl text-xs py-2 gap-2 cursor-pointer">
+                            <Copy className="w-3.5 h-3.5 text-muted-foreground" /> Duplicate Profile
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setIsTunerModalOpen(true)}
-                            className="rounded-xl text-xs py-2 text-emerald-400 cursor-pointer gap-2 font-bold"
-                          >
-                            <SlidersHorizontal className="w-3.5 h-3.5" /> + Tune New Schedule
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
-                            className="rounded-xl text-xs py-2 text-purple-400 cursor-pointer gap-2"
-                          >
-                            <Upload className="w-3.5 h-3.5" /> Import .dm Routine
-                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <div className="rounded-xl text-xs py-2 px-2 text-destructive hover:bg-destructive/10 flex items-center gap-2 cursor-pointer">
+                                <Trash2 className="w-3.5 h-3.5" /> Delete Profile
+                              </div>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Custom Routine?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{activeCustomProfile.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteCustomProfile(activeCustomProfile.id)}
+                                  className="bg-destructive hover:bg-destructive/90 rounded-xl"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
-
-                      {/* Dropzone toggle button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
-                        className="h-10 text-xs rounded-xl gap-1.5 border-dashed"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="hidden sm:inline">Import .dm</span>
-                      </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Profile Controls if viewing a Custom Profile */}
+                {/* Circadian Anchors Pill Bar (Clean 12h display) */}
                 {activeCustomProfile && (
-                  <div className="flex items-center gap-2 flex-wrap pt-2 md:pt-0 border-t md:border-t-0 border-border/40">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsTunerModalOpen(true)}
-                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70 hover:border-emerald-500/50"
-                      title="Tweak anchor times and regenerate"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
-                      Tweak
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={openRenameDialog}
-                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70"
-                      title="Rename this profile"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                      Rename
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => duplicateCustomProfile(activeCustomProfile.id)}
-                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70"
-                      title="Duplicate profile"
-                    >
-                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                      Duplicate
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExportActiveRoutine}
-                      className="h-9 text-xs rounded-xl gap-1.5 border-border/70 hover:border-blue-500/50 text-blue-400"
-                      title="Download .dm container to device"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Export .dm
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleShareActiveRoutine}
-                      className="h-9 text-xs rounded-xl gap-1.5 border-purple-500/40 text-purple-400 hover:bg-purple-500/10"
-                      title="Publish routine to community"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                      Share
-                    </Button>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 text-xs rounded-xl text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="rounded-2xl">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Custom Routine?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{activeCustomProfile.name}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteCustomProfile(activeCustomProfile.id)}
-                            className="bg-destructive hover:bg-destructive/90 rounded-xl"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap pt-3 border-t border-border/40 text-xs">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">
+                      <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Wake: <strong className="font-mono font-bold">{formatTo12h(activeCustomProfile.tuningAnswers.wakeUpTime)}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+                      <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Sleep: <strong className="font-mono font-bold">{formatTo12h(activeCustomProfile.tuningAnswers.sleepTime)}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/60 text-muted-foreground border border-border/60">
+                      <span>{activeCustomProfile.tasks.length} Chronological Blocks</span>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -662,21 +681,21 @@ function RoutinePageComponent() {
             )}
 
             {/* Routine Tasks Accordion Section */}
-            <div ref={routineRef} className="pt-4 scroll-mt-24 min-w-0">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+            <div ref={routineRef} className="pt-2 scroll-mt-24 min-w-0">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-5">
                 <div>
-                  <h2 className="text-2xl font-bold font-headline">
-                    {activeCustomProfile ? activeCustomProfile.name : 'Your Routine'}
+                  <h2 className="text-xl sm:text-2xl font-bold font-headline">
+                    {activeCustomProfile ? 'Schedule Blocks' : `${profile || 'Profession'} Routine`}
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     {activeCustomProfile
-                      ? `Anchored: Wake ${activeCustomProfile.tuningAnswers.wakeUpTime} • Sleep ${activeCustomProfile.tuningAnswers.sleepTime} • ${activeCustomProfile.tasks.length} total blocks`
+                      ? '4 contiguous non-overlapping quadrants engineered for peak focus and recovery.'
                       : 'Preset habit sprints configured for your current focus mode.'}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  {!activeCustomProfile && (
+                {!activeCustomProfile && (
+                  <div className="flex items-center gap-2 flex-wrap">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm" className="rounded-xl">
@@ -699,9 +718,7 @@ function RoutinePageComponent() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  )}
 
-                  {!activeCustomProfile && (
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -712,18 +729,18 @@ function RoutinePageComponent() {
                       {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 text-blue-400" />}
                       {isGeneratingAI ? "Designing..." : "Auto-Plan"}
                     </Button>
-                  )}
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsTunerModalOpen(true)}
-                    className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 rounded-xl gap-1.5"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    {activeCustomProfile ? 'Tweak in Wizard' : 'Tune Schedule'}
-                  </Button>
-                </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsTunerModalOpen(true)}
+                      className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 rounded-xl gap-1.5"
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      Tune Schedule
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {tasksLoading ? renderSkeleton() : (

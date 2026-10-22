@@ -58,64 +58,76 @@ export function TimePicker12h({ id, value, onChange, className }: TimePicker12hP
     updateTime(parseInt(hour12, 10), parseInt(minutes, 10), p);
   };
 
+  // Generate 5-minute increments, ensuring current minute is included
+  const minuteOptions = useMemo(() => {
+    const standard = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+    const currentM = parseInt(minutes, 10);
+    const set = new Set(standard);
+    if (!isNaN(currentM)) set.add(currentM);
+    return Array.from(set).sort((a, b) => a - b).map((m) => m.toString().padStart(2, '0'));
+  }, [minutes]);
+
   return (
     <div
       id={id}
       className={cn(
-        'flex items-center gap-2 p-1.5 rounded-xl bg-background/60 border border-border/80 focus-within:border-emerald-500/80 transition-all shadow-sm',
+        'flex items-center gap-2 p-2 rounded-2xl bg-card/90 border border-border/80 focus-within:border-emerald-500/80 transition-all shadow-sm',
         className
       )}
     >
-      <Clock className="w-4 h-4 ml-1.5 text-muted-foreground shrink-0" />
+      <div className="flex items-center gap-1 pl-1">
+        <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+      </div>
 
       {/* Hour Select (01 - 12) */}
-      <select
-        value={hour12}
-        onChange={handleHourChange}
-        className="bg-transparent text-base font-mono font-bold text-foreground focus:outline-none cursor-pointer py-1 px-1 rounded-md hover:bg-muted/40"
-        aria-label="Hour"
-      >
-        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => {
-          const val = h.toString().padStart(2, '0');
-          return (
-            <option key={val} value={val} className="bg-background text-foreground">
+      <div className="relative">
+        <select
+          value={hour12}
+          onChange={handleHourChange}
+          className="appearance-none bg-muted/40 hover:bg-muted/70 text-base sm:text-lg font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50 cursor-pointer py-1.5 px-3 rounded-xl min-w-[52px] text-center"
+          aria-label="Hour"
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => {
+            const val = h.toString().padStart(2, '0');
+            return (
+              <option key={val} value={val} className="bg-background text-foreground text-base">
+                {val}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      <span className="font-mono font-extrabold text-muted-foreground text-base">:</span>
+
+      {/* Minute Select */}
+      <div className="relative">
+        <select
+          value={minutes}
+          onChange={handleMinuteChange}
+          className="appearance-none bg-muted/40 hover:bg-muted/70 text-base sm:text-lg font-mono font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50 cursor-pointer py-1.5 px-3 rounded-xl min-w-[52px] text-center"
+          aria-label="Minute"
+        >
+          {minuteOptions.map((val) => (
+            <option key={val} value={val} className="bg-background text-foreground text-base">
               {val}
             </option>
-          );
-        })}
-      </select>
-
-      <span className="font-mono font-bold text-muted-foreground text-sm">:</span>
-
-      {/* Minute Select (00, 05, 10, ..., 55) */}
-      <select
-        value={minutes}
-        onChange={handleMinuteChange}
-        className="bg-transparent text-base font-mono font-bold text-foreground focus:outline-none cursor-pointer py-1 px-1 rounded-md hover:bg-muted/40"
-        aria-label="Minute"
-      >
-        {Array.from({ length: 60 }, (_, i) => i).map((m) => {
-          const val = m.toString().padStart(2, '0');
-          return (
-            <option key={val} value={val} className="bg-background text-foreground">
-              {val}
-            </option>
-          );
-        })}
-      </select>
+          ))}
+        </select>
+      </div>
 
       {/* Explicit AM / PM Toggle Pills */}
-      <div className="flex items-center ml-auto bg-muted/60 p-0.5 rounded-lg border border-border/50 shrink-0">
+      <div className="flex items-center ml-auto bg-muted/70 p-1 rounded-xl border border-border/60 shrink-0 gap-1">
         <Button
           type="button"
           size="sm"
           variant="ghost"
           onClick={() => togglePeriod('AM')}
           className={cn(
-            'h-7 px-2.5 text-xs font-black rounded-md transition-all',
+            'h-9 px-3.5 text-xs font-black rounded-lg transition-all',
             period === 'AM'
-              ? 'bg-amber-500 text-black shadow-sm font-black'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-amber-500 text-black shadow-md font-black hover:bg-amber-400'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
           )}
         >
           AM
@@ -126,10 +138,10 @@ export function TimePicker12h({ id, value, onChange, className }: TimePicker12hP
           variant="ghost"
           onClick={() => togglePeriod('PM')}
           className={cn(
-            'h-7 px-2.5 text-xs font-black rounded-md transition-all',
+            'h-9 px-3.5 text-xs font-black rounded-lg transition-all',
             period === 'PM'
-              ? 'bg-indigo-600 text-white shadow-sm font-black'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-indigo-600 text-white shadow-md font-black hover:bg-indigo-500'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
           )}
         >
           PM
