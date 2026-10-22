@@ -40,6 +40,7 @@ export type PresetTask = {
     order: number;
     recurring?: boolean;
     profession?: ProfileType;
+    startTime?: string;
 };
 
 // Represents a task stored in Firestore, which will have an ID.

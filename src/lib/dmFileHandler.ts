@@ -203,25 +203,43 @@ export async function shareRoutineToCommunity(
     checksum,
   };
 
-  const sharedDocRef = doc(db, 'shared_routines', profile.id);
-  await setDoc(
-    sharedDocRef,
-    {
-      id: profile.id,
-      author,
-      profileName: profile.name,
-      wakeTime: profile.tuningAnswers.wakeUpTime,
-      sleepTime: profile.tuningAnswers.sleepTime,
-      studyWindow: profile.tuningAnswers.studyOrResearchPreference,
-      routineVector: vector,
-      tasksCount: profile.tasks.length,
-      sustainabilityScore: profile.sustainabilityScore || 90,
-      optimizationSummary: profile.optimizationSummary || 'Community shared schedule',
-      sharedAt: serverTimestamp(),
-      dmPayload: dmContainer,
-    },
-    { merge: true }
-  );
+  const payload = {
+    id: profile.id,
+    author,
+    profileName: profile.name,
+    wakeTime: profile.tuningAnswers.wakeUpTime,
+    sleepTime: profile.tuningAnswers.sleepTime,
+    studyWindow: profile.tuningAnswers.studyOrResearchPreference,
+    routineVector: vector,
+    tasksCount: profile.tasks.length,
+    sustainabilityScore: profile.sustainabilityScore || 90,
+    optimizationSummary: profile.optimizationSummary || 'Community shared schedule',
+    dmPayload: dmContainer,
+  };
+
+  try {
+    const sharedDocRef = doc(db, 'shared_routines', profile.id);
+    await setDoc(
+      sharedDocRef,
+      {
+        ...payload,
+        sharedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (clientErr: any) {
+    console.warn('[DMFileHandler] Client setDoc failed, attempting server API fallback:', clientErr);
+    // Server API route fallback using admin SDK
+    const res = await fetch('/api/routine/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.error || clientErr?.message || 'Permission denied sharing routine');
+    }
+  }
 
   return profile.id;
 }

@@ -323,34 +323,34 @@ function RoutinePageComponent() {
         {/* Sticky Fixed Header */}
         <header className="fixed top-0 left-0 right-0 w-full bg-background/80 backdrop-blur-md border-b border-border/50 z-10">
           <div className="w-full flex h-20 items-center justify-between px-4 sm:px-6 md:px-8 lg:px-12">
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90">
+            <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground/90 truncate">
                   {activeCustomProfile ? activeCustomProfile.name : 'Sync Routine'}
                 </h1>
                 {activeCustomProfile && (
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                     Tuned Profile
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {activeCustomProfile
                   ? `Customized MOVERS rhythm with zero overlapping blocks.`
                   : 'Select a profession template or tune your custom routine.'}
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
               {/* Prominent 'Tune My Schedule' Button */}
               <Button
                 size="sm"
                 onClick={() => setIsTunerModalOpen(true)}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 rounded-xl gap-1.5 h-10 px-3.5"
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 rounded-xl gap-1.5 h-10 px-3 sm:px-3.5 shrink-0"
               >
-                <Sparkles className="w-4 h-4 fill-black text-black" />
+                <SlidersHorizontal className="w-4 h-4 text-black" />
                 <span className="hidden sm:inline">Tune My Schedule</span>
-                <span className="sm:hidden">Tune</span>
+                <span className="sm:hidden font-bold">Tune</span>
               </Button>
 
               <HamburgerMenu />
@@ -426,7 +426,7 @@ function RoutinePageComponent() {
                             onClick={() => setIsTunerModalOpen(true)}
                             className="rounded-xl text-xs py-2 text-emerald-400 cursor-pointer gap-2 font-bold"
                           >
-                            <Sparkles className="w-3.5 h-3.5" /> + Tune New Schedule
+                            <SlidersHorizontal className="w-3.5 h-3.5" /> + Tune New Schedule
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setIsImportDropzoneOpen((prev) => !prev)}
@@ -720,7 +720,7 @@ function RoutinePageComponent() {
                     onClick={() => setIsTunerModalOpen(true)}
                     className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 rounded-xl gap-1.5"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <SlidersHorizontal className="w-4 h-4" />
                     {activeCustomProfile ? 'Tweak in Wizard' : 'Tune Schedule'}
                   </Button>
                 </div>

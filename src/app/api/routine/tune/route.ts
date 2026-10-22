@@ -44,7 +44,14 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const sleepMins = timeToMinutes(answers.sleepTime);
   const workStartMins = timeToMinutes(answers.workOrCollegeStart);
   const workEndMins = timeToMinutes(answers.workOrCollegeEnd);
-  const lunchMins = timeToMinutes(answers.lunchBreakTime);
+  let lunchMins = timeToMinutes(answers.lunchBreakTime);
+  // Normalize lunch time if user entered e.g. 01:00 or 02:00 meant as PM
+  if (lunchMins < 660) {
+    lunchMins += 720;
+  }
+  if (lunchMins < 660 || lunchMins > 960) {
+    lunchMins = 780; // Default to 13:00 (1:00 PM) if out of bounds
+  }
   const commute = Math.max(0, answers.commuteDurationMinutes || 0);
 
   let currentPointer = wakeMins;
@@ -55,7 +62,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     title: 'Hydration Check-in #1 (Waking Glass)',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 2,
-    category: 'Morning Kickstart',
+    category: 'Morning Protocol',
     isMoversPillar: true,
     moversType: 'hydration',
     coinsReward: 15,
@@ -68,7 +75,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     title: 'Set Bed & Morning Space Hygiene',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 5,
-    category: 'Morning Kickstart',
+    category: 'Morning Protocol',
     isMoversPillar: true,
     moversType: 'domestic',
     coinsReward: 15,
@@ -335,7 +342,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     title: 'College / Office Strategic Sprint (Block 2)',
     startTime: minutesToTime(afternoonWorkStart),
     durationMinutes: Math.max(30, pmMid1 - afternoonWorkStart),
-    category: 'Work & Academics',
+    category: 'Afternoon Execution',
     isMoversPillar: false,
     coinsReward: 30,
     icon: 'Briefcase',
@@ -346,7 +353,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     title: 'Eye-Strain 20-20-20 Vision Rest #2',
     startTime: minutesToTime(pmMid1),
     durationMinutes: 2,
-    category: 'Work & Academics',
+    category: 'Afternoon Execution',
     isMoversPillar: true,
     moversType: 'eye_strain',
     coinsReward: 15,
@@ -360,7 +367,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       title: 'Afternoon Re-Alignment & Micro-Visualization (V)',
       startTime: minutesToTime(pmMid1 + 4),
       durationMinutes: 10,
-      category: 'Work & Academics',
+      category: 'Afternoon Execution',
       isMoversPillar: true,
       moversType: 'V',
       coinsReward: 25,
@@ -373,7 +380,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     title: 'Hydration Check-in #5',
     startTime: minutesToTime(pmMid2),
     durationMinutes: 2,
-    category: 'Work & Academics',
+    category: 'Afternoon Execution',
     isMoversPillar: true,
     moversType: 'hydration',
     coinsReward: 15,
@@ -401,7 +408,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     title: 'Hydration Check-in #6 (Post-Commute Refuel)',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 2,
-    category: 'Evening Custom',
+    category: 'Transit & Prep',
     isMoversPillar: true,
     moversType: 'hydration',
     coinsReward: 15,

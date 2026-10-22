@@ -56,15 +56,29 @@ function convertCustomProfileToPreset(profile: CustomRoutineProfile): Preset {
       order: index,
       profession: profile.name,
       isVerifiedForCoins: true,
+      startTime: task.startTime,
     };
 
     newPreset[category].tasks.push(presetTask);
   });
 
-  // Sort categories by config order or alphabetical
+  // Helper to extract first task's start time in minutes from midnight
+  const getCatStartMins = (catName: string): number => {
+    const cat = newPreset[catName];
+    if (cat && cat.tasks && cat.tasks.length > 0) {
+      const firstTask = cat.tasks.find((t) => t.startTime);
+      if (firstTask && firstTask.startTime) {
+        const [h, m] = firstTask.startTime.split(':').map((v) => parseInt(v, 10));
+        return (h || 0) * 60 + (m || 0);
+      }
+    }
+    return (categoryConfig[catName]?.order ?? 99) * 10;
+  };
+
+  // Sort categories strictly by chronological start time so blocks never jump around
   const sortedPreset: Preset = {};
   Object.keys(newPreset)
-    .sort((a, b) => (categoryConfig[a]?.order || 99) - (categoryConfig[b]?.order || 99))
+    .sort((a, b) => getCatStartMins(a) - getCatStartMins(b))
     .forEach((key) => {
       sortedPreset[key] = newPreset[key];
     });

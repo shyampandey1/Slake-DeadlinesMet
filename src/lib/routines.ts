@@ -636,6 +636,16 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
     'Skills/Hobbies': { color: 'bg-rose-800 text-white', order: 40 },
     'Wrap Up': { color: 'bg-indigo-800 text-white', order: 50 },
 
+    // Interactive Tuner & Scheduled Categories
+    'Transit & Prep': { color: 'bg-amber-900 text-amber-100 border-amber-500/50', order: 15 },
+    'Work & Academics': { color: 'bg-blue-800 text-white', order: 20 },
+    'Morning Work Sprint': { color: 'bg-blue-800 text-white', order: 20 },
+    'Nutrition & Energy': { color: 'bg-teal-800 text-white', order: 30 },
+    'Midday Nutrition & Recharge': { color: 'bg-teal-800 text-white', order: 30 },
+    'Afternoon Execution': { color: 'bg-purple-800 text-white', order: 40 },
+    'Deep Focus & Study': { color: 'bg-violet-900 text-violet-100 border-violet-500/50', order: 45 },
+    'Evening Custom': { color: 'bg-slate-800 text-white', order: 55 },
+
     // Day Off & Fallbacks
     'Morning Prep': { color: 'bg-sky-800 text-white', order: 10 },
     'Morning Recovery': { color: 'bg-sky-800 text-white', order: 10 },
@@ -666,7 +676,7 @@ export const CATEGORY_TIME_BLOCKS: { [category: string]: { start: number; end: n
     'Morning Primer': { start: 6, end: 7.5 },
     'Morning Activation': { start: 6, end: 7.5 },
     'MOVERS Protocol': { start: 6, end: 7.5 },
-    'Morning Protocol': { start: 6, end: 7.5 },
+    'Morning Protocol': { start: 5.5, end: 7.0 },
 
     // 10: Morning Initialization & Routine Blocks
     'Pre-Shift Routine': { start: 5, end: 7 },
@@ -675,7 +685,15 @@ export const CATEGORY_TIME_BLOCKS: { [category: string]: { start: number; end: n
     'Preparation': { start: 6, end: 8 },
     'Morning Prep': { start: 6, end: 8.5 },
     'Morning Routine': { start: 6, end: 8.5 },
-    'Morning Kickstart': { start: 6.5, end: 8.5 },
+    'Morning Kickstart': { start: 7.0, end: 8.5 },
+    'Transit & Prep': { start: 8.5, end: 9.0 },
+    'Work & Academics': { start: 9.0, end: 13.0 },
+    'Morning Work Sprint': { start: 9.0, end: 13.0 },
+    'Nutrition & Energy': { start: 13.0, end: 14.5 },
+    'Midday Nutrition & Recharge': { start: 13.0, end: 14.5 },
+    'Afternoon Execution': { start: 14.5, end: 17.5 },
+    'Deep Focus & Study': { start: 17.5, end: 19.0 },
+    'Evening Custom': { start: 19.0, end: 20.5 },
     'Concept Phase': { start: 6.5, end: 8.5 },
     'Morning Flow': { start: 6.5, end: 8.5 },
     'Early Draft': { start: 6.5, end: 8.5 },
@@ -822,35 +840,88 @@ export const computeCategoryTimeRanges = (
     const ranges: { [category: string]: { start: Date; end: Date } } = {};
     if (!presetTasks || Object.keys(presetTasks).length === 0) return ranges;
 
-    Object.keys(presetTasks).forEach(category => {
-        let block = CATEGORY_TIME_BLOCKS[category];
+    // 1. Check if tasks have explicit startTime (from tuned routine)
+    const hasExplicitTimes = Object.values(presetTasks).some(
+        (cat) => cat.tasks && cat.tasks.some((t) => typeof t.startTime === 'string' && t.startTime.includes(':'))
+    );
 
-        if (!block) {
-            const config = categoryConfig[category];
-            const order = config?.order ?? 99;
-            if (order <= 5) block = { start: 6, end: 7.5 };
-            else if (order <= 15) block = { start: 7, end: 9 };
-            else if (order <= 28) block = { start: 9, end: 13 };
-            else if (order <= 35) block = { start: 13, end: 15 };
-            else if (order <= 45) block = { start: 15, end: 18 };
-            else if (order <= 55) block = { start: 18, end: 19 };
-            else if (order <= 65) block = { start: 19, end: 21 };
-            else if (order <= 79) block = { start: 21, end: 22 };
-            else block = { start: 22, end: 24 };
+    if (hasExplicitTimes) {
+        Object.keys(presetTasks).forEach((category) => {
+            const tasks = presetTasks[category]?.tasks || [];
+            const timedTasks = tasks.filter((t) => typeof t.startTime === 'string' && t.startTime.includes(':'));
+
+            if (timedTasks.length > 0) {
+                let minStart = 1440;
+                let maxEnd = 0;
+
+                timedTasks.forEach((t) => {
+                    const [h, m] = (t.startTime || '00:00').split(':').map((v) => parseInt(v, 10));
+                    const startMins = (h || 0) * 60 + (m || 0);
+                    const endMins = startMins + (t.duration || 15);
+                    if (startMins < minStart) minStart = startMins;
+                    if (endMins > maxEnd) maxEnd = endMins;
+                });
+
+                if (minStart < 1440 && maxEnd > 0) {
+                    const startDate = new Date(referenceDate);
+                    startDate.setHours(Math.floor(minStart / 60), minStart % 60, 0, 0);
+
+                    const endDate = new Date(referenceDate);
+                    endDate.setHours(Math.floor(maxEnd / 60), maxEnd % 60, 0, 0);
+
+                    ranges[category] = { start: startDate, end: endDate };
+                }
+            }
+        });
+    }
+
+    // 2. Fill any missing categories from CATEGORY_TIME_BLOCKS or categoryConfig order
+    Object.keys(presetTasks).forEach((category) => {
+        if (!ranges[category]) {
+            let block = CATEGORY_TIME_BLOCKS[category];
+
+            if (!block) {
+                const config = categoryConfig[category];
+                const order = config?.order ?? 99;
+                if (order <= 5) block = { start: 5.5, end: 7.0 };
+                else if (order <= 15) block = { start: 7.0, end: 8.5 };
+                else if (order <= 28) block = { start: 8.5, end: 13.0 };
+                else if (order <= 35) block = { start: 13.0, end: 14.5 };
+                else if (order <= 45) block = { start: 14.5, end: 17.5 };
+                else if (order <= 55) block = { start: 17.5, end: 19.5 };
+                else if (order <= 65) block = { start: 19.5, end: 21.0 };
+                else if (order <= 79) block = { start: 21.0, end: 22.5 };
+                else block = { start: 22.5, end: 24.0 };
+            }
+
+            const startDate = new Date(referenceDate);
+            startDate.setHours(Math.floor(block.start), Math.round((block.start % 1) * 60), 0, 0);
+
+            const endDate = new Date(referenceDate);
+            if (block.end >= 24) {
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                endDate.setHours(Math.floor(block.end), Math.round((block.end % 1) * 60), 0, 0);
+            }
+
+            ranges[category] = { start: startDate, end: endDate };
         }
-
-        const startDate = new Date(referenceDate);
-        startDate.setHours(Math.floor(block.start), Math.round((block.start % 1) * 60), 0, 0);
-
-        const endDate = new Date(referenceDate);
-        if (block.end >= 24) {
-            endDate.setHours(23, 59, 59, 999);
-        } else {
-            endDate.setHours(Math.floor(block.end), Math.round((block.end % 1) * 60), 0, 0);
-        }
-
-        ranges[category] = { start: startDate, end: endDate };
     });
+
+    // 3. Mathematical Zero-Overlap Enforcement Pass:
+    // Sort all categories by start time, and clamp overlapping ranges so no two blocks overlap
+    const sortedCategories = Object.keys(ranges).sort(
+        (a, b) => ranges[a].start.getTime() - ranges[b].start.getTime()
+    );
+
+    for (let i = 0; i < sortedCategories.length - 1; i++) {
+        const curCat = sortedCategories[i];
+        const nextCat = sortedCategories[i + 1];
+
+        if (ranges[curCat].end.getTime() > ranges[nextCat].start.getTime()) {
+            ranges[curCat].end = new Date(ranges[nextCat].start.getTime());
+        }
+    }
 
     return ranges;
 };

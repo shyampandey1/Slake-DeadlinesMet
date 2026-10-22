@@ -92,6 +92,19 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Community Shared Routines (.dm)
+    match /shared_routines/{routineId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && (
+        request.resource.data.author.uid == request.auth.uid || 
+        isAdmin()
+      );
+      allow delete: if request.auth != null && (
+        resource.data.author.uid == request.auth.uid || 
+        isAdmin()
+      );
+    }
+
     // Deny access to everything else by default
     match /{allPaths=**} {
       allow read, write: if false;

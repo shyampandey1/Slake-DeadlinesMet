@@ -46,7 +46,9 @@ import {
   Eye,
   Loader2,
   Clock,
+  SlidersHorizontal,
 } from 'lucide-react';
+import { TimePicker12h } from './TimePicker12h';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -131,6 +133,17 @@ const EVENING_ACTIVITIES: {
   { id: 'family_social', label: 'Family & Social', icon: Users, color: 'text-amber-400 border-amber-500/30' },
   { id: 'relaxation', label: 'Mindful Decompression', icon: Sparkles, color: 'text-cyan-400 border-cyan-500/30' },
 ];
+
+function formatTo12h(timeStr: string): string {
+  if (!timeStr) return '';
+  const [hStr, mStr] = timeStr.split(':');
+  let h = parseInt(hStr, 10);
+  if (isNaN(h)) return timeStr;
+  const period = h >= 12 ? 'PM' : 'AM';
+  let h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12.toString().padStart(2, '0')}:${mStr || '00'} ${period}`;
+}
 
 export function RoutineTunerModal({
   isOpen,
@@ -267,13 +280,13 @@ export function RoutineTunerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-background/95 backdrop-blur-2xl border-border/60 p-0 overflow-hidden rounded-3xl shadow-2xl">
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-full h-[90dvh] max-h-[850px] flex flex-col bg-background/95 backdrop-blur-2xl border-border/60 p-0 overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl">
         {/* Wizard Header & Progress Bar */}
-        <div className="p-6 border-b border-border/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
+        <div className="shrink-0 p-4 sm:p-6 border-b border-border/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                <Sparkles className="w-5 h-5" />
+                <SlidersHorizontal className="w-5 h-5" />
               </span>
               <div>
                 <DialogTitle className="text-lg sm:text-xl font-bold font-headline">
@@ -302,8 +315,8 @@ export function RoutineTunerModal({
           </div>
         </div>
 
-        {/* Wizard Steps Form (Mobile Locked: text-base inputs to prevent auto-zoom) */}
-        <div className="p-6 max-h-[65vh] overflow-y-auto space-y-6">
+        {/* Wizard Steps Form (Scrollable body with touch containment) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-6 space-y-6">
           <AnimatePresence mode="wait">
             {/* STEP 1: Morning & Night Anchors */}
             {step === 1 && (
@@ -333,15 +346,13 @@ export function RoutineTunerModal({
                         Time Leaving Bed
                       </Label>
                       <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                        {answers.wakeUpTime}
+                        {formatTo12h(answers.wakeUpTime)}
                       </span>
                     </div>
-                    <Input
+                    <TimePicker12h
                       id="wakeUpTime"
-                      type="time"
                       value={answers.wakeUpTime}
-                      onChange={(e) => updateAnswer('wakeUpTime', e.target.value)}
-                      className="text-base font-mono h-11 bg-background/50 border-border/80 focus:border-emerald-500"
+                      onChange={(val) => updateAnswer('wakeUpTime', val)}
                     />
                     <p className="text-[11px] text-muted-foreground">
                       Hydration #1 and domestic bed setup trigger on wake.
@@ -356,15 +367,13 @@ export function RoutineTunerModal({
                         Target Sleep Time
                       </Label>
                       <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
-                        {answers.sleepTime}
+                        {formatTo12h(answers.sleepTime)}
                       </span>
                     </div>
-                    <Input
+                    <TimePicker12h
                       id="sleepTime"
-                      type="time"
                       value={answers.sleepTime}
-                      onChange={(e) => updateAnswer('sleepTime', e.target.value)}
-                      className="text-base font-mono h-11 bg-background/50 border-border/80 focus:border-indigo-500"
+                      onChange={(val) => updateAnswer('sleepTime', val)}
                     />
                     <p className="text-[11px] text-muted-foreground">
                       Bedtime routine and reading wind down 45m before sleep.
@@ -405,27 +414,35 @@ export function RoutineTunerModal({
                 {/* Work Hours Range */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
-                    <Label htmlFor="workStart" className="text-sm font-semibold">
-                      Work / College Start
-                    </Label>
-                    <Input
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="workStart" className="text-sm font-semibold flex items-center gap-1.5">
+                        <Briefcase className="w-4 h-4 text-blue-400" />
+                        Work / College Start
+                      </Label>
+                      <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                        {formatTo12h(answers.workOrCollegeStart)}
+                      </span>
+                    </div>
+                    <TimePicker12h
                       id="workStart"
-                      type="time"
                       value={answers.workOrCollegeStart}
-                      onChange={(e) => updateAnswer('workOrCollegeStart', e.target.value)}
-                      className="text-base font-mono h-11 bg-background/50"
+                      onChange={(val) => updateAnswer('workOrCollegeStart', val)}
                     />
                   </div>
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
-                    <Label htmlFor="workEnd" className="text-sm font-semibold">
-                      Work / College End
-                    </Label>
-                    <Input
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="workEnd" className="text-sm font-semibold flex items-center gap-1.5">
+                        <Briefcase className="w-4 h-4 text-blue-400" />
+                        Work / College End
+                      </Label>
+                      <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">
+                        {formatTo12h(answers.workOrCollegeEnd)}
+                      </span>
+                    </div>
+                    <TimePicker12h
                       id="workEnd"
-                      type="time"
                       value={answers.workOrCollegeEnd}
-                      onChange={(e) => updateAnswer('workOrCollegeEnd', e.target.value)}
-                      className="text-base font-mono h-11 bg-background/50"
+                      onChange={(val) => updateAnswer('workOrCollegeEnd', val)}
                     />
                   </div>
                 </div>
@@ -460,16 +477,19 @@ export function RoutineTunerModal({
                 {/* Lunch Break */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
-                    <Label htmlFor="lunchTime" className="text-sm font-semibold flex items-center gap-1.5">
-                      <Coffee className="w-4 h-4 text-emerald-400" />
-                      Average Lunch Time
-                    </Label>
-                    <Input
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="lunchTime" className="text-sm font-semibold flex items-center gap-1.5">
+                        <Coffee className="w-4 h-4 text-emerald-400" />
+                        Average Lunch Time
+                      </Label>
+                      <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                        {formatTo12h(answers.lunchBreakTime)}
+                      </span>
+                    </div>
+                    <TimePicker12h
                       id="lunchTime"
-                      type="time"
                       value={answers.lunchBreakTime}
-                      onChange={(e) => updateAnswer('lunchBreakTime', e.target.value)}
-                      className="text-base font-mono h-11 bg-background/50"
+                      onChange={(val) => updateAnswer('lunchBreakTime', val)}
                     />
                   </div>
                   <div className="space-y-2 p-4 rounded-2xl bg-card border border-border/60">
@@ -823,8 +843,8 @@ export function RoutineTunerModal({
           </AnimatePresence>
         </div>
 
-        {/* Wizard Footer Controls */}
-        <div className="p-4 sm:p-6 border-t border-border/40 bg-card/40 flex items-center justify-between gap-3">
+        {/* Wizard Footer Controls (Locked Sticky Bottom on Mobile) */}
+        <div className="shrink-0 p-3.5 sm:p-5 border-t border-border/40 bg-card/90 backdrop-blur flex items-center justify-between gap-3 z-10">
           {step > 1 ? (
             <Button
               type="button"
