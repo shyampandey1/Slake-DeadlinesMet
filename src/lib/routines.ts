@@ -510,7 +510,17 @@ export const profileToRoutineMap: { [key: string]: keyof typeof defaultRoutines.
  * - 80: Bedtime Routine Block (10:00 PM - 12:00 AM)
  */
 export const categoryConfig: { [key: string]: { color: string, order: number } } = {
-    // MOVERS & Morning/Evening Protocols
+    // The 8 Circadian Reformers Routine Sections (Max 6 tasks each)
+    'Morning Activation & Primer': { color: 'bg-emerald-950/80 text-emerald-100 border-emerald-500/40', order: 5 },
+    'Morning Transition & Prep': { color: 'bg-teal-950/80 text-teal-100 border-teal-500/40', order: 12 },
+    'Deep Focus: Morning Sprint': { color: 'bg-sky-950/80 text-sky-100 border-sky-500/40', order: 20 },
+    'Mid-Day Recovery & Lunch': { color: 'bg-amber-950/80 text-amber-100 border-amber-500/40', order: 32 },
+    'Afternoon Strategic Execution': { color: 'bg-blue-950/80 text-blue-100 border-blue-500/40', order: 42 },
+    'Evening Transition & Fitness': { color: 'bg-orange-950/80 text-orange-100 border-orange-500/40', order: 55 },
+    'Evening Growth & Creative': { color: 'bg-purple-950/80 text-purple-100 border-purple-500/40', order: 68 },
+    'Night Restoration & Sleep': { color: 'bg-indigo-950/80 text-indigo-100 border-indigo-500/40', order: 80 },
+
+    // MOVERS & Legacy Protocols
     'Morning Primer': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
     'Morning Activation': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
     'MOVERS Protocol': { color: 'bg-emerald-900 text-emerald-100 border-emerald-500/50', order: 5 },
@@ -675,6 +685,16 @@ export const categoryConfig: { [key: string]: { color: string, order: number } }
  * covering every category across all 18 professions and MOVERS templates.
  */
 export const CATEGORY_TIME_BLOCKS: { [category: string]: { start: number; end: number } } = {
+    // 8 Circadian Sections Time Windows (Float hour format)
+    'Morning Activation & Primer': { start: 5.5, end: 7.5 },
+    'Morning Transition & Prep': { start: 7.5, end: 9.0 },
+    'Deep Focus: Morning Sprint': { start: 9.0, end: 13.0 },
+    'Mid-Day Recovery & Lunch': { start: 13.0, end: 14.5 },
+    'Afternoon Strategic Execution': { start: 14.5, end: 17.5 },
+    'Evening Transition & Fitness': { start: 17.5, end: 19.5 },
+    'Evening Growth & Creative': { start: 19.5, end: 22.0 },
+    'Night Restoration & Sleep': { start: 22.0, end: 24.0 },
+
     // 5: Early Morning Protocols (6:00 AM - 7:30 AM)
     'Morning Primer': { start: 6, end: 7.5 },
     'Morning Activation': { start: 6, end: 7.5 },

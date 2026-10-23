@@ -1090,28 +1090,51 @@ export function RoutineTunerModal({
                   </div>
                 </div>
 
-                {/* 4 Clean Quadrants of the Day */}
-                <div className="p-4 rounded-2xl bg-card border border-border/60 space-y-2.5">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
-                    Structured 4-Quadrant Schedule:
-                  </span>
+                {/* 8 Circadian Focus Sections (Max 6 tasks each) */}
+                <div className="p-4 rounded-2xl bg-card border border-border/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                      Circadian Schedule (8 Balanced Sections):
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      ≤ 6 Tasks Each
+                    </span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                      <span className="font-semibold text-emerald-300">🌅 Morning Protocol</span>
-                      <span className="font-mono text-muted-foreground">{formatTo12h(answers.wakeUpTime)} → {formatTo12h(answers.workOrCollegeStart)}</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
-                      <span className="font-semibold text-blue-300">💼 Afternoon Execution</span>
-                      <span className="font-mono text-muted-foreground">{formatTo12h(answers.workOrCollegeStart)} → {formatTo12h(answers.workOrCollegeEnd)}</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between">
-                      <span className="font-semibold text-purple-300">🌆 Evening Recharge</span>
-                      <span className="font-mono text-muted-foreground">{formatTo12h(answers.workOrCollegeEnd)} → Night</span>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between">
-                      <span className="font-semibold text-indigo-300">🌙 Night Restoration</span>
-                      <span className="font-mono text-muted-foreground">Wind-down → {formatTo12h(answers.sleepTime)}</span>
-                    </div>
+                    {(previewTasks && previewTasks.length > 0
+                      ? Array.from(new Set(previewTasks.map((t) => t.category))).map((cat) => {
+                          const tasksInCat = previewTasks.filter((t) => t.category === cat);
+                          const first = tasksInCat[0];
+                          const last = tasksInCat[tasksInCat.length - 1];
+                          const timeStr = first?.startTime && last?.startTime
+                            ? `${formatTo12h(first.startTime)} → ${formatTo12h(last.startTime)}`
+                            : '';
+                          return { name: cat, time: timeStr, count: tasksInCat.length };
+                        })
+                      : [
+                          { name: '🌅 Morning Activation & Primer', time: `${formatTo12h(answers.wakeUpTime)} → Breakfast`, count: 5 },
+                          { name: '🧭 Morning Transition & Prep', time: `Transit → ${formatTo12h(answers.workOrCollegeStart)}`, count: 3 },
+                          { name: '⚡ Deep Focus: Morning Sprint', time: `${formatTo12h(answers.workOrCollegeStart)} → Lunch`, count: 4 },
+                          { name: '🥗 Mid-Day Recovery & Lunch', time: formatTo12h(answers.lunchBreakTime), count: 3 },
+                          { name: '🚀 Afternoon Strategic Execution', time: `Post-Lunch → ${formatTo12h(answers.workOrCollegeEnd)}`, count: 4 },
+                          { name: '🌆 Evening Transition & Fitness', time: 'Workout → Dinner', count: 4 },
+                          { name: '📚 Evening Growth & Creative', time: 'Study → Wind-down', count: 4 },
+                          { name: '🌙 Night Restoration & Sleep', time: `Wind-down → ${formatTo12h(answers.sleepTime)}`, count: 5 },
+                        ]
+                    ).map((sec) => (
+                      <div
+                        key={sec.name}
+                        className="p-2.5 rounded-xl bg-muted/40 border border-border/50 flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0 pr-1">
+                          <p className="font-semibold text-foreground truncate">{sec.name}</p>
+                          {sec.time && <p className="font-mono text-[10px] text-muted-foreground">{sec.time}</p>}
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-background border border-border/60 shrink-0 text-emerald-400">
+                          {sec.count} tasks
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

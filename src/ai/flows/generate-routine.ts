@@ -87,7 +87,28 @@ export async function generateAIRoutine(input: GenerateRoutineInput): Promise<Ge
       });
     });
 
-    return { routines };
+    // 3. Balance routines into at least 6 sections with at most 6 tasks per section
+    const balancedRoutines: Record<string, { color: string; tasks: Array<{ name: string; duration: number; icon: string; category: string }> }> = {};
+
+    Object.entries(routines).forEach(([cat, data]) => {
+      if (data.tasks.length <= 6) {
+        balancedRoutines[cat] = data;
+      } else {
+        // Split into chunks of at most 5 tasks so every section has <= 6 tasks
+        const chunkSize = 5;
+        for (let i = 0; i < data.tasks.length; i += chunkSize) {
+          const chunkNum = Math.floor(i / chunkSize) + 1;
+          const chunkName = chunkNum === 1 ? `${cat} (Phase 1)` : `${cat} (Phase ${chunkNum})`;
+          const config = (categoryConfig as any)[chunkName] || (categoryConfig as any)[cat];
+          balancedRoutines[chunkName] = {
+            color: config?.color || data.color,
+            tasks: data.tasks.slice(i, i + chunkSize).map((t) => ({ ...t, category: chunkName })),
+          };
+        }
+      }
+    });
+
+    return { routines: balancedRoutines };
   } catch (error: any) {
     console.error('AI Routine Generation Error:', error);
     const routinesMap = defaultRoutines.routines as Record<string, Array<{ name: string; duration: number; icon: string; category: string }>>;
@@ -105,6 +126,27 @@ export async function generateAIRoutine(input: GenerateRoutineInput): Promise<Ge
         category: cat,
       });
     });
-    return { routines };
+    // 3. Balance routines into at least 6 sections with at most 6 tasks per section
+    const balancedRoutines: Record<string, { color: string; tasks: Array<{ name: string; duration: number; icon: string; category: string }> }> = {};
+
+    Object.entries(routines).forEach(([cat, data]) => {
+      if (data.tasks.length <= 6) {
+        balancedRoutines[cat] = data;
+      } else {
+        // Split into chunks of at most 5 tasks so every section has <= 6 tasks
+        const chunkSize = 5;
+        for (let i = 0; i < data.tasks.length; i += chunkSize) {
+          const chunkNum = Math.floor(i / chunkSize) + 1;
+          const chunkName = chunkNum === 1 ? `${cat} (Phase 1)` : `${cat} (Phase ${chunkNum})`;
+          const config = (categoryConfig as any)[chunkName] || (categoryConfig as any)[cat];
+          balancedRoutines[chunkName] = {
+            color: config?.color || data.color,
+            tasks: data.tasks.slice(i, i + chunkSize).map((t) => ({ ...t, category: chunkName })),
+          };
+        }
+      }
+    });
+
+    return { routines: balancedRoutines };
   }
 }

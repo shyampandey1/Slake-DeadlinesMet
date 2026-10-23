@@ -719,7 +719,7 @@ function RoutinePageComponent() {
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     {activeCustomProfile
-                      ? '4 contiguous non-overlapping quadrants engineered for peak focus and recovery.'
+                      ? '8 circadian non-overlapping sections (max 6 tasks each) engineered for peak focus and recovery.'
                       : 'Preset habit sprints configured for your current focus mode.'}
                   </p>
                 </div>
