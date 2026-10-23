@@ -421,7 +421,7 @@ function RoutinePageComponent() {
                 Daily Routine
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                4-Quadrant Circadian Rhythm &amp; Reformers MOVERS Execution
+                8-Section Circadian Architecture &amp; Reformers MOVERS Engine
               </p>
             </div>
 

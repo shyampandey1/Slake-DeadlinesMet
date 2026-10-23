@@ -45,6 +45,88 @@ function minutesToTime(mins: number): string {
  * 7. Evening Growth & Creative (Study / Research, Creative Hobby & Relax) [<= 5 tasks]
  * 8. Night Restoration & Sleep (Pre-Sleep MOVERS, Reading, Journaling & Bed) [<= 5 tasks]
  */
+/**
+ * Proportional Bounded Partitioner
+ * Guarantees exact sum of task durations equals totalBudget without any task exceeding max
+ * or falling below min. Eliminates excessive single-task dumping (e.g. 197m relaxation).
+ */
+function partitionBudget(
+  totalBudget: number,
+  taskSpecs: Array<{ name: string; min: number; max: number; hardMax?: number; weight: number }>
+): number[] {
+  const n = taskSpecs.length;
+  if (n === 0) return [];
+
+  const minSum = taskSpecs.reduce((s, t) => s + t.min, 0);
+  const effectiveBudget = Math.max(minSum, totalBudget);
+
+  const durs = taskSpecs.map((t) => t.min);
+  let remaining = effectiveBudget - minSum;
+  const totalWeight = taskSpecs.reduce((s, t) => s + (t.weight || 1), 0);
+
+  // Pass 1: Proportional allocation up to soft max
+  for (let i = 0; i < n && remaining > 0; i++) {
+    const spec = taskSpecs[i];
+    const capacity = spec.max - durs[i];
+    if (capacity <= 0) continue;
+    const share = Math.round((effectiveBudget - minSum) * ((spec.weight || 1) / totalWeight));
+    const toAdd = Math.min(capacity, Math.min(remaining, share));
+    durs[i] += toAdd;
+    remaining -= toAdd;
+  }
+
+  // Pass 2: Fill remaining up to soft max
+  for (let i = 0; i < n && remaining > 0; i++) {
+    const capacity = taskSpecs[i].max - durs[i];
+    if (capacity > 0 && remaining > 0) {
+      const toAdd = Math.min(capacity, remaining);
+      durs[i] += toAdd;
+      remaining -= toAdd;
+    }
+  }
+
+  // Pass 3: If remaining budget still exists, distribute ONLY to elastic tasks that allow hardMax > max
+  // Never add to capped tasks (like wrap-up, eye rest, or short breaks)
+  if (remaining > 0) {
+    const elasticIndices: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const hardCap = taskSpecs[i].hardMax || taskSpecs[i].max;
+      if (durs[i] < hardCap) {
+        elasticIndices.push(i);
+      }
+    }
+
+    while (remaining > 0 && elasticIndices.length > 0) {
+      let allocatedInRound = false;
+      for (const idx of elasticIndices) {
+        const hardCap = taskSpecs[idx].hardMax || taskSpecs[idx].max;
+        if (durs[idx] < hardCap && remaining > 0) {
+          durs[idx] += 1;
+          remaining -= 1;
+          allocatedInRound = true;
+        }
+      }
+      if (!allocatedInRound) break;
+    }
+  }
+
+  // If there is still a tiny residue (e.g. 1-2m), give it to the task with highest hardMax
+  if (remaining > 0) {
+    let bestIdx = 0;
+    let maxCap = -1;
+    for (let i = 0; i < n; i++) {
+      const hardCap = taskSpecs[i].hardMax || taskSpecs[i].max;
+      if (hardCap > maxCap) {
+        maxCap = hardCap;
+        bestIdx = i;
+      }
+    }
+    durs[bestIdx] += remaining;
+  }
+
+  return durs;
+}
+
 function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTaskBlock[] {
   const tasks: DMRoutineTaskBlock[] = [];
   let taskIdCounter = 1;
@@ -324,68 +406,286 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
   // =========================================================================
   // SECTION 2: MORNING TRANSITION & PREP (Post-Breakfast -> Work Start)
-  // Strictly capped at <= 4 tasks!
+  // Strictly capped at <= 6 tasks! Bounded commute & setup (never > 45m).
   // =========================================================================
-  const transitionTimeAvailable = Math.max(20, workStartMins - currentPointer);
+  const prepAvailable = Math.max(20, workStartMins - currentPointer);
+  const targetCommute = commute > 0 ? Math.min(commute, 45) : 15;
+  const netPrepMins = Math.max(15, prepAvailable - targetCommute - 2);
 
-  // Task 1: Focus Priming / Early Study / MOVERS Movement
-  if (answers.studyOrResearchPreference === 'early_morning' && transitionTimeAvailable >= 35) {
-    const studyDur = Math.min(answers.studyDurationMinutes || 45, transitionTimeAvailable - (commute > 0 ? commute : 15) - 2);
-    const validDur = Math.max(20, studyDur);
-    tasks.push({
-      id: makeId('study_early'),
-      title: 'Dawn Focus Sprint & Deep Theory',
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: validDur,
-      category: 'Morning Transition & Prep',
-      isMoversPillar: false,
-      coinsReward: 35,
-      icon: 'BookOpen',
-    });
-    currentPointer += validDur;
-  } else if (answers.studyOrResearchPreference === 'split_blocks' && transitionTimeAvailable >= 35) {
-    const splitDur1 = Math.min(Math.floor((answers.studyDurationMinutes || 60) / 2), transitionTimeAvailable - (commute > 0 ? commute : 15) - 2);
-    const validDur = Math.max(20, splitDur1);
-    tasks.push({
-      id: makeId('study_split_1'),
-      title: 'Morning Focus & Core Study Block (Phase 1)',
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: validDur,
-      category: 'Morning Transition & Prep',
-      isMoversPillar: false,
-      coinsReward: 30,
-      icon: 'BookOpen',
-    });
-    currentPointer += validDur;
-  } else if (answers.moversWrapperMode === 'morning_primer') {
-    tasks.push({
-      id: makeId('mov_v'),
-      title: 'Strategic Visualization & Focus Framing (V)',
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: 10,
-      category: 'Morning Transition & Prep',
-      isMoversPillar: true,
-      moversType: 'V',
-      coinsReward: 25,
-      icon: 'Target',
-    });
-    currentPointer += 10;
+  if (answers.studyOrResearchPreference === 'early_morning' && prepAvailable >= 45) {
+    if (netPrepMins >= 80) {
+      const [study1, kinetic, study2, prepV] = partitionBudget(netPrepMins, [
+        { name: 'study1', min: 30, max: 55, hardMax: 65, weight: 38 },
+        { name: 'kinetic', min: 5, max: 15, hardMax: 15, weight: 12 },
+        { name: 'study2', min: 20, max: 45, hardMax: 50, weight: 32 },
+        { name: 'prepV', min: 10, max: 18, hardMax: 20, weight: 18 },
+      ]);
+      tasks.push({
+        id: makeId('study_early_1'),
+        title: 'Dawn Focus Sprint #1 (Deep Theory)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: study1,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 35,
+        icon: 'BookOpen',
+      });
+      currentPointer += study1;
+
+      tasks.push({
+        id: makeId('prep_kinetic'),
+        title: 'Visual & Kinetic Rest Break',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: kinetic,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 15,
+        icon: 'Eye',
+      });
+      currentPointer += kinetic;
+
+      tasks.push({
+        id: makeId('study_early_2'),
+        title: 'Dawn Focus Sprint #2 (Practical Application)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: study2,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 30,
+        icon: 'BookOpen',
+      });
+      currentPointer += study2;
+
+      tasks.push({
+        id: makeId('mov_v'),
+        title: 'Strategic Visualization & Focus Framing (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: prepV,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 25,
+        icon: 'Target',
+      });
+      currentPointer += prepV;
+    } else {
+      const [studyDur, prepV] = partitionBudget(netPrepMins, [
+        { name: 'study', min: 20, max: 50, hardMax: 60, weight: 65 },
+        { name: 'prepV', min: 10, max: 18, hardMax: 20, weight: 35 },
+      ]);
+      tasks.push({
+        id: makeId('study_early'),
+        title: 'Dawn Focus Sprint & Deep Theory',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: studyDur,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 35,
+        icon: 'BookOpen',
+      });
+      currentPointer += studyDur;
+
+      tasks.push({
+        id: makeId('mov_v'),
+        title: 'Strategic Visualization & Focus Framing (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: prepV,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 25,
+        icon: 'Target',
+      });
+      currentPointer += prepV;
+    }
+  } else if (answers.studyOrResearchPreference === 'split_blocks' && prepAvailable >= 45) {
+    if (netPrepMins >= 80) {
+      const [split1, kinetic, split2, prepV] = partitionBudget(netPrepMins, [
+        { name: 'split1', min: 30, max: 55, hardMax: 65, weight: 38 },
+        { name: 'kinetic', min: 5, max: 15, hardMax: 15, weight: 12 },
+        { name: 'split2', min: 20, max: 45, hardMax: 50, weight: 32 },
+        { name: 'prepV', min: 10, max: 18, hardMax: 20, weight: 18 },
+      ]);
+      tasks.push({
+        id: makeId('study_split_1a'),
+        title: 'Morning Focus & Core Study (Phase 1A)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: split1,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 30,
+        icon: 'BookOpen',
+      });
+      currentPointer += split1;
+
+      tasks.push({
+        id: makeId('prep_kinetic'),
+        title: 'Visual & Kinetic Rest Break',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: kinetic,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 15,
+        icon: 'Eye',
+      });
+      currentPointer += kinetic;
+
+      tasks.push({
+        id: makeId('study_split_1b'),
+        title: 'Morning Focus & Core Study (Phase 1B)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: split2,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 25,
+        icon: 'BookOpen',
+      });
+      currentPointer += split2;
+
+      tasks.push({
+        id: makeId('mov_v'),
+        title: 'Strategic Visualization & Focus Framing (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: prepV,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 25,
+        icon: 'Target',
+      });
+      currentPointer += prepV;
+    } else {
+      const [splitDur1, prepV] = partitionBudget(netPrepMins, [
+        { name: 'split1', min: 20, max: 45, hardMax: 60, weight: 65 },
+        { name: 'prepV', min: 10, max: 18, hardMax: 20, weight: 35 },
+      ]);
+      tasks.push({
+        id: makeId('study_split_1'),
+        title: 'Morning Focus & Core Study Block (Phase 1)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: splitDur1,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 30,
+        icon: 'BookOpen',
+      });
+      currentPointer += splitDur1;
+
+      tasks.push({
+        id: makeId('mov_v'),
+        title: 'Strategic Visualization & Focus Framing (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: prepV,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 25,
+        icon: 'Target',
+      });
+      currentPointer += prepV;
+    }
   } else {
-    tasks.push({
-      id: makeId('mov_v_prep'),
-      title: 'Daily Objective Framing & Mental Rehearsal',
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: 10,
-      category: 'Morning Transition & Prep',
-      isMoversPillar: true,
-      moversType: 'V',
-      coinsReward: 20,
-      icon: 'Target',
-    });
-    currentPointer += 10;
+    if (netPrepMins >= 80) {
+      const [primer1, kinetic, primer2, prepV] = partitionBudget(netPrepMins, [
+        { name: 'primer1', min: 30, max: 55, hardMax: 65, weight: 38 },
+        { name: 'kinetic', min: 5, max: 15, hardMax: 15, weight: 12 },
+        { name: 'primer2', min: 20, max: 45, hardMax: 50, weight: 32 },
+        { name: 'prepV', min: 10, max: 18, hardMax: 20, weight: 18 },
+      ]);
+      tasks.push({
+        id: makeId('primer_1'),
+        title: 'Daily Domain Primer & Strategic Review',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: primer1,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 30,
+        icon: 'BookOpen',
+      });
+      currentPointer += primer1;
+
+      tasks.push({
+        id: makeId('prep_kinetic'),
+        title: 'Visual & Kinetic Rest Break',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: kinetic,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 15,
+        icon: 'Eye',
+      });
+      currentPointer += kinetic;
+
+      tasks.push({
+        id: makeId('primer_2'),
+        title: 'High-Yield Knowledge Synthesis & Reading',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: primer2,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 25,
+        icon: 'BookOpen',
+      });
+      currentPointer += primer2;
+
+      tasks.push({
+        id: makeId('mov_v'),
+        title: 'Strategic Visualization & Focus Framing (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: prepV,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 25,
+        icon: 'Target',
+      });
+      currentPointer += prepV;
+    } else if (netPrepMins >= 40) {
+      const [primerDur, prepV] = partitionBudget(netPrepMins, [
+        { name: 'primer', min: 20, max: 45, hardMax: 60, weight: 65 },
+        { name: 'prepV', min: 10, max: 18, hardMax: 20, weight: 35 },
+      ]);
+      tasks.push({
+        id: makeId('domain_primer'),
+        title: 'Daily Domain Primer & Strategic Review',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: primerDur,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: false,
+        coinsReward: 25,
+        icon: 'BookOpen',
+      });
+      currentPointer += primerDur;
+
+      tasks.push({
+        id: makeId('mov_v_prep'),
+        title: 'Daily Objective Framing & Mental Rehearsal (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: prepV,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 20,
+        icon: 'Target',
+      });
+      currentPointer += prepV;
+    } else {
+      tasks.push({
+        id: makeId('mov_v_prep'),
+        title: 'Daily Objective Framing & Mental Rehearsal (V)',
+        startTime: minutesToTime(currentPointer),
+        durationMinutes: netPrepMins,
+        category: 'Morning Transition & Prep',
+        isMoversPillar: true,
+        moversType: 'V',
+        coinsReward: 20,
+        icon: 'Target',
+      });
+      currentPointer += netPrepMins;
+    }
   }
 
-  // Task 2: Hydration #2
+  // Hydration #2
   tasks.push({
     id: makeId('hyd_2'),
     title: 'Hydration Check-in #2 (Pre-Focus Glass)',
@@ -399,23 +699,22 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   });
   currentPointer += 2;
 
-  // Task 3: Commute / Mindful Transit or Remote Workspace Priming
-  const transitDur = Math.max(10, workStartMins - currentPointer);
+  // Commute / Priming (exact transit duration, max 45m!)
   tasks.push({
     id: makeId('commute_m'),
     title: commute > 0 ? morningCommuteTitle : 'Workspace Priming & Equipment Setup',
     startTime: minutesToTime(currentPointer),
-    durationMinutes: transitDur,
+    durationMinutes: targetCommute,
     category: 'Morning Transition & Prep',
     isMoversPillar: false,
     coinsReward: 15,
     icon: commute > 0 ? (isCollege ? 'GraduationCap' : isIndependent ? 'Coffee' : 'Car') : 'Laptop',
   });
-  currentPointer += transitDur;
+  currentPointer += targetCommute;
 
   // =========================================================================
   // SECTION 3: DEEP FOCUS: MORNING SPRINT (Work Start -> Lunch Start)
-  // Strictly capped at <= 5 tasks!
+  // Strictly capped at <= 6 tasks! Focus sprints max 75m, sync max 25m.
   // =========================================================================
   currentPointer = Math.max(currentPointer, workStartMins);
   const morningWorkBudget = Math.max(60, lunchMins - currentPointer);
@@ -423,91 +722,173 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const morningProfTasks = profWorkTasks.slice(0, midTasksCount);
   const afternoonProfTasks = profWorkTasks.slice(midTasksCount);
 
-  // Distribute tasks across morning work budget: 2 core work tasks, 1 eye-strain break, 1 sync, 1 hydration
-  const overheadMorning = 4; // eye_1 (2m) + hyd_3 (2m)
-  const netMorningWorkMins = Math.max(50, morningWorkBudget - overheadMorning - 20); // reserve 20m for preLunchSync
-  const workBlockDur1 = quantize5(netMorningWorkMins / Math.max(1, Math.min(2, morningProfTasks.length)));
+  if (morningWorkBudget >= 195) {
+    // 4-hour morning: 6 tasks (Sprint 1, Eye Rest & Hydration, Sprint 2, Coffee Reset, Tactical Sprint, Standup Sync)
+    const netMorningMins = morningWorkBudget - 5; // 5m for eye rest & hydration combo
+    const [am1, am2, coffee, tactical, sync] = partitionBudget(netMorningMins, [
+      { name: 'am1', min: 45, max: 70, hardMax: 75, weight: 28 },
+      { name: 'am2', min: 40, max: 65, hardMax: 75, weight: 26 },
+      { name: 'coffee', min: 15, max: 25, hardMax: 25, weight: 12 },
+      { name: 'tactical', min: 35, max: 55, hardMax: 65, weight: 22 },
+      { name: 'sync', min: 15, max: 20, hardMax: 25, weight: 12 },
+    ]);
 
-  // Task 1: Morning Deep Work Block #1
-  const firstProfTask = morningProfTasks[0] || { name: `${profession} Core Execution & Focus Sprint`, icon: 'Briefcase' };
-  tasks.push({
-    id: makeId('prof_am_0'),
-    title: firstProfTask.name,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: workBlockDur1,
-    category: 'Deep Focus: Morning Sprint',
-    isMoversPillar: false,
-    coinsReward: 35,
-    icon: firstProfTask.icon || (isCollege ? 'BookOpen' : 'Briefcase'),
-  });
-  currentPointer += workBlockDur1;
+    const firstProfTask = morningProfTasks[0] || { name: `${profession} Core Execution & Focus Sprint`, icon: 'Briefcase' };
+    tasks.push({
+      id: makeId('prof_am_0'),
+      title: firstProfTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: am1,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 35,
+      icon: firstProfTask.icon || (isCollege ? 'BookOpen' : 'Briefcase'),
+    });
+    currentPointer += am1;
 
-  // Task 2: Eye-Strain Rest #1
-  tasks.push({
-    id: makeId('eye_1'),
-    title: 'Eye-Strain 20-20-20 Vision Rest #1',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: 2,
-    category: 'Deep Focus: Morning Sprint',
-    isMoversPillar: true,
-    moversType: 'eye_strain',
-    coinsReward: 15,
-    icon: 'Eye',
-  });
-  currentPointer += 2;
+    tasks.push({
+      id: makeId('eye_hyd_am'),
+      title: 'Eye-Strain 20-20-20 Vision Rest & Hydration Check-in',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 5,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: true,
+      moversType: 'eye_strain',
+      coinsReward: 20,
+      icon: 'Eye',
+    });
+    currentPointer += 5;
 
-  // Task 3: Morning Deep Work Block #2
-  const secondProfTask = morningProfTasks[1] || { name: `${profession} Deep Production & Deliverables`, icon: 'Briefcase' };
-  const remBeforeSync = Math.max(25, lunchMins - currentPointer - 22);
-  const secondBlockDur = quantize5(Math.min(workBlockDur1, remBeforeSync));
-  tasks.push({
-    id: makeId('prof_am_1'),
-    title: secondProfTask.name,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: secondBlockDur,
-    category: 'Deep Focus: Morning Sprint',
-    isMoversPillar: false,
-    coinsReward: 30,
-    icon: secondProfTask.icon || (isCollege ? 'GraduationCap' : 'Briefcase'),
-  });
-  currentPointer += secondBlockDur;
+    const secondProfTask = morningProfTasks[1] || { name: `${profession} Technical Sprint & Operations`, icon: 'Layers' };
+    tasks.push({
+      id: makeId('prof_am_1'),
+      title: secondProfTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: am2,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 30,
+      icon: secondProfTask.icon || 'Layers',
+    });
+    currentPointer += am2;
 
-  // Task 4: Pre-Lunch Review & Standup Sync
-  const syncDur = Math.max(15, lunchMins - 2 - currentPointer);
-  tasks.push({
-    id: makeId('prof_am_sync'),
-    title: preLunchSyncTitle,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: syncDur,
-    category: 'Deep Focus: Morning Sprint',
-    isMoversPillar: false,
-    coinsReward: 20,
-    icon: preLunchSyncIcon,
-  });
-  currentPointer += syncDur;
+    tasks.push({
+      id: makeId('am_coffee_reset'),
+      title: 'Mid-Morning Coffee & Kinetic Reset',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: coffee,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Coffee',
+    });
+    currentPointer += coffee;
 
-  // Task 5: Hydration #3
-  tasks.push({
-    id: makeId('hyd_3'),
-    title: 'Hydration Check-in #3 (Pre-Lunch Glass)',
-    startTime: minutesToTime(Math.max(currentPointer, lunchMins - 2)),
-    durationMinutes: 2,
-    category: 'Deep Focus: Morning Sprint',
-    isMoversPillar: true,
-    moversType: 'hydration',
-    coinsReward: 15,
-    icon: 'Droplets',
-  });
+    tasks.push({
+      id: makeId('am_tactical'),
+      title: `${profession} Collaborative Execution & Tactical Sprint`,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: tactical,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: 'Layers',
+    });
+    currentPointer += tactical;
+
+    tasks.push({
+      id: makeId('sync_standup'),
+      title: preLunchSyncTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: sync,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 20,
+      icon: preLunchSyncIcon,
+    });
+    currentPointer += sync;
+  } else {
+    // Standard morning: 5 tasks
+    const netMorningMins = Math.max(40, morningWorkBudget - 4); // 4m for eye_1 + hyd_3
+    const [am1, am2, sync] = partitionBudget(netMorningMins, [
+      { name: 'am1', min: 30, max: 70, hardMax: 75, weight: 45 },
+      { name: 'am2', min: 25, max: 65, hardMax: 75, weight: 38 },
+      { name: 'sync', min: 15, max: 25, hardMax: 30, weight: 17 },
+    ]);
+
+    const firstProfTask = morningProfTasks[0] || { name: `${profession} Core Execution & Focus Sprint`, icon: 'Briefcase' };
+    tasks.push({
+      id: makeId('prof_am_0'),
+      title: firstProfTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: am1,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 35,
+      icon: firstProfTask.icon || (isCollege ? 'BookOpen' : 'Briefcase'),
+    });
+    currentPointer += am1;
+
+    tasks.push({
+      id: makeId('eye_1'),
+      title: 'Eye-Strain 20-20-20 Vision Rest #1',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: true,
+      moversType: 'eye_strain',
+      coinsReward: 15,
+      icon: 'Eye',
+    });
+    currentPointer += 2;
+
+    const secondProfTask = morningProfTasks[1] || { name: `${profession} Technical Sprint & Operations`, icon: 'Layers' };
+    tasks.push({
+      id: makeId('prof_am_1'),
+      title: secondProfTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: am2,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 30,
+      icon: secondProfTask.icon || 'Layers',
+    });
+    currentPointer += am2;
+
+    tasks.push({
+      id: makeId('sync_standup'),
+      title: preLunchSyncTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: sync,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: false,
+      coinsReward: 20,
+      icon: preLunchSyncIcon,
+    });
+    currentPointer += sync;
+
+    tasks.push({
+      id: makeId('hyd_3'),
+      title: 'Hydration Check-in #3 (Pre-Lunch Glass)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Deep Focus: Morning Sprint',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+  }
 
   // =========================================================================
   // SECTION 4: MID-DAY RECOVERY & LUNCH (Lunch Break Window)
   // Strictly capped at <= 3 tasks! Exact sum == lunchDuration!
   // =========================================================================
   currentPointer = lunchMins;
-  const netWalkMins = Math.max(5, Math.min(10, lunchDuration - 22)); // 5 to 10m
-  const netLunchMins = lunchDuration - netWalkMins - 2; // Exact mathematical sum == lunchDuration
+  const netWalkMins = Math.max(5, Math.min(10, lunchDuration - 22));
+  const netLunchMins = lunchDuration - netWalkMins - 2;
 
-  // Task 1: Lunch Nutrition
   tasks.push({
     id: makeId('lunch_block'),
     title: 'Lunch & Mindful Nutrition Break',
@@ -520,7 +901,6 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   });
   currentPointer += netLunchMins;
 
-  // Task 2: Hydration #4
   tasks.push({
     id: makeId('hyd_4'),
     title: 'Hydration Check-in #4 (Post-Lunch Glass)',
@@ -534,7 +914,6 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   });
   currentPointer += 2;
 
-  // Task 3: Digestive Walk & Light Reset
   tasks.push({
     id: makeId('lunch_walk'),
     title: 'Post-Lunch Walk & Light Kinetic Reset',
@@ -549,7 +928,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
   // =========================================================================
   // SECTION 5: AFTERNOON STRATEGIC EXECUTION (Post-Lunch -> Core Work End)
-  // Strictly capped at <= 5 tasks!
+  // Strictly capped at <= 6 tasks! Wrap-up strictly 15-25m!
   // =========================================================================
   currentPointer = lunchMins + lunchDuration;
   const afternoonBudget = Math.max(60, coreWorkEndMins - currentPointer);
@@ -557,203 +936,430 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     afternoonProfTasks.length > 0
       ? afternoonProfTasks
       : isCollege
-      ? [{ name: 'Academic Application & Project Sprint', duration: 75, icon: 'GraduationCap' }]
+      ? [{ name: 'Academic Application & Project Sprint', duration: 60, icon: 'GraduationCap' }]
       : isIndependent
-      ? [{ name: 'Independent Production & Creative Deliverables', duration: 75, icon: 'Palette' }]
-      : [{ name: `${profession} Core Execution & Deliverables`, duration: 75, icon: 'Briefcase' }];
+      ? [{ name: 'Independent Production & Creative Deliverables', duration: 60, icon: 'Palette' }]
+      : [{ name: `${profession} Core Execution & Deliverables`, duration: 60, icon: 'Briefcase' }];
 
-  const netAfternoonMins = Math.max(50, afternoonBudget - 24); // reserve for wrap-up, eye-strain, hydration
-  const pmBlockDur = quantize5(netAfternoonMins / Math.max(1, Math.min(2, pmTasksToUse.length)));
+  if (afternoonBudget >= 200) {
+    // Long afternoon (3.5 - 4 hours): 6 tasks (PM1, Eye & Stretch, PM2, Tea Reset, Tactical Sprint, Wrap-Up <= 25m)
+    const netAfternoonMins = afternoonBudget - 5; // 5m for eye rest & stretch combo
+    const [pm1, pm2, teaReset, tactical, wrap] = partitionBudget(netAfternoonMins, [
+      { name: 'pm1', min: 45, max: 70, hardMax: 75, weight: 28 },
+      { name: 'pm2', min: 40, max: 65, hardMax: 75, weight: 26 },
+      { name: 'teaReset', min: 15, max: 20, hardMax: 25, weight: 10 },
+      { name: 'tactical', min: 30, max: 55, hardMax: 65, weight: 24 },
+      { name: 'wrap', min: 15, max: 20, hardMax: 25, weight: 12 },
+    ]);
 
-  // Task 1: Afternoon Production Block
-  const firstPmTask = pmTasksToUse[0];
-  tasks.push({
-    id: makeId('prof_pm_0'),
-    title: firstPmTask.name,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: pmBlockDur,
-    category: 'Afternoon Strategic Execution',
-    isMoversPillar: false,
-    coinsReward: 30,
-    icon: firstPmTask.icon || (isCollege ? 'GraduationCap' : 'Briefcase'),
-  });
-  currentPointer += pmBlockDur;
-
-  // Task 2: Eye-Strain Rest #2
-  tasks.push({
-    id: makeId('eye_2'),
-    title: 'Eye-Strain 20-20-20 Vision Rest #2',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: 2,
-    category: 'Afternoon Strategic Execution',
-    isMoversPillar: true,
-    moversType: 'eye_strain',
-    coinsReward: 15,
-    icon: 'Eye',
-  });
-  currentPointer += 2;
-
-  // Task 3: Afternoon Sprints / Alignment
-  if (answers.moversWrapperMode === 'jev_smart_weave') {
+    const firstPmTask = pmTasksToUse[0];
     tasks.push({
-      id: makeId('mov_v_weave'),
-      title: 'Afternoon Re-Alignment & Micro-Visualization (V)',
+      id: makeId('prof_pm_0'),
+      title: firstPmTask.name,
       startTime: minutesToTime(currentPointer),
-      durationMinutes: 8,
-      category: 'Afternoon Strategic Execution',
-      isMoversPillar: true,
-      moversType: 'V',
-      coinsReward: 25,
-      icon: 'Target',
-    });
-    currentPointer += 8;
-  } else {
-    const sprintDur = quantize5(Math.min(pmBlockDur, Math.max(25, coreWorkEndMins - currentPointer - 24)));
-    tasks.push({
-      id: makeId('prof_pm_sprint'),
-      title: pmSprintTitle,
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: sprintDur,
+      durationMinutes: pm1,
       category: 'Afternoon Strategic Execution',
       isMoversPillar: false,
       coinsReward: 30,
-      icon: pmSprintIcon,
+      icon: firstPmTask.icon || (isCollege ? 'GraduationCap' : 'Briefcase'),
     });
-    currentPointer += sprintDur;
+    currentPointer += pm1;
+
+    tasks.push({
+      id: makeId('eye_pm_combo'),
+      title: 'Eye-Strain 20-20-20 Vision Rest & Kinetic Stretch',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 5,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: true,
+      moversType: 'eye_strain',
+      coinsReward: 20,
+      icon: 'Eye',
+    });
+    currentPointer += 5;
+
+    const secondPmTask = pmTasksToUse[1] || { name: pmSprintTitle, icon: pmSprintIcon };
+    tasks.push({
+      id: makeId('prof_pm_sprint'),
+      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Afternoon Re-Alignment & Micro-Visualization (V)' : secondPmTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: pm2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: answers.moversWrapperMode === 'jev_smart_weave',
+      moversType: answers.moversWrapperMode === 'jev_smart_weave' ? 'V' : undefined,
+      coinsReward: 25,
+      icon: answers.moversWrapperMode === 'jev_smart_weave' ? 'Target' : (secondPmTask.icon || 'Layers'),
+    });
+    currentPointer += pm2;
+
+    tasks.push({
+      id: makeId('pm_tea_reset'),
+      title: 'Kinetic Movement & Afternoon Tea Reset',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: teaReset,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Coffee',
+    });
+    currentPointer += teaReset;
+
+    tasks.push({
+      id: makeId('pm_tactical'),
+      title: `${profession} Tactical Deliverables & Milestone Review`,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: tactical,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: 'Layers',
+    });
+    currentPointer += tactical;
+
+    tasks.push({
+      id: makeId('prof_pm_wrap'),
+      title: pmWrapTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: wrap,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: pmWrapIcon,
+    });
+    currentPointer += wrap;
+  } else if (afternoonBudget >= 160) {
+    // Moderate afternoon (2.5 - 3.5 hours): 6 tasks (PM1, Eye, Tea/Walk, PM2, Hydration, Wrap-Up <= 25m)
+    const netAfternoonMins = Math.max(40, afternoonBudget - 4); // 4m for eye_2 + hyd_5
+    const [pm1, pm2, teaBreak, wrap] = partitionBudget(netAfternoonMins, [
+      { name: 'pm1', min: 40, max: 65, hardMax: 75, weight: 36 },
+      { name: 'pm2', min: 35, max: 60, hardMax: 70, weight: 34 },
+      { name: 'teaBreak', min: 15, max: 20, hardMax: 25, weight: 15 },
+      { name: 'wrap', min: 15, max: 20, hardMax: 25, weight: 15 },
+    ]);
+
+    const firstPmTask = pmTasksToUse[0];
+    tasks.push({
+      id: makeId('prof_pm_0'),
+      title: firstPmTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: pm1,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 30,
+      icon: firstPmTask.icon || (isCollege ? 'GraduationCap' : 'Briefcase'),
+    });
+    currentPointer += pm1;
+
+    tasks.push({
+      id: makeId('eye_2'),
+      title: 'Eye-Strain 20-20-20 Vision Rest #2',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: true,
+      moversType: 'eye_strain',
+      coinsReward: 15,
+      icon: 'Eye',
+    });
+    currentPointer += 2;
+
+    tasks.push({
+      id: makeId('pm_tea_break'),
+      title: 'Kinetic Movement & Afternoon Tea Reset',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: teaBreak,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Coffee',
+    });
+    currentPointer += teaBreak;
+
+    const secondPmTask = pmTasksToUse[1] || { name: pmSprintTitle, icon: pmSprintIcon };
+    tasks.push({
+      id: makeId('prof_pm_sprint'),
+      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Afternoon Re-Alignment & Micro-Visualization (V)' : secondPmTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: pm2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: answers.moversWrapperMode === 'jev_smart_weave',
+      moversType: answers.moversWrapperMode === 'jev_smart_weave' ? 'V' : undefined,
+      coinsReward: 25,
+      icon: answers.moversWrapperMode === 'jev_smart_weave' ? 'Target' : (secondPmTask.icon || 'Layers'),
+    });
+    currentPointer += pm2;
+
+    tasks.push({
+      id: makeId('hyd_5'),
+      title: 'Hydration Check-in #5 (Mid-Afternoon Glass)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+
+    tasks.push({
+      id: makeId('prof_pm_wrap'),
+      title: pmWrapTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: wrap,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: pmWrapIcon,
+    });
+    currentPointer += wrap;
+  } else {
+    // Compact afternoon: 5 tasks
+    const netAfternoonMins = Math.max(40, afternoonBudget - 4); // 4m for eye_2 + hyd_5
+    const [pm1, pm2, wrap] = partitionBudget(netAfternoonMins, [
+      { name: 'pm1', min: 30, max: 65, hardMax: 75, weight: 45 },
+      { name: 'pm2', min: 25, max: 60, hardMax: 70, weight: 40 },
+      { name: 'wrap', min: 15, max: 20, hardMax: 25, weight: 15 },
+    ]);
+
+    const firstPmTask = pmTasksToUse[0];
+    tasks.push({
+      id: makeId('prof_pm_0'),
+      title: firstPmTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: pm1,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 30,
+      icon: firstPmTask.icon || (isCollege ? 'GraduationCap' : 'Briefcase'),
+    });
+    currentPointer += pm1;
+
+    tasks.push({
+      id: makeId('eye_2'),
+      title: 'Eye-Strain 20-20-20 Vision Rest #2',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: true,
+      moversType: 'eye_strain',
+      coinsReward: 15,
+      icon: 'Eye',
+    });
+    currentPointer += 2;
+
+    const secondPmTask = pmTasksToUse[1] || { name: pmSprintTitle, icon: pmSprintIcon };
+    tasks.push({
+      id: makeId('prof_pm_sprint'),
+      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Afternoon Re-Alignment & Micro-Visualization (V)' : secondPmTask.name,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: pm2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: answers.moversWrapperMode === 'jev_smart_weave',
+      moversType: answers.moversWrapperMode === 'jev_smart_weave' ? 'V' : undefined,
+      coinsReward: 25,
+      icon: answers.moversWrapperMode === 'jev_smart_weave' ? 'Target' : (secondPmTask.icon || 'Layers'),
+    });
+    currentPointer += pm2;
+
+    tasks.push({
+      id: makeId('hyd_5'),
+      title: 'Hydration Check-in #5 (Mid-Afternoon Glass)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+
+    tasks.push({
+      id: makeId('prof_pm_wrap'),
+      title: pmWrapTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: wrap,
+      category: 'Afternoon Strategic Execution',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: pmWrapIcon,
+    });
+    currentPointer += wrap;
   }
-
-  // Task 4: Hydration #5
-  tasks.push({
-    id: makeId('hyd_5'),
-    title: 'Hydration Check-in #5 (Mid-Afternoon Glass)',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: 2,
-    category: 'Afternoon Strategic Execution',
-    isMoversPillar: true,
-    moversType: 'hydration',
-    coinsReward: 15,
-    icon: 'Droplets',
-  });
-  currentPointer += 2;
-
-  // Task 5: Daily Milestone Wrap-Up
-  const wrapDur = Math.max(15, coreWorkEndMins - currentPointer);
-  tasks.push({
-    id: makeId('prof_pm_wrap'),
-    title: pmWrapTitle,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: wrapDur,
-    category: 'Afternoon Strategic Execution',
-    isMoversPillar: false,
-    coinsReward: 25,
-    icon: pmWrapIcon,
-  });
-  currentPointer += wrapDur;
 
   // =========================================================================
   // SECTION 6: EVENING TRANSITION & FITNESS (Core Work End -> Dinner End)
-  // Strictly capped at <= 4 tasks!
+  // Strictly capped at <= 5 tasks!
   // =========================================================================
   currentPointer = Math.max(currentPointer, coreWorkEndMins);
-  const nightWindDownDuration = answers.moversWrapperMode === 'evening_restorer' ? 55 : 35;
+  const nightWindDownDuration = answers.moversWrapperMode === 'evening_restorer' ? 50 : 40;
   const nightWindDownStart = sleepMins - nightWindDownDuration;
-
-  // Task 1: Evening Commute / Studio Close-Down
-  const eveTransitDur = commute > 0 ? commute : 15;
-  tasks.push({
-    id: makeId('commute_e'),
-    title: commute > 0 ? eveningCommuteTitle : 'Studio & Workspace Close-Down',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: eveTransitDur,
-    category: 'Evening Transition & Fitness',
-    isMoversPillar: false,
-    coinsReward: 15,
-    icon: commute > 0 ? (isCollege ? 'GraduationCap' : isIndependent ? 'Coffee' : 'Car') : 'CheckCircle2',
-  });
-  currentPointer += eveTransitDur;
-
-  // Task 2: Hydration #6
-  tasks.push({
-    id: makeId('hyd_6'),
-    title: 'Hydration Check-in #6 (Post-Commute Refuel)',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: 2,
-    category: 'Evening Transition & Fitness',
-    isMoversPillar: true,
-    moversType: 'hydration',
-    coinsReward: 15,
-    icon: 'Droplets',
-  });
-  currentPointer += 2;
 
   const eveningActivities =
     answers.eveningCustomization && answers.eveningCustomization.length > 0
       ? answers.eveningCustomization
       : ['fitness', 'family_social', 'relaxation'];
 
-  // Task 3: Physical Training & Kinetic Workout (E)
-  const fitnessDur = eveningActivities.includes('fitness') ? 35 : 20;
-  tasks.push({
-    id: makeId('eve_fitness'),
-    title: eveningActivities.includes('fitness')
-      ? 'Physical Training & Kinetic Workout (E)'
-      : 'Evening Kinetic Stroll & Movement Reset (E)',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: fitnessDur,
-    category: 'Evening Transition & Fitness',
-    isMoversPillar: true,
-    moversType: 'E',
-    coinsReward: 30,
-    icon: 'Dumbbell',
-  });
-  currentPointer += fitnessDur;
+  const totalEvening = Math.max(100, nightWindDownStart - currentPointer);
+  // Give Section 6 a balanced share of total evening (up to 46% for massive gaps, max 205m)
+  const sec6Budget = totalEvening > 360
+    ? Math.min(205, Math.round(totalEvening * 0.46))
+    : totalEvening > 300
+    ? Math.min(160, Math.round(totalEvening * 0.40))
+    : (totalEvening > 180 ? 110 : 75);
 
-  // Task 4: Dinner & Family / Social Connection Time
-  const dinnerDur = 35;
-  tasks.push({
-    id: makeId('eve_social'),
-    title: 'Dinner & Family / Social Connection Time',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: dinnerDur,
-    category: 'Evening Transition & Fitness',
-    isMoversPillar: false,
-    coinsReward: 20,
-    icon: 'Users',
-  });
-  currentPointer += dinnerDur;
+  if (sec6Budget >= 140) {
+    // 5 tasks: Commute, Hydration, Workout, Dinner, Post-Dinner Stroll
+    const [eveTransitDur, fitnessDur, dinnerDur, strollDur] = partitionBudget(sec6Budget - 2, [
+      { name: 'commute', min: commute > 0 ? Math.min(commute, 30) : 15, max: 40, hardMax: 45, weight: 20 },
+      { name: 'fitness', min: 30, max: 55, hardMax: 60, weight: 30 },
+      { name: 'dinner', min: 35, max: 55, hardMax: 65, weight: 32 },
+      { name: 'stroll', min: 15, max: 35, hardMax: 45, weight: 18 },
+    ]);
+
+    tasks.push({
+      id: makeId('commute_e'),
+      title: commute > 0 ? eveningCommuteTitle : 'Studio & Workspace Close-Down',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: eveTransitDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: commute > 0 ? (isCollege ? 'GraduationCap' : isIndependent ? 'Coffee' : 'Car') : 'CheckCircle2',
+    });
+    currentPointer += eveTransitDur;
+
+    tasks.push({
+      id: makeId('hyd_6'),
+      title: 'Hydration Check-in #6 (Post-Commute Refuel)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+
+    tasks.push({
+      id: makeId('eve_fitness'),
+      title: eveningActivities.includes('fitness')
+        ? 'Physical Training & Kinetic Workout (E)'
+        : 'Evening Kinetic Stroll & Movement Reset (E)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: fitnessDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: true,
+      moversType: 'E',
+      coinsReward: 30,
+      icon: 'Dumbbell',
+    });
+    currentPointer += fitnessDur;
+
+    tasks.push({
+      id: makeId('eve_social'),
+      title: 'Dinner & Mindful Social Connection Time',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: dinnerDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: false,
+      coinsReward: 20,
+      icon: 'Users',
+    });
+    currentPointer += dinnerDur;
+
+    tasks.push({
+      id: makeId('eve_stroll_sec6'),
+      title: 'Post-Dinner Fresh Air Digest Stroll',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: strollDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Footprints',
+    });
+    currentPointer += strollDur;
+  } else {
+    // 4 tasks: Commute, Hydration, Workout, Dinner
+    const [eveTransitDur, fitnessDur, dinnerDur] = partitionBudget(sec6Budget - 2, [
+      { name: 'commute', min: commute > 0 ? Math.min(commute, 30) : 15, max: 40, hardMax: 45, weight: 22 },
+      { name: 'fitness', min: 25, max: 50, hardMax: 55, weight: 40 },
+      { name: 'dinner', min: 30, max: 55, hardMax: 60, weight: 38 },
+    ]);
+
+    tasks.push({
+      id: makeId('commute_e'),
+      title: commute > 0 ? eveningCommuteTitle : 'Studio & Workspace Close-Down',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: eveTransitDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: commute > 0 ? (isCollege ? 'GraduationCap' : isIndependent ? 'Coffee' : 'Car') : 'CheckCircle2',
+    });
+    currentPointer += eveTransitDur;
+
+    tasks.push({
+      id: makeId('hyd_6'),
+      title: 'Hydration Check-in #6 (Post-Commute Refuel)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+
+    tasks.push({
+      id: makeId('eve_fitness'),
+      title: eveningActivities.includes('fitness')
+        ? 'Physical Training & Kinetic Workout (E)'
+        : 'Evening Kinetic Stroll & Movement Reset (E)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: fitnessDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: true,
+      moversType: 'E',
+      coinsReward: 30,
+      icon: 'Dumbbell',
+    });
+    currentPointer += fitnessDur;
+
+    tasks.push({
+      id: makeId('eve_social'),
+      title: 'Dinner & Mindful Social Connection Time',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: dinnerDur,
+      category: 'Evening Transition & Fitness',
+      isMoversPillar: false,
+      coinsReward: 20,
+      icon: 'Users',
+    });
+    currentPointer += dinnerDur;
+  }
 
   // =========================================================================
   // SECTION 7: EVENING GROWTH & CREATIVE (Post-Dinner -> Night Wind-Down Start)
-  // Strictly capped at <= 5 tasks!
+  // Strictly capped at <= 6 tasks! NO TASK OVER 70m! RELAXATION <= 40m!
   // =========================================================================
-  const growthTimeAvailable = Math.max(50, nightWindDownStart - currentPointer);
+  const growthTimeAvailable = Math.max(45, nightWindDownStart - currentPointer);
+  const netGrowthMins = Math.max(40, growthTimeAvailable - 2); // 2m for hyd_7
 
-  // Task 1: Study Block
-  let studyBlockDur = 30;
-  let studyBlockTitle = 'Intellectual Synthesis & Deep Focus';
+  // Determine study title based on user preference
+  let studyBlockTitle = 'Evening Intellectual Sprint & Focus Block';
   if (answers.studyOrResearchPreference === 'late_afternoon') {
-    studyBlockDur = Math.min(answers.studyDurationMinutes || 45, Math.floor(growthTimeAvailable * 0.4));
     studyBlockTitle = 'Deep Research & Focused Intellectual Sprint';
   } else if (answers.studyOrResearchPreference === 'split_blocks') {
-    studyBlockDur = Math.min(Math.floor((answers.studyDurationMinutes || 60) / 2), Math.floor(growthTimeAvailable * 0.35));
     studyBlockTitle = 'Evening Synthesis & Deep Study Sprint (Phase 2)';
   } else if (answers.studyOrResearchPreference === 'night_owl') {
-    studyBlockDur = Math.min(answers.studyDurationMinutes || 60, Math.floor(growthTimeAvailable * 0.45));
     studyBlockTitle = 'Night Owl Focus Sprint & Deep Work';
   }
-  tasks.push({
-    id: makeId('study_pm'),
-    title: studyBlockTitle,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: Math.max(25, studyBlockDur),
-    category: 'Evening Growth & Creative',
-    isMoversPillar: false,
-    coinsReward: 35,
-    icon: 'BookOpen',
-  });
-  currentPointer += Math.max(25, studyBlockDur);
 
-  // Task 2: Creative Hobby, Skill-Building or Profession Evening Project
+  // Determine creative title
   let creativeTitle = 'Skill-Building Sprint & Tech Upskilling';
   let creativeIcon = 'Code';
   if (eveningActivities.includes('creative_hobby')) {
@@ -763,137 +1369,243 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     creativeTitle = profEveningTasks[0].name;
     creativeIcon = profEveningTasks[0].icon || 'Target';
   }
-  const creativeDur = Math.max(20, Math.min(35, Math.floor((nightWindDownStart - currentPointer - 6) * 0.5)));
-  tasks.push({
-    id: makeId('eve_creative'),
-    title: creativeTitle,
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: creativeDur,
-    category: 'Evening Growth & Creative',
-    isMoversPillar: false,
-    coinsReward: 25,
-    icon: creativeIcon,
-  });
-  currentPointer += creativeDur;
 
-  // Task 3: Eye-Strain Rest #3
-  tasks.push({
-    id: makeId('eye_3'),
-    title: 'Eye-Strain 20-20-20 Vision Rest #3',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: 2,
-    category: 'Evening Growth & Creative',
-    isMoversPillar: true,
-    moversType: 'eye_strain',
-    coinsReward: 15,
-    icon: 'Eye',
-  });
-  currentPointer += 2;
+  // For long study requests (e.g. night owl 120m), split study into two focused Pomodoro blocks
+  const wantsLongStudy = (answers.studyDurationMinutes || 0) >= 90 && answers.studyOrResearchPreference === 'night_owl';
 
-  // Task 4: Passive Relaxation & Stress Decompression
-  const relaxDur = Math.max(15, nightWindDownStart - currentPointer - 2);
-  tasks.push({
-    id: makeId('eve_relax'),
-    title: 'Passive Relaxation & Stress Decompression',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: relaxDur,
-    category: 'Evening Growth & Creative',
-    isMoversPillar: false,
-    coinsReward: 15,
-    icon: 'Sparkles',
-  });
-  currentPointer += relaxDur;
+  if (wantsLongStudy && netGrowthMins >= 160) {
+    // 6 tasks: Study P1, Study P2, Creative, Restorative Leisure (<= 40m), Digital Sunset (<= 35m), Hydration
+    const [studyP1, studyP2, creative, leisure, sunset] = partitionBudget(netGrowthMins, [
+      { name: 'studyP1', min: 35, max: 65, hardMax: 70, weight: 26 },
+      { name: 'studyP2', min: 30, max: 65, hardMax: 70, weight: 25 },
+      { name: 'creative', min: 25, max: 60, hardMax: 65, weight: 23 },
+      { name: 'leisure', min: 20, max: 35, hardMax: 40, weight: 14 }, // STRICTLY <= 40m!
+      { name: 'sunset', min: 15, max: 30, hardMax: 35, weight: 12 },
+    ]);
 
-  // Task 5: Hydration #7
-  tasks.push({
-    id: makeId('hyd_7'),
-    title: 'Hydration Check-in #7 (Evening Water Glass)',
-    startTime: minutesToTime(currentPointer),
-    durationMinutes: 2,
-    category: 'Evening Growth & Creative',
-    isMoversPillar: true,
-    moversType: 'hydration',
-    coinsReward: 15,
-    icon: 'Droplets',
-  });
-  currentPointer += 2;
+    tasks.push({
+      id: makeId('study_pm_1'),
+      title: 'Night Owl Focus Sprint (Phase 1: Deep Theory)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: studyP1,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 35,
+      icon: 'BookOpen',
+    });
+    currentPointer += studyP1;
+
+    tasks.push({
+      id: makeId('study_pm_2'),
+      title: 'Night Owl Focus Sprint (Phase 2: Execution)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: studyP2,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 30,
+      icon: 'BookOpen',
+    });
+    currentPointer += studyP2;
+
+    tasks.push({
+      id: makeId('eve_creative'),
+      title: creativeTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: creative,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: creativeIcon,
+    });
+    currentPointer += creative;
+
+    tasks.push({
+      id: makeId('eve_relax'),
+      title: 'Restorative Leisure & Stress Decompression',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: leisure,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Sparkles',
+    });
+    currentPointer += leisure;
+
+    tasks.push({
+      id: makeId('eve_sunset'),
+      title: "Digital Sunset & Tomorrow's Priority Architecture",
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: sunset,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 20,
+      icon: 'Moon',
+    });
+    currentPointer += sunset;
+
+    tasks.push({
+      id: makeId('hyd_7'),
+      title: 'Hydration Check-in #7 (Evening Water Glass)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+  } else {
+    // Standard evening: 6 tasks (Study P1, Stroll/Break, Creative/Study P2, Restorative Leisure <= 40m, Sunset <= 35m, Hydration)
+    const [sDur, strollDur, cDur, lDur, sunsetDur] = partitionBudget(netGrowthMins, [
+      { name: 'study', min: 30, max: 65, hardMax: 70, weight: 28 },
+      { name: 'stroll', min: 15, max: 25, hardMax: 30, weight: 14 },
+      { name: 'creative', min: 25, max: 65, hardMax: 70, weight: 26 },
+      { name: 'leisure', min: 15, max: 35, hardMax: 40, weight: 18 }, // STRICTLY <= 40m!
+      { name: 'sunset', min: 15, max: 30, hardMax: 35, weight: 14 },
+    ]);
+
+    tasks.push({
+      id: makeId('study_pm'),
+      title: isCollege ? 'Evening Intellectual Focus & Coursework' : studyBlockTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: sDur,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 35,
+      icon: 'BookOpen',
+    });
+    currentPointer += sDur;
+
+    tasks.push({
+      id: makeId('eve_stroll'),
+      title: 'Post-Dinner Fresh Air Stroll & Social Connection',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: strollDur,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Footprints',
+    });
+    currentPointer += strollDur;
+
+    tasks.push({
+      id: makeId('eve_creative'),
+      title: isCollege ? 'Creative Project & Skill Synthesis Sprint' : creativeTitle,
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: cDur,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 25,
+      icon: creativeIcon,
+    });
+    currentPointer += cDur;
+
+    tasks.push({
+      id: makeId('eve_relax'),
+      title: 'Restorative Leisure & Stress Decompression',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: lDur,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 15,
+      icon: 'Sparkles',
+    });
+    currentPointer += lDur;
+
+    tasks.push({
+      id: makeId('eve_sunset'),
+      title: "Digital Sunset & Tomorrow's Priority Architecture",
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: sunsetDur,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: false,
+      coinsReward: 20,
+      icon: 'Moon',
+    });
+    currentPointer += sunsetDur;
+
+    tasks.push({
+      id: makeId('hyd_7'),
+      title: 'Hydration Check-in #7 (Evening Water Glass)',
+      startTime: minutesToTime(currentPointer),
+      durationMinutes: 2,
+      category: 'Evening Growth & Creative',
+      isMoversPillar: true,
+      moversType: 'hydration',
+      coinsReward: 15,
+      icon: 'Droplets',
+    });
+    currentPointer += 2;
+  }
 
   // =========================================================================
   // SECTION 8: NIGHT RESTORATION & SLEEP (Night Wind-Down Start -> Sleep Time)
-  // Strictly capped at <= 5 tasks! Anchored strictly to sleepMins!
+  // Strictly capped at <= 5 tasks! Anchored strictly to sleepMins with zero drift!
   // =========================================================================
-  currentPointer = Math.max(currentPointer, nightWindDownStart);
+  currentPointer = nightWindDownStart;
 
   // Task 1: Evening MOVERS Centering & Breathwork
-  if (answers.moversWrapperMode === 'evening_restorer') {
-    tasks.push({
-      id: makeId('mov_rest_m'),
-      title: 'Deep Meditation & Parasympathetic Breathwork (M+O)',
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: 12,
-      category: 'Night Restoration & Sleep',
-      isMoversPillar: true,
-      moversType: 'M',
-      coinsReward: 25,
-      icon: 'BrainCircuit',
-    });
-    currentPointer += 12;
-  } else {
-    tasks.push({
-      id: makeId('mov_rest_wind'),
-      title: 'Mindful Evening Decompression & Breathwork',
-      startTime: minutesToTime(currentPointer),
-      durationMinutes: 8,
-      category: 'Night Restoration & Sleep',
-      isMoversPillar: true,
-      moversType: 'M',
-      coinsReward: 20,
-      icon: 'Wind',
-    });
-    currentPointer += 8;
-  }
+  const mDur = answers.moversWrapperMode === 'evening_restorer' ? 12 : 10;
+  tasks.push({
+    id: makeId('mov_rest_m'),
+    title: answers.moversWrapperMode === 'evening_restorer'
+      ? 'Deep Meditation & Parasympathetic Breathwork (M+O)'
+      : 'Mindful Evening Decompression & Breathwork',
+    startTime: minutesToTime(currentPointer),
+    durationMinutes: mDur,
+    category: 'Night Restoration & Sleep',
+    isMoversPillar: true,
+    moversType: 'M',
+    coinsReward: 25,
+    icon: answers.moversWrapperMode === 'evening_restorer' ? 'BrainCircuit' : 'Wind',
+  });
+  currentPointer += mDur;
 
   // Task 2: Reading (R)
+  const rDur = answers.moversWrapperMode === 'evening_restorer' ? 16 : 13;
   tasks.push({
     id: makeId('mov_r'),
     title: 'Positive Reading & Intellectual Intake (R)',
     startTime: minutesToTime(currentPointer),
-    durationMinutes: 15,
+    durationMinutes: rDur,
     category: 'Night Restoration & Sleep',
     isMoversPillar: true,
     moversType: 'R',
     coinsReward: 25,
     icon: 'BookOpen',
   });
-  currentPointer += 15;
+  currentPointer += rDur;
 
   // Task 3: Scribing (S)
+  const sDur = answers.moversWrapperMode === 'evening_restorer' ? 10 : 10;
   tasks.push({
     id: makeId('mov_s'),
     title: 'Scribing & Daily Reflection Journaling (S)',
     startTime: minutesToTime(currentPointer),
-    durationMinutes: 10,
+    durationMinutes: sDur,
     category: 'Night Restoration & Sleep',
     isMoversPillar: true,
     moversType: 'S',
     coinsReward: 25,
     icon: 'PenSquare',
   });
-  currentPointer += 10;
+  currentPointer += sDur;
 
   // Task 4: Domestic Bed Setup & Night Anchor
+  const bedDur = answers.moversWrapperMode === 'evening_restorer' ? 10 : 5;
   tasks.push({
     id: makeId('night_bed'),
     title: 'Night Desk Tidy & Sleep Sanctuary Setup',
     startTime: minutesToTime(currentPointer),
-    durationMinutes: 5,
+    durationMinutes: bedDur,
     category: 'Night Restoration & Sleep',
     isMoversPillar: true,
     moversType: 'domestic',
     coinsReward: 15,
     icon: 'Bed',
   });
-  currentPointer += 5;
+  currentPointer += bedDur;
 
   // Task 5: Hydration #8 (Pre-Sleep Sip)
   tasks.push({
@@ -907,7 +1619,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     coinsReward: 15,
     icon: 'Droplets',
   });
-
+  currentPointer += 2;
   return tasks;
 }
 
