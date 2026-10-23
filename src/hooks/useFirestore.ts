@@ -701,9 +701,10 @@ export function usePresetTasks() {
   };
 
   const updatePresetTask = async (taskId: string, taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }) => {
-    if (!user) return;
-
     // Optimistic UI update
+    let updatedFlatTasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[] | null = null;
+    let isLocalTask = taskId.startsWith('local_') || taskId.startsWith('movers-');
+
     setPresetTasks(prev => {
         const newPreset = { ...prev };
         let found = false;
@@ -744,26 +745,47 @@ export function usePresetTasks() {
             } catch (e) {
                 console.warn("Could not cache preset tasks");
             }
+
+            // Extract flat tasks in case we need to sync local tasks to Firestore
+            if (isLocalTask) {
+              const flat: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[] = [];
+              for (const c in sortedPreset) {
+                for (const t of sortedPreset[c].tasks) {
+                  flat.push({ name: t.name, duration: t.duration, icon: t.icon, category: c });
+                }
+              }
+              updatedFlatTasks = flat;
+            }
+
             return sortedPreset;
         }
         return prev;
     });
 
-    if (isOffline || !isSyncEnabled) {
+    if (!user || isOffline || !isSyncEnabled) {
         return;
     }
 
-    const payload = { ...taskData };
-    if (payload.name) {
-      payload.name = await encryptText(payload.name, user.uid);
+    try {
+      if (isLocalTask && updatedFlatTasks) {
+        await clearAndSetPresetTasks(effectiveProfile, updatedFlatTasks);
+      } else {
+        const payload = { ...taskData };
+        if (payload.name) {
+          payload.name = await encryptText(payload.name, user.uid);
+        }
+        await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), payload);
+      }
+    } catch (e) {
+      console.warn('[useFirestore] updatePresetTask remote sync warning:', e);
     }
-    await updateDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId), payload);
   };
 
   const deletePresetTask = async (taskId: string) => {
-    if (!user) return;
-
     // Optimistic UI update
+    let updatedFlatTasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[] | null = null;
+    let isLocalTask = taskId.startsWith('local_') || taskId.startsWith('movers-');
+
     setPresetTasks(prev => {
         const newPreset = { ...prev };
         let found = false;
@@ -783,16 +805,35 @@ export function usePresetTasks() {
             } catch (e) {
                 console.warn("Could not cache preset tasks");
             }
+
+            if (isLocalTask) {
+              const flat: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[] = [];
+              for (const c in newPreset) {
+                for (const t of newPreset[c].tasks) {
+                  flat.push({ name: t.name, duration: t.duration, icon: t.icon, category: c });
+                }
+              }
+              updatedFlatTasks = flat;
+            }
+
             return newPreset;
         }
         return prev;
     });
 
-    if (isOffline || !isSyncEnabled) {
+    if (!user || isOffline || !isSyncEnabled) {
         return;
     }
 
-    await deleteDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId));
+    try {
+      if (isLocalTask && updatedFlatTasks) {
+        await clearAndSetPresetTasks(effectiveProfile, updatedFlatTasks);
+      } else {
+        await deleteDoc(doc(db, 'users', user.uid, 'userPresetTasks', taskId));
+      }
+    } catch (e) {
+      console.warn('[useFirestore] deletePresetTask remote sync warning:', e);
+    }
   };
   
   const clearAndSetPresetTasks = async (currentProfile: ProfileType, tasks: (Omit<UserPresetTask, 'id' | 'order'> & { category: string })[]) => {

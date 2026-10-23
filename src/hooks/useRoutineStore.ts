@@ -75,7 +75,7 @@ function convertCustomProfileToPreset(profile: CustomRoutineProfile): Preset {
     return (categoryConfig[catName]?.order ?? 99) * 10;
   };
 
-  // Sort categories strictly by chronological order, breaking ties by task start time
+// Sort categories strictly by chronological order, breaking ties by task start time
   const sortedPreset: Preset = {};
   Object.keys(newPreset)
     .sort((a, b) => {
@@ -89,6 +89,44 @@ function convertCustomProfileToPreset(profile: CustomRoutineProfile): Preset {
     });
 
   return sortedPreset;
+}
+
+/**
+ * Sorts task blocks according to the category order
+ */
+export function sortCustomProfileTasks(tasks: DMRoutineTaskBlock[]): DMRoutineTaskBlock[] {
+  return [...tasks].sort((a, b) => {
+    const orderA = categoryConfig[a.category]?.order ?? 99;
+    const orderB = categoryConfig[b.category]?.order ?? 99;
+    return orderA - orderB;
+  });
+}
+
+/**
+ * Recomputes contiguous, non-overlapping start times across all tasks
+ */
+export function recomputeTaskStartTimes(tasks: DMRoutineTaskBlock[]): DMRoutineTaskBlock[] {
+  if (!tasks || tasks.length === 0) return [];
+
+  let currentMins = 6 * 60; // default 06:00
+  if (tasks[0]?.startTime && tasks[0].startTime.includes(':')) {
+    const [h, m] = tasks[0].startTime.split(':').map((v) => parseInt(v, 10));
+    if (!isNaN(h) && !isNaN(m)) {
+      currentMins = h * 60 + m;
+    }
+  }
+
+  return tasks.map((task) => {
+    const normalizedH = Math.floor(currentMins / 60) % 24;
+    const normalizedM = currentMins % 60;
+    const startStr = `${String(normalizedH).padStart(2, '0')}:${String(normalizedM).padStart(2, '0')}`;
+    const duration = Math.max(1, Number(task.durationMinutes) || 15);
+    currentMins += duration;
+    return {
+      ...task,
+      startTime: startStr,
+    };
+  });
 }
 
 export function useRoutineStore() {
@@ -408,11 +446,163 @@ export function useRoutineStore() {
     return computeActiveCategory(effectivePresetTasks, categoryTimeRanges, undefined, new Date());
   }, [effectivePresetTasks, categoryTimeRanges, clockTick]);
 
+  // Update a preset task (supports active custom profile & fallback to base preset tasks)
+  const updatePresetTask = useCallback(
+    async (
+      taskId: string,
+      taskData: Partial<Omit<UserPresetTask, 'id' | 'order'>> & { category: string }
+    ) => {
+      if (activeCustomProfile) {
+        let targetIndex = activeCustomProfile.tasks.findIndex((t) => t.id === taskId);
+
+        if (targetIndex === -1 && taskId.startsWith('custom_')) {
+          const parsed = parseInt(taskId.replace('custom_', ''), 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed < activeCustomProfile.tasks.length) {
+            targetIndex = parsed;
+          }
+        }
+
+        if (targetIndex === -1) {
+          targetIndex = activeCustomProfile.tasks.findIndex(
+            (t) => t.id && (taskId.includes(t.id) || t.id.includes(taskId))
+          );
+        }
+
+        if (targetIndex !== -1) {
+          const targetTask = activeCustomProfile.tasks[targetIndex];
+          const categoryChanged = taskData.category && taskData.category !== targetTask.category;
+
+          const updatedTask: DMRoutineTaskBlock = {
+            ...targetTask,
+            id: targetTask.id || taskId || `task_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+            title:
+              taskData.name !== undefined && taskData.name.trim() !== ''
+                ? taskData.name.trim()
+                : targetTask.title,
+            durationMinutes:
+              taskData.duration !== undefined
+                ? Math.max(1, Number(taskData.duration))
+                : targetTask.durationMinutes,
+            icon: taskData.icon || targetTask.icon || 'Sparkles',
+            category: taskData.category || targetTask.category,
+          };
+
+          const newTasks = [...activeCustomProfile.tasks];
+          newTasks[targetIndex] = updatedTask;
+
+          const finalTasks = categoryChanged ? sortCustomProfileTasks(newTasks) : newTasks;
+          const recomputed = recomputeTaskStartTimes(finalTasks);
+
+          const updatedProfile: CustomRoutineProfile = {
+            ...activeCustomProfile,
+            tasks: recomputed,
+            updatedAt: new Date().toISOString(),
+          };
+
+          await saveCustomProfile(updatedProfile);
+          return;
+        }
+      }
+
+      await presetTasksData.updatePresetTask(taskId, taskData);
+    },
+    [activeCustomProfile, saveCustomProfile, presetTasksData]
+  );
+
+  // Add a preset task (supports active custom profile & fallback to base preset tasks)
+  const addPresetTask = useCallback(
+    async (
+      taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string },
+      profession?: string
+    ) => {
+      if (activeCustomProfile) {
+        const newTask: DMRoutineTaskBlock = {
+          id: `task_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          title: taskData.name,
+          startTime: '',
+          durationMinutes: Math.max(1, Number(taskData.duration) || 15),
+          category: taskData.category || 'Deep Focus: Morning Sprint',
+          isMoversPillar: false,
+          coinsReward: 10,
+          icon: taskData.icon || 'Sparkles',
+        };
+
+        const newTasks = [...activeCustomProfile.tasks, newTask];
+        const sorted = sortCustomProfileTasks(newTasks);
+        const recomputed = recomputeTaskStartTimes(sorted);
+
+        const updatedProfile: CustomRoutineProfile = {
+          ...activeCustomProfile,
+          tasks: recomputed,
+          updatedAt: new Date().toISOString(),
+        };
+
+        await saveCustomProfile(updatedProfile);
+        return;
+      }
+
+      const effectiveProf = (profession || profileData?.profile || 'General') as any;
+      await presetTasksData.addPresetTask(taskData, effectiveProf);
+    },
+    [activeCustomProfile, saveCustomProfile, presetTasksData]
+  );
+
+  // Delete a preset task (supports active custom profile & fallback to base preset tasks)
+  const deletePresetTask = useCallback(
+    async (taskId: string) => {
+      if (activeCustomProfile) {
+        let taskFound = false;
+        const remainingTasks = activeCustomProfile.tasks.filter((task, index) => {
+          const isMatch =
+            task.id === taskId ||
+            taskId === `custom_${index}` ||
+            (task.id && taskId.endsWith(task.id)) ||
+            (taskId.startsWith('custom_') && parseInt(taskId.replace('custom_', ''), 10) === index);
+          if (isMatch) {
+            taskFound = true;
+            return false;
+          }
+          return true;
+        });
+
+        if (taskFound) {
+          const recomputed = recomputeTaskStartTimes(remainingTasks);
+          const updatedProfile: CustomRoutineProfile = {
+            ...activeCustomProfile,
+            tasks: recomputed,
+            updatedAt: new Date().toISOString(),
+          };
+
+          await saveCustomProfile(updatedProfile);
+          return;
+        }
+      }
+
+      await presetTasksData.deletePresetTask(taskId);
+    },
+    [activeCustomProfile, saveCustomProfile, presetTasksData]
+  );
+
+  // Custom profile tasks are always editable & deletable by the user
+  const isDefaultTask = useCallback(
+    (task: UserPresetTask) => {
+      if (activeCustomProfile) {
+        return false;
+      }
+      return presetTasksData.isDefaultTask(task);
+    },
+    [activeCustomProfile, presetTasksData]
+  );
+
   return {
     ...presetTasksData,
     presetTasks: effectivePresetTasks,
     categoryTimeRanges,
     activeCategory,
+    updatePresetTask,
+    addPresetTask,
+    deletePresetTask,
+    isDefaultTask,
     // Multi-profile state and methods
     customProfiles,
     activeProfileId,

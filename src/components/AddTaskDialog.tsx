@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2, Wand2, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package } from "lucide-react";
+import { BookOpen, BrainCircuit, Coffee, Dumbbell, Footprints, ListChecks, LucideIcon, Wind, Mail, Users, Bed, StretchHorizontal, Droplets, Loader2, Utensils, Target, Wrench, ShoppingBag, Trash2, Wand2, Gamepad2, Eye, PenTool, Smartphone, Car, Tv, Apple, ShowerHead, Truck, FileCode, PenSquare, Puzzle, Lightbulb, Presentation, BarChart, ShoppingCart, Headphones, Power, Map, Camera, Briefcase, Megaphone, Stethoscope, Laptop, Code, FlaskConical, School, Network, GraduationCap, TrendingUp, Package, Moon, Sun, Sunrise, Sunset, Sparkles, Heart, Clock, Activity, Flame, Shield, Zap } from "lucide-react";
 import type { UserPresetTask } from "@/types";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
@@ -116,6 +116,17 @@ const icons: {name: string, icon: LucideIcon}[] = [
     { name: "GraduationCap", icon: GraduationCap },
     { name: "TrendingUp", icon: TrendingUp },
     { name: "Package", icon: Package },
+    { name: "Moon", icon: Moon },
+    { name: "Sun", icon: Sun },
+    { name: "Sunrise", icon: Sunrise },
+    { name: "Sunset", icon: Sunset },
+    { name: "Sparkles", icon: Sparkles },
+    { name: "Heart", icon: Heart },
+    { name: "Clock", icon: Clock },
+    { name: "Activity", icon: Activity },
+    { name: "Flame", icon: Flame },
+    { name: "Shield", icon: Shield },
+    { name: "Zap", icon: Zap },
 ];
 const iconNames = icons.map(i => i.name);
 

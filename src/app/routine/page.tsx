@@ -85,9 +85,9 @@ import { toast } from '@/hooks/use-toast';
 import { DMRoutineAuthor, DMRoutineFileFormat, CustomRoutineProfile } from '@/types/routineTuner';
 
 // Corrected Icon component
-const Icon = ({ name, ...props }: { name: string; [key: string]: any }) => {
-  const LucideIcon = icons[name as keyof typeof icons];
-  if (!LucideIcon) return null;
+const Icon = ({ name, ...props }: { name?: string; [key: string]: any }) => {
+  if (!name) return <Sparkles {...props} />;
+  const LucideIcon = icons[name as keyof typeof icons] || Sparkles;
   return React.createElement(LucideIcon, props);
 };
 
@@ -177,16 +177,44 @@ function RoutinePageComponent() {
     taskData: Omit<UserPresetTask, 'id' | 'order'> & { category: string },
     taskId?: string
   ) => {
-    if (taskId) {
-      await updatePresetTask(taskId, taskData);
-    } else {
-      await addPresetTask(taskData, profile);
+    try {
+      if (taskId) {
+        await updatePresetTask(taskId, taskData);
+        toast({
+          title: 'Task Updated ✨',
+          description: `Saved "${taskData.name}".`,
+        });
+      } else {
+        await addPresetTask(taskData, profile);
+        toast({
+          title: 'Task Added ✨',
+          description: `Added "${taskData.name}" to ${taskData.category}.`,
+        });
+      }
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Saving Task',
+        description: err?.message || 'Failed to save task.',
+      });
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    await deletePresetTask(taskId);
-    setIsDialogOpen(false);
+    try {
+      await deletePresetTask(taskId);
+      setIsDialogOpen(false);
+      toast({
+        title: 'Task Removed',
+        description: 'The task was removed from your routine.',
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Deleting Task',
+        description: err?.message || 'Failed to delete task.',
+      });
+    }
   };
 
   const handleTemplateChange = async (pref: 'morning_primer' | 'evening_restorer') => {
@@ -206,7 +234,14 @@ function RoutinePageComponent() {
     const defaultTasksForProfile = defaultRoutines.routines[routineKey];
     if (!defaultTasksForProfile) return;
 
+    if (activeProfileId) {
+      setActiveProfile(null);
+    }
     await clearAndSetPresetTasks(profile, defaultTasksForProfile);
+    toast({
+      title: 'Routine Reset',
+      description: `Reset to standard ${profile} routine.`,
+    });
   };
 
   const handleGenerateAIRoutine = async () => {
@@ -222,9 +257,52 @@ function RoutinePageComponent() {
           category: category,
         }))
       );
+      
+      const newAiProfile: CustomRoutineProfile = {
+        id: `ai_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: `AI Planned ${profile} Routine`,
+        updatedAt: new Date().toISOString(),
+        tasks: flatTasks.map((t, idx) => ({
+          id: `ai_task_${idx}_${Date.now()}`,
+          title: t.name,
+          startTime: '',
+          durationMinutes: Number(t.duration) || 15,
+          category: t.category,
+          icon: t.icon,
+          isMoversPillar: false,
+          coinsReward: 10,
+        })),
+        tuningAnswers: {
+          profileName: `AI Planned ${profile} Routine`,
+          profession: profile,
+          wakeUpTime: '06:00',
+          sleepTime: '23:00',
+          workOrCollegeStart: '09:00',
+          workOrCollegeEnd: '17:00',
+          commuteDurationMinutes: 30,
+          lunchBreakTime: '13:00',
+          lunchDurationMinutes: 45,
+          studyOrResearchPreference: 'early_morning',
+          studyDurationMinutes: 60,
+          eveningCustomization: ['relaxation'],
+          moversWrapperMode: 'morning_primer',
+        },
+        optimizationSummary: `AI-customized routine optimized for ${profile}.`,
+      };
+
+      await saveCustomProfile(newAiProfile);
       await clearAndSetPresetTasks(profile, flatTasks);
+      toast({
+        title: 'AI Routine Activated! ✨',
+        description: `Generated and applied new plan for ${profile}.`,
+      });
     } catch (error) {
       console.error('Failed to generate AI routine:', error);
+      toast({
+        variant: 'destructive',
+        title: 'AI Generation Failed',
+        description: 'Could not generate AI routine. Please try again.',
+      });
     } finally {
       setIsGeneratingAI(false);
     }
