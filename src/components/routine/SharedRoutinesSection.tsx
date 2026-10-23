@@ -2,14 +2,21 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, where } from 'firebase/firestore';
 import {
   SharedCommunityRoutine,
   DMRoutineFileFormat,
   CustomRoutineProfile,
 } from '@/types/routineTuner';
 import { cosineSimilarity } from '@/lib/clientEmbedder';
-import { exportRoutineToDMFile, sendCoOpInviteForRoutine } from '@/lib/dmFileHandler';
+import {
+  exportRoutineToDMFile,
+  sendCoOpInviteForRoutine,
+  getLocalSharedRoutinesCache,
+  saveRoutineToLocalCache,
+  removeRoutineFromLocalCache,
+  unshareRoutineFromCommunity,
+} from '@/lib/dmFileHandler';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -25,7 +32,8 @@ import {
   Flame,
   Search,
   Loader2,
-  ExternalLink,
+  Trash2,
+  Share2,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -44,9 +52,13 @@ export function SharedRoutinesSection({
 }: SharedRoutinesSectionProps) {
   const { user } = useAuth();
   const { profileData } = useProfile();
+  const [cachedRoutines, setCachedRoutines] = useState<SharedCommunityRoutine[]>(() => {
+    return typeof window !== 'undefined' ? getLocalSharedRoutinesCache() : [];
+  });
+  const [coopRoutines, setCoopRoutines] = useState<SharedCommunityRoutine[]>([]);
   const [sharedColRoutines, setSharedColRoutines] = useState<SharedCommunityRoutine[]>([]);
   const [userDocRoutines, setUserDocRoutines] = useState<SharedCommunityRoutine[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(cachedRoutines.length === 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
@@ -61,111 +73,219 @@ export function SharedRoutinesSection({
     return [];
   }, [currentRoutineVector, profileData?.lifestyleVector]);
 
-  // 1. Subscribe to standalone `shared_routines` collection
+  // 1. Subscribe to universal broadcast `coop_sessions` collection (isCommunityRoutine == true)
+  useEffect(() => {
+    if (!db) return;
+
+    try {
+      const qCoop = query(
+        collection(db, 'coop_sessions'),
+        where('isCommunityRoutine', '==', true),
+        limit(60)
+      );
+
+      const unsubscribe = onSnapshot(
+        qCoop,
+        (snapshot) => {
+          const loaded: SharedCommunityRoutine[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data && data.dmPayload) {
+              const r: SharedCommunityRoutine = {
+                id: data.id || docSnap.id.replace('coop_routine_', ''),
+                author: data.author || {
+                  uid: data.createdBy || '',
+                  displayName: 'Anonymous Reformer',
+                  profession: 'General',
+                },
+                profileName: data.profileName || 'Community Routine',
+                wakeTime: data.wakeTime || '06:30',
+                sleepTime: data.sleepTime || '23:00',
+                studyWindow: data.studyWindow || 'split_blocks',
+                routineVector: data.routineVector || [],
+                tasksCount: data.tasksCount || (data.dmPayload?.tasks?.length || 0),
+                sustainabilityScore: data.sustainabilityScore || 90,
+                optimizationSummary: data.optimizationSummary,
+                sharedAt: data.sharedAt,
+                dmPayload: data.dmPayload,
+              };
+              loaded.push(r);
+              saveRoutineToLocalCache(r);
+            }
+          });
+
+          setCoopRoutines(loaded);
+          setLoading(false);
+        },
+        (error) => {
+          console.warn('[SharedRoutines] coop_sessions listener note:', error);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('[SharedRoutines] coop_sessions query setup:', err);
+    }
+  }, []);
+
+  // 2. Subscribe to standalone `shared_routines` collection
   useEffect(() => {
     if (!db) {
       setLoading(false);
       return;
     }
 
-    const q = query(collection(db, 'shared_routines'), limit(40));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const loaded: SharedCommunityRoutine[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data && data.dmPayload) {
-            loaded.push({
-              id: docSnap.id,
-              author: data.author || { uid: '', displayName: 'Anonymous Reformer', profession: 'General' },
-              profileName: data.profileName || 'Shared Routine',
-              wakeTime: data.wakeTime || '06:30',
-              sleepTime: data.sleepTime || '23:00',
-              studyWindow: data.studyWindow || 'split_blocks',
-              routineVector: data.routineVector || [],
-              tasksCount: data.tasksCount || (data.dmPayload?.tasks?.length || 0),
-              sustainabilityScore: data.sustainabilityScore || 90,
-              optimizationSummary: data.optimizationSummary,
-              sharedAt: data.sharedAt,
-              dmPayload: data.dmPayload,
-            });
-          }
-        });
+    try {
+      const q = query(collection(db, 'shared_routines'), limit(60));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const loaded: SharedCommunityRoutine[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data && data.dmPayload) {
+              const r: SharedCommunityRoutine = {
+                id: docSnap.id,
+                author: data.author || { uid: '', displayName: 'Anonymous Reformer', profession: 'General' },
+                profileName: data.profileName || 'Shared Routine',
+                wakeTime: data.wakeTime || '06:30',
+                sleepTime: data.sleepTime || '23:00',
+                studyWindow: data.studyWindow || 'split_blocks',
+                routineVector: data.routineVector || [],
+                tasksCount: data.tasksCount || (data.dmPayload?.tasks?.length || 0),
+                sustainabilityScore: data.sustainabilityScore || 90,
+                optimizationSummary: data.optimizationSummary,
+                sharedAt: data.sharedAt,
+                dmPayload: data.dmPayload,
+              };
+              loaded.push(r);
+              saveRoutineToLocalCache(r);
+            }
+          });
 
-        setSharedColRoutines(loaded);
-        setLoading(false);
-      },
-      (error) => {
-        console.warn('[SharedRoutines] Note on standalone shared_routines listener:', error);
-        setLoading(false);
-      }
-    );
+          setSharedColRoutines(loaded);
+          setLoading(false);
+        },
+        (error) => {
+          console.warn('[SharedRoutines] Note on standalone shared_routines listener:', error);
+          setLoading(false);
+        }
+      );
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('[SharedRoutines] standalone shared_routines setup:', err);
+    }
   }, []);
 
-  // 2. Subscribe to user profiles with published sharedRoutine in `users` collection
+  // 3. Subscribe to user profiles with published sharedRoutine in `users` collection
   useEffect(() => {
     if (!db) return;
 
-    const qUsers = query(collection(db, 'users'), limit(50));
-    const unsubscribe = onSnapshot(
-      qUsers,
-      (snapshot) => {
-        const loaded: SharedCommunityRoutine[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const sr = data?.sharedRoutine;
-          if (sr && sr.dmPayload) {
-            loaded.push({
-              id: sr.id || docSnap.id,
-              author: sr.author || {
-                uid: docSnap.id,
-                displayName: data.displayName || 'Reformer',
-                profession: data.profile || 'General',
-              },
-              profileName: sr.profileName || `${data.displayName || 'Reformer'}'s Routine`,
-              wakeTime: sr.wakeTime || '06:30',
-              sleepTime: sr.sleepTime || '23:00',
-              studyWindow: sr.studyWindow || 'split_blocks',
-              routineVector: sr.routineVector || data.lifestyleVector || [],
-              tasksCount: sr.tasksCount || (sr.dmPayload?.tasks?.length || 0),
-              sustainabilityScore: sr.sustainabilityScore || 90,
-              optimizationSummary: sr.optimizationSummary,
-              sharedAt: sr.sharedAt,
-              dmPayload: sr.dmPayload,
-            });
-          }
-        });
+    try {
+      const qUsers = query(
+        collection(db, 'users'),
+        where('hasSharedRoutine', '==', true),
+        limit(60)
+      );
 
-        setUserDocRoutines(loaded);
-        setLoading(false);
-      },
-      (error) => {
-        console.warn('[SharedRoutines] Note on users sharedRoutine listener:', error);
-        setLoading(false);
-      }
-    );
+      const unsubscribe = onSnapshot(
+        qUsers,
+        (snapshot) => {
+          const loaded: SharedCommunityRoutine[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (!data) return;
 
-    return () => unsubscribe();
+            // 3a. Check sharedRoutines dictionary
+            if (data.sharedRoutines && typeof data.sharedRoutines === 'object') {
+              Object.values(data.sharedRoutines).forEach((sr: any) => {
+                if (sr && sr.dmPayload) {
+                  const r: SharedCommunityRoutine = {
+                    id: sr.id || `${docSnap.id}_${sr.profileName}`,
+                    author: sr.author || {
+                      uid: docSnap.id,
+                      displayName: data.displayName || 'Reformer',
+                      profession: data.profile || 'General',
+                    },
+                    profileName: sr.profileName || `${data.displayName || 'Reformer'}'s Routine`,
+                    wakeTime: sr.wakeTime || '06:30',
+                    sleepTime: sr.sleepTime || '23:00',
+                    studyWindow: sr.studyWindow || 'split_blocks',
+                    routineVector: sr.routineVector || data.lifestyleVector || [],
+                    tasksCount: sr.tasksCount || (sr.dmPayload?.tasks?.length || 0),
+                    sustainabilityScore: sr.sustainabilityScore || 90,
+                    optimizationSummary: sr.optimizationSummary,
+                    sharedAt: sr.sharedAt,
+                    dmPayload: sr.dmPayload,
+                  };
+                  loaded.push(r);
+                  saveRoutineToLocalCache(r);
+                }
+              });
+            }
+
+            // 3b. Check legacy single sharedRoutine field
+            const sr = data.sharedRoutine;
+            if (sr && sr.dmPayload) {
+              const r: SharedCommunityRoutine = {
+                id: sr.id || docSnap.id,
+                author: sr.author || {
+                  uid: docSnap.id,
+                  displayName: data.displayName || 'Reformer',
+                  profession: data.profile || 'General',
+                },
+                profileName: sr.profileName || `${data.displayName || 'Reformer'}'s Routine`,
+                wakeTime: sr.wakeTime || '06:30',
+                sleepTime: sr.sleepTime || '23:00',
+                studyWindow: sr.studyWindow || 'split_blocks',
+                routineVector: sr.routineVector || data.lifestyleVector || [],
+                tasksCount: sr.tasksCount || (sr.dmPayload?.tasks?.length || 0),
+                sustainabilityScore: sr.sustainabilityScore || 90,
+                optimizationSummary: sr.optimizationSummary,
+                sharedAt: sr.sharedAt,
+                dmPayload: sr.dmPayload,
+              };
+              loaded.push(r);
+              saveRoutineToLocalCache(r);
+            }
+          });
+
+          setUserDocRoutines(loaded);
+          setLoading(false);
+        },
+        (error) => {
+          console.warn('[SharedRoutines] Note on users sharedRoutine listener:', error);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn('[SharedRoutines] users sharedRoutine query setup:', err);
+    }
   }, []);
 
-  // Unified deduplicated routines list
+  // Unified deduplicated routines list (Cache + Coop Sessions + Shared Col + User Docs)
   const routines = useMemo(() => {
     const map = new Map<string, SharedCommunityRoutine>();
-    for (const r of sharedColRoutines) {
-      map.set(r.id, r);
+    for (const r of cachedRoutines) {
+      if (r && r.id) map.set(r.id, r);
     }
     for (const u of userDocRoutines) {
-      if (!map.has(u.id)) {
-        map.set(u.id, u);
-      }
+      if (u && u.id) map.set(u.id, u);
+    }
+    for (const r of sharedColRoutines) {
+      if (r && r.id) map.set(r.id, r);
+    }
+    for (const c of coopRoutines) {
+      if (c && c.id) map.set(c.id, c);
     }
     return Array.from(map.values());
-  }, [sharedColRoutines, userDocRoutines]);
+  }, [cachedRoutines, userDocRoutines, sharedColRoutines, coopRoutines]);
 
-  // Compute similarity & rank routines
+  // Compute similarity & rank routines safely
   const rankedRoutines = useMemo(() => {
     const list = routines.map((r) => {
       let sim = 0.5; // Baseline similarity
@@ -183,13 +303,14 @@ export function SharedRoutinesSection({
       };
     });
 
-    // Filter by search query if any
-    const filtered = searchQuery.trim()
+    // Filter by search query if any (null-safe)
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = q
       ? list.filter(
           (r) =>
-            r.profileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.author.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            r.author.profession.toLowerCase().includes(searchQuery.toLowerCase())
+            (r.profileName || '').toLowerCase().includes(q) ||
+            (r.author?.displayName || '').toLowerCase().includes(q) ||
+            (r.author?.profession || '').toLowerCase().includes(q)
         )
       : list;
 
@@ -270,7 +391,7 @@ export function SharedRoutinesSection({
 
     setActionInProgress(`coop_${routine.id}`);
     try {
-      const { sessionId } = await sendCoOpInviteForRoutine(
+      await sendCoOpInviteForRoutine(
         routine.author.uid,
         routine.author.displayName,
         routine.profileName,
@@ -286,6 +407,32 @@ export function SharedRoutinesSection({
         variant: 'destructive',
         title: 'Co-Op Invite Failed',
         description: err?.message || 'Could not send Co-Op invitation.',
+      });
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Action 4: Unshare routine from Reformers Hub
+  const handleUnshare = async (routine: SharedCommunityRoutine) => {
+    if (!user) return;
+    setActionInProgress(`unshare_${routine.id}`);
+    try {
+      await unshareRoutineFromCommunity(routine.id, user.uid);
+      removeRoutineFromLocalCache(routine.id);
+      setCachedRoutines((prev) => prev.filter((r) => r.id !== routine.id));
+      setCoopRoutines((prev) => prev.filter((r) => r.id !== routine.id));
+      setSharedColRoutines((prev) => prev.filter((r) => r.id !== routine.id));
+      setUserDocRoutines((prev) => prev.filter((r) => r.id !== routine.id));
+      toast({
+        title: 'Routine Unshared',
+        description: `"${routine.profileName}" was removed from the community marketplace.`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Unshare Failed',
+        description: err?.message || 'Could not unshare routine.',
       });
     } finally {
       setActionInProgress(null);
@@ -319,7 +466,7 @@ export function SharedRoutinesSection({
       </CardHeader>
 
       <CardContent className="p-6">
-        {loading ? (
+        {loading && routines.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
             <p className="text-xs">Scanning Reformers routine matrix...</p>
@@ -338,23 +485,30 @@ export function SharedRoutinesSection({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {rankedRoutines.map((routine) => {
               const matchPercent = Math.round((routine.similarityScore || 0.7) * 100);
-              const isMine = user?.uid === routine.author.uid;
+              const isMine = user?.uid && (routine.author.uid === user.uid || routine.id.startsWith(user.uid));
 
               return (
                 <div
                   key={routine.id}
-                  className="p-5 rounded-2xl border border-border/70 bg-background/50 hover:border-purple-500/40 transition-all flex flex-col justify-between gap-4 group hover:shadow-lg hover:shadow-purple-500/5"
+                  className="p-5 rounded-2xl border border-border/70 bg-background/50 hover:border-purple-500/40 transition-all flex flex-col justify-between gap-4 group hover:shadow-lg hover:shadow-purple-500/5 relative"
                 >
                   <div className="space-y-3">
                     {/* Header: Title & Similarity Pill */}
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h4 className="font-bold text-sm text-foreground group-hover:text-purple-300 transition-colors">
-                          {routine.profileName}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          by <span className="font-medium text-foreground/80">{routine.author.displayName}</span>{' '}
-                          • <span className="text-purple-400">{routine.author.profession || 'Reformer'}</span>
+                      <div className="min-w-0 pr-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-bold text-sm text-foreground group-hover:text-purple-300 transition-colors truncate">
+                            {routine.profileName}
+                          </h4>
+                          {isMine && (
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+                              Your Routine
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          by <span className="font-medium text-foreground/80">{routine.author?.displayName || 'Reformer'}</span>{' '}
+                          • <span className="text-purple-400">{routine.author?.profession || 'General'}</span>
                         </p>
                       </div>
 
@@ -428,31 +582,40 @@ export function SharedRoutinesSection({
                       <span className="truncate">Save .dm</span>
                     </Button>
 
-                    {/* 3. Sync & Co-Op */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={actionInProgress !== null || isMine}
-                      onClick={() => handleCoOpInvite(routine)}
-                      className={cn(
-                        'text-xs h-9 px-2 gap-1.5 rounded-xl',
-                        isMine
-                          ? 'opacity-50 cursor-not-allowed'
-                          : 'hover:border-purple-500 hover:text-purple-400'
-                      )}
-                      title={
-                        isMine
-                          ? 'This is your own routine'
-                          : 'Send non-intrusive IDLE Co-Op invite to creator'
-                      }
-                    >
-                      {actionInProgress === `coop_${routine.id}` ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Users className="w-3.5 h-3.5 text-purple-400" />
-                      )}
-                      <span className="truncate">{isMine ? 'Yours' : 'Co-Op'}</span>
-                    </Button>
+                    {/* 3. Sync & Co-Op or Unshare */}
+                    {isMine ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionInProgress !== null}
+                        onClick={() => handleUnshare(routine)}
+                        className="text-xs h-9 px-2 gap-1.5 rounded-xl border-rose-500/30 text-rose-400 hover:border-rose-500 hover:bg-rose-500/10"
+                        title="Withdraw your routine from the Reformers Marketplace"
+                      >
+                        {actionInProgress === `unshare_${routine.id}` ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        )}
+                        <span className="truncate">Unshare</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionInProgress !== null}
+                        onClick={() => handleCoOpInvite(routine)}
+                        className="text-xs h-9 px-2 gap-1.5 rounded-xl hover:border-purple-500 hover:text-purple-400"
+                        title="Send non-intrusive IDLE Co-Op invite to creator"
+                      >
+                        {actionInProgress === `coop_${routine.id}` ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Users className="w-3.5 h-3.5 text-purple-400" />
+                        )}
+                        <span className="truncate">Co-Op</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               );

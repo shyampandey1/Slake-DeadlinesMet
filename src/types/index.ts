@@ -181,6 +181,9 @@ export type UserProfile = {
     };
     fcmTokens?: string[];
     lifestyleVector?: number[];
+    hasSharedRoutine?: boolean;
+    sharedRoutine?: any;
+    sharedRoutines?: Record<string, any>;
 };
 
 export type UserEvent = {

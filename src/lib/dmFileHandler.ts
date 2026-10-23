@@ -5,6 +5,7 @@ import {
   CustomRoutineProfile,
   DMRoutineTaskBlock,
   RoutineTuningAnswers,
+  SharedCommunityRoutine,
 } from '@/types/routineTuner';
 import { computeRoutineVector } from '@/lib/clientEmbedder';
 import { db } from '@/lib/firebase';
@@ -15,6 +16,8 @@ import {
   serverTimestamp,
   addDoc,
   updateDoc,
+  deleteDoc,
+  deleteField,
 } from 'firebase/firestore';
 
 /**
@@ -172,8 +175,49 @@ export async function importRoutineFromDMFile(
   return routine;
 }
 
+export const SHARED_ROUTINES_LOCAL_CACHE_KEY = 'deadlinesmet_shared_routines_cache';
+
+export function getLocalSharedRoutinesCache(): SharedCommunityRoutine[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SHARED_ROUTINES_LOCAL_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveRoutineToLocalCache(routine: SharedCommunityRoutine): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getLocalSharedRoutinesCache();
+    const map = new Map<string, SharedCommunityRoutine>();
+    for (const item of current) {
+      if (item && item.id) map.set(item.id, item);
+    }
+    map.set(routine.id, routine);
+    localStorage.setItem(
+      SHARED_ROUTINES_LOCAL_CACHE_KEY,
+      JSON.stringify(Array.from(map.values()))
+    );
+  } catch (e) {
+    console.warn('[DMFileHandler] Local cache write error:', e);
+  }
+}
+
+export function removeRoutineFromLocalCache(routineId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getLocalSharedRoutinesCache();
+    const filtered = current.filter((r) => r.id !== routineId);
+    localStorage.setItem(SHARED_ROUTINES_LOCAL_CACHE_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('[DMFileHandler] Local cache remove error:', e);
+  }
+}
+
 /**
- * Publishes custom routine to Reformers Hub (dual persistence: users/{author.uid} & shared_routines/{routineId})
+ * Publishes custom routine to Reformers Hub (triple persistence: coop_sessions broadcast, users/{author.uid} & shared_routines/{routineId})
  * so other Reformers can discover, match, and Co-Op sync with zero permission roadblocks.
  */
 export async function shareRoutineToCommunity(
@@ -208,7 +252,7 @@ export async function shareRoutineToCommunity(
   };
 
   // Strip all undefined fields so Firestore SDK never throws Unsupported field value: undefined
-  const cleanPayload = JSON.parse(
+  const cleanPayload: SharedCommunityRoutine = JSON.parse(
     JSON.stringify({
       id: profile.id,
       author: {
@@ -224,29 +268,59 @@ export async function shareRoutineToCommunity(
       tasksCount: profile.tasks.length,
       sustainabilityScore: profile.sustainabilityScore || 90,
       optimizationSummary: profile.optimizationSummary || 'Community shared schedule',
+      sharedAt: new Date().toISOString(),
       dmPayload: dmContainer,
     })
   );
 
   let publishedSuccessfully = false;
 
-  // 1. Direct User Document Persistence in `users/{author.uid}`
-  // (Guaranteed write permissions for the authenticated owner and guaranteed read permissions for all Reformers)
+  // 1. Primary Resilience: coop_sessions broadcast document
+  // (coop_sessions has `allow create: if request.auth != null;` and `allow read: if request.auth != null;` live in production Cloud Firestore)
+  try {
+    const coopDocRef = doc(db, 'coop_sessions', `coop_routine_${profile.id}`);
+    await setDoc(
+      coopDocRef,
+      {
+        ...cleanPayload,
+        isCommunityRoutine: true,
+        createdBy: author.uid,
+        participants: [],
+        sharedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    publishedSuccessfully = true;
+  } catch (coopErr) {
+    console.warn('[DMFileHandler] coop_sessions routine write warning:', coopErr);
+  }
+
+  // 2. Direct User Document Persistence in `users/{author.uid}`
+  // (Guaranteed write permissions for authenticated user on own doc, guaranteed public read)
   try {
     const userDocRef = doc(db, 'users', author.uid);
-    await updateDoc(userDocRef, {
-      sharedRoutine: {
-        ...cleanPayload,
-        sharedAt: new Date().toISOString(),
+    await setDoc(
+      userDocRef,
+      {
+        hasSharedRoutine: true,
+        sharedRoutine: {
+          ...cleanPayload,
+          sharedAt: new Date().toISOString(),
+        },
+        [`sharedRoutines.${profile.id}`]: {
+          ...cleanPayload,
+          sharedAt: new Date().toISOString(),
+        },
+        lifestyleVector: vector,
       },
-      lifestyleVector: vector,
-    });
+      { merge: true }
+    );
     publishedSuccessfully = true;
   } catch (userDocErr) {
     console.warn('[DMFileHandler] Direct user document update warning:', userDocErr);
   }
 
-  // 2. Standalone `shared_routines` collection persistence
+  // 3. Standalone `shared_routines` collection persistence
   try {
     const sharedDocRef = doc(db, 'shared_routines', profile.id);
     await setDoc(
@@ -277,11 +351,58 @@ export async function shareRoutineToCommunity(
     }
   }
 
+  // 4. Update local client cache so it appears immediately on this client
+  try {
+    saveRoutineToLocalCache(cleanPayload);
+  } catch (cacheErr) {}
+
   if (!publishedSuccessfully) {
     throw new Error('Could not publish routine to Reformers Hub. Please verify network connectivity.');
   }
 
   return profile.id;
+}
+
+/**
+ * Unpublishes / removes a routine from Reformers Hub.
+ */
+export async function unshareRoutineFromCommunity(
+  routineId: string,
+  authorUid: string
+): Promise<void> {
+  if (!db) return;
+
+  // 1. Remove from coop_sessions
+  try {
+    const coopDocRef = doc(db, 'coop_sessions', `coop_routine_${routineId}`);
+    await deleteDoc(coopDocRef);
+  } catch (e) {
+    console.warn('[DMFileHandler] Could not delete from coop_sessions:', e);
+  }
+
+  // 2. Remove from shared_routines
+  try {
+    const sharedDocRef = doc(db, 'shared_routines', routineId);
+    await deleteDoc(sharedDocRef);
+  } catch (e) {
+    console.warn('[DMFileHandler] Could not delete from shared_routines:', e);
+  }
+
+  // 3. Update user document
+  try {
+    const userDocRef = doc(db, 'users', authorUid);
+    await updateDoc(userDocRef, {
+      [`sharedRoutines.${routineId}`]: deleteField(),
+      sharedRoutine: deleteField(),
+    });
+  } catch (e) {
+    console.warn('[DMFileHandler] Could not remove from user doc:', e);
+  }
+
+  // 4. Remove from local cache
+  try {
+    removeRoutineFromLocalCache(routineId);
+  } catch (e) {}
 }
 
 /**

@@ -132,6 +132,7 @@ function RoutinePageComponent() {
   const [isTunerModalOpen, setIsTunerModalOpen] = useState(false);
   const [tunerProfileToEdit, setTunerProfileToEdit] = useState<CustomRoutineProfile | null>(null);
   const [isImportDropzoneOpen, setIsImportDropzoneOpen] = useState(false);
+  const [isPublishingRoutine, setIsPublishingRoutine] = useState(false);
 
   // Rename Dialog State
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -265,6 +266,7 @@ function RoutinePageComponent() {
       return;
     }
 
+    setIsPublishingRoutine(true);
     const author: DMRoutineAuthor = {
       uid: user.uid,
       displayName: user.displayName || profileData?.displayName || 'Reformer',
@@ -273,6 +275,12 @@ function RoutinePageComponent() {
 
     try {
       await shareRoutineToCommunity(activeCustomProfile, author);
+      // Mark active profile as isShared
+      await saveCustomProfile({
+        ...activeCustomProfile,
+        isShared: true,
+        updatedAt: new Date().toISOString(),
+      });
       toast({
         title: 'Published to Reformers Hub! 🚀',
         description: `"${activeCustomProfile.name}" is now live in the community marketplace.`,
@@ -283,6 +291,8 @@ function RoutinePageComponent() {
         title: 'Publish Failed',
         description: err?.message || 'Could not share routine to community.',
       });
+    } finally {
+      setIsPublishingRoutine(false);
     }
   };
 
@@ -376,7 +386,8 @@ function RoutinePageComponent() {
                           Active Schedule
                         </span>
                         {activeCustomProfile ? (
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            {activeCustomProfile.isShared && <span>🌐 Live •</span>}
                             Tuned Profile
                           </span>
                         ) : (
@@ -476,11 +487,16 @@ function RoutinePageComponent() {
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={isPublishingRoutine}
                           onClick={handleShareActiveRoutine}
                           className="h-10 w-10 p-0 rounded-xl border-border/80 hover:border-purple-500/50 hover:bg-purple-500/10 text-purple-400 shrink-0"
                           title="Publish routine to community"
                         >
-                          <Share2 className="w-4 h-4" />
+                          {isPublishingRoutine ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Share2 className="w-4 h-4" />
+                          )}
                         </Button>
 
                         <Button
