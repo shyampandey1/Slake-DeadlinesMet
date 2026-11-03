@@ -397,7 +397,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             break;
           }
           case 'TIMER_EXTEND': {
-            const extendMins = intent.durationMinutes || intent.extendMinutes || 5;
+            const extendMins = intent.additionalMinutes || intent.durationMinutes || intent.extendMinutes || 5;
             const curTimer = activeTimerRef.current;
             if (curTimer) {
               const newInitial = curTimer.initialDuration + extendMins;
@@ -406,6 +406,41 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
               toastRef.current({
                 title: 'Timer Extended ⏱️',
                 description: `Added ${extendMins} minutes to active session.`,
+              });
+            }
+            break;
+          }
+          case 'TIMER_MULTIPLY': {
+            const factor = intent.factor || 2;
+            const curTimer = activeTimerRef.current;
+            if (curTimer) {
+              const newInitial = (curTimer.initialDuration || 15) * factor;
+              let newExpected = curTimer.expectedEndTime;
+              if (!curTimer.isPaused && curTimer.expectedEndTime) {
+                const remainingMs = Math.max(0, curTimer.expectedEndTime - Date.now());
+                newExpected = Date.now() + (remainingMs * factor);
+              }
+              const newPausedLeft = curTimer.timeLeftWhenPaused ? curTimer.timeLeftWhenPaused * factor : undefined;
+              updateTimerRef.current({
+                initialDuration: newInitial,
+                expectedEndTime: newExpected,
+                timeLeftWhenPaused: newPausedLeft,
+              });
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('slake-timer-voice-action', {
+                    detail: { action: 'TIMER_MULTIPLY', factor },
+                  })
+                );
+              }
+              toastRef.current({
+                title: 'Timer Multiplied ⏱️',
+                description: `Session duration multiplied by ${factor}x.`,
+              });
+            } else {
+              toastRef.current({
+                title: 'No Active Timer',
+                description: 'Start a focus timer before multiplying duration.',
               });
             }
             break;
@@ -455,7 +490,43 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             break;
           }
           case 'ROUTINE_CONTROL': {
-            if (intent.targetRoute) {
+            if (intent.actionType === 'OPEN_TUNER_WIZARD') {
+              if (pathnameRef.current !== '/routine') {
+                routerRef.current.push('/routine?tune=true');
+              }
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('slake-open-routine-tuner'));
+              }
+            } else if (intent.actionType === 'EXPORT_DM_FILE') {
+              if (pathnameRef.current !== '/routine') {
+                routerRef.current.push('/routine');
+              }
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('slake-export-dm-file'));
+              }
+            } else if (intent.actionType === 'IMPORT_DM_FILE') {
+              if (pathnameRef.current !== '/routine') {
+                routerRef.current.push('/routine');
+              }
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('slake-import-dm-file'));
+              }
+            } else if (intent.actionType === 'SHARE_ROUTINE_COMMUNITY') {
+              if (pathnameRef.current !== '/routine') {
+                routerRef.current.push('/routine');
+              }
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('slake-share-routine-community'));
+              }
+            } else if (intent.actionType === 'WRAPPER_SMART_WEAVE') {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('slake-set-wrapper-mode', {
+                    detail: { mode: 'smart_weave' },
+                  })
+                );
+              }
+            } else if (intent.targetRoute) {
               routerRef.current.push(intent.targetRoute);
             } else {
               routerRef.current.push('/routine');
@@ -552,7 +623,11 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
                 })
               );
             }
-            routerRef.current.push('/reformers');
+            if (intent.actionType === 'FIND_MATCH') {
+              routerRef.current.push('/reformers?filter=partner_match');
+            } else if (intent.actionType !== 'MUTE_COOP') {
+              routerRef.current.push('/reformers');
+            }
             toastRef.current({
               title: 'Co-op Reformers Hub',
               description: intent.speechFeedback,
@@ -569,7 +644,16 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             break;
           }
           case 'ANALYTICS_ACTION': {
-            routerRef.current.push('/logbook');
+            if (intent.actionType === 'SPEAK_INSIGHTS_SUMMARY') {
+              if (pathnameRef.current !== '/logbook') {
+                routerRef.current.push('/logbook');
+              }
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('slake-read-insights'));
+              }
+            } else {
+              routerRef.current.push('/logbook');
+            }
             toastRef.current({
               title: 'Productivity Analytics',
               description: intent.speechFeedback,
@@ -610,6 +694,23 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
             } else if (intent.actionType === 'SCROLL_UP') {
               if (typeof window !== 'undefined') {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            } else if (intent.actionType === 'FULLSCREEN_ENTER') {
+              if (typeof document !== 'undefined') {
+                if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                  document.documentElement.requestFullscreen().catch(() => {});
+                }
+              }
+            } else if (intent.actionType === 'FULLSCREEN_EXIT') {
+              if (typeof document !== 'undefined') {
+                if (document.fullscreenElement && document.exitFullscreen) {
+                  document.exitFullscreen().catch(() => {});
+                }
+              }
+            } else if (intent.actionType === 'TOGGLE_ZEN_MODE') {
+              if (typeof document !== 'undefined') {
+                document.body.classList.toggle('zen-mode');
+                window.dispatchEvent(new CustomEvent('slake-toggle-zen-mode'));
               }
             }
             toastRef.current({
@@ -655,8 +756,18 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       triggerHaptic([30, 50, 30]);
 
       try {
-        // --- TIER 1A: Zero-Mutation Conversational Interceptors (Weather, Time, Identity) ---
-        const intercepted = evaluateVoiceInterceptors(clean);
+        // --- TIER 1A: Zero-Mutation Conversational Interceptors (Weather, Time, Identity, Timer, Progress, Coins) ---
+        const curActiveTimer = activeTimerRef.current;
+        const curTasks = tasksRef.current || [];
+        const streakVal = (profileData as any)?.streak?.currentStreak || (profileData as any)?.streak?.highestStreak || (profileData as any)?.streak || 0;
+        const { amount: coinBalance } = getCachedDailyCoins();
+
+        const intercepted = evaluateVoiceInterceptors(clean, {
+          activeTimer: curActiveTimer,
+          tasks: curTasks,
+          streak: typeof streakVal === 'number' ? streakVal : 0,
+          coins: typeof coinBalance === 'number' ? coinBalance : 0,
+        });
         if (intercepted.intercepted && intercepted.speechResponse) {
           setDetectedIntent({
             action: 'SYSTEM_CONTROL',
@@ -791,6 +902,14 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
 
   // Start Speech Recognition with full state guarding
   const startListening = useCallback(() => {
+    // Immediately stop any active TTS playback or native speech synthesis
+    stopNeuralPlaybackRef.current?.();
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {}
+    }
+
     // Guard against duplicate start calls
     if (isStartingRef.current || isListeningRef.current) {
       return;

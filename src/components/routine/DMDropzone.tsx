@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { importRoutineFromDMFile } from '@/lib/dmFileHandler';
 import { DMRoutineFileFormat } from '@/types/routineTuner';
@@ -21,6 +21,14 @@ export function DMDropzone({ onRoutineImported, className }: DMDropzoneProps) {
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleVoiceImport = () => {
+      fileInputRef.current?.click();
+    };
+    window.addEventListener('slake-import-dm-file', handleVoiceImport);
+    return () => window.removeEventListener('slake-import-dm-file', handleVoiceImport);
+  }, []);
 
   const handleProcessFile = async (file: File) => {
     setIsLoading(true);

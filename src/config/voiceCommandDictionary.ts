@@ -12,6 +12,8 @@ export interface CommandDefinition {
   durationSeconds?: number;
   extendMinutes?: number;
   intervalMinutes?: number;
+  factor?: number;
+  additionalMinutes?: number;
   earnedCoins?: number;
   coinsAwarded?: number;
   coopAction?: 'invite' | 'start_sprint' | 'pause_group';
@@ -96,6 +98,8 @@ function buildDatasetCommandDefinitions(): CommandDefinition[] {
       durationSeconds,
       extendMinutes: item.actionType === 'EXTEND' ? item.durationMinutes : undefined,
       intervalMinutes: item.actionType === 'SET_INTERVAL' ? item.durationMinutes : undefined,
+      factor: item.factor,
+      additionalMinutes: item.additionalMinutes,
       coinsAwarded: item.coinsAwarded,
       earnedCoins: item.coinsAwarded,
       coopAction,
@@ -548,7 +552,287 @@ const FLEXIBLE_COMMANDS: CommandDefinition[] = [
     description: 'Enable breathing chimes'
   },
 
-  // 8. Dismissal & System Controls
+  // 8. New Flexible Patterns for Pomodoro, Breaks, Timer Multiply & Extend
+  {
+    action: 'TIMER_MULTIPLY',
+    actionType: 'DOUBLE',
+    factor: 2,
+    phrases: ['double the time', 'double timer', 'double duration', 'multiply timer by two', 'double the timer'],
+    patterns: [/^(?:double(?:\s+the)?\s+(?:timer|time|duration)|multiply\s+timer\s+by\s+(?:two|2))$/i],
+    speechFeedback: 'Timer duration doubled.',
+    description: 'Double the current timer duration'
+  },
+  {
+    action: 'TIMER_EXTEND',
+    actionType: 'EXTEND',
+    durationMinutes: 2,
+    additionalMinutes: 2,
+    phrases: ['add 2 minutes', 'two more minutes', 'extend by 2 minutes', 'give me 2 minutes'],
+    patterns: [/^(?:add|extend(?:\s+by)?|give\s+me)\s*2(?:\s+more)?\s*min/i, /^two\s+more\s+minutes$/i],
+    speechFeedback: 'Added 2 minutes.',
+    description: 'Extend timer by 2 minutes'
+  },
+  {
+    action: 'TIMER_EXTEND',
+    actionType: 'EXTEND',
+    durationMinutes: 30,
+    additionalMinutes: 30,
+    phrases: ['add 30 minutes', 'half hour more', 'extend by half hour', 'give me 30 minutes'],
+    patterns: [/^(?:add|extend(?:\s+by)?|give\s+me)\s*30(?:\s+more)?\s*min/i, /^(?:half\s+an?\s+hour\s+more|add\s+half\s+an?\s+hour)$/i],
+    speechFeedback: 'Added 30 minutes.',
+    description: 'Extend timer by 30 minutes'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Pomodoro',
+    category: 'Productivity',
+    durationMinutes: 25,
+    coinsAwarded: 50,
+    phrases: ['start pomodoro', '25 minute pomodoro', 'pomodoro sprint', 'begin pomodoro', 'do a pomodoro'],
+    patterns: [/^(?:start|begin|do\s+a)?\s*(?:25\s*min(?:ute)?\s*)?pomodoro(?:\s+sprint|\s+session)?$/i],
+    speechFeedback: 'Starting 25-minute Pomodoro.',
+    description: '25-minute Pomodoro focus block'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: '50/10 Flow Block',
+    category: 'Productivity',
+    durationMinutes: 50,
+    coinsAwarded: 50,
+    phrases: ['start 50 10 sprint', '50 minute flow block', 'extended pomodoro', '50 minute sprint', 'start flow block'],
+    patterns: [/^(?:start|begin)?\s*50(?:\s*\/?\s*10)?\s*(?:min(?:ute)?\s*)?(?:sprint|flow\s+block|focus\s+block)$/i],
+    speechFeedback: 'Starting 50-minute focus block.',
+    description: '50-minute flow sprint'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Short Break',
+    category: 'Meditation',
+    durationMinutes: 5,
+    coinsAwarded: 15,
+    phrases: ['take a 5 minute break', 'short break', '5 minute rest', 'quick break', '5 minute break'],
+    patterns: [/^(?:take\s+a\s+)?(?:5\s*min(?:ute)?\s*)?(?:short\s+break|quick\s+break|5\s*min(?:ute)?\s*rest)$/i],
+    speechFeedback: 'Starting 5-minute break.',
+    description: '5-minute short break'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Long Break',
+    category: 'Meditation',
+    durationMinutes: 15,
+    coinsAwarded: 15,
+    phrases: ['take a 15 minute break', 'long break', 'recharge 15 minutes', '15 minute rest'],
+    patterns: [/^(?:take\s+a\s+)?(?:15\s*min(?:ute)?\s*)?(?:long\s+break|recharge|15\s*min(?:ute)?\s*rest)$/i],
+    speechFeedback: 'Starting 15-minute break.',
+    description: '15-minute long recharge break'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Coding Session',
+    category: 'Productivity',
+    durationMinutes: 45,
+    coinsAwarded: 50,
+    phrases: ['start coding session', 'debug code 45 minutes', 'software sprint', 'programming session'],
+    patterns: [/^(?:start\s+)?(?:coding\s+session|debug\s+code(?:\s+45\s*min)?|software\s+sprint|programming\s+session)$/i],
+    speechFeedback: 'Starting 45-minute coding sprint.',
+    description: '45-minute software coding sprint'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Deep Research',
+    category: 'Productivity',
+    durationMinutes: 30,
+    coinsAwarded: 50,
+    phrases: ['start research block', 'deep research 30 minutes', 'literature review', 'academic research'],
+    patterns: [/^(?:start\s+)?(?:deep\s+)?research(?:\s+block|\s+session)?(?:\s+30\s*min)?$/i, /^literature\s+review$/i],
+    speechFeedback: 'Starting 30-minute research block.',
+    description: '30-minute research block'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Exam Prep',
+    category: 'Productivity',
+    durationMinutes: 40,
+    coinsAwarded: 50,
+    phrases: ['start exam prep', 'revision session 40 minutes', 'study for test', 'exam revision'],
+    patterns: [/^(?:start\s+)?(?:exam\s+prep|revision\s+session(?:\s+40\s*min)?|study\s+for\s+test|exam\s+revision)$/i],
+    speechFeedback: 'Starting 40-minute study session.',
+    description: '40-minute exam prep session'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Brainstorming',
+    category: 'Creativity',
+    durationMinutes: 15,
+    coinsAwarded: 30,
+    phrases: ['brainstorming session', 'ideation 15 minutes', 'mind mapping', 'start brainstorming'],
+    patterns: [/^(?:start\s+)?(?:brainstorming(?:\s+session)?|ideation(?:\s+15\s*min)?|mind\s+mapping)$/i],
+    speechFeedback: 'Starting 15-minute brainstorm.',
+    description: '15-minute brainstorming session'
+  },
+  {
+    action: 'TASK_LOG_QUICK',
+    taskName: 'Posture Check',
+    category: 'Fitness',
+    durationMinutes: 1,
+    coinsAwarded: 15,
+    phrases: ['posture check', 'fix my posture', 'ergonomic reset', 'straighten back', 'align posture'],
+    patterns: [/^(?:posture\s+check|fix\s+(?:my\s+)?posture|ergonomic\s+reset|straighten\s+back|align\s+posture)$/i],
+    speechFeedback: 'Posture check logged. Sit tall!',
+    description: 'Ergonomic posture check'
+  },
+  {
+    action: 'TASK_LOG_QUICK',
+    taskName: 'Standing Desk',
+    category: 'Fitness',
+    durationMinutes: 1,
+    coinsAwarded: 15,
+    phrases: ['standing desk mode', 'stand up and work', 'standing mode on', 'switch to standing desk'],
+    patterns: [/^(?:standing\s+desk(?:\s+mode)?|stand\s+up\s+and\s+work|switch\s+to\s+standing\s+desk)$/i],
+    speechFeedback: 'Standing mode logged!',
+    description: 'Standing desk mode'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Power Nap',
+    category: 'Meditation',
+    durationMinutes: 20,
+    coinsAwarded: 30,
+    phrases: ['power nap 20 minutes', 'start 20 minute nap', 'quick nap', 'take a power nap', 'nap for 20 minutes'],
+    patterns: [/^(?:take\s+a\s+|start\s+)?(?:power\s+)?nap(?:\s+for|\s+in)?\s*(\d+)?\s*min(?:utes?)?$/i, /^quick\s+nap$/i],
+    speechFeedback: 'Starting 20-minute power nap.',
+    description: '20-minute power nap'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Desk Stretch',
+    category: 'Fitness',
+    durationMinutes: 5,
+    coinsAwarded: 40,
+    phrases: ['neck and shoulder stretch', '5 minute desk stretch', 'desk stretch', 'shoulder stretch', 'office stretch'],
+    patterns: [/^(?:start\s+|do\s+)?(?:5\s*min(?:ute)?\s*)?(?:neck\s+and\s+shoulder|desk|office)\s+stretch$/i],
+    speechFeedback: 'Starting 5-minute desk stretch.',
+    description: '5-minute desk stretch'
+  },
+  {
+    action: 'TASK_CREATE',
+    taskName: 'Brisk Walk',
+    category: 'Fitness',
+    durationMinutes: 20,
+    coinsAwarded: 40,
+    phrases: ['evening walk 20 minutes', 'go for a walk', 'morning walk', 'walk 20 minutes', 'take a walk'],
+    patterns: [/^(?:go\s+for\s+a|take\s+a|start\s+)?(?:evening|morning|brisk)?\s*walk(?:\s+for|\s+in)?\s*(\d+)?\s*min(?:utes?)?$/i],
+    speechFeedback: 'Starting 20-minute walk.',
+    description: '20-minute brisk walk'
+  },
+  {
+    action: 'TASK_LOG_QUICK',
+    taskName: 'Healthy Meal',
+    category: 'Hygiene',
+    durationMinutes: 1,
+    coinsAwarded: 15,
+    phrases: ['logged healthy meal', 'ate clean lunch', 'nutrition check', 'log healthy meal', 'clean breakfast logged'],
+    patterns: [/^(?:log(?:ged)?\s+healthy\s+meal|ate\s+clean(?:\s+lunch|\s+breakfast|\s+dinner)?|nutrition\s+check)$/i],
+    speechFeedback: 'Healthy meal logged!',
+    description: 'Log nutritious meal'
+  },
+  {
+    action: 'ROUTINE_CONTROL',
+    actionType: 'OPEN_TUNER_WIZARD',
+    phrases: ['tune my routine', 'open routine tuner', 'customize my schedule', 'launch schedule wizard', 'tune schedule'],
+    patterns: [/(?:tune|customize)\s+(?:my\s+)?(?:routine|schedule)|(?:open|launch)\s+(?:routine\s+tuner|schedule\s+wizard)/i],
+    speechFeedback: 'Opening Routine Tuner.',
+    description: 'Launch routine tuner wizard'
+  },
+  {
+    action: 'ROUTINE_CONTROL',
+    actionType: 'EXPORT_DM_FILE',
+    phrases: ['export my routine', 'download dm file', 'save routine to device', 'export dm file', 'download routine'],
+    patterns: [/(?:export|download|save)\s+(?:my\s+)?(?:routine|dm\s+file|schedule)(?:\s+to\s+device)?/i],
+    speechFeedback: 'Exporting your .dm routine.',
+    description: 'Export routine as .dm file'
+  },
+  {
+    action: 'ROUTINE_CONTROL',
+    actionType: 'IMPORT_DM_FILE',
+    phrases: ['import routine file', 'load dm file', 'import dm file', 'open routine file', 'upload dm file'],
+    patterns: [/(?:import|load|upload|open)\s+(?:routine\s+file|dm\s+file)/i],
+    speechFeedback: 'Opening routine file importer.',
+    description: 'Import routine from .dm file'
+  },
+  {
+    action: 'ROUTINE_CONTROL',
+    actionType: 'SHARE_ROUTINE_COMMUNITY',
+    phrases: ['share my routine', 'publish routine to reformers', 'share routine with reformers', 'publish schedule'],
+    patterns: [/(?:share|publish)\s+(?:my\s+)?(?:routine|schedule)(?:\s+(?:to|with)\s+reformers)?/i],
+    speechFeedback: 'Sharing routine with Reformers.',
+    description: 'Publish routine to Reformers community'
+  },
+  {
+    action: 'ROUTINE_CONTROL',
+    actionType: 'WRAPPER_SMART_WEAVE',
+    phrases: ['switch to smart weave', 'enable jev smart weave', 'activate smart weave', 'smart weave schedule'],
+    patterns: [/(?:switch\s+to|enable|activate)\s+(?:jev\s+)?smart\s+weave/i],
+    speechFeedback: 'Smart Weave schedule active.',
+    description: 'Activate smart weave schedule'
+  },
+  {
+    action: 'COOP_ACTION',
+    actionType: 'FIND_MATCH',
+    phrases: ['find focus partner', 'match me with a reformer', 'smart partner match', 'match focus partner', 'find co op partner'],
+    patterns: [/(?:find|match)(?:\s+me)?\s+(?:with\s+)?(?:a\s+)?(?:focus\s+partner|reformer|co\s*op\s+partner)|smart\s+partner\s+match/i],
+    speechFeedback: 'Finding your focus partner.',
+    description: 'Match with a co-op study partner'
+  },
+  {
+    action: 'COOP_ACTION',
+    actionType: 'SYNC_PARTNER_ROUTINE',
+    phrases: ['sync routine with partner', 'clone partner routine', 'sync with partner', 'import partner schedule'],
+    patterns: [/(?:sync|clone)\s+(?:routine\s+with\s+partner|partner\s+routine|partner\s+schedule)/i],
+    speechFeedback: 'Syncing partner routine.',
+    description: 'Sync and clone partner routine'
+  },
+  {
+    action: 'COOP_ACTION',
+    actionType: 'MUTE_COOP',
+    phrases: ['mute co op alerts', 'silence group', 'mute partner alerts', 'silence reformers'],
+    patterns: [/(?:mute|silence)\s+(?:co\s*op\s+alerts|group|partner\s+alerts|reformers)/i],
+    speechFeedback: 'Co-op alerts muted.',
+    description: 'Mute co-op group notifications'
+  },
+  {
+    action: 'SYSTEM_CONTROL',
+    actionType: 'FULLSCREEN_ENTER',
+    phrases: ['enter fullscreen', 'go fullscreen', 'enable fullscreen', 'maximize window'],
+    patterns: [/(?:enter|go|enable)\s+fullscreen|maximize\s+window/i],
+    speechFeedback: 'Fullscreen enabled.',
+    description: 'Enter browser fullscreen mode'
+  },
+  {
+    action: 'SYSTEM_CONTROL',
+    actionType: 'FULLSCREEN_EXIT',
+    phrases: ['exit fullscreen', 'leave fullscreen', 'disable fullscreen', 'unmaximize window'],
+    patterns: [/(?:exit|leave|disable)\s+fullscreen|unmaximize\s+window/i],
+    speechFeedback: 'Fullscreen disabled.',
+    description: 'Exit browser fullscreen mode'
+  },
+  {
+    action: 'SYSTEM_CONTROL',
+    actionType: 'TOGGLE_ZEN_MODE',
+    phrases: ['zen mode', 'toggle zen mode', 'distraction free mode', 'enable zen mode', 'turn on zen mode'],
+    patterns: [/(?:toggle\s+|enable\s+|turn\s+on\s+)?zen\s+mode|distraction\s+free\s+mode/i],
+    speechFeedback: 'Zen mode toggled.',
+    description: 'Toggle distraction-free zen mode'
+  },
+  {
+    action: 'ANALYTICS_ACTION',
+    actionType: 'SPEAK_INSIGHTS_SUMMARY',
+    phrases: ['read my insights summary', 'how did i do this week', 'weekly insights summary', 'read my summary', 'summarize my week'],
+    patterns: [/(?:read|show|tell\s+me)\s+(?:my\s+)?(?:insights\s+summary|weekly\s+summary)|how\s+did\s+i\s+do\s+this\s+week/i],
+    speechFeedback: 'Reading your weekly insights.',
+    description: 'Read weekly productivity summary'
+  },
+  // 9. Dismissal & System Controls
   {
     action: 'MODAL_DISMISS',
     actionType: 'DISMISS',
@@ -847,6 +1131,8 @@ export function matchLocalVoiceCommand(transcript: string): import('@/types/voic
         earnedCoins: record.coinsAwarded,
         extendMinutes: record.actionType === 'EXTEND' ? record.durationMinutes : undefined,
         intervalMinutes: record.actionType === 'SET_INTERVAL' ? record.durationMinutes : undefined,
+        factor: record.factor,
+        additionalMinutes: record.additionalMinutes,
         speechFeedback: record.speechFeedback,
         confidence: 0.99,
       };
@@ -904,6 +1190,8 @@ export function matchLocalVoiceCommand(transcript: string): import('@/types/voic
         durationSeconds,
         extendMinutes: cmd.extendMinutes,
         intervalMinutes: cmd.intervalMinutes,
+        factor: cmd.factor,
+        additionalMinutes: cmd.additionalMinutes,
         earnedCoins: cmd.earnedCoins || cmd.coinsAwarded,
         coinsAwarded: cmd.coinsAwarded || cmd.earnedCoins,
         coopAction: cmd.coopAction,

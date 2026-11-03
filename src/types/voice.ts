@@ -33,6 +33,7 @@ export type VoiceIntentAction =
   | 'TIMER_RESTART'
   | 'TIMER_EXTEND'
   | 'TIMER_REDUCE'
+  | 'TIMER_MULTIPLY'
   | 'TIMER_SET_INTERVAL'
   | 'TIMER_SKIP'
   | 'NAVIGATE'
@@ -58,6 +59,8 @@ export interface JevVoiceRecord {
   targetRoute?: string;
   actionType?: string;
   coinsAwarded?: number;
+  factor?: number;
+  additionalMinutes?: number;
   speechFeedback: string;
 }
 
@@ -1211,6 +1214,416 @@ export const JEV_VOICE_DATASET: JevVoiceRecord[] = [
     "utterances": [
       "scroll up"
     ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Pomodoro",
+    "category": "Productivity",
+    "durationMinutes": 25,
+    "coinsAwarded": 50,
+    "speechFeedback": "Starting 25-minute Pomodoro.",
+    "utterances": [
+      "start pomodoro",
+      "25 minute pomodoro",
+      "pomodoro sprint",
+      "begin pomodoro",
+      "do a pomodoro",
+      "25 minute focus block"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "50/10 Flow Block",
+    "category": "Productivity",
+    "durationMinutes": 50,
+    "coinsAwarded": 50,
+    "speechFeedback": "Starting 50-minute focus block.",
+    "utterances": [
+      "start 50 10 sprint",
+      "50 minute flow block",
+      "extended pomodoro",
+      "50 minute sprint",
+      "start flow block",
+      "50 minute focus session"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Short Break",
+    "category": "Meditation",
+    "durationMinutes": 5,
+    "coinsAwarded": 15,
+    "speechFeedback": "Starting 5-minute break.",
+    "utterances": [
+      "take a 5 minute break",
+      "short break",
+      "5 minute rest",
+      "quick break",
+      "5 minute break",
+      "take a short break"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Long Break",
+    "category": "Meditation",
+    "durationMinutes": 15,
+    "coinsAwarded": 15,
+    "speechFeedback": "Starting 15-minute break.",
+    "utterances": [
+      "take a 15 minute break",
+      "long break",
+      "recharge 15 minutes",
+      "15 minute rest",
+      "take a long break"
+    ]
+  },
+  {
+    "intent": "TIMER_MULTIPLY",
+    "actionType": "DOUBLE",
+    "factor": 2,
+    "coinsAwarded": 0,
+    "speechFeedback": "Timer duration doubled.",
+    "utterances": [
+      "double the time",
+      "double timer",
+      "double duration",
+      "multiply timer by two",
+      "double the timer"
+    ]
+  },
+  {
+    "intent": "TIMER_EXTEND",
+    "actionType": "EXTEND",
+    "durationMinutes": 2,
+    "additionalMinutes": 2,
+    "coinsAwarded": 0,
+    "speechFeedback": "Added 2 minutes.",
+    "utterances": [
+      "add 2 minutes",
+      "two more minutes",
+      "extend by 2 minutes",
+      "give me 2 minutes",
+      "2 more minutes"
+    ]
+  },
+  {
+    "intent": "TIMER_EXTEND",
+    "actionType": "EXTEND",
+    "durationMinutes": 30,
+    "additionalMinutes": 30,
+    "coinsAwarded": 0,
+    "speechFeedback": "Added 30 minutes.",
+    "utterances": [
+      "add 30 minutes",
+      "half hour more",
+      "extend by half hour",
+      "give me 30 minutes",
+      "30 more minutes"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Coding Session",
+    "category": "Productivity",
+    "durationMinutes": 45,
+    "coinsAwarded": 50,
+    "speechFeedback": "Starting 45-minute coding sprint.",
+    "utterances": [
+      "start coding session",
+      "debug code 45 minutes",
+      "software sprint",
+      "programming session",
+      "code review session",
+      "start coding sprint"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Deep Research",
+    "category": "Productivity",
+    "durationMinutes": 30,
+    "coinsAwarded": 50,
+    "speechFeedback": "Starting 30-minute research block.",
+    "utterances": [
+      "start research block",
+      "deep research 30 minutes",
+      "literature review",
+      "reading paper 30 minutes",
+      "academic research",
+      "start deep research"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Exam Prep",
+    "category": "Productivity",
+    "durationMinutes": 40,
+    "coinsAwarded": 50,
+    "speechFeedback": "Starting 40-minute study session.",
+    "utterances": [
+      "start exam prep",
+      "revision session 40 minutes",
+      "study for test",
+      "exam revision",
+      "test prep 40 minutes",
+      "start studying"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Brainstorming",
+    "category": "Creativity",
+    "durationMinutes": 15,
+    "coinsAwarded": 30,
+    "speechFeedback": "Starting 15-minute brainstorm.",
+    "utterances": [
+      "brainstorming session",
+      "ideation 15 minutes",
+      "mind mapping",
+      "start brainstorming",
+      "creative ideation",
+      "start ideation session"
+    ]
+  },
+  {
+    "intent": "TASK_LOG_QUICK",
+    "taskName": "Posture Check",
+    "category": "Fitness",
+    "durationMinutes": 1,
+    "coinsAwarded": 15,
+    "speechFeedback": "Posture check logged. Sit tall!",
+    "utterances": [
+      "posture check",
+      "fix my posture",
+      "ergonomic reset",
+      "straighten back",
+      "align posture"
+    ]
+  },
+  {
+    "intent": "TASK_LOG_QUICK",
+    "taskName": "Standing Desk",
+    "category": "Fitness",
+    "durationMinutes": 1,
+    "coinsAwarded": 15,
+    "speechFeedback": "Standing mode logged!",
+    "utterances": [
+      "standing desk mode",
+      "stand up and work",
+      "standing mode on",
+      "switch to standing desk"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Power Nap",
+    "category": "Meditation",
+    "durationMinutes": 20,
+    "coinsAwarded": 30,
+    "speechFeedback": "Starting 20-minute power nap.",
+    "utterances": [
+      "power nap 20 minutes",
+      "start 20 minute nap",
+      "quick nap",
+      "take a power nap",
+      "nap for 20 minutes"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Desk Stretch",
+    "category": "Fitness",
+    "durationMinutes": 5,
+    "coinsAwarded": 40,
+    "speechFeedback": "Starting 5-minute desk stretch.",
+    "utterances": [
+      "neck and shoulder stretch",
+      "5 minute desk stretch",
+      "desk stretch",
+      "shoulder stretch",
+      "office stretch"
+    ]
+  },
+  {
+    "intent": "TASK_CREATE",
+    "taskName": "Brisk Walk",
+    "category": "Fitness",
+    "durationMinutes": 20,
+    "coinsAwarded": 40,
+    "speechFeedback": "Starting 20-minute walk.",
+    "utterances": [
+      "evening walk 20 minutes",
+      "go for a walk",
+      "morning walk",
+      "walk 20 minutes",
+      "take a walk"
+    ]
+  },
+  {
+    "intent": "TASK_LOG_QUICK",
+    "taskName": "Healthy Meal",
+    "category": "Hygiene",
+    "durationMinutes": 1,
+    "coinsAwarded": 15,
+    "speechFeedback": "Healthy meal logged!",
+    "utterances": [
+      "logged healthy meal",
+      "ate clean lunch",
+      "nutrition check",
+      "log healthy meal",
+      "clean breakfast logged"
+    ]
+  },
+  {
+    "intent": "ROUTINE_CONTROL",
+    "actionType": "OPEN_TUNER_WIZARD",
+    "coinsAwarded": 0,
+    "speechFeedback": "Opening Routine Tuner.",
+    "utterances": [
+      "tune my routine",
+      "open routine tuner",
+      "customize my schedule",
+      "launch schedule wizard",
+      "tune schedule"
+    ]
+  },
+  {
+    "intent": "ROUTINE_CONTROL",
+    "actionType": "EXPORT_DM_FILE",
+    "coinsAwarded": 0,
+    "speechFeedback": "Exporting your .dm routine.",
+    "utterances": [
+      "export my routine",
+      "download dm file",
+      "save routine to device",
+      "export dm file",
+      "download routine"
+    ]
+  },
+  {
+    "intent": "ROUTINE_CONTROL",
+    "actionType": "IMPORT_DM_FILE",
+    "coinsAwarded": 0,
+    "speechFeedback": "Opening routine file importer.",
+    "utterances": [
+      "import routine file",
+      "load dm file",
+      "import dm file",
+      "open routine file",
+      "upload dm file"
+    ]
+  },
+  {
+    "intent": "ROUTINE_CONTROL",
+    "actionType": "SHARE_ROUTINE_COMMUNITY",
+    "coinsAwarded": 0,
+    "speechFeedback": "Sharing routine with Reformers.",
+    "utterances": [
+      "share my routine",
+      "publish routine to reformers",
+      "share routine with reformers",
+      "publish schedule"
+    ]
+  },
+  {
+    "intent": "ROUTINE_CONTROL",
+    "actionType": "WRAPPER_SMART_WEAVE",
+    "coinsAwarded": 0,
+    "speechFeedback": "Smart Weave schedule active.",
+    "utterances": [
+      "switch to smart weave",
+      "enable jev smart weave",
+      "activate smart weave",
+      "smart weave schedule"
+    ]
+  },
+  {
+    "intent": "COOP_ACTION",
+    "actionType": "FIND_MATCH",
+    "coinsAwarded": 0,
+    "speechFeedback": "Finding your focus partner.",
+    "utterances": [
+      "find focus partner",
+      "match me with a reformer",
+      "smart partner match",
+      "match focus partner",
+      "find co op partner"
+    ]
+  },
+  {
+    "intent": "COOP_ACTION",
+    "actionType": "SYNC_PARTNER_ROUTINE",
+    "coinsAwarded": 0,
+    "speechFeedback": "Syncing partner routine.",
+    "utterances": [
+      "sync routine with partner",
+      "clone partner routine",
+      "sync with partner",
+      "import partner schedule"
+    ]
+  },
+  {
+    "intent": "COOP_ACTION",
+    "actionType": "MUTE_COOP",
+    "coinsAwarded": 0,
+    "speechFeedback": "Co-op alerts muted.",
+    "utterances": [
+      "mute co op alerts",
+      "silence group",
+      "mute partner alerts",
+      "silence reformers"
+    ]
+  },
+  {
+    "intent": "SYSTEM_CONTROL",
+    "actionType": "FULLSCREEN_ENTER",
+    "coinsAwarded": 0,
+    "speechFeedback": "Fullscreen enabled.",
+    "utterances": [
+      "enter fullscreen",
+      "go fullscreen",
+      "enable fullscreen",
+      "maximize window"
+    ]
+  },
+  {
+    "intent": "SYSTEM_CONTROL",
+    "actionType": "FULLSCREEN_EXIT",
+    "coinsAwarded": 0,
+    "speechFeedback": "Fullscreen disabled.",
+    "utterances": [
+      "exit fullscreen",
+      "leave fullscreen",
+      "disable fullscreen",
+      "unmaximize window"
+    ]
+  },
+  {
+    "intent": "SYSTEM_CONTROL",
+    "actionType": "TOGGLE_ZEN_MODE",
+    "coinsAwarded": 0,
+    "speechFeedback": "Zen mode toggled.",
+    "utterances": [
+      "zen mode",
+      "toggle zen mode",
+      "distraction free mode",
+      "enable zen mode",
+      "turn on zen mode"
+    ]
+  },
+  {
+    "intent": "ANALYTICS_ACTION",
+    "actionType": "SPEAK_INSIGHTS_SUMMARY",
+    "coinsAwarded": 0,
+    "speechFeedback": "Reading your weekly insights.",
+    "utterances": [
+      "read my insights summary",
+      "how did i do this week",
+      "weekly insights summary",
+      "read my summary",
+      "summarize my week"
+    ]
   }
 ];
 
@@ -1226,6 +1639,7 @@ export const VoiceIntentPayloadSchema = z.object({
     'TIMER_RESTART',
     'TIMER_EXTEND',
     'TIMER_REDUCE',
+    'TIMER_MULTIPLY',
     'TIMER_SET_INTERVAL',
     'TIMER_SKIP',
     'NAVIGATE',
@@ -1264,6 +1678,8 @@ export const VoiceIntentPayloadSchema = z.object({
     ])
     .optional(),
   extendMinutes: z.number().optional(),
+  additionalMinutes: z.number().optional(),
+  factor: z.number().optional(),
   intervalMinutes: z.number().optional(),
   earnedCoins: z.number().optional(),
   coinsAwarded: z.number().optional(),

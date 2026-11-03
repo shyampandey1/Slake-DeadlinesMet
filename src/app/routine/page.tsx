@@ -374,6 +374,37 @@ function RoutinePageComponent() {
     }
   };
 
+  // Listen for voice-driven actions (Routine Tuner, Export, Share)
+  useEffect(() => {
+    const handleVoiceOpenTuner = () => {
+      setTunerProfileToEdit(activeCustomProfile || null);
+      setIsTunerModalOpen(true);
+    };
+    const handleVoiceExport = () => {
+      handleExportActiveRoutine();
+    };
+    const handleVoiceShare = () => {
+      handleShareActiveRoutine();
+    };
+
+    window.addEventListener('slake-open-routine-tuner', handleVoiceOpenTuner);
+    window.addEventListener('slake-export-dm-file', handleVoiceExport);
+    window.addEventListener('slake-share-routine-community', handleVoiceShare);
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tune') === 'true') {
+        setIsTunerModalOpen(true);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('slake-open-routine-tuner', handleVoiceOpenTuner);
+      window.removeEventListener('slake-export-dm-file', handleVoiceExport);
+      window.removeEventListener('slake-share-routine-community', handleVoiceShare);
+    };
+  }, [activeCustomProfile]);
+
   // Inline Rename Modal Handler
   const openRenameDialog = () => {
     if (!activeCustomProfile) return;

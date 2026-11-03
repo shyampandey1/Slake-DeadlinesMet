@@ -55,14 +55,27 @@ By unifying **Client-Side WebGPU Neural Execution**, deterministic **JEV TypeSaf
 
 ---
 
-### 🎙️ 6. 3-Tier Zero-Latency Voice Intent Pipeline & Semantic Gating
-DeadlinesMet processes voice commands in sub-millisecond tiers:
-1. **Tier 1 (Instant Client Interceptor):** Microsecond regex parser handles instant navigation (`go home`, `open routine`), timer controls (`pause`, `resume`, `finish`), sensor toggles (`toggle eye tracking`), and live weather queries (`what's the weather`) by extracting cached DOM metrics with zero network latency.
-2. **Tier 2 (WebGPU Semantic Gate):** Pre-evaluates intent relevance in client VRAM via `google/embeddinggemma-300m` before routing to external models. Out-of-domain commands below $0.68$ are safely rejected client-side.
-3. **Tier 3 (JEV SystemOne Resolution):** Resolves ambiguous complex natural language instructions into precise actionable payloads.
+### 🎙️ 6. 3-Tier Zero-Latency Voice Pipeline & Dual-Analyser Audio Architecture
+DeadlinesMet processes voice commands with sub-millisecond tiers and studio-grade audio isolation:
+1. **Dual-Analyser Web Audio Architecture (Loopback Immune):** Microphone inputs are piped strictly into an isolated `micAnalyser` node for the 16-bin FFT waveform visualizer and **never routed to `AudioContext.destination`**, completely eliminating speaker audio loopback and speech recognition corruption. Speech synthesis is routed through a separate `ttsAnalyser -> destination` node. Hardware and OS acoustic echo cancellation (`echoCancellation: true, noiseSuppression: true, autoGainControl: true`) guarantees clean microphone input with immediate track teardown on silence.
+2. **Tier 1 (Instant Zero-Latency Interceptors):** Sub-millisecond readouts that inspect live store and DOM state without network latency:
+   - *Remaining Timer Check:* "You have [X] minutes left on [Task Title]."
+   - *Next Scheduled Task:* "Up next is [Task Title] for [X] minutes."
+   - *Daily Progress & Streak:* "You've completed [X] tasks today with a [Y]-day streak."
+   - *Slake Coin Balance:* "You have [X] Slake Coins in your wallet."
+   - Fast-path header weather, local time, and Agent DM identity readouts.
+3. **Tier 2 (WebGPU Semantic Gate & Expanded 60+ Intent Taxonomy):** Pre-evaluates intent relevance in client VRAM via `google/embeddinggemma-300m` with vector embeddings indexing 60+ intents across:
+   - *Pomodoro & Sprints:* 25m Pomodoro, 50/10 flow block, 5m/15m breaks, 2x timer multiplier (`double the time`), dynamic +2m/+30m timer extensions.
+   - *Study & Research:* 45m coding sprints, 30m research blocks, 40m exam prep, 15m brainstorming ideation.
+   - *Physical Wellness:* Posture checks, standing desk mode, 20m power nap, 5m desk stretches, 20m brisk walks, healthy meal logs.
+   - *Routine Tuner & Portable Containers:* Open routine tuner wizard, export/import `.dm` routine containers, publish routine to Reformers, activate smart weave.
+   - *Co-Op Matchmaking:* Smart partner matching, routine cloning/syncing, co-op alert muting.
+   - *Hands-Free UI Controls:* Enter/exit fullscreen, distraction-free zen mode, spoken weekly insights summary.
+   - All speech feedback strictly concise and kept under 6 words.
+4. **Tier 3 (JEV SystemOne Resolution):** Resolves ambiguous complex natural language instructions into precise actionable payloads.
 
 ### 🎧 7. Agent DM Floating Neural HUD & Multimodal Bio-Sensors
-* **16-Bin Real-Time FFT Visualizer:** Floating responsive HUD with Web Audio equalizer bouncing to synthesized speech frequencies.
+* **Dual-Source 16-Bin Real-Time FFT Visualizer:** Floating draggable HUD with Web Audio equalizer bouncing dynamically to live user speech while listening and synthesized neural speech while responding.
 * **Natural Studio Neural TTS:** Synthesized speech feedback with smart pitch modulation, haptic state transitions, and fallback to native Web Speech synthesis.
 * **Multimodal Gaze Tracking (Web Worker):** Dedicated background worker with Kalman filtering for hands-free gaze detection.
 * **Procedural Soundscapes:** Native Web Audio synthesized water droplet harmonics (`useHydrationAudio`) and tuned 432Hz binaural meditation chimes (`useBreathingAudio`).

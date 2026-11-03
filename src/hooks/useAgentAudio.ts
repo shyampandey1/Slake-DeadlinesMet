@@ -10,11 +10,18 @@ export interface VoiceOptions {
 // In-memory global Blob URL cache so repeated phrases play instantly with 0ms roundtrip delay
 const blobCache = new Map<string, string>();
 
-// Singleton AudioContext and AnalyserNode manager across hook mounts
+// Singleton AudioContext and Dual-Analyser Architecture across hook mounts
+// ttsAnalyser: Connected ttsMediaElementSource -> ttsAnalyser -> destination (for Agent DM speech output)
+// micAnalyser: Connected micStreamSource -> micAnalyser ONLY (NEVER connected to destination, preventing loopback)
 let globalAudioCtx: AudioContext | null = null;
-let globalAnalyser: AnalyserNode | null = null;
+let globalTtsAnalyser: AnalyserNode | null = null;
+let globalMicAnalyser: AnalyserNode | null = null;
 
-function getSharedAudioContext(): { ctx: AudioContext; analyser: AnalyserNode } | null {
+function getSharedAudioContext(): {
+  ctx: AudioContext;
+  ttsAnalyser: AnalyserNode;
+  micAnalyser: AnalyserNode;
+} | null {
   if (typeof window === 'undefined') return null;
 
   try {
@@ -25,15 +32,27 @@ function getSharedAudioContext(): { ctx: AudioContext; analyser: AnalyserNode } 
       globalAudioCtx = new AudioContextClass();
     }
 
-    if (!globalAnalyser) {
-      globalAnalyser = globalAudioCtx.createAnalyser();
-      globalAnalyser.fftSize = 64; // Yields 32 frequency bins
-      globalAnalyser.smoothingTimeConstant = 0.8;
-      // Connect analyser to destination so audio output is heard
-      globalAnalyser.connect(globalAudioCtx.destination);
+    if (!globalTtsAnalyser) {
+      globalTtsAnalyser = globalAudioCtx.createAnalyser();
+      globalTtsAnalyser.fftSize = 64; // Yields 32 frequency bins
+      globalTtsAnalyser.smoothingTimeConstant = 0.8;
+      // Connect TTS analyser to speaker destination so voice synthesis is heard
+      globalTtsAnalyser.connect(globalAudioCtx.destination);
     }
 
-    return { ctx: globalAudioCtx, analyser: globalAnalyser };
+    if (!globalMicAnalyser) {
+      globalMicAnalyser = globalAudioCtx.createAnalyser();
+      globalMicAnalyser.fftSize = 64; // Yields 32 frequency bins
+      globalMicAnalyser.smoothingTimeConstant = 0.8;
+      // STRICTLY NEVER CONNECT globalMicAnalyser to destination!
+      // This isolates microphone input to the visualizer and eliminates audio loopback/echo.
+    }
+
+    return {
+      ctx: globalAudioCtx,
+      ttsAnalyser: globalTtsAnalyser,
+      micAnalyser: globalMicAnalyser,
+    };
   } catch (err) {
     console.warn('[useAgentAudio] Failed to initialize Web Audio API context:', err);
     return null;
@@ -70,11 +89,20 @@ export function useAgentAudio() {
 
     const updateLoop = () => {
       const shared = getSharedAudioContext();
-      const isActive = isPlayingRef.current || isListeningMicRef.current;
-      if (shared && shared.analyser && isActive) {
-        const bufferLength = shared.analyser.frequencyBinCount;
+      const isSpeaking = isPlayingRef.current;
+      const isListening = isListeningMicRef.current;
+
+      // Select active analyser node based on whether agent is speaking or user is speaking
+      const activeAnalyser = isSpeaking
+        ? shared?.ttsAnalyser
+        : isListening
+        ? shared?.micAnalyser
+        : null;
+
+      if (activeAnalyser && (isSpeaking || isListening)) {
+        const bufferLength = activeAnalyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        shared.analyser.getByteFrequencyData(dataArray);
+        activeAnalyser.getByteFrequencyData(dataArray);
 
         // Subsample down to 16 normalized frequency values (0.0 - 1.0)
         const bins = 16;
@@ -104,12 +132,24 @@ export function useAgentAudio() {
       if (!shared) return;
 
       if (!micStreamRef.current && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+        // Strict constraints for acoustic echo cancellation, noise suppression, and auto gain
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        }).catch((err) => {
+          console.warn('[useAgentAudio] getUserMedia error:', err);
+          return null;
+        });
+
         if (stream) {
           micStreamRef.current = stream;
           try {
             micSourceNodeRef.current = shared.ctx.createMediaStreamSource(stream);
-            micSourceNodeRef.current.connect(shared.analyser);
+            // Connect ONLY to micAnalyser, NEVER to destination!
+            micSourceNodeRef.current.connect(shared.micAnalyser);
           } catch (e) {
             console.warn('[useAgentAudio] Mic stream source attach error:', e);
           }
@@ -283,10 +323,16 @@ export function useAgentAudio() {
           audioRef.current = audio;
 
           const shared = getSharedAudioContext();
-          if (shared && !sourceNodeRef.current) {
+          if (shared) {
             try {
+              if (sourceNodeRef.current) {
+                try {
+                  sourceNodeRef.current.disconnect();
+                } catch (e) {}
+                sourceNodeRef.current = null;
+              }
               sourceNodeRef.current = shared.ctx.createMediaElementSource(audio);
-              sourceNodeRef.current.connect(shared.analyser);
+              sourceNodeRef.current.connect(shared.ttsAnalyser);
             } catch (nodeErr) {
               // Node might already be bound or blocked by browser policy
               console.warn('[useAgentAudio] Source node attachment warning:', nodeErr);
@@ -331,6 +377,7 @@ export function useAgentAudio() {
   return {
     speak,
     stopPlayback,
+    stopAudio: stopPlayback,
     isPlaying,
     waveformFrequencies,
     ensureAudioContextRunning,

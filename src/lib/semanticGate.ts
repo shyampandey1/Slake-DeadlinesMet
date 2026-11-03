@@ -43,6 +43,16 @@ export const DOMAIN_ANCHOR_PHRASES: Record<Exclude<SemanticDomain, 'OUT_OF_DOMAI
     'set interval 10 minutes',
     'cancel timer',
     'skip task',
+    'start pomodoro',
+    'pomodoro sprint',
+    'start 50 10 sprint',
+    '50 minute flow block',
+    'take a 5 minute break',
+    'take a 15 minute break',
+    'double the time',
+    'double timer',
+    'add 2 minutes',
+    'add 30 minutes',
   ],
   NAVIGATION: [
     'go home',
@@ -53,6 +63,11 @@ export const DOMAIN_ANCHOR_PHRASES: Record<Exclude<SemanticDomain, 'OUT_OF_DOMAI
     'open settings',
     'go back',
     'open presets',
+    'enter fullscreen',
+    'exit fullscreen',
+    'zen mode',
+    'toggle zen mode',
+    'distraction free mode',
   ],
   ROUTINE: [
     'start meditation',
@@ -73,6 +88,29 @@ export const DOMAIN_ANCHOR_PHRASES: Record<Exclude<SemanticDomain, 'OUT_OF_DOMAI
     'switch to morning primer',
     'switch to evening restorer',
     'day off',
+    'start coding session',
+    'debug code 45 minutes',
+    'start research block',
+    'literature review',
+    'start exam prep',
+    'study for test',
+    'brainstorming session',
+    'posture check',
+    'standing desk mode',
+    'power nap 20 minutes',
+    'neck and shoulder stretch',
+    '5 minute desk stretch',
+    'evening walk 20 minutes',
+    'logged healthy meal',
+    'tune my routine',
+    'open routine tuner',
+    'export my routine',
+    'download dm file',
+    'import routine file',
+    'load dm file',
+    'share my routine',
+    'publish routine to reformers',
+    'switch to smart weave',
   ],
   COOP: [
     'invite co reformer',
@@ -80,6 +118,13 @@ export const DOMAIN_ANCHOR_PHRASES: Record<Exclude<SemanticDomain, 'OUT_OF_DOMAI
     'coach start group sprint',
     'coach pause group timer',
     'join co op session',
+    'find focus partner',
+    'match me with a reformer',
+    'smart partner match',
+    'sync routine with partner',
+    'clone partner routine',
+    'mute co op alerts',
+    'silence group',
   ],
   SENSORS: [
     'turn on eye tracking',
@@ -106,6 +151,9 @@ export const DOMAIN_ANCHOR_PHRASES: Record<Exclude<SemanticDomain, 'OUT_OF_DOMAI
     'check movers score',
     'show focus score',
     'view streak history',
+    'read my insights summary',
+    'how did i do this week',
+    'weekly insights summary',
   ],
 };
 
@@ -145,6 +193,8 @@ let intentInitPromise: Promise<IndexedIntentExemplar[]> | null = null;
 function mapIntentToDomain(intent: string): Exclude<SemanticDomain, 'OUT_OF_DOMAIN'> {
   switch (intent) {
     case 'NAVIGATE':
+    case 'SYSTEM_CONTROL':
+    case 'MODAL_DISMISS':
       return 'NAVIGATION';
     case 'TIMER_START':
     case 'TIMER_PAUSE':
@@ -153,6 +203,7 @@ function mapIntentToDomain(intent: string): Exclude<SemanticDomain, 'OUT_OF_DOMA
     case 'TIMER_RESTART':
     case 'TIMER_EXTEND':
     case 'TIMER_REDUCE':
+    case 'TIMER_MULTIPLY':
     case 'TIMER_SET_INTERVAL':
     case 'TIMER_SKIP':
       return 'TIMER';
