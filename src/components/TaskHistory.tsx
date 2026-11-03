@@ -89,6 +89,18 @@ function TaskLogBookContent() {
         }
     }, [tasks]);
 
+    // Load cached JEV insights on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('deadlinesmet_cached_insights');
+                if (cached) {
+                    setInsights(JSON.parse(cached));
+                }
+            } catch (e) {}
+        }
+    }, []);
+
     // Instant Semantic Search (<20ms)
     useEffect(() => {
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -469,6 +481,11 @@ function TaskLogBookContent() {
             if (!response.ok) throw new Error('Failed to fetch insights');
             const result = await response.json();
             setInsights(result);
+            if (typeof window !== 'undefined') {
+                try {
+                    localStorage.setItem('deadlinesmet_cached_insights', JSON.stringify(result));
+                } catch (e) {}
+            }
         } catch (e) {
             console.error("Failed to generate insights:", e);
         } finally {

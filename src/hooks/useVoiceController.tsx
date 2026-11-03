@@ -651,6 +651,25 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
               if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('slake-read-insights'));
               }
+              let summarySpeech = '';
+              if (typeof window !== 'undefined') {
+                try {
+                  const cachedRaw = localStorage.getItem('deadlinesmet_cached_insights');
+                  if (cachedRaw) {
+                    const parsed = JSON.parse(cachedRaw);
+                    const headline = parsed.headline || parsed.summary;
+                    const suggestion = parsed.tacticalSuggestion || (parsed.tacticalRecommendations && parsed.tacticalRecommendations[0]) || (parsed.suggestions && parsed.suggestions[0]);
+                    if (headline && suggestion) {
+                      summarySpeech = `${headline}. Tactical advice: ${suggestion}`;
+                    } else if (headline) {
+                      summarySpeech = headline;
+                    }
+                  }
+                } catch (e) {}
+              }
+              if (summarySpeech) {
+                speakFeedback(summarySpeech);
+              }
             } else {
               routerRef.current.push('/logbook');
             }
