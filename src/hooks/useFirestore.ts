@@ -223,8 +223,8 @@ export function useTasks() {
     profileDataRef.current = profileData;
   }, [profileData]);
 
-  const addTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>) => {
-    if (!user) return;
+  const addTask = useCallback(async (task: Omit<Task, 'id' | 'createdAt' | 'userId'>): Promise<string | undefined> => {
+    if (!user) return undefined;
     const newTask = {
       ...task,
       createdAt: new Date().toISOString(),
@@ -238,8 +238,9 @@ export function useTasks() {
 
     const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
     if (isOffline || !isSyncEnabled) {
+      const localId = `local_${new Date().getTime()}_${Math.random().toString(36).substr(2, 5)}`;
       setTasks(prev => {
-        const updatedTasks = [...prev, { ...newTask, id: `local_${new Date().getTime()}_${Math.random().toString(36).substr(2, 5)}`, userId: user.uid }];
+        const updatedTasks = [{ ...newTask, id: localId, userId: user.uid }, ...prev];
         try {
           localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
         } catch (error) {
@@ -247,12 +248,67 @@ export function useTasks() {
         }
         return updatedTasks;
       });
-      return;
+      return localId;
     }
 
     const encryptedName = await encryptText(task.name, user.uid);
-    await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
+    const docRef = await addDoc(collection(db, 'users', user.uid, 'tasks'), { ...task, name: encryptedName, createdAt: Timestamp.now()});
+    return docRef.id;
   }, [user, isOffline, isSyncEnabled, updateUserProfileData, incrementUserCoins]);
+
+  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>): Promise<void> => {
+    if (!user || !taskId) return;
+
+    const isVerified = updates.isVerifiedForCoins !== false;
+    const earned = isVerified ? (Number(updates.earnedCoins) || 0) : 0;
+    if (updates.completed && earned > 0) {
+      await incrementUserCoins(earned);
+    }
+
+    const cacheKey = `${TASKS_CACHE_KEY}_${user.uid}`;
+    setTasks(prev => {
+      const updatedTasks = prev.map(t => {
+        if (t.id === taskId) {
+          return {
+            ...t,
+            ...updates,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return t;
+      });
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(updatedTasks));
+      } catch (error) {
+        console.warn("Couldn't access localStorage for tasks");
+      }
+      return updatedTasks;
+    });
+
+    if (isOffline || !isSyncEnabled || taskId.startsWith('local_')) {
+      return;
+    }
+
+    try {
+      const taskRef = doc(db, 'users', user.uid, 'tasks', taskId);
+      const firestoreUpdates = {
+        ...updates,
+        updatedAt: Timestamp.now()
+      };
+      if (updates.name) {
+        firestoreUpdates.name = await encryptText(updates.name, user.uid);
+      }
+      if (updates.completed !== undefined) {
+        firestoreUpdates.completed = updates.completed;
+        if (updates.completed) {
+          firestoreUpdates.completedAt = Timestamp.now();
+        }
+      }
+      await updateDoc(taskRef, firestoreUpdates);
+    } catch (err) {
+      console.warn('Failed to update task in Firestore:', err);
+    }
+  }, [user, isOffline, isSyncEnabled, incrementUserCoins]);
 
   const clearTasks = async () => {
     if (!user || sessionStorage.getItem('SIGNOUT_IN_PROGRESS')) return; // Added signout check
@@ -339,7 +395,7 @@ export function useTasks() {
     }
   }, [user, tasks]);
 
-  return { tasks, loading, addTask, clearTasks, toggleTaskCompletion };
+  return { tasks, loading, addTask, updateTask, clearTasks, toggleTaskCompletion };
 }
 
 // Hook for managing preset tasks and routines

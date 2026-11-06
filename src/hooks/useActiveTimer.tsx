@@ -16,6 +16,7 @@ interface ActiveTimer {
     isPaused: boolean;
     timeLeftWhenPaused?: number;
     coOpSessionId?: string;
+    taskId?: string;
 }
 
 interface TimerContextType {
@@ -23,7 +24,7 @@ interface TimerContextType {
     isInitialized: boolean;
     focusInterval: number;
     setFocusInterval: (interval: number) => void;
-    startTimer: (timer: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string }) => void;
+    startTimer: (timer: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string; taskId?: string }) => void;
     clearTimer: () => void;
     updateTimer: (updates: Partial<ActiveTimer>, remainingSeconds?: number) => void;
 }
@@ -140,7 +141,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                         color: data.color,
                         isPaused: isPaused,
                         coOpSessionId: data.coOpSessionId,
-                        timeLeftWhenPaused: timeLeftWhenPaused
+                        timeLeftWhenPaused: timeLeftWhenPaused,
+                        taskId: data.taskId || undefined
                     };
 
                     setActiveTimer(newTimer);
@@ -191,7 +193,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                         pausedAtMillis: timer.isPaused ? now : null,
                         category: timer.category || null,
                         color: timer.color || null,
-                        coOpSessionId: timer.coOpSessionId || null
+                        coOpSessionId: timer.coOpSessionId || null,
+                        taskId: timer.taskId || null
                     };
 
                     setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
@@ -220,7 +223,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [activeTimer, isInitialized]);
 
-    const startTimer = useCallback((timerData: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string }) => {
+    const startTimer = useCallback((timerData: Omit<ActiveTimer, 'expectedEndTime' | 'isPaused'> & { expectedEndTime?: number; coOpSessionId?: string; taskId?: string }) => {
         const expectedEndTime = timerData.expectedEndTime || Date.now() + (timerData.initialDuration * 60 * 1000);
         const newTimer = { ...timerData, expectedEndTime, isPaused: false };
         saveTimer(newTimer);
@@ -268,7 +271,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
                         pausedAtMillis: updated.isPaused ? now : null,
                         category: updated.category || null,
                         color: updated.color || null,
-                        coOpSessionId: updated.coOpSessionId || null
+                        coOpSessionId: updated.coOpSessionId || null,
+                        taskId: updated.taskId || null
                     };
 
                     setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);

@@ -164,6 +164,10 @@ function TaskLogBookContent() {
 
     const handleTaskClick = (task: Task) => {
         if (!task.completed) {
+            if (activeTimer && activeTimer.taskName.toLowerCase() === task.name.toLowerCase()) {
+                router.push(`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}&color=${activeTimer.color || ''}`);
+                return;
+            }
             const remainingDuration = task.initialDuration - task.duration;
             const params = new URLSearchParams({
                 task: task.name,
@@ -245,14 +249,42 @@ function TaskLogBookContent() {
         return filteredTasksByDate.filter(task => getTaskCategoryDetails(task.name, profile as ProfileType).mainCategory === selectedCategory);
     }, [filteredTasksByDate, selectedCategory, profile]);
 
+    const activeElapsedMinutes = useMemo(() => {
+        if (!activeTimer) return 0;
+        const initialSec = activeTimer.initialDuration * 60;
+        if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
+            return Math.max(0, Math.floor((initialSec - activeTimer.timeLeftWhenPaused) / 60));
+        }
+        if (activeTimer.expectedEndTime) {
+            const remainingSec = Math.max(0, (activeTimer.expectedEndTime - Date.now()) / 1000);
+            return Math.max(0, Math.floor((initialSec - remainingSec) / 60));
+        }
+        return 0;
+    }, [activeTimer]);
+
     const categoryData = useMemo(() => {
         const data: { [key: string]: number } = {};
-        // Calculate data based on the date-filtered tasks, NOT the category-filtered ones
         filteredTasksByDate.forEach(task => {
             const categoryDetails = getTaskCategoryDetails(task.name, profile as ProfileType);
             const category = categoryDetails.mainCategory || 'Uncategorized';
             data[category] = (data[category] || 0) + task.duration;
         });
+
+        if (activeTimer && activeTimer.taskName && activeElapsedMinutes > 0) {
+            const today = new Date();
+            const isTodayInFilter = isWithinInterval(today, { start: dateFilterRange.start, end: dateFilterRange.end });
+            if (isTodayInFilter) {
+                const activeCat = (activeTimer.category && allCategories.includes(activeTimer.category))
+                    ? activeTimer.category
+                    : getTaskCategoryDetails(activeTimer.taskName, profile as ProfileType).mainCategory;
+                const found = filteredTasksByDate.find(t => t.id === activeTimer.taskId || t.name.toLowerCase() === activeTimer.taskName.toLowerCase());
+                if (!found) {
+                    data[activeCat] = (data[activeCat] || 0) + activeElapsedMinutes;
+                } else if (found.duration < activeElapsedMinutes) {
+                    data[activeCat] = (data[activeCat] || 0) + (activeElapsedMinutes - found.duration);
+                }
+            }
+        }
 
         const totalDuration = Object.values(data).reduce((sum, duration) => sum + duration, 0);
         if (totalDuration === 0) return [];
@@ -263,7 +295,7 @@ function TaskLogBookContent() {
             percentage: totalDuration > 0 ? Math.round(((data[name] || 0) / totalDuration) * 100) : 0,
             color: categoryColors[name as keyof typeof categoryColors] || categoryColors.Default
         })).sort((a, b) => b.value - a.value);
-    }, [filteredTasksByDate, profile]);
+    }, [filteredTasksByDate, profile, activeTimer, activeElapsedMinutes, dateFilterRange]);
 
     const categoryStats = useMemo(() => {
         const statsObj: { [key: string]: { duration: number; coins: number; taskCount: number } } = {
@@ -285,18 +317,64 @@ function TaskLogBookContent() {
                 }
             }
         });
+
+        if (activeTimer && activeTimer.taskName && activeElapsedMinutes > 0) {
+            const today = new Date();
+            const isTodayInFilter = isWithinInterval(today, { start: dateFilterRange.start, end: dateFilterRange.end });
+            if (isTodayInFilter) {
+                const activeCat = (activeTimer.category && statsObj[activeTimer.category])
+                    ? activeTimer.category
+                    : getTaskCategoryDetails(activeTimer.taskName, profile as ProfileType).mainCategory;
+                if (statsObj[activeCat]) {
+                    const found = filteredTasksByDate.find(t => t.id === activeTimer.taskId || t.name.toLowerCase() === activeTimer.taskName.toLowerCase());
+                    if (!found) {
+                        statsObj[activeCat].duration += activeElapsedMinutes;
+                    } else if (found.duration < activeElapsedMinutes) {
+                        statsObj[activeCat].duration += (activeElapsedMinutes - found.duration);
+                    }
+                }
+            }
+        }
         
         return statsObj;
-    }, [filteredTasksByDate, profile]);
+    }, [filteredTasksByDate, profile, activeTimer, activeElapsedMinutes, dateFilterRange]);
 
     const stats = useMemo(() => {
         const sourceTasks = selectedCategory ? filteredTasks : filteredTasksByDate;
-        if (loading || sourceTasks.length === 0) {
+        const hasActiveTimer = Boolean(activeTimer && activeTimer.taskName);
+        const today = new Date();
+        const isTodayInFilter = isWithinInterval(today, { start: dateFilterRange.start, end: dateFilterRange.end });
+        
+        const activeCat = hasActiveTimer
+            ? ((activeTimer?.category && allCategories.includes(activeTimer.category))
+                ? activeTimer.category
+                : getTaskCategoryDetails(activeTimer!.taskName, profile as ProfileType).mainCategory)
+            : null;
+        const isActiveInSelectedCat = !selectedCategory || selectedCategory === activeCat;
+        const shouldIncludeActiveTimer = hasActiveTimer && isTodayInFilter && isActiveInSelectedCat;
+
+        const matchingTask = shouldIncludeActiveTimer
+            ? sourceTasks.find(t => t.id === activeTimer?.taskId || t.name.toLowerCase() === activeTimer?.taskName.toLowerCase())
+            : null;
+
+        if (loading || (sourceTasks.length === 0 && !shouldIncludeActiveTimer)) {
             return { totalTasks: 0, completedTasks: 0, totalTime: 0, completionRate: 0, hydrationProgress: 0, hydrationGoal: 8, glassesDrunk: 0 };
         }
+
         const completedTasks = sourceTasks.filter(t => t.completed).length;
-        const totalTime = sourceTasks.reduce((acc, t) => acc + t.duration, 0);
-        const completionRate = sourceTasks.length > 0 ? Math.round((completedTasks / sourceTasks.length) * 100) : 0;
+        let totalTime = sourceTasks.reduce((acc, t) => acc + t.duration, 0);
+        let totalTasks = sourceTasks.length;
+
+        if (shouldIncludeActiveTimer) {
+            if (!matchingTask) {
+                totalTasks += 1;
+                totalTime += activeElapsedMinutes;
+            } else if (matchingTask.duration < activeElapsedMinutes) {
+                totalTime += (activeElapsedMinutes - matchingTask.duration);
+            }
+        }
+
+        const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
         const glassesDrunk = filteredTasksByDate.filter(t => {
             const rawName = (t.name || '').toLowerCase();
@@ -309,7 +387,7 @@ function TaskLogBookContent() {
         const hydrationProgress = hydrationGoal > 0 ? Math.min(100, Math.round((glassesDrunk / hydrationGoal) * 100)) : 0;
 
         return {
-            totalTasks: sourceTasks.length,
+            totalTasks,
             completedTasks,
             totalTime,
             completionRate,
@@ -317,7 +395,7 @@ function TaskLogBookContent() {
             hydrationGoal,
             glassesDrunk
         };
-    }, [filteredTasks, filteredTasksByDate, selectedCategory, loading, profile, dateFilterRange]);
+    }, [filteredTasks, filteredTasksByDate, selectedCategory, loading, profile, dateFilterRange, activeTimer, activeElapsedMinutes]);
 
     const groupedTasks = useMemo(() => {
         const groups: { [key: string]: Task[] } = {};
@@ -1099,7 +1177,7 @@ function TaskLogBookContent() {
                         </Card>
                     </div>
                     {/* Task log list is now outside the reportRef */}
-                    {filteredTasksByDate.length > 0 && (
+                    {(filteredTasksByDate.length > 0 || (activeTimer && activeTimer.taskName)) && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Task Log</CardTitle>
@@ -1129,7 +1207,7 @@ function TaskLogBookContent() {
                                                 </div>
                                                 <p className="font-bold text-foreground truncate">{activeTimer.taskName}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Initial duration: {formatDuration(activeTimer.initialDuration)}
+                                                    Progress: {formatDuration(activeElapsedMinutes)} focused / {formatDuration(activeTimer.initialDuration)} planned
                                                 </p>
                                             </div>
                                             <div className="flex-shrink-0">
@@ -1172,6 +1250,20 @@ function TaskLogBookContent() {
                                                                 <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full text-xs font-bold">
                                                                     <ThumbsUp className="h-3.5 w-3.5" />
                                                                     <span>Done</span>
+                                                                </div>
+                                                            ) : task.status === 'in_progress' ? (
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="flex items-center gap-1 text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full text-xs font-bold">
+                                                                        <span className="relative flex h-1.5 w-1.5 mr-0.5">
+                                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
+                                                                        </span>
+                                                                        <span>In Progress</span>
+                                                                    </div>
+                                                                    <Button size="sm" variant="default" onClick={() => handleTaskClick(task)} className="h-auto py-1 px-2.5 rounded-full text-xs shadow-sm bg-primary text-primary-foreground font-semibold">
+                                                                        <Play className="mr-1 h-3 w-3 fill-current" />
+                                                                        Resume
+                                                                    </Button>
                                                                 </div>
                                                             ) : (
                                                                 <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3 rounded-full text-xs shadow-sm">

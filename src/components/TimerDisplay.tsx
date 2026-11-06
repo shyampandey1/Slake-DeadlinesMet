@@ -114,7 +114,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   }, [rawTaskName]);
   const router = useRouter();
   const { toast } = useToast();
-  const { tasks, addTask } = useTasks();
+  const { tasks, addTask, updateTask } = useTasks();
   const { presetTasks } = useRoutineStore();
   const { isUIVisible, showUI } = useTimerUI();
   const { 
@@ -136,7 +136,36 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   const isDefaultWaterTask = taskName === "Drink a Glass of Water";
   const effectiveDuration = (initialDuration && initialDuration > 0) ? initialDuration : (isDefaultWaterTask ? 1 : isBreathingTask ? 3 : 15);
 
-  const [timeRemaining, setTimeRemaining] = useState(Math.round(effectiveDuration * 60));
+  const currentTaskIdRef = useRef<string | null>(null);
+
+  // Clean forceRestart from browser history so page reload never resets a running timer
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('forceRestart=')) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('forceRestart');
+      window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : ''));
+    }
+  }, []);
+
+  const [timeRemaining, setTimeRemaining] = useState(() => {
+    if (typeof window !== 'undefined' && !forceRestart) {
+      try {
+        const stored = localStorage.getItem('deadlinesmet_active_timer');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.taskName === taskName) {
+            if (parsed.isPaused && parsed.timeLeftWhenPaused !== undefined) {
+              return parsed.timeLeftWhenPaused;
+            }
+            if (parsed.expectedEndTime && parsed.expectedEndTime > Date.now()) {
+              return Math.max(1, Math.round((parsed.expectedEndTime - Date.now()) / 1000));
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    return Math.round(effectiveDuration * 60);
+  });
   
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -522,6 +551,10 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     const currentIndex = userRoutine.findIndex(t => t.name.toLowerCase() === taskName.toLowerCase());
     const nextTask = currentIndex !== -1 && currentIndex < userRoutine.length - 1 ? userRoutine[currentIndex + 1] : null;
 
+    if (currentTaskIdRef.current) {
+      updateTask(currentTaskIdRef.current, { status: 'abandoned', completed: false, updatedAt: new Date().toISOString() });
+      currentTaskIdRef.current = null;
+    }
     clearTimer();
     setFlashState('none');
     if (session || resolvedCoOpSessionId) {
@@ -560,7 +593,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       });
       router.push("/");
     }
-  }, [taskName, userRoutine, session, updateSession, clearTimer, router, toast, presetTasks]);
+  }, [taskName, userRoutine, session, updateSession, clearTimer, router, toast, presetTasks, updateTask]);
 
   const handleEndEarly = useCallback(() => {
     setIsPaused(true);
@@ -621,15 +654,17 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
 
     setLastEarnedCoins(earnedCoins);
 
-    const newTask: Omit<Task, 'id' | 'createdAt' | 'userId'> = {
+    const taskUpdates: Partial<Task> = {
       name: taskName,
       duration: timeRemainingRef.current <= 0 ? effectiveDuration : actualDuration,
       initialDuration: effectiveDuration,
       completed: finalCompleted,
+      status: finalCompleted ? 'completed' : 'abandoned',
       category: finalCategory,
       earnedCoins: earnedCoins,
       isFalseEntry: isFalse,
       isVerifiedForCoins: true,
+      updatedAt: new Date().toISOString(),
     };
 
     if (finalCompleted && earnedCoins > 0) {
@@ -644,7 +679,17 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     }
 
     try {
-      await addTask(newTask);
+      if (currentTaskIdRef.current) {
+        await updateTask(currentTaskIdRef.current, taskUpdates);
+      } else {
+        await addTask({
+          name: taskName,
+          initialDuration: effectiveDuration,
+          ...taskUpdates,
+        } as any);
+      }
+      currentTaskIdRef.current = null;
+
       if (finalCompleted) {
         saveLogVectorRecord({
           id: `task_${Date.now()}`,
@@ -652,8 +697,8 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
           category: finalCategory,
           title: taskName,
           notes: '',
-          duration: newTask.duration,
-          coins: newTask.earnedCoins || 0,
+          duration: taskUpdates.duration || actualDuration,
+          coins: taskUpdates.earnedCoins || 0,
         }).catch((err) => console.warn('Log vector save error:', err));
       }
     } catch (e) {
@@ -685,8 +730,8 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
         const now = new Date();
         const localHour = now.getHours() + now.getMinutes() / 60;
         const result = await generateMotivationalMessage({
-          taskName: newTask.name,
-          duration: newTask.duration,
+          taskName: taskName,
+          duration: taskUpdates.duration || actualDuration,
           completionStatus: true,
           userRoutine: userRoutine.map((t) => ({
             name: t.name,
@@ -695,7 +740,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
             icon: (t as any).icon || 'BrainCircuit',
           })),
           pastTasks,
-          currentCategory: taskCategory || newTask.category,
+          currentCategory: taskCategory || finalCategory,
           localTime: now.toISOString(),
           localHour,
         });
@@ -722,6 +767,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     profileData?.profile,
     profileData?.streak?.currentStreak,
     addTask,
+    updateTask,
     toast,
     userRoutine,
     tasks,
@@ -766,6 +812,45 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     window.addEventListener('slake-timer-voice-action', handleVoiceTimerAction);
     return () => window.removeEventListener('slake-timer-voice-action', handleVoiceTimerAction);
   }, [togglePause, handleEndEarly, handleSkipTask, handleSaveTask, effectiveDuration, updateTimer, setFocusInterval, setContextFocusInterval, toast]);
+
+
+  // Subsystem: Continuous Real-Time Firestore Task Heartbeat (every 30s + visibilitychange + unload)
+  useEffect(() => {
+    if (isPaused || isFinished || !syncComplete) return;
+
+    const syncHeartbeat = () => {
+      const activeId = currentTaskIdRef.current;
+      if (!activeId) return;
+
+      const totalSeconds = Math.max(60, Math.round(effectiveDuration * 60));
+      const timeSpentInSeconds = Math.max(0, totalSeconds - timeRemainingRef.current);
+      const elapsedMinutes = Math.max(0, Math.floor(timeSpentInSeconds / 60));
+
+      updateTask(activeId, {
+        duration: elapsedMinutes,
+        status: 'in_progress',
+        updatedAt: new Date().toISOString()
+      });
+    };
+
+    const intervalId = setInterval(syncHeartbeat, 30_000);
+
+    const handleVisibilityOrUnload = () => {
+      if (document.visibilityState === 'hidden') {
+        syncHeartbeat();
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityOrUnload);
+    window.addEventListener('beforeunload', syncHeartbeat);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('visibilitychange', handleVisibilityOrUnload);
+      window.removeEventListener('beforeunload', syncHeartbeat);
+      syncHeartbeat();
+    };
+  }, [isPaused, isFinished, syncComplete, effectiveDuration, updateTask]);
 
   // Sync Hydration Audio with play state and volume settings
   useEffect(() => {
@@ -1028,6 +1113,23 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
               timeRemainingRef.current = initialRemaining;
               expectedEndTimeRef.current = computedEndTime;
 
+              const finalCat = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
+              addTask({
+                name: taskName,
+                duration: 0,
+                initialDuration: effectiveDuration,
+                completed: false,
+                status: 'in_progress',
+                category: finalCat,
+                startedAt: new Date().toISOString(),
+                activeSessionId: targetCoOpSessionId,
+              }).then((newId) => {
+                if (newId) {
+                  currentTaskIdRef.current = newId;
+                  updateTimer({ taskId: newId });
+                }
+              }).catch(console.error);
+
               startTimer({
                 taskName,
                 initialDuration: effectiveDuration,
@@ -1067,6 +1169,15 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
               }
             } else {
               // RESTORE from active timer
+              if (activeTimer.taskId) {
+                currentTaskIdRef.current = activeTimer.taskId;
+              } else {
+                const existingInProgress = tasks.find(t => t.status === 'in_progress' && t.name.toLowerCase() === taskName.toLowerCase());
+                if (existingInProgress) {
+                  currentTaskIdRef.current = existingInProgress.id;
+                  updateTimer({ taskId: existingInProgress.id });
+                }
+              }
               setIsPaused(activeTimer.isPaused);
               setIsFinished(false);
               let rem = Math.round(effectiveDuration * 60);

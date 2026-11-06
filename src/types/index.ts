@@ -17,6 +17,11 @@ export type Task = {
     earnedCoins?: number;
     isFalseEntry?: boolean;
     isVerifiedForCoins?: boolean;
+    status?: 'in_progress' | 'completed' | 'abandoned';
+    startedAt?: any;
+    updatedAt?: any;
+    activeSessionId?: string;
+    completedAt?: any;
 };
 
 export type MockUser = {
@@ -49,6 +54,11 @@ export type UserPresetTask = PresetTask & {
     isEvent?: boolean; // Flag to identify calendar events
     category: string;
     isVerifiedForCoins?: boolean;
+    status?: 'in_progress' | 'completed' | 'abandoned';
+    startedAt?: any;
+    updatedAt?: any;
+    activeSessionId?: string;
+    completedAt?: any;
 };
 
 
