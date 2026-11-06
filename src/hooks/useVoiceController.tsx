@@ -17,6 +17,10 @@ import {
   matchLocalVoiceCommand,
   sanitizeSpeechTranscript,
   assembleSpeechRecognitionResults,
+  scoreTaskMatch,
+  extractVoiceDuration,
+  extractTaskQueryFromSpeech,
+  toTitleCaseLocal,
 } from '@/config/voiceCommandDictionary';
 import {
   evaluateSemanticGate,
@@ -290,6 +294,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
                 const route = intent.targetRoute === '/analytics' ? '/logbook' : intent.targetRoute;
                 routerRef.current.push(route);
               }
+              setIsOpen(false);
             }
             break;
           }
@@ -806,8 +811,71 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           return;
         }
 
-        // --- TIER 2: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
+        // --- TIER 1C: Local Fuzzy Candidate Task Match (User Routine, Presets, MOVERS) ---
         const existingCandidates = candidateTasksRef.current || [];
+        let bestCandidate: { name: string; duration?: number; category?: string } | null = null;
+        let bestScore = 0;
+
+        for (const candidate of existingCandidates) {
+          const s = scoreTaskMatch(clean, candidate.name);
+          if (s > bestScore) {
+            bestScore = s;
+            bestCandidate = candidate;
+          }
+        }
+
+        const isIntentionalStart = /^(?:start|begin|do|run|launch|work\s+on|focus\s+on)\b/i.test(clean);
+        const candidateThreshold = isIntentionalStart ? 0.38 : 0.46;
+
+        if (bestCandidate && bestScore >= candidateThreshold) {
+          const extractedDur = extractVoiceDuration(clean);
+          const finalMins = extractedDur.durationMinutes || bestCandidate.duration || 15;
+          const finalSecs = extractedDur.durationSeconds || Math.round(finalMins * 60);
+          const durDisplay = finalSecs < 60 ? `${finalSecs}s` : `${finalMins}m`;
+
+          const candidateIntent: VoiceIntentPayload = {
+            action: 'TASK_CREATE',
+            taskName: bestCandidate.name,
+            category: (bestCandidate.category as any) || 'Productivity',
+            durationMinutes: finalMins,
+            durationSeconds: finalSecs,
+            speechFeedback: `Starting ${durDisplay} ${bestCandidate.name}.`,
+            confidence: Number(bestScore.toFixed(2)),
+          };
+
+          setDetectedIntent(candidateIntent);
+          await executeIntent(candidateIntent);
+          return;
+        }
+
+        // --- TIER 1D: Generic Dynamic Task Launcher (e.g. "start math revision for 30 minutes") ---
+        const genericStartMatch = clean.match(/^(?:start|begin|do|run|launch|work\s+on|focus\s+on)\s+(.+)$/i);
+        if (genericStartMatch && genericStartMatch[1]) {
+          const extractedDur = extractVoiceDuration(clean);
+          let rawName = extractTaskQueryFromSpeech(clean);
+          if (rawName && rawName.length >= 2) {
+            const formattedName = toTitleCaseLocal(rawName);
+            const finalMins = extractedDur.durationMinutes || 15;
+            const finalSecs = extractedDur.durationSeconds || Math.round(finalMins * 60);
+            const durDisplay = finalSecs < 60 ? `${finalSecs}s` : `${finalMins}m`;
+
+            const genericIntent: VoiceIntentPayload = {
+              action: 'TASK_CREATE',
+              taskName: formattedName,
+              category: 'Productivity',
+              durationMinutes: finalMins,
+              durationSeconds: finalSecs,
+              speechFeedback: `Starting ${durDisplay} ${formattedName}.`,
+              confidence: 0.85,
+            };
+
+            setDetectedIntent(genericIntent);
+            await executeIntent(genericIntent);
+            return;
+          }
+        }
+
+        // --- TIER 2: Client-Side WebGPU Semantic Gate & Intent Search (EmbeddingGemma / MiniLM) ---
         const gateResult = await evaluateSemanticGate(clean, existingCandidates);
 
         // Strict OOD Rejection Gate (< 0.68 cosine similarity)
@@ -972,7 +1040,7 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
 
       isStartingRef.current = true;
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
@@ -993,14 +1061,21 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
           silenceTimerRef.current = null;
         }
 
-        // Auto-finalize after 1100ms of silence once speech has been heard
+        const isFinal = Array.from(event.results).some((r: any) => r.isFinal);
+        if (isFinal && full.trim()) {
+          isProcessingRef.current = true;
+          stopListening();
+          return;
+        }
+
+        // Auto-finalize after 900ms of silence once speech has been heard
         if (full.trim()) {
           silenceTimerRef.current = setTimeout(() => {
             if (isListeningRef.current && transcriptRef.current.trim()) {
               isProcessingRef.current = true;
               stopListening();
             }
-          }, 1100);
+          }, 900);
         }
       };
 
@@ -1033,18 +1108,16 @@ export function VoiceProvider({ children, onActionComplete, onStateChange }: Voi
       recognition.onend = () => {
         stopMicVisualizerRef.current?.();
         isStartingRef.current = false;
-        if (isListeningRef.current && !isProcessingRef.current) {
-          // If ended naturally and we have text, process it
-          const cleanFinal = sanitizeSpeechTranscript(transcriptRef.current);
-          if (cleanFinal) {
-            isListeningRef.current = false;
-            processTranscript(cleanFinal);
-          } else {
-            isListeningRef.current = false;
-            setAgentState('IDLE');
-          }
+        const cleanFinal = sanitizeSpeechTranscript(transcriptRef.current);
+        if (cleanFinal && !isProcessingRef.current) {
+          isProcessingRef.current = true;
+          isListeningRef.current = false;
+          processTranscript(cleanFinal);
         } else {
           isListeningRef.current = false;
+          if (!isProcessingRef.current) {
+            setAgentState('IDLE');
+          }
         }
       };
 

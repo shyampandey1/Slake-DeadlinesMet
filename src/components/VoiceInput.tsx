@@ -26,7 +26,6 @@ export default function VoiceInput({ className }: { className?: string }) {
     >
       {isOpen ? (
         <>
-          <span className="absolute -inset-1 rounded-full bg-primary/40 animate-ping opacity-75" />
           {isListening ? (
             <Mic className="h-5 w-5 relative z-10 animate-pulse text-slate-950" />
           ) : (

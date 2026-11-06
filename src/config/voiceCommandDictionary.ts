@@ -119,48 +119,60 @@ const FLEXIBLE_COMMANDS: CommandDefinition[] = [
   // 1. Navigation flexible patterns
   {
     action: 'NAVIGATE',
-    phrases: ['go home', 'open home', 'take me home', 'dashboard', 'main screen', 'back to dashboard'],
-    patterns: [/^(?:go\s+to\s+|open\s+|take\s+me\s+to\s+)?(?:home|dashboard|homescreen|main\s+screen)$/i],
+    phrases: ['home', 'go home', 'open home', 'take me home', 'dashboard', 'main screen', 'back to dashboard'],
+    patterns: [
+      /^(?:(?:gos+tos+|opens+|takes+mes+tos+)?(?:home|dashboard|homescreen|mains+screen)|home)$/i
+    ],
     targetRoute: '/',
     speechFeedback: 'Opening dashboard.',
     description: 'Jump to the main dashboard'
   },
   {
     action: 'NAVIGATE',
-    phrases: ['open routine', 'show my routine', "today's schedule", 'check routine', 'view routine'],
-    patterns: [/(?:open|show|go to|view|check)\s+(?:my\s+)?(?:routine|schedule|today'?s\s+schedule)/i],
+    phrases: ['routine', 'open routine', 'my routine', 'show my routine', "today's schedule", 'schedule', 'check routine', 'view routine', 'planner'],
+    patterns: [
+      /^(?:(?:open|show|gos+to|view|check)s+)?(?:mys+)?(?:routine|schedule|today'?ss+schedule|planner)$/i
+    ],
     targetRoute: '/routine',
     speechFeedback: 'Here is your routine.',
     description: 'View daily routine schedule'
   },
   {
     action: 'NAVIGATE',
-    phrases: ['go to reformers', 'open reformer league', 'show reformers', 'the league', 'community page'],
-    patterns: [/(?:open|show|go to|view)\s+(?:the\s+)?(?:reformer(?:s)?(?:\s+league)?|community(?:\s+page)?)/i],
+    phrases: ['reformers', 'go to reformers', 'open reformers', 'open reformer league', 'show reformers', 'the league', 'community', 'community page'],
+    patterns: [
+      /^(?:(?:open|show|gos+to|view|check)s+)?(?:thes+)?(?:reformer(?:s)?(?:s+league)?|community(?:s+page)?|league)$/i
+    ],
     targetRoute: '/reformers',
     speechFeedback: 'Opening Reformers League.',
     description: 'Enter Reformers League'
   },
   {
     action: 'NAVIGATE',
-    phrases: ['open rewards', 'show achievement center', 'view my coins', 'check wallet', 'open achievements'],
-    patterns: [/(?:open|show|go to|view|check)\s+(?:my\s+)?(?:rewards|achievement(?:s)?(?:\s+center)?|wallet|coins)/i],
+    phrases: ['rewards', 'open rewards', 'show achievement center', 'view my coins', 'check wallet', 'wallet', 'achievements', 'open achievements'],
+    patterns: [
+      /^(?:(?:open|show|gos+to|view|check)s+)?(?:mys+)?(?:rewards|achievement(?:s)?(?:s+center)?|wallet|coins|store)$/i
+    ],
     targetRoute: '/rewards',
     speechFeedback: 'Opening Achievement Center.',
     description: 'Achievement and rewards center'
   },
   {
     action: 'NAVIGATE',
-    phrases: ['open log book', 'show task log', 'view insights', 'task analytics', 'open history'],
-    patterns: [/(?:open|show|go to|view)\s+(?:my\s+)?(?:log\s*book|task\s*log|history|insights|analytics)/i],
-    targetRoute: '/analytics',
+    phrases: ['logbook', 'open logbook', 'task log', 'open task log', 'log book', 'open log book', 'task logbook', 'open task logbook', 'show logbook', 'view logbook', 'history', 'task history', 'view insights', 'task analytics', 'open history', 'my logbook'],
+    patterns: [
+      /^(?:(?:open|show|gos+to|view|check)s+)?(?:mys+)?(?:logs*book|tasks*log(?:s*book)?|tasks*history|history|insights|analytics)$/i
+    ],
+    targetRoute: '/logbook',
     speechFeedback: 'Opening Task Log Book.',
     description: 'Analytics & task log book'
   },
   {
     action: 'NAVIGATE',
-    phrases: ['open settings', 'preferences', 'system settings', 'app config'],
-    patterns: [/(?:open|show|go to)\s+(?:settings|preferences|system\s+settings|app\s+config)/i],
+    phrases: ['settings', 'open settings', 'preferences', 'system settings', 'app config'],
+    patterns: [
+      /^(?:(?:open|show|gos+to|view|check)s+)?(?:settings|preferences|systems+settings|apps+config)$/i
+    ],
     targetRoute: '/settings',
     speechFeedback: 'Opening settings.',
     description: 'App settings and preferences'
@@ -1122,7 +1134,7 @@ export function matchLocalVoiceCommand(transcript: string): import('@/types/voic
       return {
         action: record.intent as any,
         actionType: record.actionType,
-        targetRoute: record.targetRoute as any,
+        targetRoute: (record.targetRoute === '/analytics' ? '/logbook' : record.targetRoute) as any,
         taskName,
         category: record.category as any,
         durationMinutes: finalMinutes,
@@ -1185,7 +1197,7 @@ export function matchLocalVoiceCommand(transcript: string): import('@/types/voic
         actionType: cmd.actionType,
         taskName: cmd.taskName,
         category: cmd.category,
-        targetRoute: cmd.targetRoute,
+        targetRoute: cmd.targetRoute === '/analytics' ? '/logbook' : cmd.targetRoute,
         durationMinutes,
         durationSeconds,
         extendMinutes: cmd.extendMinutes,

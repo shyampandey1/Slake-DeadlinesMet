@@ -20,7 +20,6 @@ let globalMicAnalyser: AnalyserNode | null = null;
 function getSharedAudioContext(): {
   ctx: AudioContext;
   ttsAnalyser: AnalyserNode;
-  micAnalyser: AnalyserNode;
 } | null {
   if (typeof window === 'undefined') return null;
 
@@ -40,18 +39,9 @@ function getSharedAudioContext(): {
       globalTtsAnalyser.connect(globalAudioCtx.destination);
     }
 
-    if (!globalMicAnalyser) {
-      globalMicAnalyser = globalAudioCtx.createAnalyser();
-      globalMicAnalyser.fftSize = 64; // Yields 32 frequency bins
-      globalMicAnalyser.smoothingTimeConstant = 0.8;
-      // STRICTLY NEVER CONNECT globalMicAnalyser to destination!
-      // This isolates microphone input to the visualizer and eliminates audio loopback/echo.
-    }
-
     return {
       ctx: globalAudioCtx,
       ttsAnalyser: globalTtsAnalyser,
-      micAnalyser: globalMicAnalyser,
     };
   } catch (err) {
     console.warn('[useAgentAudio] Failed to initialize Web Audio API context:', err);
@@ -83,7 +73,7 @@ export function useAgentAudio() {
     }
   }, []);
 
-  // Update real-time frequency data loop via requestAnimationFrame (Web Audio 16-bin FFT Analyser)
+  // Update real-time frequency data loop via requestAnimationFrame
   const startVisualizerLoop = useCallback(() => {
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
 
@@ -92,17 +82,10 @@ export function useAgentAudio() {
       const isSpeaking = isPlayingRef.current;
       const isListening = isListeningMicRef.current;
 
-      // Select active analyser node based on whether agent is speaking or user is speaking
-      const activeAnalyser = isSpeaking
-        ? shared?.ttsAnalyser
-        : isListening
-        ? shared?.micAnalyser
-        : null;
-
-      if (activeAnalyser && (isSpeaking || isListening)) {
-        const bufferLength = activeAnalyser.frequencyBinCount;
+      if (isSpeaking && shared?.ttsAnalyser) {
+        const bufferLength = shared.ttsAnalyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        activeAnalyser.getByteFrequencyData(dataArray);
+        shared.ttsAnalyser.getByteFrequencyData(dataArray);
 
         // Subsample down to 16 normalized frequency values (0.0 - 1.0)
         const bins = 16;
@@ -116,6 +99,19 @@ export function useAgentAudio() {
 
         setWaveformFrequencies(normalized);
         rafIdRef.current = requestAnimationFrame(updateLoop);
+      } else if (isListening) {
+        // Pure synthetic speech wave animation while user talks: 0% hardware mic collision
+        const t = performance.now() * 0.007;
+        const bins = 16;
+        const wave = new Array<number>(bins);
+        for (let i = 0; i < bins; i++) {
+          const midDist = Math.abs(i - 7.5) / 7.5;
+          const envelope = 1.0 - (midDist * 0.45);
+          const val = (Math.sin(t * 1.6 + i * 0.5) * 0.35 + Math.sin(t * 2.9 - i * 0.65) * 0.25 + 0.45) * envelope;
+          wave[i] = Math.max(0.12, Math.min(1.0, val));
+        }
+        setWaveformFrequencies(wave);
+        rafIdRef.current = requestAnimationFrame(updateLoop);
       } else {
         // Smoothly decay to baseline 0
         setWaveformFrequencies((prev) => prev.map((v) => Math.max(0, v * 0.85)));
@@ -125,57 +121,14 @@ export function useAgentAudio() {
     rafIdRef.current = requestAnimationFrame(updateLoop);
   }, []);
 
-  const startMicVisualizer = useCallback(async () => {
-    try {
-      await ensureAudioContextRunning();
-      const shared = getSharedAudioContext();
-      if (!shared) return;
-
-      if (!micStreamRef.current && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-        // Strict constraints for acoustic echo cancellation, noise suppression, and auto gain
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        }).catch((err) => {
-          console.warn('[useAgentAudio] getUserMedia error:', err);
-          return null;
-        });
-
-        if (stream) {
-          micStreamRef.current = stream;
-          try {
-            micSourceNodeRef.current = shared.ctx.createMediaStreamSource(stream);
-            // Connect ONLY to micAnalyser, NEVER to destination!
-            micSourceNodeRef.current.connect(shared.micAnalyser);
-          } catch (e) {
-            console.warn('[useAgentAudio] Mic stream source attach error:', e);
-          }
-        }
-      }
-      isListeningMicRef.current = true;
-      startVisualizerLoop();
-    } catch (err) {
-      console.warn('[useAgentAudio] Failed to start mic visualizer:', err);
-    }
-  }, [ensureAudioContextRunning, startVisualizerLoop]);
+  const startMicVisualizer = useCallback(() => {
+    isListeningMicRef.current = true;
+    startVisualizerLoop();
+  }, [startVisualizerLoop]);
 
   const stopMicVisualizer = useCallback(() => {
     isListeningMicRef.current = false;
-    if (micSourceNodeRef.current) {
-      try {
-        micSourceNodeRef.current.disconnect();
-      } catch (e) {}
-      micSourceNodeRef.current = null;
-    }
-    if (micStreamRef.current) {
-      try {
-        micStreamRef.current.getTracks().forEach((track) => track.stop());
-      } catch (e) {}
-      micStreamRef.current = null;
-    }
+    setWaveformFrequencies(new Array(16).fill(0));
   }, []);
 
   const stopPlayback = useCallback(() => {

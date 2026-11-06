@@ -2,6 +2,26 @@
 
 All notable changes to the DeadlinesMet (Slake) ecosystem will be documented in this file.
 
+## [2.7.1] - 2026-11-06
+
+### Fixed & Enhanced Agent DM Voice Engine
+- **Microphone Hardware Contention Elimination (`useAgentAudio.ts`):**
+  - Removed secondary `navigator.mediaDevices.getUserMedia` calls from `startMicVisualizer` that were contending with `webkitSpeechRecognition` and locking the microphone on Chromium and Android devices.
+  - Implemented organic acoustic wave generation for the 16-bar HUD visualizer while listening, reserving hardware FFT audio contexts exclusively for TTS voice playback.
+- **Robust Speech Recognition on Mobile & Desktop (`useVoiceController.tsx`):**
+  - Configured `recognition.continuous = false` to resolve Android Chrome speech recognition aborts, freezes, and silent audio drops.
+  - Added instant dispatch on `isFinal` speech recognition results for near-instant zero-latency command execution.
+- **Intelligent Local Fuzzy Candidate Task Launcher (Tier 1C & Tier 1D in `useVoiceController.tsx`):**
+  - Added local candidate task matching (`scoreTaskMatch`) across the user's active routine tasks and presets (e.g., "Evening Return Transit", "Night Owl Focus", "Meditation", "Drink Water").
+  - Added dynamic task launcher fallback supporting any spoken task and duration (e.g., "start math revision for 30 minutes") without falling through to out-of-domain rejections.
+- **Expanded Natural Speech Navigation & Direct Logbook Route (`voiceCommandDictionary.ts`, `useVoiceController.tsx`):**
+  - Updated regex to match single-word and flexible voice commands: `"logbook"`, `"open logbook"`, `"task log"`, `"task logbook"`, `"routine"`, `"home"`, `"reformers"`, `"rewards"`, `"settings"`.
+  - Mapped logbook commands directly to `/logbook` (previously routed to `/analytics`).
+  - Automatically dismisses Agent DM HUD modal upon successful navigation commands.
+- **Theme Consistency & Ping Removal (`AgentDM.tsx`, `VoiceInput.tsx`):**
+  - Harmonized Agent DM pill, visualizer bars, modal dialog, and status indicators with the app's gold/amber/slate design language (replaced all rogue `emerald-*` styles).
+  - Eliminated distracting idle `animate-ping` pulses from both `AgentDM.tsx` and `VoiceInput.tsx`.
+
 ## [2.7.0] - 2026-11-06
 
 ### UX & Interface Overhaul

@@ -135,17 +135,17 @@ export default function AgentDM() {
         >
           <div
             className={cn(
-              "backdrop-blur-xl bg-slate-950/85 border border-emerald-500/25 shadow-2xl rounded-full px-3.5 py-1.5 flex items-center gap-2.5 transition-all duration-300",
-              "hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]",
-              isListening && "border-emerald-500/70 shadow-[0_0_30px_rgba(16,185,129,0.4)] ring-2 ring-emerald-500/30",
+              "backdrop-blur-xl bg-slate-950/85 border border-primary/30 shadow-2xl rounded-full px-3.5 py-1.5 flex items-center gap-2.5 transition-all duration-300",
+              "hover:border-primary/50 hover:shadow-[0_0_25px_rgba(245,197,66,0.25)]",
+              isListening && "border-primary/80 shadow-[0_0_30px_rgba(245,197,66,0.4)] ring-2 ring-primary/30",
               isThinking && "border-blue-500/70 shadow-[0_0_30px_rgba(59,130,246,0.4)] ring-2 ring-blue-500/30",
-              isSpeaking && "border-emerald-400/80 shadow-[0_0_35px_rgba(16,185,129,0.45)] ring-2 ring-emerald-400/40",
-              isExecuting && "border-emerald-400/90 shadow-[0_0_30px_rgba(52,211,153,0.45)]"
+              isSpeaking && "border-primary/80 shadow-[0_0_35px_rgba(245,197,66,0.45)] ring-2 ring-primary/40",
+              isExecuting && "border-primary/90 shadow-[0_0_30px_rgba(245,197,66,0.45)]"
             )}
           >
             {/* Drag Handle Grip */}
             <div 
-              className="text-emerald-500/60 hover:text-emerald-400 cursor-grab active:cursor-grabbing py-1 pr-1 flex items-center"
+              className="text-primary/60 hover:text-primary cursor-grab active:cursor-grabbing py-1 pr-1 flex items-center"
               title="Drag to reposition Agent DM anywhere"
             >
               <GripVertical className="w-4 h-4" />
@@ -161,10 +161,9 @@ export default function AgentDM() {
                 {agentState === 'IDLE' && (
                   <div className="flex items-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary/80" />
                     </span>
-                    <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                    <Mic className="w-3.5 h-3.5 text-primary" />
                   </div>
                 )}
 
@@ -172,7 +171,7 @@ export default function AgentDM() {
                   <motion.div
                     animate={{ scale: [1, 1.25, 1] }}
                     transition={{ repeat: Infinity, duration: 1.1 }}
-                    className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]"
+                    className="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(245,197,66,0.6)]"
                   />
                 )}
 
@@ -185,11 +184,11 @@ export default function AgentDM() {
                 )}
 
                 {agentState === 'EXECUTING' && (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 animate-bounce" />
+                  <CheckCircle2 className="w-4 h-4 text-primary animate-bounce" />
                 )}
 
                 {agentState === 'SPEAKING' && (
-                  <Volume2 className="w-4 h-4 text-emerald-300 animate-pulse" />
+                  <Volume2 className="w-4 h-4 text-primary animate-pulse" />
                 )}
               </div>
 
@@ -197,7 +196,7 @@ export default function AgentDM() {
               <div className="flex items-center gap-2">
                 {agentState === 'IDLE' && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent font-headline">
+                    <span className="text-xs font-black tracking-wider uppercase bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-transparent font-headline">
                       Agent DM
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
@@ -208,7 +207,7 @@ export default function AgentDM() {
 
                 {agentState === 'LISTENING' && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                    <span className="text-xs font-bold text-amber-300 font-mono tracking-wide">
                       {transcript ? (
                         <span className="truncate max-w-[120px] sm:max-w-[180px] inline-block font-sans text-white">
                           "{transcript}"
@@ -225,7 +224,7 @@ export default function AgentDM() {
                           <div
                             key={idx}
                             style={{ height: barHeight + 'px' }}
-                            className="w-[2.5px] bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-full transition-[height] duration-75 ease-out shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                            className="w-[2.5px] bg-gradient-to-t from-primary to-amber-300 rounded-full transition-[height] duration-75 ease-out shadow-[0_0_8px_rgba(245,197,66,0.5)]"
                           />
                         );
                       })}
@@ -240,14 +239,14 @@ export default function AgentDM() {
                 )}
 
                 {agentState === 'EXECUTING' && (
-                  <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                  <span className="text-xs font-bold text-amber-300 font-mono tracking-wide">
                     Executing...
                   </span>
                 )}
 
                 {agentState === 'SPEAKING' && (
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xs font-bold text-emerald-300 font-mono tracking-wide">
+                    <span className="text-xs font-bold text-amber-300 font-mono tracking-wide">
                       Agent DM
                     </span>
                     {/* Real-time Audio-Reactive Frequency Equalizer Bars */}
@@ -258,7 +257,7 @@ export default function AgentDM() {
                           <div
                             key={idx}
                             style={{ height: barHeight + 'px' }}
-                            className="w-[2.5px] bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-full transition-[height] duration-75 ease-out shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                            className="w-[2.5px] bg-gradient-to-t from-primary to-amber-300 rounded-full transition-[height] duration-75 ease-out shadow-[0_0_8px_rgba(245,197,66,0.5)]"
                           />
                         );
                       })}
@@ -317,9 +316,9 @@ export default function AgentDM() {
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="px-3 py-1 bg-slate-950/80 border border-emerald-500/20 backdrop-blur-md rounded-full shadow-lg max-w-[280px] sm:max-w-[360px] text-center"
+              className="px-3 py-1 bg-slate-950/80 border border-primary/20 backdrop-blur-md rounded-full shadow-lg max-w-[280px] sm:max-w-[360px] text-center"
             >
-              <span className="text-[11px] text-emerald-200 font-medium truncate inline-block w-full">
+              <span className="text-[11px] text-primary font-medium truncate inline-block w-full">
                 "{detectedIntent.speechFeedback}"
               </span>
             </motion.div>
@@ -329,10 +328,10 @@ export default function AgentDM() {
 
       {/* Expanded Interactive Command Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-slate-950/95 border border-emerald-500/30 text-white p-6 rounded-3xl backdrop-blur-2xl shadow-2xl sm:max-w-md">
+        <DialogContent className="bg-slate-950/95 border border-primary/30 text-white p-6 rounded-3xl backdrop-blur-2xl shadow-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-headline text-lg text-emerald-400">
-              <Sparkles className="w-5 h-5 text-emerald-400" />
+            <DialogTitle className="flex items-center gap-2 font-headline text-lg text-primary">
+              <Sparkles className="w-5 h-5 text-primary" />
               Agent DM • Voice & Semantic Search HUD
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-xs">
@@ -345,7 +344,7 @@ export default function AgentDM() {
             <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-[11px] text-slate-400 uppercase font-mono tracking-wider">
                 <span>Active Speech Status</span>
-                <span className="text-emerald-400 font-bold">{agentState}</span>
+                <span className="text-primary font-bold">{agentState}</span>
               </div>
               <p className="text-sm font-medium text-slate-200 min-h-[24px] italic">
                 {transcript ? '"' + transcript + '"' : detectedIntent?.speechFeedback || "Ready for voice or natural language command..."}
@@ -354,7 +353,7 @@ export default function AgentDM() {
 
             {/* EmbeddingGemma Natural Language Command & Task Search */}
             <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400/90 font-mono flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-primary/90 font-mono flex items-center gap-1.5">
                 <Search className="w-3 h-3" />
                 EmbeddingGemma Natural Language Search
               </span>
@@ -373,12 +372,12 @@ export default function AgentDM() {
                   value={nlQuery}
                   onChange={(e) => setNlQuery(e.target.value)}
                   placeholder="e.g. drink a glass of water, rest my eyes, meditate..."
-                  className="bg-white/5 border-white/15 text-xs text-white placeholder:text-slate-500 h-9 rounded-xl focus-visible:ring-emerald-500/50"
+                  className="bg-white/5 border-white/15 text-xs text-white placeholder:text-slate-500 h-9 rounded-xl focus-visible:ring-primary/50"
                 />
                 <Button
                   type="submit"
                   size="sm"
-                  className="h-9 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs gap-1"
+                  className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-slate-950 font-bold text-xs gap-1"
                 >
                   Run <CornerDownLeft className="w-3 h-3" />
                 </Button>
@@ -395,13 +394,13 @@ export default function AgentDM() {
                         setModalOpen(false);
                         executeIntent(m.intent);
                       }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-left transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 text-left transition-colors"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-emerald-200 truncate">{m.label}</p>
+                        <p className="text-xs font-bold text-amber-200 truncate">{m.label}</p>
                         <p className="text-[10px] text-slate-400 truncate">{m.intent.speechFeedback}</p>
                       </div>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0 ml-2">
                         {Math.round(m.similarity * 100)}% match
                       </span>
                     </button>
@@ -425,9 +424,9 @@ export default function AgentDM() {
                       setModalOpen(false);
                       processTextCommand(action.phrase);
                     }}
-                    className="justify-start gap-2 h-9 text-xs bg-white/5 border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-slate-200 hover:text-white"
+                    className="justify-start gap-2 h-9 text-xs bg-white/5 border-white/10 hover:border-primary/50 hover:bg-primary/10 text-slate-200 hover:text-white"
                   >
-                    <action.icon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <action.icon className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="truncate">{action.label}</span>
                   </Button>
                 ))}
@@ -445,7 +444,7 @@ export default function AgentDM() {
                   "flex-1 font-bold h-11 text-xs gap-2 rounded-xl transition-all",
                   isListening
                     ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40"
-                    : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                    : "bg-primary hover:bg-primary/90 text-slate-950 shadow-[0_0_20px_rgba(245,197,66,0.3)]"
                 )}
               >
                 {isListening ? (
