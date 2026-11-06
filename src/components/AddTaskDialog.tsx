@@ -205,7 +205,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="rounded-2xl">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Task' : 'Add a New Quick Start Task'}</DialogTitle>
           <DialogDescription>
@@ -222,9 +222,9 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                   <FormLabel>Task Name</FormLabel>
                    <div className="flex items-center gap-2">
                     <FormControl>
-                      <Input placeholder="e.g., Morning Journal" {...field} />
+                      <Input placeholder="e.g., Morning Journal" className="rounded-xl" {...field} />
                     </FormControl>
-                    <Button type="button" variant="outline" size="icon" onClick={handleSuggestDetails} disabled={isAnalyzing || !taskNameValue}>
+                    <Button type="button" variant="outline" size="icon" className="rounded-xl shrink-0" onClick={handleSuggestDetails} disabled={isAnalyzing || !taskNameValue}>
                       {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                       <span className="sr-only">Suggest Details</span>
                     </Button>
@@ -280,7 +280,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 <FormItem>
                   <FormLabel>Duration (minutes)</FormLabel>
                   <FormControl>
-                    <Input type="number" max={180} {...field} />
+                    <Input type="number" max={180} className="rounded-xl" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -294,7 +294,7 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                     <FormLabel>Icon</FormLabel>
                    <Select onValueChange={field.onChange} value={field.value}>
                      <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Select an icon" />
                       </SelectTrigger>
                      </FormControl>
@@ -317,12 +317,12 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 {isEditMode && initialTask && !isDefaultTask(initialTask) && onDeleteTask ? (
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button type="button" variant="destructive" className="sm:mr-auto">
+                            <Button type="button" variant="destructive" className="sm:mr-auto rounded-xl">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete Task
                             </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="rounded-2xl">
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
@@ -330,8 +330,8 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 rounded-xl">
                                     Delete
                                 </AlertDialogAction>
                             </AlertDialogFooter>
@@ -340,9 +340,9 @@ export default function AddTaskDialog({ isOpen, onClose, onSaveTask, onDeleteTas
                 ) : <div />}
                 <div className="flex gap-2 justify-end">
                     <DialogClose asChild>
-                        <Button type="button" variant="ghost">Cancel</Button>
+                        <Button type="button" variant="ghost" className="rounded-xl">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Task'}</Button>
+                    <Button type="submit" className="rounded-xl font-bold">{isEditMode ? 'Save Changes' : 'Add Task'}</Button>
                 </div>
             </DialogFooter>
           </form>

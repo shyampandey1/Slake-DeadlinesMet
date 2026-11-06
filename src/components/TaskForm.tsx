@@ -484,7 +484,7 @@ export default function TaskForm() {
 
   const renderSkeleton = () => (
     <div className="p-1">
-      <Card className="flex flex-col rounded-xl h-[280px]">
+      <Card className="flex flex-col rounded-2xl h-[280px]">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
           <div className="w-1/2 space-y-2">
             <Skeleton className="h-5 w-3/4" />
@@ -709,7 +709,7 @@ export default function TaskForm() {
           <p className="text-muted-foreground mb-4">Set a name and duration for a one-off task.</p>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Card>
+              <Card className="rounded-2xl border-border/70">
                 <CardContent className="pt-6 grid gap-6">
                   <FormField
                     control={form.control}
@@ -718,7 +718,7 @@ export default function TaskForm() {
                       <FormItem>
                         <FormLabel>Task Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Design the main page" {...field} />
+                          <Input placeholder="e.g., Design the main page" className="rounded-xl" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -735,7 +735,7 @@ export default function TaskForm() {
                             type="number"
                             min={1}
                             max={180}
-                            className="w-20 text-center font-bold"
+                            className="w-20 text-center font-bold rounded-xl"
                             value={field.value}
                             onChange={(e) => {
                               const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
@@ -759,7 +759,7 @@ export default function TaskForm() {
                 </CardContent>
               </Card>
 
-              <Button type="submit" size="lg" className="w-full">
+              <Button type="submit" size="lg" className="w-full rounded-2xl h-12 font-bold shadow-lg shadow-primary/20">
                 Start
               </Button>
             </form>
