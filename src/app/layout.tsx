@@ -48,7 +48,7 @@ export default function RootLayout({
       <body
         className="antialiased selection:bg-primary/30 min-h-screen overflow-x-hidden font-body"
       >
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <AuthProvider>
                 <ProfileProvider>
                     <TimerUIProvider>

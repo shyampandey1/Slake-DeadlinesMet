@@ -17,8 +17,8 @@ export default function VoiceInput({ className }: { className?: string }) {
       className={cn(
         "relative h-11 w-11 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm group",
         isOpen
-          ? "bg-emerald-500 text-slate-950 border border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.5)] scale-105"
-          : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30",
+          ? "bg-primary text-slate-950 border border-primary/60 shadow-[0_0_20px_rgba(245,197,66,0.35)] scale-105"
+          : "bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 backdrop-blur-md",
         className
       )}
       title={isOpen ? "Agent DM Active • Click to Toggle Off" : "Toggle Agent DM (Hands-Free Voice)"}
@@ -26,7 +26,7 @@ export default function VoiceInput({ className }: { className?: string }) {
     >
       {isOpen ? (
         <>
-          <span className="absolute -inset-1 rounded-full bg-emerald-400/40 animate-ping opacity-75" />
+          <span className="absolute -inset-1 rounded-full bg-primary/40 animate-ping opacity-75" />
           {isListening ? (
             <Mic className="h-5 w-5 relative z-10 animate-pulse text-slate-950" />
           ) : (
@@ -34,10 +34,7 @@ export default function VoiceInput({ className }: { className?: string }) {
           )}
         </>
       ) : (
-        <>
-          <span className="absolute -inset-0.5 rounded-full bg-emerald-500/20 animate-ping opacity-75 group-hover:opacity-100" />
-          <Mic className="h-5 w-5 relative z-10" />
-        </>
+        <Mic className="h-5 w-5 relative z-10" />
       )}
     </Button>
   );

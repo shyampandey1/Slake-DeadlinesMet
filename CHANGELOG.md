@@ -2,6 +2,25 @@
 
 All notable changes to the DeadlinesMet (Slake) ecosystem will be documented in this file.
 
+## [2.7.0] - 2026-11-06
+
+### UX & Interface Overhaul
+- **Single-Line Task Cards & Modern Rounded Aesthetics (`TaskForm.tsx`, `routine/page.tsx`):**
+  - Redesigned task cards so that every task title, category header, and duration badge appears strictly on **one clean line** with `truncate min-w-0` and `whitespace-nowrap shrink-0`.
+  - Replaced boxy rectangular buttons with modern `rounded-2xl` contour borders for task buttons, play trigger actions, and add-task controls.
+  - Resolved ugly 2-line duration wrapping (`3h\n9m`) in the current task section header with `whitespace-nowrap shrink-0` and `rounded-full` badge styling.
+- **Header Height & Spatial Proportions (`DynamicHeader.tsx`, `app/page.tsx`):**
+  - Reduced oversized top header height (`17rem` down from `22rem`) and scaled down internal gaps/padding to eliminate excessive empty space and bring task cards into comfortable reach on mobile screens.
+- **Theme-Aligned Voice Input (`VoiceInput.tsx`):**
+  - Styled floating Agent DM microphone button to match app theme colors (primary amber/gold) rather than discordant green.
+  - Removed continuous idle `animate-ping` effect to eliminate visual distraction while keeping active listening states responsive.
+- **Dark Mode by Default (`app/layout.tsx`):**
+  - Configured `defaultTheme="dark"` with `enableSystem={false}` in `ThemeProvider`, ensuring first-time visitors receive the polished dark mode experience out of the box.
+- **Reworked Task Names & Routine Version Bump (`route.ts`, `routines.ts`):**
+  - Replaced verbose multi-phrase titles across all 8 circadian routine sections and 24 preset profiles with concise, elegant 1–3 word names (e.g., `Evening Commute`, `Make Bed`, `Morning Hydration`, `Deep Coding`, `Rest Break`, `Dinner`).
+  - Bumped `ROUTINE_TEMPLATE_VERSION` to `11.0` for automatic client-side synchronization and cache refreshes.
+
+
 ## [2.6.0] - 2026-11-03
 
 ### Fixed

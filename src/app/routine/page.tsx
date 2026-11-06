@@ -915,17 +915,16 @@ function RoutinePageComponent() {
                                     <ContextMenuTrigger disabled={isDefaultTask(task)}>
                                       <Button
                                         variant="outline"
-                                        className="w-full justify-between gap-3 h-auto py-2 px-3 whitespace-normal rounded-xl border-border/70 hover:border-emerald-500/40"
+                                        className="w-full justify-between items-center gap-3 h-11 py-2 px-3.5 rounded-2xl border-border/70 hover:border-primary/50 bg-card/60 transition-all"
                                         onClick={() => handleOpenDialog(task, category)}
                                       >
-                                        <div className="flex items-center gap-3">
-                                          <Icon name={task.icon} className="h-5 w-5 text-muted-foreground shrink-0" />
-                                          <div className="text-left">
-                                            <p className="font-medium text-sm">{task.name}</p>
-                                            <p className="text-xs text-muted-foreground">{task.duration} min</p>
-                                          </div>
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                          <Icon name={task.icon} className="h-4 w-4 text-muted-foreground shrink-0" />
+                                          <p className="font-medium text-sm text-foreground truncate text-left flex-1 min-w-0">{task.name}</p>
                                         </div>
+                                        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap shrink-0 ml-2">{task.duration} min</span>
                                       </Button>
+
                                     </ContextMenuTrigger>
                                     <ContextMenuContent>
                                       <AlertDialogTrigger asChild>
@@ -956,7 +955,7 @@ function RoutinePageComponent() {
                             <CardFooter className="p-0 pt-4">
                               <Button
                                 variant="ghost"
-                                className="w-full border-dashed border-2 rounded-xl"
+                                className="w-full border-dashed border-2 rounded-2xl h-10 hover:border-primary/50 text-xs font-medium"
                                 onClick={() => handleOpenDialog(undefined, category)}
                               >
                                 <Plus className="w-4 h-4 mr-2" /> Add Task

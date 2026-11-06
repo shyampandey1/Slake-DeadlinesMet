@@ -1,243 +1,243 @@
 import type { UserPresetTask, ProfileType, Preset } from '@/types';
 
-export const ROUTINE_TEMPLATE_VERSION = 10.0;
+export const ROUTINE_TEMPLATE_VERSION = 11.0;
 
 export const commonEveningWindDown: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Evening Snacks & Hydration", duration: 15, icon: "Coffee", category: "Evening Wind-down" },
+    { name: "Evening Snack", duration: 15, icon: "Coffee", category: "Evening Wind-down" },
     { name: "Dinner", duration: 35, icon: "Utensils", category: "Evening Wind-down" },
-    { name: "Deep Breathing & Relax", duration: 3, icon: "Wind", category: "Evening Wind-down" },
+    { name: "Deep Breathing", duration: 3, icon: "Wind", category: "Evening Wind-down" },
 ];
 
 export const commonBedtimeRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Reading a book & Learning", duration: 30, icon: "BookOpen", category: "Bedtime Routine" },
+    { name: "Read Book", duration: 30, icon: "BookOpen", category: "Bedtime Routine" },
     { name: "Hygiene & Skincare", duration: 15, icon: "ShowerHead", category: "Bedtime Routine" },
-    { name: "Setting bed for night", duration: 5, icon: "Bed", category: "Bedtime Routine" },
-    { name: "Final Journaling & Goal Setting", duration: 10, icon: "PenSquare", category: "Bedtime Routine" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Bedtime Routine" },
+    { name: "Night Journaling", duration: 10, icon: "PenSquare", category: "Bedtime Routine" },
 ];
 
 const contentCreatorRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
-    { name: "Deep Breathing & Morning Hydration", duration: 3, icon: "Wind", category: "Morning Kickstart" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
+    { name: "Morning Hydration", duration: 3, icon: "Wind", category: "Morning Kickstart" },
     { name: "Meditation", duration: 10, icon: "BrainCircuit", category: "Morning Kickstart" },
-    { name: "Morning warm-up workout", duration: 15, icon: "Dumbbell", category: "Morning Kickstart" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
-    { name: "Set the table & Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
-    { name: "Plan Day's Content & Trend Research", duration: 45, icon: "FileCode", category: "Pre-Production" },
-    { name: "Script Writing & Storyboarding", duration: 60, icon: "PenTool", category: "Pre-Production" },
+    { name: "Morning Warm-up", duration: 15, icon: "Dumbbell", category: "Morning Kickstart" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
+    { name: "Content Planning", duration: 45, icon: "FileCode", category: "Pre-Production" },
+    { name: "Scriptwriting", duration: 60, icon: "PenTool", category: "Pre-Production" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Pre-Production" },
-    { name: "Recording/Filming Session", duration: 120, icon: "Camera", category: "Production Block" },
-    { name: "Set table & Lunch", duration: 35, icon: "Utensils", category: "Production Block" },
-    { name: "Video Editing Block", duration: 120, icon: "Smartphone", category: "Post-Production" },
+    { name: "Filming Block", duration: 120, icon: "Camera", category: "Production Block" },
+    { name: "Lunch", duration: 35, icon: "Utensils", category: "Production Block" },
+    { name: "Video Editing", duration: 120, icon: "Smartphone", category: "Post-Production" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Post-Production" },
-    { name: "Thumbnail Design & SEO", duration: 45, icon: "Palette", category: "Post-Production" },
-    { name: "Evening warm-up workout", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
+    { name: "Thumbnail & SEO", duration: 45, icon: "Palette", category: "Post-Production" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const designerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
-    { name: "Morning warm-up & Hydration", duration: 11, icon: "Dumbbell", category: "Morning Kickstart" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
+    { name: "Morning Warm-up", duration: 11, icon: "Dumbbell", category: "Morning Kickstart" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
     { name: "Meditation & Breathing", duration: 3, icon: "Wind", category: "Pre-Production" },
-    { name: "Mood Boarding & Color Theory", duration: 60, icon: "Palette", category: "Pre-Production" },
+    { name: "Mood Boarding", duration: 60, icon: "Palette", category: "Pre-Production" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Pre-Production" },
-    { name: "UI/UX Wireframing Block", duration: 120, icon: "PenTool", category: "Production Block" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Production Block" },
-    { name: "Prototyping & Client Feedback", duration: 90, icon: "Laptop", category: "Post-Production" },
+    { name: "UI Wireframing", duration: 120, icon: "PenTool", category: "Production Block" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Production Block" },
+    { name: "Prototyping", duration: 90, icon: "Laptop", category: "Post-Production" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Post-Production" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const artistRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
-    { name: "Breathing & Morning Hydration", duration: 3, icon: "Wind", category: "Morning Kickstart" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
-    { name: "Sketching & Composition", duration: 90, icon: "Palette", category: "Pre-Production" },
-    { name: "Painting/Sculpting Intensive", duration: 120, icon: "Wand2", category: "Production Block" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Production Block" },
-    { name: "Gallery Admin & Portfolio", duration: 60, icon: "PenTool", category: "Post-Production" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
+    { name: "Morning Hydration", duration: 3, icon: "Wind", category: "Morning Kickstart" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Morning Kickstart" },
+    { name: "Sketching", duration: 90, icon: "Palette", category: "Pre-Production" },
+    { name: "Painting Session", duration: 120, icon: "Wand2", category: "Production Block" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Production Block" },
+    { name: "Portfolio Review", duration: 60, icon: "PenTool", category: "Post-Production" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Post-Production" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const writerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
-    { name: "Meditation & Hydration", duration: 11, icon: "BrainCircuit", category: "Morning Kickstart" },
-    { name: "Morning warm-up", duration: 10, icon: "Dumbbell", category: "Morning Kickstart" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
-    { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Morning Kickstart" },
-    { name: "Topic Research & Fact Checking", duration: 90, icon: "FileCode", category: "Pre-Production" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Kickstart" },
+    { name: "Meditation", duration: 11, icon: "BrainCircuit", category: "Morning Kickstart" },
+    { name: "Morning Warm-up", duration: 10, icon: "Dumbbell", category: "Morning Kickstart" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Morning Kickstart" },
+    { name: "Breakfast", duration: 25, icon: "Utensils", category: "Morning Kickstart" },
+    { name: "Topic Research", duration: 90, icon: "FileCode", category: "Pre-Production" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Pre-Production" },
-    { name: "Drafting Creative Content", duration: 120, icon: "BookOpen", category: "Production Block" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Production Block" },
-    { name: "Editing & Proofreading", duration: 90, icon: "PenSquare", category: "Post-Production" },
-    { name: "Final Polish & Reflection", duration: 10, icon: "Lightbulb", category: "Post-Production" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
+    { name: "Content Drafting", duration: 120, icon: "BookOpen", category: "Production Block" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Production Block" },
+    { name: "Editing & Polish", duration: 90, icon: "PenSquare", category: "Post-Production" },
+    { name: "Final Polish", duration: 10, icon: "Lightbulb", category: "Post-Production" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Evening & Close" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const softwareEngineerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "System Initialization" },
-    { name: "Breathing & Morning Hydration", duration: 3, icon: "Wind", category: "System Initialization" },
-    { name: "Morning warm-up", duration: 10, icon: "Dumbbell", category: "System Initialization" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "System Initialization" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "System Initialization" },
-    { name: "Deep Focus Coding Session", duration: 120, icon: "Code", category: "Sync & Sprint" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "System Initialization" },
+    { name: "Morning Hydration", duration: 3, icon: "Wind", category: "System Initialization" },
+    { name: "Morning Warm-up", duration: 10, icon: "Dumbbell", category: "System Initialization" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "System Initialization" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "System Initialization" },
+    { name: "Deep Coding", duration: 120, icon: "Code", category: "Sync & Sprint" },
     { name: "Eye strain & Hydration", duration: 5, icon: "Eye", category: "Sync & Sprint" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Architecture & Logic" },
-    { name: "PR Reviews & Bug Fixing", duration: 90, icon: "FileCode", category: "Architecture & Logic" },
-    { name: "Architecture & Logic Flow", duration: 60, icon: "BrainCircuit", category: "Architecture & Logic" },
-    { name: "Documentation & Deployment", duration: 60, icon: "Laptop", category: "Deployment & Decompression" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Deployment & Decompression" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Architecture & Logic" },
+    { name: "Code Review & Bugs", duration: 90, icon: "FileCode", category: "Architecture & Logic" },
+    { name: "System Design", duration: 60, icon: "BrainCircuit", category: "Architecture & Logic" },
+    { name: "Docs & Deploy", duration: 60, icon: "Laptop", category: "Deployment & Decompression" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Deployment & Decompression" },
     ...commonEveningWindDown,
-    { name: "Side Project / OSS Contribution", duration: 45, icon: "Puzzle", category: "Late Hustle" },
-    { name: "Learning new Frameworks", duration: 30, icon: "BookOpen", category: "Late Hustle" },
+    { name: "Side Project", duration: 45, icon: "Puzzle", category: "Late Hustle" },
+    { name: "Tech Learning", duration: 30, icon: "BookOpen", category: "Late Hustle" },
     ...commonBedtimeRoutine,
 ];
 
 const medicalRepRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Field Prep" },
-    { name: "Morning Warm-up & Hydration", duration: 16, icon: "Dumbbell", category: "Field Prep" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Field Prep" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Field Prep" },
+    { name: "Morning Warm-up", duration: 16, icon: "Dumbbell", category: "Field Prep" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Field Prep" },
     { name: "Breakfast & Prep", duration: 30, icon: "Utensils", category: "Field Prep" },
-    { name: "Clinic/Hospital In-person Visits", duration: 180, icon: "Map", category: "Clinic Visits" },
+    { name: "Clinic Visits", duration: 180, icon: "Map", category: "Clinic Visits" },
     { name: "Field Hydration Break", duration: 5, icon: "Droplets", category: "Clinic Visits" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Product Demos & Reporting" },
-    { name: "Sales Log & Lead Management", duration: 90, icon: "Briefcase", category: "Product Demos & Reporting" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Product Demos & Reporting" },
+    { name: "Sales & Leads", duration: 90, icon: "Briefcase", category: "Product Demos & Reporting" },
     { name: "Eye strain & Hydration", duration: 5, icon: "Eye", category: "Product Demos & Reporting" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Inventory & Relax" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Inventory & Relax" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const entrepreneurRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Visionary Morning" },
-    { name: "Meditation & Morning Hydration", duration: 11, icon: "BrainCircuit", category: "Visionary Morning" },
-    { name: "Morning warm-up", duration: 20, icon: "Dumbbell", category: "Visionary Morning" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Visionary Morning" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Visionary Morning" },
-    { name: "Board & Investor Meetings", duration: 120, icon: "Users", category: "Strategic Execution" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Visionary Morning" },
+    { name: "Meditation", duration: 11, icon: "BrainCircuit", category: "Visionary Morning" },
+    { name: "Morning Warm-up", duration: 20, icon: "Dumbbell", category: "Visionary Morning" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Visionary Morning" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Visionary Morning" },
+    { name: "Investor Meetings", duration: 120, icon: "Users", category: "Strategic Execution" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Strategic Execution" },
-    { name: "Team Lead Sync & Strategy", duration: 90, icon: "Users", category: "Operations" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Operations" },
-    { name: "Sales & Networking Calls", duration: 120, icon: "Briefcase", category: "Operations" },
+    { name: "Team Sync", duration: 90, icon: "Users", category: "Operations" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Operations" },
+    { name: "Sales Calls", duration: 120, icon: "Briefcase", category: "Operations" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Operations" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Networking & Rest" },
-    { name: "Founder Networking & Decompression", duration: 30, icon: "Users", category: "Networking & Rest" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Networking & Rest" },
+    { name: "Founder Network", duration: 30, icon: "Users", category: "Networking & Rest" },
     ...commonEveningWindDown,
     { name: "Inbox Zero & Communications", duration: 30, icon: "Mail", category: "Late Hustle" },
-    { name: "Analytics & Growth Metric Review", duration: 20, icon: "TrendingUp", category: "Late Hustle" },
-    { name: "Next Day Strategy Planning", duration: 15, icon: "Target", category: "Late Hustle" },
+    { name: "Growth Metrics", duration: 20, icon: "TrendingUp", category: "Late Hustle" },
+    { name: "Next Day Plan", duration: 15, icon: "Target", category: "Late Hustle" },
     ...commonBedtimeRoutine,
 ];
 
 const consultantRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Discovery" },
-    { name: "Meditation & Morning Hydration", duration: 16, icon: "BrainCircuit", category: "Discovery" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Discovery" },
-    { name: "Analysis & Client Auditing", duration: 120, icon: "BarChart", category: "Analysis" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Discovery" },
+    { name: "Meditation", duration: 16, icon: "BrainCircuit", category: "Discovery" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Discovery" },
+    { name: "Client Analysis", duration: 120, icon: "BarChart", category: "Analysis" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Analysis" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Recommendations" },
-    { name: "Presentation Deck Creation", duration: 120, icon: "Presentation", category: "Deliverables" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Recommendations" },
+    { name: "Pitch Deck Prep", duration: 120, icon: "Presentation", category: "Deliverables" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Deliverables" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Strategy Sync" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Strategy Sync" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const managerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Allocation" },
-    { name: "Morning Warm-up & Hydration", duration: 16, icon: "Dumbbell", category: "Allocation" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Allocation" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Allocation" },
-    { name: "1-on-1 Performance Reviews", duration: 90, icon: "Users", category: "Personnel" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Allocation" },
+    { name: "Morning Warm-up", duration: 16, icon: "Dumbbell", category: "Allocation" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Allocation" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Allocation" },
+    { name: "1-on-1 Reviews", duration: 90, icon: "Users", category: "Personnel" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Personnel" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Reporting" },
-    { name: "Project Oversight & Resource Check", duration: 120, icon: "ClipboardList", category: "Coordination" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Reporting" },
+    { name: "Project Oversight", duration: 120, icon: "ClipboardList", category: "Coordination" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Coordination" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Review" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Review" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const marketerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Analytics" },
-    { name: "Meditation & Morning Hydration", duration: 12, icon: "BrainCircuit", category: "Analytics" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Analytics" },
-    { name: "Ad Set Optimization & Copy", duration: 120, icon: "TrendingUp", category: "Campaigns" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Analytics" },
+    { name: "Meditation", duration: 12, icon: "BrainCircuit", category: "Analytics" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Analytics" },
+    { name: "Ad Campaigns", duration: 120, icon: "TrendingUp", category: "Campaigns" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Campaigns" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Creative Flow" },
-    { name: "Social Media Scheduling", duration: 90, icon: "Megaphone", category: "Content Strategy" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Creative Flow" },
+    { name: "Social Content", duration: 90, icon: "Megaphone", category: "Content Strategy" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Content Strategy" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Engagement" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Engagement" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const salesRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Prospecting" },
-    { name: "Morning Warm-up & Hydration", duration: 16, icon: "Dumbbell", category: "Prospecting" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Prospecting" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Prospecting" },
-    { name: "Cold Calls & Pipeline Building", duration: 150, icon: "Smartphone", category: "Outreach" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Prospecting" },
+    { name: "Morning Warm-up", duration: 16, icon: "Dumbbell", category: "Prospecting" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Prospecting" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Prospecting" },
+    { name: "Cold Outreach", duration: 150, icon: "Smartphone", category: "Outreach" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Outreach" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Negotiation" },
-    { name: "Closing Deals & Contracts", duration: 120, icon: "Briefcase", category: "Closings" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Negotiation" },
+    { name: "Closing Deals", duration: 120, icon: "Briefcase", category: "Closings" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Closings" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Pipeline Review" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Pipeline Review" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const studentRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Retention" },
-    { name: "Morning Hydration & Breathing", duration: 3, icon: "Wind", category: "Retention" },
-    { name: "Morning warm-up", duration: 15, icon: "Dumbbell", category: "Retention" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Retention" },
-    { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Retention" },
-    { name: "Intensive Study Session", duration: 150, icon: "BookOpen", category: "Focus Block" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Retention" },
+    { name: "Morning Hydration", duration: 3, icon: "Wind", category: "Retention" },
+    { name: "Morning Warm-up", duration: 15, icon: "Dumbbell", category: "Retention" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Retention" },
+    { name: "Breakfast", duration: 25, icon: "Utensils", category: "Retention" },
+    { name: "Intensive Study", duration: 150, icon: "BookOpen", category: "Focus Block" },
     { name: "Eye strain & Hydration", duration: 5, icon: "Eye", category: "Focus Block" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Academic Application" },
-    { name: "Problem Sets & Research", duration: 120, icon: "GraduationCap", category: "Academic Application" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Academic Application" },
+    { name: "Problem Sets", duration: 120, icon: "GraduationCap", category: "Academic Application" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Academic Application" },
-    { name: "Evening warm-up", duration: 20, icon: "Dumbbell", category: "Extracurricular" },
+    { name: "Evening Warm-up", duration: 20, icon: "Dumbbell", category: "Extracurricular" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const educatorRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Lesson Logic" },
-    { name: "Morning Warm-up & Hydration", duration: 16, icon: "Dumbbell", category: "Lesson Logic" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Lesson Logic" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Lesson Logic" },
-    { name: "Classroom Instruction", duration: 180, icon: "School", category: "Instruction" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Lesson Logic" },
+    { name: "Morning Warm-up", duration: 16, icon: "Dumbbell", category: "Lesson Logic" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Lesson Logic" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Lesson Logic" },
+    { name: "Class Lecture", duration: 180, icon: "School", category: "Instruction" },
     { name: "Post-Lecture Hydration", duration: 5, icon: "Droplets", category: "Instruction" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Evaluation" },
-    { name: "Grading & Feedback", duration: 120, icon: "FileCode", category: "Grading" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Evaluation" },
+    { name: "Grading & Notes", duration: 120, icon: "FileCode", category: "Grading" },
     { name: "Eye strain & Mental Rest", duration: 5, icon: "Eye", category: "Grading" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Prep" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Prep" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const freelancerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Pipeline" },
-    { name: "Meditation & Morning Hydration", duration: 12, icon: "BrainCircuit", category: "Pipeline" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Pipeline" },
-    { name: "Core Client Deliverables", duration: 150, icon: "Code", category: "Billable Work" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Pipeline" },
+    { name: "Meditation", duration: 12, icon: "BrainCircuit", category: "Pipeline" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Pipeline" },
+    { name: "Client Work", duration: 150, icon: "Code", category: "Billable Work" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Billable Work" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Fuel" },
-    { name: "Invoicing & Outreach", duration: 90, icon: "FileCode", category: "Admin" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Fuel" },
+    { name: "Invoicing & Admin", duration: 90, icon: "FileCode", category: "Admin" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Admin" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Close Out" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Close Out" },
     ...commonEveningWindDown,
     { name: "Upskilling & Coursework", duration: 40, icon: "BrainCircuit", category: "Late Hustle" },
     { name: "Portfolio Updates", duration: 20, icon: "FolderSync", category: "Late Hustle" },
@@ -245,89 +245,89 @@ const freelancerRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] =
 ];
 
 const generalDetailedRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Domestic Start" },
-    { name: "Morning Warm-up & Hydration", duration: 16, icon: "Dumbbell", category: "Domestic Start" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Domestic Start" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Domestic Start" },
-    { name: "Personal Errands & Admin", duration: 120, icon: "ShoppingCart", category: "Daily Admin" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Domestic Start" },
+    { name: "Morning Warm-up", duration: 16, icon: "Dumbbell", category: "Domestic Start" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Domestic Start" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Domestic Start" },
+    { name: "Daily Errands", duration: 120, icon: "ShoppingCart", category: "Daily Admin" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Daily Admin" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "midday" },
-    { name: "Skill Focus & Hobbies", duration: 120, icon: "Gamepad2", category: "Skills/Hobbies" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "midday" },
+    { name: "Skill Practice", duration: 120, icon: "Gamepad2", category: "Skills/Hobbies" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Skills/Hobbies" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Wrap Up" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Wrap Up" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 
 const dayOffRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Prep" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Prep" },
     { name: "Meditation & Deep Breathing", duration: 3, icon: "Wind", category: "Morning Prep" },
-    { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Prep" },
-    { name: "Set the table & Breakfast", duration: 30, icon: "Coffee", category: "Morning Prep" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Prep" },
-    { name: "Run errands or personal projects", duration: 90, icon: "ShoppingCart", category: "Work & Focus" },
-    { name: "Relaxing hobby", duration: 60, icon: "Gamepad2", category: "Health & Wellness" },
-    { name: "Set the table & Lunch", duration: 30, icon: "Utensils", category: "Health & Wellness" },
-    { name: "Connect with friends or family", duration: 60, icon: "Users", category: "Health & Wellness" },
+    { name: "Gentle Walk", duration: 20, icon: "Footprints", category: "Morning Prep" },
+    { name: "Breakfast", duration: 30, icon: "Coffee", category: "Morning Prep" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Morning Prep" },
+    { name: "Personal Errands", duration: 90, icon: "ShoppingCart", category: "Work & Focus" },
+    { name: "Relaxing Hobby", duration: 60, icon: "Gamepad2", category: "Health & Wellness" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Health & Wellness" },
+    { name: "Social Time", duration: 60, icon: "Users", category: "Health & Wellness" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const dayOffRoutineHealthcare: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Prep" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Prep" },
     { name: "Deep Breathing & Meditation", duration: 3, icon: "Wind", category: "Morning Prep" },
-    { name: "Gentle Stretching or a walk", duration: 20, icon: "Footprints", category: "Morning Prep" },
-    { name: "Set the table & Breakfast", duration: 30, icon: "Coffee", category: "Morning Prep" },
-    { name: "Personal projects or errands", duration: 90, icon: "ShoppingCart", category: "Work & Focus" },
-    { name: "Relaxing hobby", duration: 60, icon: "Gamepad2", category: "Health & Wellness" },
-    { name: "Set the table & Lunch", duration: 30, icon: "Utensils", category: "Health & Wellness" },
+    { name: "Gentle Walk", duration: 20, icon: "Footprints", category: "Morning Prep" },
+    { name: "Breakfast", duration: 30, icon: "Coffee", category: "Morning Prep" },
+    { name: "Personal Errands", duration: 90, icon: "ShoppingCart", category: "Work & Focus" },
+    { name: "Relaxing Hobby", duration: 60, icon: "Gamepad2", category: "Health & Wellness" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Health & Wellness" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const healthcareProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Preparation" },
-    { name: "Morning Hydration & Breathing", duration: 3, icon: "Wind", category: "Preparation" },
-    { name: "Morning warm-up", duration: 15, icon: "Dumbbell", category: "Preparation" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Preparation" },
-    { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Preparation" },
-    { name: "Patient Chart Review & Rounds", duration: 180, icon: "Stethoscope", category: "Clinical Rounds" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Nutrition" },
-    { name: "Patient Record Updates", duration: 90, icon: "FileCode", category: "Updates" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Preparation" },
+    { name: "Morning Hydration", duration: 3, icon: "Wind", category: "Preparation" },
+    { name: "Morning Warm-up", duration: 15, icon: "Dumbbell", category: "Preparation" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Preparation" },
+    { name: "Breakfast", duration: 25, icon: "Utensils", category: "Preparation" },
+    { name: "Clinical Rounds", duration: 180, icon: "Stethoscope", category: "Clinical Rounds" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Nutrition" },
+    { name: "Patient Records", duration: 90, icon: "FileCode", category: "Updates" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Updates" },
-    { name: "Evening warm-up", duration: 20, icon: "Dumbbell", category: "Decompression" },
+    { name: "Evening Warm-up", duration: 20, icon: "Dumbbell", category: "Decompression" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const itProfessionalRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Monitoring" },
-    { name: "Meditation & Morning Hydration", duration: 11, icon: "BrainCircuit", category: "Monitoring" },
-    { name: "Morning warm-up", duration: 10, icon: "Dumbbell", category: "Monitoring" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Monitoring" },
-    { name: "Set table & Breakfast", duration: 30, icon: "Utensils", category: "Monitoring" },
-    { name: "Network & Server Maintenance", duration: 120, icon: "Server", category: "Infrastructure" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Monitoring" },
+    { name: "Meditation", duration: 11, icon: "BrainCircuit", category: "Monitoring" },
+    { name: "Morning Warm-up", duration: 10, icon: "Dumbbell", category: "Monitoring" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Monitoring" },
+    { name: "Breakfast", duration: 30, icon: "Utensils", category: "Monitoring" },
+    { name: "Server Maintenance", duration: 120, icon: "Server", category: "Infrastructure" },
     { name: "Eye strain & Hydration", duration: 3, icon: "Eye", category: "Infrastructure" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Troubleshooting" },
-    { name: "Help Desk & Ticket Resolution", duration: 120, icon: "Laptop", category: "Tickets" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Troubleshooting" },
+    { name: "Ticket Resolution", duration: 120, icon: "Laptop", category: "Tickets" },
     { name: "Visual Rest & Rehydrate", duration: 3, icon: "Eye", category: "Tickets" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "System Lock" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "System Lock" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
 
 const researcherRoutine: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-    { name: "Set the bed", duration: 5, icon: "Bed", category: "Hypothesis" },
-    { name: "Morning Hydration & Breathing", duration: 3, icon: "Wind", category: "Hypothesis" },
-    { name: "Morning warm-up", duration: 15, icon: "Dumbbell", category: "Hypothesis" },
-    { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Hypothesis" },
-    { name: "Set table & Breakfast", duration: 25, icon: "Utensils", category: "Hypothesis" },
-    { name: "Experimental Data Collection", duration: 150, icon: "FlaskConical", category: "Lab Session" },
-    { name: "Set table & Lunch", duration: 30, icon: "Utensils", category: "Analysis" },
-    { name: "Data Interpretation & Synthesis", duration: 120, icon: "Laptop", category: "Computation" },
+    { name: "Make Bed", duration: 5, icon: "Bed", category: "Hypothesis" },
+    { name: "Morning Hydration", duration: 3, icon: "Wind", category: "Hypothesis" },
+    { name: "Morning Warm-up", duration: 15, icon: "Dumbbell", category: "Hypothesis" },
+    { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Hypothesis" },
+    { name: "Breakfast", duration: 25, icon: "Utensils", category: "Hypothesis" },
+    { name: "Data Collection", duration: 150, icon: "FlaskConical", category: "Lab Session" },
+    { name: "Lunch", duration: 30, icon: "Utensils", category: "Analysis" },
+    { name: "Data Analysis", duration: 120, icon: "Laptop", category: "Computation" },
     { name: "Eye strain & Hydration", duration: 5, icon: "Eye", category: "Computation" },
-    { name: "Evening warm-up", duration: 15, icon: "Dumbbell", category: "Peer Review" },
+    { name: "Evening Warm-up", duration: 15, icon: "Dumbbell", category: "Peer Review" },
     ...commonEveningWindDown,
     ...commonBedtimeRoutine,
 ];
@@ -362,26 +362,26 @@ const enrichTasks = (tasks: ReadonlyArray<Omit<UserPresetTask, "id" | "order" | 
         const expectedWater = Math.floor(((i + 1) / cleanedTasks.length) * totalWaters);
         if (waterCount < expectedWater) {
             waterCount++;
-            enrichedTasks.push({ name: `Drink a glass of water`, duration: 1, icon: "Droplets", category: cleanedTasks[i].category });
+            enrichedTasks.push({ name: `Drink Water`, duration: 1, icon: "Droplets", category: cleanedTasks[i].category });
         }
 
         const expectedEye = Math.floor(((i + 1) / cleanedTasks.length) * totalEyes);
         if (eyeCount < expectedEye) {
             eyeCount++;
-            enrichedTasks.push({ name: "Eye strain exercise", duration: 2, icon: "Eye", category: cleanedTasks[i].category });
+            enrichedTasks.push({ name: "Eye Rest", duration: 2, icon: "Eye", category: cleanedTasks[i].category });
         }
 
         // Add entertainment/gaming slots later in the day (After 50%, 75%, and 95% of routine)
         const progress = (i + 1) / cleanedTasks.length;
         if (entertainmentCount === 0 && progress >= 0.5) {
             entertainmentCount++;
-            enrichedTasks.push({ name: "Post-Work Visual Break", duration: 15, icon: "Gamepad2", category: "Entertainment & Gaming" });
+            enrichedTasks.push({ name: "Visual Break", duration: 15, icon: "Gamepad2", category: "Entertainment & Gaming" });
         } else if (entertainmentCount === 1 && progress >= 0.75) {
             entertainmentCount++;
-            enrichedTasks.push({ name: "Digital Entertainment Session", duration: 20, icon: "Tv", category: "Entertainment & Gaming" });
+            enrichedTasks.push({ name: "Entertainment Break", duration: 20, icon: "Tv", category: "Entertainment & Gaming" });
         } else if (entertainmentCount === 2 && progress >= 0.95) {
             entertainmentCount++;
-            enrichedTasks.push({ name: "Late Night Gaming/Leisure", duration: 25, icon: "Gamepad2", category: "Entertainment & Gaming" });
+            enrichedTasks.push({ name: "Night Gaming", duration: 25, icon: "Gamepad2", category: "Entertainment & Gaming" });
         }
     }
 
@@ -406,15 +406,15 @@ export const wrapRoutineWithMOVERS = (
     const O = { name: "Oxygenation (O)", duration: 3, icon: "Wind", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
     
     let vName = "Visualization (V)";
-    if (isCognitive) vName = "Strategic Planning (V)";
+    if (isCognitive) vName = "Planning (V)";
     const V = { name: vName, duration: 10, icon: "Target", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
     
     let eName = "Exercise (E)";
-    if (isPhysical && preference === 'evening_restorer') eName = "Recovery Stretch (E)";
+    if (isPhysical && preference === 'evening_restorer') eName = "Stretch (E)";
     const E = { name: eName, duration: 30, icon: "Dumbbell", category: preference === 'morning_primer' ? "Morning Protocol" : "Evening Protocol" };
 
     let rName = "Reading (R)";
-    if (isCreative) rName = "Inspiration Intake (R)";
+    if (isCreative) rName = "Reading (R)";
     const R = { name: rName, duration: 15, icon: "BookOpen", category: "Evening Protocol" };
     
     const S = { name: "Scribing (S)", duration: 15, icon: "PenSquare", category: "Evening Protocol" };
@@ -438,7 +438,7 @@ export const wrapRoutineWithMOVERS = (
 };
 
 export const defaultRoutines: { version: number, routines: { [key in ProfileType]: Omit<UserPresetTask, "id" | "order" | "profession">[] } } = {
-    version: 10.0,
+    version: 11.0,
     routines: {
         "Analyst": enrichTasks(softwareEngineerRoutine),
         "Artist": enrichTasks(artistRoutine),
@@ -1083,7 +1083,7 @@ export const applyMoversTemplate = (
     if (template === 'evening_restorer') {
         // Evening Restorer: (E) at wake-up; 7-9 PM Evening Wind-down; (M + O + V + R + S) in a consolidated recovery block before sleep
         const morningActivation: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-            { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Activation" },
+            { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Activation" },
             { name: "Morning Exercise & Physical Activation (E)", duration: 20, icon: "Dumbbell", category: "Morning Activation" },
             { name: "Morning Hydration & Shower", duration: 15, icon: "ShowerHead", category: "Morning Activation" },
             { name: "Set table & Energizing Breakfast", duration: 25, icon: "Utensils", category: "Morning Activation" },
@@ -1103,12 +1103,12 @@ export const applyMoversTemplate = (
     } else {
         // Morning Primer: (M + O + V + E) before core work; 7-9 PM Evening Wind-down; (R + S) at day's end
         const morningPrimerBlock: Omit<UserPresetTask, "id" | "order" | "profession">[] = [
-            { name: "Set the bed", duration: 5, icon: "Bed", category: "Morning Primer" },
+            { name: "Make Bed", duration: 5, icon: "Bed", category: "Morning Primer" },
             { name: "Morning Centering Meditation (M)", duration: 10, icon: "BrainCircuit", category: "Morning Primer" },
             { name: "Deep Breathing & Morning Hydration (O)", duration: 3, icon: "Wind", category: "Morning Primer" },
             { name: "Daily Visualization & Mental Rehearsal (V)", duration: 10, icon: "Target", category: "Morning Primer" },
             { name: "Energizing Exercise & Movement (E)", duration: 15, icon: "Dumbbell", category: "Morning Primer" },
-            { name: "Freshen up & Take a shower", duration: 20, icon: "ShowerHead", category: "Morning Primer" },
+            { name: "Shower & Fresh", duration: 20, icon: "ShowerHead", category: "Morning Primer" },
             { name: "Set table & Nutritious Breakfast", duration: 25, icon: "Utensils", category: "Morning Primer" },
         ];
 

@@ -127,7 +127,7 @@ function formatDuration(minutes: number): string {
   if (minutes >= 60) {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
+    return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
   }
   return `${minutes}m`;
 }
@@ -558,19 +558,19 @@ export default function TaskForm() {
                 return (
                   <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                      <Card className={cn("overflow-hidden flex flex-col rounded-xl h-[280px]", isCurrent && "shadow-lg")}>
-                        <CardHeader className={cn("p-4 flex flex-row items-center justify-between", color)}>
-                          <div>
-                            <CardTitle className="font-headline text-lg">{category}</CardTitle>
+                      <Card className={cn("overflow-hidden flex flex-col rounded-2xl h-[280px] border-border/70", isCurrent && "shadow-lg")}>
+                        <CardHeader className={cn("p-4 flex flex-row items-center justify-between gap-3 min-w-0", color)}>
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="font-headline text-lg truncate">{category}</CardTitle>
                             {timeRange && (
-                              <CardDescription className="text-xs text-inherit opacity-80">
+                              <CardDescription className="text-xs text-inherit opacity-80 truncate">
                                 {format(timeRange.start, 'p')} - {format(timeRange.end, 'p')}
                               </CardDescription>
                             )}
                           </div>
-                          <Badge variant="secondary" className="gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            {formatDuration(tasks.reduce((acc, task) => acc + task.duration, 0))}
+                          <Badge variant="secondary" className="shrink-0 whitespace-nowrap flex items-center gap-1.5 font-semibold text-xs px-2.5 py-1 rounded-full">
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">{formatDuration(tasks.reduce((acc, task) => acc + task.duration, 0))}</span>
                           </Badge>
                         </CardHeader>
                         <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
@@ -581,11 +581,11 @@ export default function TaskForm() {
                                 const isEventTask = task.isEvent;
                                 const isCompleted = task.isCompleted;
                                 return (
-                                  <div className="w-full flex items-center gap-2">
+                                  <div key={task.id || `${task.name}-${index}`} className="w-full min-w-0 flex items-center gap-2">
                                     <Button
                                       key={task.id || `${task.name}-${index}`}
                                       variant="outline"
-                                      className={cn("flex-1 justify-start gap-3 h-auto py-2 px-3 whitespace-normal transition-all",
+                                      className={cn("min-w-0 flex-1 justify-between items-center gap-2.5 h-11 py-2 px-3.5 rounded-2xl border-border/70 hover:border-primary/50 bg-card/60 transition-all",
                                         {
                                           "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask,
                                           "opacity-50 grayscale": isCompleted
@@ -593,15 +593,17 @@ export default function TaskForm() {
                                       onClick={() => selectQuickStartTask(task, category)}
                                       onDoubleClick={() => task.id && !isEventTask && !isDefaultTask(task) && handleOpenDialog(task, category)}
                                     >
-                                      <Icon className="w-5 h-5 text-muted-foreground" />
-                                      <span className={cn("flex-1 text-left font-normal", isCompleted && "line-through text-muted-foreground")}>{task.name}</span>
-                                      <span className="text-sm text-muted-foreground">{formatDuration(task.duration)}</span>
+                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+                                        <span className={cn("truncate text-left text-sm font-medium text-foreground", isCompleted && "line-through text-muted-foreground")}>{task.name}</span>
+                                      </div>
+                                      <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap shrink-0 ml-2">{formatDuration(task.duration)}</span>
                                     </Button>
                                     {!isCompleted && (
                                       <Button 
                                         size="icon" 
                                         variant="secondary"
-                                        className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors"
+                                        className="shrink-0 h-11 w-11 rounded-2xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 transition-all duration-200 active:scale-95 shadow-sm"
                                          onClick={async () => {
                                            let colorVal = undefined;
                                            const categoryData = mergedTasks[category];
@@ -641,7 +643,7 @@ export default function TaskForm() {
                                            });
                                          }}
                                       >
-                                        <Play className="w-4 h-4" />
+                                        <Play className="w-4 h-4 fill-current" />
                                       </Button>
                                     )}
                                   </div>
@@ -653,7 +655,7 @@ export default function TaskForm() {
                         </CardContent>
                         {category !== "Today's Events" && (
                           <CardFooter className="p-3 pt-0 mt-auto">
-                            <Button variant="ghost" className="w-full border-dashed border-2" onClick={() => handleOpenDialog(undefined, category)}>
+                            <Button variant="ghost" className="w-full border-dashed border-2 rounded-2xl h-10 hover:border-primary/50 text-xs font-medium" onClick={() => handleOpenDialog(undefined, category)}>
                               <Plus className="w-4 h-4 mr-2" /> Add Task
                             </Button>
                           </CardFooter>

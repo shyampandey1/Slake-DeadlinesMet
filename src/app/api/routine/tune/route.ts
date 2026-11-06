@@ -250,55 +250,55 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   if (profWorkTasks.length === 0) {
     if (isCollege) {
       profWorkTasks.push(
-        { name: 'Core Academic Lectures & Theory Session', duration: 90, icon: 'BookOpen' },
-        { name: 'Problem Set Execution & Laboratory Projects', duration: 90, icon: 'GraduationCap' }
+        { name: 'Academic Lectures', duration: 90, icon: 'BookOpen' },
+        { name: 'Problem Sets & Labs', duration: 90, icon: 'GraduationCap' }
       );
     } else if (isIndependent) {
       profWorkTasks.push(
-        { name: 'Core Creative Foundation & Concept Sprint', duration: 90, icon: 'Palette' },
-        { name: 'Deep Independent Production & Deliverables', duration: 90, icon: 'PenTool' }
+        { name: 'Creative Concepts', duration: 90, icon: 'Palette' },
+        { name: 'Creative Production', duration: 90, icon: 'PenTool' }
       );
     } else {
       profWorkTasks.push(
-        { name: `${profession} Strategic Execution & Core Focus`, duration: 90, icon: 'Briefcase' },
-        { name: `${profession} Core Deliverables & Operations`, duration: 90, icon: 'Briefcase' }
+        { name: `${profession} Focus`, duration: 90, icon: 'Briefcase' },
+        { name: `${profession} Work`, duration: 90, icon: 'Briefcase' }
       );
     }
   }
 
   // Domain-specific commute titles
   const morningCommuteTitle = isCollege
-    ? 'Campus Transit & Daily Academic Primer'
+    ? 'Campus Transit'
     : isIndependent
-    ? 'Morning Transition & Workspace Priming'
-    : 'Morning Commute & Mindful Transit / Audio Briefing';
+    ? 'Morning Prep'
+    : 'Morning Commute';
 
   const eveningCommuteTitle = isCollege
-    ? 'Campus Return Transit & Intellectual Decompression'
+    ? 'Campus Return'
     : isIndependent
-    ? 'Studio Close-Down & Cognitive Decompression'
-    : 'Evening Return Transit & Cognitive Decompression';
+    ? 'Studio Close'
+    : 'Evening Commute';
 
   // Domain-specific mid-day and afternoon tasks
   const preLunchSyncTitle = isCollege
-    ? 'Academic Milestone Review & Lecture Synthesis'
+    ? 'Lecture Review'
     : isIndependent
-    ? 'Creative Project Alignment & Milestone Check'
-    : `${profession} Mid-Day Execution Review & Standup Sync`;
+    ? 'Creative Review'
+    : `${profession} Standup`;
   const preLunchSyncIcon = isCollege ? 'BookOpen' : isIndependent ? 'Palette' : 'Briefcase';
 
   const pmSprintTitle = isCollege
-    ? 'Coursework Application & Research Sprint'
+    ? 'Research Sprint'
     : isIndependent
-    ? 'Deep Production Sprint & Portfolio Implementation'
-    : `${profession} Strategic Execution & Milestone Sprint`;
+    ? 'Portfolio Sprint'
+    : `${profession} Sprint`;
   const pmSprintIcon = isCollege ? 'GraduationCap' : isIndependent ? 'Layers' : 'Briefcase';
 
   const pmWrapTitle = isCollege
-    ? "Daily Academic Review & Tomorrow's Class Prep"
+    ? "Class Prep"
     : isIndependent
-    ? 'Studio Daily Milestone Review & Project Wrap-Up'
-    : `${profession} Daily Execution Wrap-Up & Milestone Review`;
+    ? 'Studio Wrap-Up'
+    : `${profession} Wrap-Up`;
   const pmWrapIcon = isCollege ? 'BookOpen' : isIndependent ? 'CheckCircle2' : 'Briefcase';
 
   // =========================================================================
@@ -310,7 +310,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Task 1: Hydration #1
   tasks.push({
     id: makeId('wake_hyd'),
-    title: 'Hydration Check-in #1 (Waking Glass)',
+    title: 'Morning Hydration',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 2,
     category: 'Morning Activation & Primer',
@@ -324,7 +324,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Task 2: Domestic Bed Setup
   tasks.push({
     id: makeId('wake_bed'),
-    title: 'Set Bed & Morning Space Hygiene',
+    title: 'Make Bed',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 5,
     category: 'Morning Activation & Primer',
@@ -339,7 +339,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   if (answers.moversWrapperMode === 'morning_primer') {
     tasks.push({
       id: makeId('mov_m'),
-      title: 'Meditation & Centering (M)',
+      title: 'Meditation (M)',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 10,
       category: 'Morning Activation & Primer',
@@ -352,7 +352,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   } else if (answers.moversWrapperMode === 'evening_restorer') {
     tasks.push({
       id: makeId('mov_e_quick'),
-      title: 'Awakening Mobility & Kinetic Stretch (E)',
+      title: 'Morning Stretch (E)',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 12,
       category: 'Morning Activation & Primer',
@@ -366,7 +366,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     // JEV Smart Weave
     tasks.push({
       id: makeId('mov_m_weave'),
-      title: 'Mindful Breathing & Centering (M)',
+      title: 'Mindful Breathing (M)',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 10,
       category: 'Morning Activation & Primer',
@@ -381,7 +381,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Task 4: Personal Hygiene
   tasks.push({
     id: makeId('wake_fresh'),
-    title: 'Freshen Up & Personal Hygiene',
+    title: 'Freshen Up',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 15,
     category: 'Morning Activation & Primer',
@@ -394,7 +394,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Task 5: Nutritious Breakfast
   tasks.push({
     id: makeId('wake_bfast'),
-    title: 'Nutritious Breakfast & Cognitive Fuel',
+    title: 'Breakfast',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 20,
     category: 'Morning Activation & Primer',
@@ -422,7 +422,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       ]);
       tasks.push({
         id: makeId('study_early_1'),
-        title: 'Dawn Focus Sprint #1 (Deep Theory)',
+        title: 'Dawn Study 1',
         startTime: minutesToTime(currentPointer),
         durationMinutes: study1,
         category: 'Morning Transition & Prep',
@@ -434,7 +434,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('prep_kinetic'),
-        title: 'Visual & Kinetic Rest Break',
+        title: 'Rest Break',
         startTime: minutesToTime(currentPointer),
         durationMinutes: kinetic,
         category: 'Morning Transition & Prep',
@@ -446,7 +446,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('study_early_2'),
-        title: 'Dawn Focus Sprint #2 (Practical Application)',
+        title: 'Dawn Study 2',
         startTime: minutesToTime(currentPointer),
         durationMinutes: study2,
         category: 'Morning Transition & Prep',
@@ -458,7 +458,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('mov_v'),
-        title: 'Strategic Visualization & Focus Framing (V)',
+        title: 'Visualization (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: prepV,
         category: 'Morning Transition & Prep',
@@ -475,7 +475,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       ]);
       tasks.push({
         id: makeId('study_early'),
-        title: 'Dawn Focus Sprint & Deep Theory',
+        title: 'Dawn Focus',
         startTime: minutesToTime(currentPointer),
         durationMinutes: studyDur,
         category: 'Morning Transition & Prep',
@@ -487,7 +487,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('mov_v'),
-        title: 'Strategic Visualization & Focus Framing (V)',
+        title: 'Visualization (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: prepV,
         category: 'Morning Transition & Prep',
@@ -508,7 +508,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       ]);
       tasks.push({
         id: makeId('study_split_1a'),
-        title: 'Morning Focus & Core Study (Phase 1A)',
+        title: 'Morning Study 1',
         startTime: minutesToTime(currentPointer),
         durationMinutes: split1,
         category: 'Morning Transition & Prep',
@@ -520,7 +520,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('prep_kinetic'),
-        title: 'Visual & Kinetic Rest Break',
+        title: 'Rest Break',
         startTime: minutesToTime(currentPointer),
         durationMinutes: kinetic,
         category: 'Morning Transition & Prep',
@@ -532,7 +532,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('study_split_1b'),
-        title: 'Morning Focus & Core Study (Phase 1B)',
+        title: 'Morning Study 2',
         startTime: minutesToTime(currentPointer),
         durationMinutes: split2,
         category: 'Morning Transition & Prep',
@@ -544,7 +544,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('mov_v'),
-        title: 'Strategic Visualization & Focus Framing (V)',
+        title: 'Visualization (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: prepV,
         category: 'Morning Transition & Prep',
@@ -561,7 +561,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       ]);
       tasks.push({
         id: makeId('study_split_1'),
-        title: 'Morning Focus & Core Study Block (Phase 1)',
+        title: 'Morning Study',
         startTime: minutesToTime(currentPointer),
         durationMinutes: splitDur1,
         category: 'Morning Transition & Prep',
@@ -573,7 +573,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('mov_v'),
-        title: 'Strategic Visualization & Focus Framing (V)',
+        title: 'Visualization (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: prepV,
         category: 'Morning Transition & Prep',
@@ -594,7 +594,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       ]);
       tasks.push({
         id: makeId('primer_1'),
-        title: 'Daily Domain Primer & Strategic Review',
+        title: 'Daily Primer',
         startTime: minutesToTime(currentPointer),
         durationMinutes: primer1,
         category: 'Morning Transition & Prep',
@@ -606,7 +606,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('prep_kinetic'),
-        title: 'Visual & Kinetic Rest Break',
+        title: 'Rest Break',
         startTime: minutesToTime(currentPointer),
         durationMinutes: kinetic,
         category: 'Morning Transition & Prep',
@@ -618,7 +618,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('primer_2'),
-        title: 'High-Yield Knowledge Synthesis & Reading',
+        title: 'Reading & Notes',
         startTime: minutesToTime(currentPointer),
         durationMinutes: primer2,
         category: 'Morning Transition & Prep',
@@ -630,7 +630,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('mov_v'),
-        title: 'Strategic Visualization & Focus Framing (V)',
+        title: 'Visualization (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: prepV,
         category: 'Morning Transition & Prep',
@@ -647,7 +647,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       ]);
       tasks.push({
         id: makeId('domain_primer'),
-        title: 'Daily Domain Primer & Strategic Review',
+        title: 'Daily Primer',
         startTime: minutesToTime(currentPointer),
         durationMinutes: primerDur,
         category: 'Morning Transition & Prep',
@@ -659,7 +659,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
       tasks.push({
         id: makeId('mov_v_prep'),
-        title: 'Daily Objective Framing & Mental Rehearsal (V)',
+        title: 'Framing & Goals (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: prepV,
         category: 'Morning Transition & Prep',
@@ -672,7 +672,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     } else {
       tasks.push({
         id: makeId('mov_v_prep'),
-        title: 'Daily Objective Framing & Mental Rehearsal (V)',
+        title: 'Framing & Goals (V)',
         startTime: minutesToTime(currentPointer),
         durationMinutes: netPrepMins,
         category: 'Morning Transition & Prep',
@@ -688,7 +688,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Hydration #2
   tasks.push({
     id: makeId('hyd_2'),
-    title: 'Hydration Check-in #2 (Pre-Focus Glass)',
+    title: 'Hydration Check',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 2,
     category: 'Morning Transition & Prep',
@@ -702,7 +702,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Commute / Priming (exact transit duration, max 45m!)
   tasks.push({
     id: makeId('commute_m'),
-    title: commute > 0 ? morningCommuteTitle : 'Workspace Priming & Equipment Setup',
+    title: commute > 0 ? morningCommuteTitle : 'Workspace Prep',
     startTime: minutesToTime(currentPointer),
     durationMinutes: targetCommute,
     category: 'Morning Transition & Prep',
@@ -733,7 +733,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       { name: 'sync', min: 15, max: 20, hardMax: 25, weight: 12 },
     ]);
 
-    const firstProfTask = morningProfTasks[0] || { name: `${profession} Core Execution & Focus Sprint`, icon: 'Briefcase' };
+    const firstProfTask = morningProfTasks[0] || { name: `${profession} Focus`, icon: 'Briefcase' };
     tasks.push({
       id: makeId('prof_am_0'),
       title: firstProfTask.name,
@@ -748,7 +748,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eye_hyd_am'),
-      title: 'Eye-Strain 20-20-20 Vision Rest & Hydration Check-in',
+      title: 'Eye Rest & Water',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 5,
       category: 'Deep Focus: Morning Sprint',
@@ -759,7 +759,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     });
     currentPointer += 5;
 
-    const secondProfTask = morningProfTasks[1] || { name: `${profession} Technical Sprint & Operations`, icon: 'Layers' };
+    const secondProfTask = morningProfTasks[1] || { name: `${profession} Sprint`, icon: 'Layers' };
     tasks.push({
       id: makeId('prof_am_1'),
       title: secondProfTask.name,
@@ -774,7 +774,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('am_coffee_reset'),
-      title: 'Mid-Morning Coffee & Kinetic Reset',
+      title: 'Coffee Break',
       startTime: minutesToTime(currentPointer),
       durationMinutes: coffee,
       category: 'Deep Focus: Morning Sprint',
@@ -786,7 +786,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('am_tactical'),
-      title: `${profession} Collaborative Execution & Tactical Sprint`,
+      title: `${profession} Sprint`,
       startTime: minutesToTime(currentPointer),
       durationMinutes: tactical,
       category: 'Deep Focus: Morning Sprint',
@@ -816,7 +816,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
       { name: 'sync', min: 15, max: 25, hardMax: 30, weight: 17 },
     ]);
 
-    const firstProfTask = morningProfTasks[0] || { name: `${profession} Core Execution & Focus Sprint`, icon: 'Briefcase' };
+    const firstProfTask = morningProfTasks[0] || { name: `${profession} Focus`, icon: 'Briefcase' };
     tasks.push({
       id: makeId('prof_am_0'),
       title: firstProfTask.name,
@@ -831,7 +831,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eye_1'),
-      title: 'Eye-Strain 20-20-20 Vision Rest #1',
+      title: 'Eye Rest',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Deep Focus: Morning Sprint',
@@ -842,7 +842,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     });
     currentPointer += 2;
 
-    const secondProfTask = morningProfTasks[1] || { name: `${profession} Technical Sprint & Operations`, icon: 'Layers' };
+    const secondProfTask = morningProfTasks[1] || { name: `${profession} Sprint`, icon: 'Layers' };
     tasks.push({
       id: makeId('prof_am_1'),
       title: secondProfTask.name,
@@ -869,7 +869,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_3'),
-      title: 'Hydration Check-in #3 (Pre-Lunch Glass)',
+      title: 'Hydration Check',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Deep Focus: Morning Sprint',
@@ -891,7 +891,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
   tasks.push({
     id: makeId('lunch_block'),
-    title: 'Lunch & Mindful Nutrition Break',
+    title: 'Lunch',
     startTime: minutesToTime(currentPointer),
     durationMinutes: netLunchMins,
     category: 'Mid-Day Recovery & Lunch',
@@ -903,7 +903,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
   tasks.push({
     id: makeId('hyd_4'),
-    title: 'Hydration Check-in #4 (Post-Lunch Glass)',
+    title: 'Hydration Check',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 2,
     category: 'Mid-Day Recovery & Lunch',
@@ -916,7 +916,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
   tasks.push({
     id: makeId('lunch_walk'),
-    title: 'Post-Lunch Walk & Light Kinetic Reset',
+    title: 'Post-Lunch Walk',
     startTime: minutesToTime(currentPointer),
     durationMinutes: netWalkMins,
     category: 'Mid-Day Recovery & Lunch',
@@ -936,10 +936,10 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     afternoonProfTasks.length > 0
       ? afternoonProfTasks
       : isCollege
-      ? [{ name: 'Academic Application & Project Sprint', duration: 60, icon: 'GraduationCap' }]
+      ? [{ name: 'Project Sprint', duration: 60, icon: 'GraduationCap' }]
       : isIndependent
-      ? [{ name: 'Independent Production & Creative Deliverables', duration: 60, icon: 'Palette' }]
-      : [{ name: `${profession} Core Execution & Deliverables`, duration: 60, icon: 'Briefcase' }];
+      ? [{ name: 'Creative Sprint', duration: 60, icon: 'Palette' }]
+      : [{ name: `${profession} Work`, duration: 60, icon: 'Briefcase' }];
 
   if (afternoonBudget >= 200) {
     // Long afternoon (3.5 - 4 hours): 6 tasks (PM1, Eye & Stretch, PM2, Tea Reset, Tactical Sprint, Wrap-Up <= 25m)
@@ -967,7 +967,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eye_pm_combo'),
-      title: 'Eye-Strain 20-20-20 Vision Rest & Kinetic Stretch',
+      title: 'Eye Rest & Stretch',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 5,
       category: 'Afternoon Strategic Execution',
@@ -981,7 +981,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     const secondPmTask = pmTasksToUse[1] || { name: pmSprintTitle, icon: pmSprintIcon };
     tasks.push({
       id: makeId('prof_pm_sprint'),
-      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Afternoon Re-Alignment & Micro-Visualization (V)' : secondPmTask.name,
+      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Re-Alignment (V)' : secondPmTask.name,
       startTime: minutesToTime(currentPointer),
       durationMinutes: pm2,
       category: 'Afternoon Strategic Execution',
@@ -994,7 +994,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('pm_tea_reset'),
-      title: 'Kinetic Movement & Afternoon Tea Reset',
+      title: 'Afternoon Tea',
       startTime: minutesToTime(currentPointer),
       durationMinutes: teaReset,
       category: 'Afternoon Strategic Execution',
@@ -1006,7 +1006,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('pm_tactical'),
-      title: `${profession} Tactical Deliverables & Milestone Review`,
+      title: `${profession} Review`,
       startTime: minutesToTime(currentPointer),
       durationMinutes: tactical,
       category: 'Afternoon Strategic Execution',
@@ -1052,7 +1052,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eye_2'),
-      title: 'Eye-Strain 20-20-20 Vision Rest #2',
+      title: 'Eye Rest',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Afternoon Strategic Execution',
@@ -1065,7 +1065,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('pm_tea_break'),
-      title: 'Kinetic Movement & Afternoon Tea Reset',
+      title: 'Afternoon Tea',
       startTime: minutesToTime(currentPointer),
       durationMinutes: teaBreak,
       category: 'Afternoon Strategic Execution',
@@ -1078,7 +1078,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     const secondPmTask = pmTasksToUse[1] || { name: pmSprintTitle, icon: pmSprintIcon };
     tasks.push({
       id: makeId('prof_pm_sprint'),
-      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Afternoon Re-Alignment & Micro-Visualization (V)' : secondPmTask.name,
+      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Re-Alignment (V)' : secondPmTask.name,
       startTime: minutesToTime(currentPointer),
       durationMinutes: pm2,
       category: 'Afternoon Strategic Execution',
@@ -1091,7 +1091,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_5'),
-      title: 'Hydration Check-in #5 (Mid-Afternoon Glass)',
+      title: 'Hydration Check',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Afternoon Strategic Execution',
@@ -1137,7 +1137,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eye_2'),
-      title: 'Eye-Strain 20-20-20 Vision Rest #2',
+      title: 'Eye Rest',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Afternoon Strategic Execution',
@@ -1151,7 +1151,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     const secondPmTask = pmTasksToUse[1] || { name: pmSprintTitle, icon: pmSprintIcon };
     tasks.push({
       id: makeId('prof_pm_sprint'),
-      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Afternoon Re-Alignment & Micro-Visualization (V)' : secondPmTask.name,
+      title: answers.moversWrapperMode === 'jev_smart_weave' ? 'Re-Alignment (V)' : secondPmTask.name,
       startTime: minutesToTime(currentPointer),
       durationMinutes: pm2,
       category: 'Afternoon Strategic Execution',
@@ -1164,7 +1164,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_5'),
-      title: 'Hydration Check-in #5 (Mid-Afternoon Glass)',
+      title: 'Hydration Check',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Afternoon Strategic Execution',
@@ -1220,7 +1220,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('commute_e'),
-      title: commute > 0 ? eveningCommuteTitle : 'Studio & Workspace Close-Down',
+      title: commute > 0 ? eveningCommuteTitle : 'Studio Close',
       startTime: minutesToTime(currentPointer),
       durationMinutes: eveTransitDur,
       category: 'Evening Transition & Fitness',
@@ -1232,7 +1232,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_6'),
-      title: 'Hydration Check-in #6 (Post-Commute Refuel)',
+      title: 'Hydration Refuel',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Evening Transition & Fitness',
@@ -1246,8 +1246,8 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     tasks.push({
       id: makeId('eve_fitness'),
       title: eveningActivities.includes('fitness')
-        ? 'Physical Training & Kinetic Workout (E)'
-        : 'Evening Kinetic Stroll & Movement Reset (E)',
+        ? 'Evening Workout (E)'
+        : 'Evening Walk (E)',
       startTime: minutesToTime(currentPointer),
       durationMinutes: fitnessDur,
       category: 'Evening Transition & Fitness',
@@ -1260,7 +1260,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_social'),
-      title: 'Dinner & Mindful Social Connection Time',
+      title: 'Dinner',
       startTime: minutesToTime(currentPointer),
       durationMinutes: dinnerDur,
       category: 'Evening Transition & Fitness',
@@ -1272,7 +1272,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_stroll_sec6'),
-      title: 'Post-Dinner Fresh Air Digest Stroll',
+      title: 'Post-Dinner Walk',
       startTime: minutesToTime(currentPointer),
       durationMinutes: strollDur,
       category: 'Evening Transition & Fitness',
@@ -1291,7 +1291,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('commute_e'),
-      title: commute > 0 ? eveningCommuteTitle : 'Studio & Workspace Close-Down',
+      title: commute > 0 ? eveningCommuteTitle : 'Studio Close',
       startTime: minutesToTime(currentPointer),
       durationMinutes: eveTransitDur,
       category: 'Evening Transition & Fitness',
@@ -1303,7 +1303,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_6'),
-      title: 'Hydration Check-in #6 (Post-Commute Refuel)',
+      title: 'Hydration Refuel',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Evening Transition & Fitness',
@@ -1317,8 +1317,8 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
     tasks.push({
       id: makeId('eve_fitness'),
       title: eveningActivities.includes('fitness')
-        ? 'Physical Training & Kinetic Workout (E)'
-        : 'Evening Kinetic Stroll & Movement Reset (E)',
+        ? 'Evening Workout (E)'
+        : 'Evening Walk (E)',
       startTime: minutesToTime(currentPointer),
       durationMinutes: fitnessDur,
       category: 'Evening Transition & Fitness',
@@ -1331,7 +1331,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_social'),
-      title: 'Dinner & Mindful Social Connection Time',
+      title: 'Dinner',
       startTime: minutesToTime(currentPointer),
       durationMinutes: dinnerDur,
       category: 'Evening Transition & Fitness',
@@ -1350,20 +1350,20 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const netGrowthMins = Math.max(40, growthTimeAvailable - 2); // 2m for hyd_7
 
   // Determine study title based on user preference
-  let studyBlockTitle = 'Evening Intellectual Sprint & Focus Block';
+  let studyBlockTitle = 'Evening Focus';
   if (answers.studyOrResearchPreference === 'late_afternoon') {
-    studyBlockTitle = 'Deep Research & Focused Intellectual Sprint';
+    studyBlockTitle = 'Deep Research';
   } else if (answers.studyOrResearchPreference === 'split_blocks') {
-    studyBlockTitle = 'Evening Synthesis & Deep Study Sprint (Phase 2)';
+    studyBlockTitle = 'Evening Study';
   } else if (answers.studyOrResearchPreference === 'night_owl') {
-    studyBlockTitle = 'Night Owl Focus Sprint & Deep Work';
+    studyBlockTitle = 'Night Study';
   }
 
   // Determine creative title
-  let creativeTitle = 'Skill-Building Sprint & Tech Upskilling';
+  let creativeTitle = 'Skill Building';
   let creativeIcon = 'Code';
   if (eveningActivities.includes('creative_hobby')) {
-    creativeTitle = 'Creative Hobby & Passion Project Exploration';
+    creativeTitle = 'Creative Hobby';
     creativeIcon = 'Palette';
   } else if (profEveningTasks.length > 0) {
     creativeTitle = profEveningTasks[0].name;
@@ -1385,7 +1385,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('study_pm_1'),
-      title: 'Night Owl Focus Sprint (Phase 1: Deep Theory)',
+      title: 'Night Study 1',
       startTime: minutesToTime(currentPointer),
       durationMinutes: studyP1,
       category: 'Evening Growth & Creative',
@@ -1397,7 +1397,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('study_pm_2'),
-      title: 'Night Owl Focus Sprint (Phase 2: Execution)',
+      title: 'Night Study 2',
       startTime: minutesToTime(currentPointer),
       durationMinutes: studyP2,
       category: 'Evening Growth & Creative',
@@ -1421,7 +1421,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_relax'),
-      title: 'Restorative Leisure & Stress Decompression',
+      title: 'Rest & Leisure',
       startTime: minutesToTime(currentPointer),
       durationMinutes: leisure,
       category: 'Evening Growth & Creative',
@@ -1433,7 +1433,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_sunset'),
-      title: "Digital Sunset & Tomorrow's Priority Architecture",
+      title: 'Digital Sunset',
       startTime: minutesToTime(currentPointer),
       durationMinutes: sunset,
       category: 'Evening Growth & Creative',
@@ -1445,7 +1445,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_7'),
-      title: 'Hydration Check-in #7 (Evening Water Glass)',
+      title: 'Evening Hydration',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Evening Growth & Creative',
@@ -1467,7 +1467,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('study_pm'),
-      title: isCollege ? 'Evening Intellectual Focus & Coursework' : studyBlockTitle,
+      title: isCollege ? 'Coursework' : studyBlockTitle,
       startTime: minutesToTime(currentPointer),
       durationMinutes: sDur,
       category: 'Evening Growth & Creative',
@@ -1479,7 +1479,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_stroll'),
-      title: 'Post-Dinner Fresh Air Stroll & Social Connection',
+      title: 'Post-Dinner Stroll',
       startTime: minutesToTime(currentPointer),
       durationMinutes: strollDur,
       category: 'Evening Growth & Creative',
@@ -1491,7 +1491,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_creative'),
-      title: isCollege ? 'Creative Project & Skill Synthesis Sprint' : creativeTitle,
+      title: isCollege ? 'Creative Project' : creativeTitle,
       startTime: minutesToTime(currentPointer),
       durationMinutes: cDur,
       category: 'Evening Growth & Creative',
@@ -1503,7 +1503,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_relax'),
-      title: 'Restorative Leisure & Stress Decompression',
+      title: 'Rest & Leisure',
       startTime: minutesToTime(currentPointer),
       durationMinutes: lDur,
       category: 'Evening Growth & Creative',
@@ -1515,7 +1515,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('eve_sunset'),
-      title: "Digital Sunset & Tomorrow's Priority Architecture",
+      title: 'Digital Sunset',
       startTime: minutesToTime(currentPointer),
       durationMinutes: sunsetDur,
       category: 'Evening Growth & Creative',
@@ -1527,7 +1527,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
 
     tasks.push({
       id: makeId('hyd_7'),
-      title: 'Hydration Check-in #7 (Evening Water Glass)',
+      title: 'Evening Hydration',
       startTime: minutesToTime(currentPointer),
       durationMinutes: 2,
       category: 'Evening Growth & Creative',
@@ -1550,8 +1550,8 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   tasks.push({
     id: makeId('mov_rest_m'),
     title: answers.moversWrapperMode === 'evening_restorer'
-      ? 'Deep Meditation & Parasympathetic Breathwork (M+O)'
-      : 'Mindful Evening Decompression & Breathwork',
+      ? 'Night Meditation (M)'
+      : 'Breathwork',
     startTime: minutesToTime(currentPointer),
     durationMinutes: mDur,
     category: 'Night Restoration & Sleep',
@@ -1566,7 +1566,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const rDur = answers.moversWrapperMode === 'evening_restorer' ? 16 : 13;
   tasks.push({
     id: makeId('mov_r'),
-    title: 'Positive Reading & Intellectual Intake (R)',
+    title: 'Reading (R)',
     startTime: minutesToTime(currentPointer),
     durationMinutes: rDur,
     category: 'Night Restoration & Sleep',
@@ -1581,7 +1581,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const sDur = answers.moversWrapperMode === 'evening_restorer' ? 10 : 10;
   tasks.push({
     id: makeId('mov_s'),
-    title: 'Scribing & Daily Reflection Journaling (S)',
+    title: 'Journaling (S)',
     startTime: minutesToTime(currentPointer),
     durationMinutes: sDur,
     category: 'Night Restoration & Sleep',
@@ -1596,7 +1596,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   const bedDur = answers.moversWrapperMode === 'evening_restorer' ? 10 : 5;
   tasks.push({
     id: makeId('night_bed'),
-    title: 'Night Desk Tidy & Sleep Sanctuary Setup',
+    title: 'Make Bed & Tidy',
     startTime: minutesToTime(currentPointer),
     durationMinutes: bedDur,
     category: 'Night Restoration & Sleep',
@@ -1610,7 +1610,7 @@ function buildDeterministicSchedule(answers: RoutineTuningAnswers): DMRoutineTas
   // Task 5: Hydration #8 (Pre-Sleep Sip)
   tasks.push({
     id: makeId('hyd_8'),
-    title: 'Hydration Check-in #8 (Pre-Sleep Sip)',
+    title: 'Night Hydration',
     startTime: minutesToTime(currentPointer),
     durationMinutes: 2,
     category: 'Night Restoration & Sleep',
