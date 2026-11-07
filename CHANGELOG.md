@@ -19,6 +19,9 @@ All notable changes to the DeadlinesMet (Slake) ecosystem will be documented in 
   - Replaced legacy `🌅` and `🌙` emojis with clean, themed Lucide `Sun` and `Moon` icons across the MOVERS template selectors and routine tuner blocks for consistent design language.
 - **Session Completion Modal Theme Styling (`TimerDisplay.tsx`):**
   - Replaced discordant generic red and green buttons with theme-aligned controls in the "Session Over!" dialog: styled "No" with clean outline `rounded-2xl` and "Yes!" with primary amber/gold `bg-primary hover:bg-primary/90 rounded-2xl shadow-md`.
+- **Restored Immersive Header Stacking on Mobile (`DynamicHeader.tsx`, `app/page.tsx`):**
+  - Restored header height (`h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[30rem]`) and responsive negative overlap margins (`-mt-24 sm:-mt-28 md:-mt-32 lg:-mt-40`) on mobile.
+  - Ensures the "Quick Start Tasks" card and title stack directly on top of the dynamic sky/header background identically to the intended desktop view.
 - **Card Height & Vertical Clearance Optimization (`TaskForm.tsx`):**
   - Increased preset card height from `h-[280px]` to `h-[310px] sm:h-[320px]` (and matched skeleton).
   - Eliminates vertical clipping on the 3rd task item and provides comfortable breathing room above the "+ Add Task" button.

@@ -189,7 +189,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
     const WeatherIcon = weatherData ? getWeatherIcon(weatherData.code, isNight) : Cloud;
 
     return (
-        <div className="relative w-full h-[17rem] sm:h-[19rem] md:h-[21rem] lg:h-[24rem] min-h-[250px]">
+        <div className="relative w-full h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[30rem] min-h-[320px]">
              <div className="absolute inset-0 overflow-hidden border-b border-border/20">
                  {isClient ? (
                      <div className={cn("absolute inset-0 bg-gradient-to-b transition-all duration-3000 ease-in-out", skyClass)}>
@@ -233,7 +233,7 @@ export default function DynamicHeader({ currentDate }: DynamicHeaderProps) {
             </div>
 
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px]">
-                <div className="w-full flex h-full flex-col justify-start gap-y-3.5 sm:gap-y-5 px-6 sm:px-10 md:px-14 lg:px-16 xl:px-20 pt-4 sm:pt-5 pb-16 sm:pb-20 lg:pb-24">
+                <div className="w-full flex h-full flex-col justify-start gap-y-6 sm:gap-y-8 px-6 sm:px-10 md:px-14 lg:px-16 xl:px-20 pt-4 sm:pt-6 md:pt-8 pb-24 sm:pb-32 lg:pb-40">
                      <div className="flex justify-between items-start text-white w-full">
                          <div className="space-y-1">
                             <h1 className="text-2xl font-bold font-headline text-white tracking-tight" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>DeadlinesMet</h1>
