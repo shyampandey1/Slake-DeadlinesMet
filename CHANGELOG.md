@@ -4,6 +4,16 @@ All notable changes to the DeadlinesMet (Slake) ecosystem will be documented in 
 
 ## [2.7.2] - 2026-11-07
 
+### Technical Debt, Performance & Bundle Sweep
+- **Dynamic CJS `require()` Removal (`reformers/page.tsx`):**
+  - Replaced inline `require("firebase/firestore")` inside the follower count listener hook with top-level static ES6 imports, eliminating redundant module evaluation and improving Turbopack bundler optimization.
+- **Production Console Log Sanitization (`reformers/page.tsx`, `ServiceWorkerRegistrar.tsx`, `useAuth.tsx`, `useFCM.ts`, `useProfile.tsx`, `fcm.ts`, `jevClient.ts`):**
+  - Cleaned up unminified `console.log` statements across auth, service worker, profile synchronization, JEV LLM metrics, and notification registration.
+- **Client-Side ML Runtime Code-Splitting (`clientEmbedder.ts`):**
+  - Converted static `@huggingface/transformers` import into a dynamic lazy `await import('@huggingface/transformers')` within `getExtractor()`, reducing critical initial bundle size by preventing premature loading of WebAssembly/ONNX models.
+- **Unused Dependency Pruning (`package.json`):**
+  - Removed unused `tone` dependency (audio synthesized via native Web Audio API oscillators and Howler.js).
+
 ### UX & Accessibility Fixes
 - **Radix ScrollArea Viewport Block Wrapper (`scroll-area.tsx`):**
   - Added `[&>div]:!block` to `ScrollAreaPrimitive.Viewport` to eliminate Radix's default `display: table !important; min-width: 100%` wrapper behavior.

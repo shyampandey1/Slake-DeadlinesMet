@@ -17,7 +17,7 @@ export default function ServiceWorkerRegistrar() {
     // 1. Instantly register Service Worker to handle incoming pushes
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js")
-        .then((reg) => { console.log("Service Worker formally registered."); reg.update().catch(() => {}); })
+        .then((reg) => { reg.update().catch(() => {}); })
         .catch(console.error);
     }
 
@@ -71,7 +71,7 @@ export default function ServiceWorkerRegistrar() {
         setPermissionState(Notification.permission);
       }
       if (token) {
-        console.log("We now have permission to push timer URLs via Service Worker and got FCM token!");
+        // Token received successfully
       }
     } catch (e) {
       console.warn("Notification request failed in this PWA environment", e);

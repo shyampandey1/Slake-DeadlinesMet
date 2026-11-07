@@ -174,8 +174,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             
             // If the version is outdated, we clear existing tasks and reset to the new template
             if (Number(currentVersion) < ROUTINE_TEMPLATE_VERSION) {
-                console.log(`Updating ${prof} routine from v${currentVersion} to v${ROUTINE_TEMPLATE_VERSION}`);
-                
                 const tasksQuery = query(tasksCollectionRef, where('profession', '==', prof));
                 const tasksSnapshot = await getDocs(tasksQuery);
                 

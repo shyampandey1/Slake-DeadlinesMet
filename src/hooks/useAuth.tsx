@@ -127,13 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribe: () => void;
     try {
-      // Ensure analytics is initialized
-      analytics.then(instance => {
-        if (instance) {
-          console.log("Firebase Analytics initialized");
-        }
-      });
-
       unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
         if (firebaseUser) {
           setUser(firebaseUser);

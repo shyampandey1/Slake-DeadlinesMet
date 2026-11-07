@@ -34,7 +34,6 @@ export const requestFirebaseNotificationPermission = async (userId: string) => {
           fcmToken: token,
           fcmTokens: arrayUnion(token),
         });
-        console.log("FCM Token registered and synchronized:", token);
         return token;
       }
     }

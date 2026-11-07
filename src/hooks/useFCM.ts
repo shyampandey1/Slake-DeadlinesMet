@@ -29,10 +29,7 @@ export function useFCM() {
             await updateDoc(userRef, {
               fcmTokens: arrayUnion(token)
             });
-            console.log("FCM Token generated and saved.");
           }
-        } else {
-          console.log("Notification permission not granted.");
         }
       } catch (error) {
         console.error("An error occurred while retrieving token. ", error);
@@ -46,8 +43,7 @@ export function useFCM() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       try {
         const messaging = getMessaging(app);
-        const unsubscribe = onMessage(messaging, (payload) => {
-          console.log('Message received. ', payload);
+        const unsubscribe = onMessage(messaging, () => {
           // Do not trigger system push if app is open
         });
         return () => unsubscribe();

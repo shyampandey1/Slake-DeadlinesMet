@@ -580,7 +580,6 @@ function ReformersPageContent() {
     useEffect(() => {
         if (selectedUser?.id && !chatMode) {
             try {
-                const { collection, onSnapshot } = require("firebase/firestore");
                 const follRef = collection(db, "users", selectedUser.id, "user_followers");
                 const followingRef = collection(db, "users", selectedUser.id, "user_following");
                 
@@ -1143,7 +1142,6 @@ function ReformersPageContent() {
                     // AUTO-LINK DEADLOCK FIX: 
                     // If I have requested them AND they have requested me, just link us NOW.
                     if (data.pendingCoWorkerId === user.uid && profileData?.pendingCoWorkerId === selectedUser.id) {
-                        console.log("Mutual request detected - auto-linking...");
                         handleAcceptCoWorker(selectedUser.id);
                     }
                 }

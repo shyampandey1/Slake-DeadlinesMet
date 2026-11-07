@@ -155,11 +155,6 @@ export async function callTypeSafeSystemOne(
     }
 
     const data: TypeSafeSystemOneResponse = await response.json();
-    if (data?.usage) {
-      console.log(
-        `[JEV TypeSafe] Request processed successfully by model ${data.model}. Usage: ${data.usage.input_tokens} input tokens, ${data.usage.output_tokens} output tokens.`
-      );
-    }
     return data;
   } catch (error: any) {
     if (error?.name === 'AbortError') {

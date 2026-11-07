@@ -1,13 +1,5 @@
 "use client";
 
-import { pipeline, env } from '@huggingface/transformers';
-
-// Configure @huggingface/transformers to cache weights in browser IndexedDB and never look for local filesystem models
-if (typeof window !== 'undefined') {
-  env.useBrowserCache = true;
-  env.allowLocalModels = false;
-}
-
 export type EmbeddingVector = number[];
 
 const PRIMARY_WEBGPU_MODEL = 'google/embeddinggemma-300m';
@@ -53,6 +45,13 @@ class ClientEmbedderSingleton {
     }
 
     this.extractorPromise = (async () => {
+      // Dynamically import @huggingface/transformers so ONNX/WASM runtime is never in initial bundle
+      const { pipeline, env } = await import('@huggingface/transformers');
+      if (typeof window !== 'undefined') {
+        env.useBrowserCache = true;
+        env.allowLocalModels = false;
+      }
+
       const webgpuSupported = await this.hasWebGPU();
 
       if (webgpuSupported) {
