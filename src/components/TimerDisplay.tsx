@@ -2270,14 +2270,14 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
           </AlertDialogHeader>
           <AlertDialogFooter>
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 w-full mt-2">
-              <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700 h-11 sm:h-12 text-sm sm:text-base font-bold rounded-xl"
+              <AlertDialogCancel
+                className="mt-0 h-11 sm:h-12 text-sm sm:text-base font-semibold rounded-2xl border-border/70 hover:bg-card/80 text-muted-foreground hover:text-foreground transition-all"
                 onClick={() => handleSaveTask(false)}
               >
                 No
-              </AlertDialogAction>
+              </AlertDialogCancel>
               <AlertDialogAction
-                className="bg-green-600 hover:bg-green-700 h-11 sm:h-12 text-sm sm:text-base font-bold rounded-xl"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 sm:h-12 text-sm sm:text-base font-bold rounded-2xl shadow-md shadow-primary/20 transition-all active:scale-95"
                 onClick={() => handleSaveTask(true)}
               >
                 Yes!
