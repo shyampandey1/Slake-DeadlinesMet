@@ -150,10 +150,19 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   const [timeRemaining, setTimeRemaining] = useState(() => {
     if (typeof window !== 'undefined' && !forceRestart) {
       try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const secondsParam = urlParams.get('seconds');
+        if (secondsParam && !isNaN(parseFloat(secondsParam))) {
+          const parsedSeconds = Math.round(parseFloat(secondsParam));
+          if (parsedSeconds > 0) {
+            return parsedSeconds;
+          }
+        }
+
         const stored = localStorage.getItem('deadlinesmet_active_timer');
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed && parsed.taskName === taskName) {
+          if (parsed && (parsed.taskName || "").toLowerCase().trim() === taskName.toLowerCase().trim()) {
             if (parsed.isPaused && parsed.timeLeftWhenPaused !== undefined) {
               return parsed.timeLeftWhenPaused;
             }
@@ -501,6 +510,19 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       expectedEndTimeRef.current = newEndTime;
     }
 
+    if (currentTaskIdRef.current) {
+      const totalSeconds = Math.max(60, Math.round(effectiveDuration * 60));
+      const timeSpentInSeconds = Math.max(0, totalSeconds - timeRemainingRef.current);
+      const elapsedMinutes = Math.max(0, Math.floor(timeSpentInSeconds / 60));
+      updateTask(currentTaskIdRef.current, {
+        duration: elapsedMinutes,
+        status: 'in_progress',
+        remainingSeconds: timeRemainingRef.current,
+        timeLeftWhenPaused: nextPaused ? timeRemainingRef.current : undefined,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
     updateUserProfileData({
       activeSession: {
         taskName,
@@ -544,7 +566,8 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     updateUserProfileData,
     updateSession,
     cancelScheduledNotification,
-    showCompletionNotification
+    showCompletionNotification,
+    updateTask
   ]);
 
   const handleSkipTask = useCallback(() => {
@@ -829,6 +852,8 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       updateTask(activeId, {
         duration: elapsedMinutes,
         status: 'in_progress',
+        remainingSeconds: timeRemainingRef.current,
+        timeLeftWhenPaused: isPaused ? timeRemainingRef.current : undefined,
         updatedAt: new Date().toISOString()
       });
     };
@@ -1103,32 +1128,70 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
                 : (activeTimer.expectedEndTime && activeTimer.expectedEndTime <= Date.now())
             );
 
-            if (forceRestart || !activeTimer || activeTimer.taskName !== taskName || activeCoOpSessionId !== targetCoOpSessionId || isExpired) {
-              const seconds = Math.round(effectiveDuration * 60);
+            const isMatchingTask = Boolean(
+              activeTimer &&
+              (activeTimer.taskName || "").toLowerCase().trim() === taskName.toLowerCase().trim() &&
+              activeCoOpSessionId === targetCoOpSessionId &&
+              !isExpired
+            );
+
+            if (forceRestart || !isMatchingTask) {
+              // Check if URL specified exact remaining seconds (e.g. from resume) or if there is an in-progress Firestore task with stored remaining seconds
+              let initialRemainingSeconds = Math.round(effectiveDuration * 60);
+              let shouldStartPaused = false;
+              if (typeof window !== 'undefined') {
+                const urlParams = new URLSearchParams(window.location.search);
+                const secondsParam = urlParams.get('seconds');
+                if (secondsParam && !isNaN(parseFloat(secondsParam))) {
+                  const parsedSec = Math.round(parseFloat(secondsParam));
+                  if (parsedSec > 0) {
+                    initialRemainingSeconds = parsedSec;
+                    shouldStartPaused = true;
+                  }
+                }
+              }
+
+              // Check existing in-progress task from Firestore
+              const existingInProgress = tasks.find(
+                t => t.status === 'in_progress' && (t.name || "").toLowerCase().trim() === taskName.toLowerCase().trim()
+              );
+              if (existingInProgress) {
+                currentTaskIdRef.current = existingInProgress.id;
+                const savedSec = existingInProgress.timeLeftWhenPaused ?? existingInProgress.remainingSeconds;
+                if (savedSec !== undefined && savedSec > 0) {
+                  initialRemainingSeconds = savedSec;
+                  shouldStartPaused = true;
+                }
+              }
+
               const computedEndTime = (expectedEndTime && expectedEndTime > Date.now())
                 ? expectedEndTime
-                : (Date.now() + seconds * 1000);
-              const initialRemaining = Math.max(1, Math.round((computedEndTime - Date.now()) / 1000));
+                : (Date.now() + initialRemainingSeconds * 1000);
+              const initialRemaining = Math.max(1, shouldStartPaused ? initialRemainingSeconds : Math.round((computedEndTime - Date.now()) / 1000));
 
               timeRemainingRef.current = initialRemaining;
-              expectedEndTimeRef.current = computedEndTime;
+              expectedEndTimeRef.current = shouldStartPaused ? null : computedEndTime;
 
               const finalCat = getTaskCategoryDetails(taskName, profileData?.profile || "General").mainCategory;
-              addTask({
-                name: taskName,
-                duration: 0,
-                initialDuration: effectiveDuration,
-                completed: false,
-                status: 'in_progress',
-                category: finalCat,
-                startedAt: new Date().toISOString(),
-                activeSessionId: targetCoOpSessionId,
-              }).then((newId) => {
-                if (newId) {
-                  currentTaskIdRef.current = newId;
-                  updateTimer({ taskId: newId });
-                }
-              }).catch(console.error);
+              if (!currentTaskIdRef.current) {
+                addTask({
+                  name: taskName,
+                  duration: 0,
+                  initialDuration: effectiveDuration,
+                  completed: false,
+                  status: 'in_progress',
+                  category: finalCat,
+                  startedAt: new Date().toISOString(),
+                  activeSessionId: targetCoOpSessionId,
+                  remainingSeconds: initialRemaining,
+                  timeLeftWhenPaused: shouldStartPaused ? initialRemaining : undefined
+                }).then((newId) => {
+                  if (newId) {
+                    currentTaskIdRef.current = newId;
+                    updateTimer({ taskId: newId });
+                  }
+                }).catch(console.error);
+              }
 
               startTimer({
                 taskName,
@@ -1136,12 +1199,20 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
                 category,
                 color,
                 expectedEndTime: computedEndTime,
-                coOpSessionId: targetCoOpSessionId
+                coOpSessionId: targetCoOpSessionId,
+                taskId: currentTaskIdRef.current || undefined
               });
+
+              if (shouldStartPaused) {
+                updateTimer({ isPaused: true, timeLeftWhenPaused: initialRemaining }, initialRemaining);
+              }
+
               setTimeRemaining(initialRemaining);
-              setIsPaused(false);
+              setIsPaused(shouldStartPaused);
               setIsFinished(false);
-              showCompletionNotification(true); // Schedule it!
+              if (!shouldStartPaused) {
+                showCompletionNotification(true); // Schedule it!
+              }
 
               updateUserProfileData({
                 currentTaskStatus: taskName,
@@ -1150,21 +1221,21 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
                   taskName,
                   duration: effectiveDuration,
                   expectedEndTime: computedEndTime,
-                  isPaused: false,
+                  isPaused: shouldStartPaused,
                   category: category || "",
                   color: color || "",
                   coOpSessionId: targetCoOpSessionId || "",
-                  timeLeftWhenPaused: null
+                  timeLeftWhenPaused: shouldStartPaused ? initialRemaining : null
                 }
               });
 
               if (targetCoOpSessionId) {
                 updateSession({
-                  status: "running",
-                  isPaused: false,
+                  status: shouldStartPaused ? "paused" : "running",
+                  isPaused: shouldStartPaused,
                   startTime: Date.now(),
                   expectedEndTime: computedEndTime,
-                  timeLeftWhenPaused: null
+                  timeLeftWhenPaused: shouldStartPaused ? initialRemaining : null
                 });
               }
             } else {
@@ -1172,7 +1243,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
               if (activeTimer.taskId) {
                 currentTaskIdRef.current = activeTimer.taskId;
               } else {
-                const existingInProgress = tasks.find(t => t.status === 'in_progress' && t.name.toLowerCase() === taskName.toLowerCase());
+                const existingInProgress = tasks.find(t => t.status === 'in_progress' && (t.name || "").toLowerCase().trim() === taskName.toLowerCase().trim());
                 if (existingInProgress) {
                   currentTaskIdRef.current = existingInProgress.id;
                   updateTimer({ taskId: existingInProgress.id });

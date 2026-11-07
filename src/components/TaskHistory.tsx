@@ -45,6 +45,23 @@ function formatDuration(minutes: number): string {
     return `${minutes}m`;
 }
 
+function formatTaskProgress(task: Task): string {
+    const totalSec = Math.max(60, (task.initialDuration || 0) * 60);
+    const remSec = task.timeLeftWhenPaused ?? task.remainingSeconds;
+    
+    if (remSec !== undefined && remSec >= 0) {
+        const elapsedSec = Math.max(0, totalSec - remSec);
+        if (elapsedSec < 60) {
+            return `${elapsedSec}s`;
+        }
+        const elapsedMin = Math.floor(elapsedSec / 60);
+        const extraSec = elapsedSec % 60;
+        return extraSec > 0 ? `${elapsedMin}m ${extraSec}s` : `${elapsedMin}m`;
+    }
+    
+    return formatDuration(task.duration);
+}
+
 const getCategoryIcon = (category?: string) => {
     const cat = category || 'Default';
     switch (cat) {
@@ -165,16 +182,39 @@ function TaskLogBookContent() {
     const handleTaskClick = (task: Task) => {
         if (!task.completed) {
             if (activeTimer && activeTimer.taskName.toLowerCase() === task.name.toLowerCase()) {
-                router.push(`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}&color=${activeTimer.color || ''}`);
+                const params = new URLSearchParams({
+                    task: activeTimer.taskName,
+                    duration: activeTimer.initialDuration.toString(),
+                });
+                if (activeTimer.category) params.set("category", activeTimer.category);
+                if (activeTimer.color) params.set("color", activeTimer.color);
+                if (activeTimer.coOpSessionId) params.set("coOpSessionId", activeTimer.coOpSessionId);
+                if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
+                    params.set("seconds", activeTimer.timeLeftWhenPaused.toString());
+                } else if (!activeTimer.isPaused && activeTimer.expectedEndTime) {
+                    const remSec = Math.max(1, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
+                    params.set("seconds", remSec.toString());
+                    params.set("expectedEndTime", activeTimer.expectedEndTime.toString());
+                }
+                router.push(`/timer?${params.toString()}`);
                 return;
             }
-            const remainingDuration = task.initialDuration - task.duration;
+
+            const remSec = task.timeLeftWhenPaused ?? task.remainingSeconds;
             const params = new URLSearchParams({
                 task: task.name,
-                duration: Math.max(1, remainingDuration).toString(),
             });
+
+            if (remSec !== undefined && remSec > 0) {
+                params.set("seconds", remSec.toString());
+                params.set("duration", (remSec / 60).toString());
+            } else {
+                const remainingDuration = task.initialDuration - task.duration;
+                params.set("duration", Math.max(1, remainingDuration).toString());
+            }
+
             if (task.category) {
-                params.append("category", task.category);
+                params.set("category", task.category);
             }
             router.push(`/timer?${params.toString()}`);
         }
@@ -260,6 +300,24 @@ function TaskLogBookContent() {
             return Math.max(0, Math.floor((initialSec - remainingSec) / 60));
         }
         return 0;
+    }, [activeTimer]);
+
+    const activeProgressLabel = useMemo(() => {
+        if (!activeTimer) return "0m";
+        const initialSec = (activeTimer.initialDuration || 0) * 60;
+        let elapsedSec = 0;
+        if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
+            elapsedSec = Math.max(0, initialSec - activeTimer.timeLeftWhenPaused);
+        } else if (activeTimer.expectedEndTime) {
+            const remainingSec = Math.max(0, (activeTimer.expectedEndTime - Date.now()) / 1000);
+            elapsedSec = Math.max(0, initialSec - remainingSec);
+        }
+        if (elapsedSec < 60) {
+            return `${Math.round(elapsedSec)}s`;
+        }
+        const min = Math.floor(elapsedSec / 60);
+        const sec = Math.round(elapsedSec % 60);
+        return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
     }, [activeTimer]);
 
     const categoryData = useMemo(() => {
@@ -1207,14 +1265,28 @@ function TaskLogBookContent() {
                                                 </div>
                                                 <p className="font-bold text-foreground truncate">{activeTimer.taskName}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Progress: {formatDuration(activeElapsedMinutes)} focused / {formatDuration(activeTimer.initialDuration)} planned
+                                                    Progress: {activeProgressLabel} focused / {formatDuration(activeTimer.initialDuration)} planned
                                                 </p>
                                             </div>
                                             <div className="flex-shrink-0">
                                                 <Button 
                                                     size="sm" 
                                                     onClick={() => {
-                                                        router.push(`/timer?task=${encodeURIComponent(activeTimer.taskName)}&duration=${activeTimer.initialDuration}&category=${activeTimer.category || ''}&color=${activeTimer.color || ''}`);
+                                                        const params = new URLSearchParams({
+                                                            task: activeTimer.taskName,
+                                                            duration: activeTimer.initialDuration.toString(),
+                                                        });
+                                                        if (activeTimer.category) params.set("category", activeTimer.category);
+                                                        if (activeTimer.color) params.set("color", activeTimer.color);
+                                                        if (activeTimer.coOpSessionId) params.set("coOpSessionId", activeTimer.coOpSessionId);
+                                                        if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
+                                                            params.set("seconds", activeTimer.timeLeftWhenPaused.toString());
+                                                        } else if (!activeTimer.isPaused && activeTimer.expectedEndTime) {
+                                                            const remSec = Math.max(1, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
+                                                            params.set("seconds", remSec.toString());
+                                                            params.set("expectedEndTime", activeTimer.expectedEndTime.toString());
+                                                        }
+                                                        router.push(`/timer?${params.toString()}`);
                                                     }} 
                                                     className="h-auto py-1.5 px-3 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-sm transition-all active:scale-95"
                                                 >
@@ -1232,14 +1304,14 @@ function TaskLogBookContent() {
                                                 {groupedTasks[day].map((task) => (
                                                     <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card border border-border shadow-sm hover:border-primary/30 transition-colors">
                                                         <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                                                            {/* Visual Category Icon Container */}
+                                                             {/* Visual Category Icon Container */}
                                                             <div className="p-2 rounded-xl bg-muted/60 border border-border flex-shrink-0 flex items-center justify-center">
                                                                 {getCategoryIcon(task.category)}
                                                             </div>
                                                             <div className="flex-1 min-w-0 text-left">
                                                                 <p className="font-semibold block truncate text-foreground text-sm sm:text-base">{task.name}</p>
                                                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                                                    Time spent: {formatDuration(task.duration)}
+                                                                    Time spent: {formatTaskProgress(task)}
                                                                     {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
                                                                     {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
                                                                 </p>

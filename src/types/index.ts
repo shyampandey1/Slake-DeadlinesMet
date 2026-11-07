@@ -22,6 +22,8 @@ export type Task = {
     updatedAt?: any;
     activeSessionId?: string;
     completedAt?: any;
+    remainingSeconds?: number;
+    timeLeftWhenPaused?: number;
 };
 
 export type MockUser = {
@@ -59,6 +61,8 @@ export type UserPresetTask = PresetTask & {
     updatedAt?: any;
     activeSessionId?: string;
     completedAt?: any;
+    remainingSeconds?: number;
+    timeLeftWhenPaused?: number;
 };
 
 

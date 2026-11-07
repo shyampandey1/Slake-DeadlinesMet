@@ -163,7 +163,13 @@ export default function FloatingTimer() {
     if (activeTimer.category) params.set("category", activeTimer.category);
     if (activeTimer.color) params.set("color", activeTimer.color);
     if (activeTimer.coOpSessionId) params.set("coOpSessionId", activeTimer.coOpSessionId);
-    if (activeTimer.expectedEndTime) params.set("expectedEndTime", activeTimer.expectedEndTime.toString());
+    if (activeTimer.isPaused && activeTimer.timeLeftWhenPaused !== undefined) {
+      params.set("seconds", activeTimer.timeLeftWhenPaused.toString());
+    } else if (activeTimer.expectedEndTime) {
+      params.set("expectedEndTime", activeTimer.expectedEndTime.toString());
+      const remSec = Math.max(1, Math.round((activeTimer.expectedEndTime - Date.now()) / 1000));
+      params.set("seconds", remSec.toString());
+    }
 
     router.push(`/timer?${params.toString()}`);
   };
