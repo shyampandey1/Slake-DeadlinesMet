@@ -794,7 +794,10 @@ function RoutinePageComponent() {
                           : "hover:border-emerald-500/50"
                       )}
                     >
-                      <span className="font-bold flex items-center gap-1.5">🌅 The Morning Primer</span>
+                      <span className="font-bold flex items-center gap-2">
+                        <Sun className="w-4 h-4 shrink-0 text-amber-400" />
+                        The Morning Primer
+                      </span>
                       <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
                         (M+O+V+E) before core work; (R+S) at day's end with 8 hydration reminders & visual breaks.
                       </span>
@@ -809,7 +812,10 @@ function RoutinePageComponent() {
                           : "hover:border-indigo-500/50"
                       )}
                     >
-                      <span className="font-bold flex items-center gap-1.5">🌙 The Evening Restorer</span>
+                      <span className="font-bold flex items-center gap-2">
+                        <Moon className="w-4 h-4 shrink-0 text-indigo-300" />
+                        The Evening Restorer
+                      </span>
                       <span className="text-xs opacity-85 whitespace-normal break-words leading-relaxed w-full">
                         (E) at wake-up; (M+O+V+R+S) in a consolidated recovery block before sleep with 8 hydration reminders & visual breaks.
                       </span>
@@ -915,14 +921,16 @@ function RoutinePageComponent() {
                                     <ContextMenuTrigger disabled={isDefaultTask(task)}>
                                       <Button
                                         variant="outline"
-                                        className="w-full justify-between items-center gap-3 h-11 py-2 px-3.5 rounded-2xl border-border/70 hover:border-primary/50 bg-card/60 transition-all"
+                                        title={task.name}
+                                        aria-label={`Edit task ${task.name}, duration ${task.duration} minutes`}
+                                        className="w-full justify-between items-center gap-3 min-h-[44px] h-auto py-2.5 px-3.5 rounded-2xl border-border/70 hover:border-primary/50 bg-card/60 transition-all text-left"
                                         onClick={() => handleOpenDialog(task, category)}
                                       >
-                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1 py-0.5">
                                           <Icon name={task.icon} className="h-4 w-4 text-muted-foreground shrink-0" />
-                                          <p className="font-medium text-sm text-foreground truncate text-left flex-1 min-w-0">{task.name}</p>
+                                          <p className="font-medium text-xs sm:text-sm text-foreground line-clamp-2 break-words leading-tight sm:leading-snug text-left flex-1 min-w-0">{task.name}</p>
                                         </div>
-                                        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap shrink-0 ml-2">{task.duration} min</span>
+                                        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap shrink-0 ml-2 self-center">{task.duration} min</span>
                                       </Button>
 
                                     </ContextMenuTrigger>

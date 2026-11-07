@@ -2,6 +2,25 @@
 
 All notable changes to the DeadlinesMet (Slake) ecosystem will be documented in this file.
 
+## [2.7.2] - 2026-11-07
+
+### UX & Accessibility Fixes
+- **Radix ScrollArea Viewport Block Wrapper (`scroll-area.tsx`):**
+  - Added `[&>div]:!block` to `ScrollAreaPrimitive.Viewport` to eliminate Radix's default `display: table !important; min-width: 100%` wrapper behavior.
+  - Resolved issue where table expansion allowed flex child text to exceed parent bounds and push the Play button halfway off the right card boundary.
+- **Adaptive Multi-Line Task Title Wrapping (`TaskForm.tsx`, `routine/page.tsx`):**
+  - Replaced rigid single-line `truncate` and fixed `h-11` with adaptive `min-h-[44px] h-auto py-2 px-3 sm:px-3.5` and `line-clamp-2 break-words leading-tight sm:leading-snug`.
+  - Ensures multi-word task titles (e.g. "Evening Return Transit & Cognitive Decompression", "Hydration Check-in #6 (Post-Commute Refuel)") remain completely readable and visible on mobile screens.
+- **Play Button Visibility, Sizing & Alignment (`TaskForm.tsx`):**
+  - Guaranteed play button stays 100% visible inside the card container with `shrink-0 min-w-[40px] sm:min-w-[44px]`.
+  - Added optical center nudge `ml-0.5` on the `<Play />` icon for visual balance.
+  - Added explicit accessibility labels (`title` and `aria-label`) on both the task select button and the play trigger button.
+- **Modern Lucide Icons for MOVERS Template Switcher (`routine/page.tsx`, `RoutineTunerModal.tsx`):**
+  - Replaced legacy `🌅` and `🌙` emojis with clean, themed Lucide `Sun` and `Moon` icons across the MOVERS template selectors and routine tuner blocks for consistent design language.
+- **Card Height & Vertical Clearance Optimization (`TaskForm.tsx`):**
+  - Increased preset card height from `h-[280px]` to `h-[310px] sm:h-[320px]` (and matched skeleton).
+  - Eliminates vertical clipping on the 3rd task item and provides comfortable breathing room above the "+ Add Task" button.
+
 ## [2.7.1] - 2026-11-06
 
 ### Fixed & Enhanced Agent DM Voice Engine

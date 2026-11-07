@@ -907,7 +907,7 @@ export function RoutineTunerModal({
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm flex items-center gap-2 text-foreground">
-                        🌅 The Morning Primer
+                        <Sun className="w-4 h-4 shrink-0 text-amber-500" /> The Morning Primer
                       </span>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
                         Front-Loaded
@@ -932,7 +932,7 @@ export function RoutineTunerModal({
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm flex items-center gap-2 text-foreground">
-                        🌙 The Evening Restorer
+                        <Moon className="w-4 h-4 shrink-0 text-indigo-400" /> The Evening Restorer
                       </span>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold">
                         Back-Loaded Recovery
@@ -1112,14 +1112,14 @@ export function RoutineTunerModal({
                           return { name: cat, time: timeStr, count: tasksInCat.length };
                         })
                       : [
-                          { name: '🌅 Morning Activation & Primer', time: `${formatTo12h(answers.wakeUpTime)} → Breakfast`, count: 5 },
-                          { name: '🧭 Morning Transition & Prep', time: `Transit → ${formatTo12h(answers.workOrCollegeStart)}`, count: 3 },
-                          { name: '⚡ Deep Focus: Morning Sprint', time: `${formatTo12h(answers.workOrCollegeStart)} → Lunch`, count: 4 },
-                          { name: '🥗 Mid-Day Recovery & Lunch', time: formatTo12h(answers.lunchBreakTime), count: 3 },
-                          { name: '🚀 Afternoon Strategic Execution', time: `Post-Lunch → ${formatTo12h(answers.workOrCollegeEnd)}`, count: 4 },
-                          { name: '🌆 Evening Transition & Fitness', time: 'Workout → Dinner', count: 4 },
-                          { name: '📚 Evening Growth & Creative', time: 'Study → Wind-down', count: 4 },
-                          { name: '🌙 Night Restoration & Sleep', time: `Wind-down → ${formatTo12h(answers.sleepTime)}`, count: 5 },
+                          { name: 'Morning Activation & Primer', time: `${formatTo12h(answers.wakeUpTime)} → Breakfast`, count: 5 },
+                          { name: 'Morning Transition & Prep', time: `Transit → ${formatTo12h(answers.workOrCollegeStart)}`, count: 3 },
+                          { name: 'Deep Focus: Morning Sprint', time: `${formatTo12h(answers.workOrCollegeStart)} → Lunch`, count: 4 },
+                          { name: 'Mid-Day Recovery & Lunch', time: formatTo12h(answers.lunchBreakTime), count: 3 },
+                          { name: 'Afternoon Strategic Execution', time: `Post-Lunch → ${formatTo12h(answers.workOrCollegeEnd)}`, count: 4 },
+                          { name: 'Evening Transition & Fitness', time: 'Workout → Dinner', count: 4 },
+                          { name: 'Evening Growth & Creative', time: 'Study → Wind-down', count: 4 },
+                          { name: 'Night Restoration & Sleep', time: `Wind-down → ${formatTo12h(answers.sleepTime)}`, count: 5 },
                         ]
                     ).map((sec) => (
                       <div

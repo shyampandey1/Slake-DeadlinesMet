@@ -484,7 +484,7 @@ export default function TaskForm() {
 
   const renderSkeleton = () => (
     <div className="p-1">
-      <Card className="flex flex-col rounded-2xl h-[280px]">
+      <Card className="flex flex-col rounded-2xl h-[310px] sm:h-[320px]">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
           <div className="w-1/2 space-y-2">
             <Skeleton className="h-5 w-3/4" />
@@ -558,7 +558,7 @@ export default function TaskForm() {
                 return (
                   <CarouselItem key={category} className="basis-full">
                     <div className="p-1">
-                      <Card className={cn("overflow-hidden flex flex-col rounded-2xl h-[280px] border-border/70", isCurrent && "shadow-lg")}>
+                      <Card className={cn("overflow-hidden flex flex-col rounded-2xl h-[310px] sm:h-[320px] border-border/70", isCurrent && "shadow-lg")}>
                         <CardHeader className={cn("p-4 flex flex-row items-center justify-between gap-3 min-w-0", color)}>
                           <div className="min-w-0 flex-1">
                             <CardTitle className="font-headline text-lg truncate">{category}</CardTitle>
@@ -574,8 +574,8 @@ export default function TaskForm() {
                           </Badge>
                         </CardHeader>
                         <CardContent className="p-3 pt-3 flex-grow overflow-hidden">
-                          <ScrollArea className="h-full pr-3">
-                            <div className="space-y-2">
+                          <ScrollArea className="h-full w-full">
+                            <div className="space-y-2 pr-2.5">
                               {tasks.map((task: any, index: number) => {
                                 const Icon = iconMap[task.icon as string] || BrainCircuit;
                                 const isEventTask = task.isEvent;
@@ -585,7 +585,9 @@ export default function TaskForm() {
                                     <Button
                                       key={task.id || `${task.name}-${index}`}
                                       variant="outline"
-                                      className={cn("min-w-0 flex-1 justify-between items-center gap-2.5 h-11 py-2 px-3.5 rounded-2xl border-border/70 hover:border-primary/50 bg-card/60 transition-all",
+                                      title={task.name}
+                                      aria-label={`Select task: ${task.name}, duration ${formatDuration(task.duration)}`}
+                                      className={cn("min-w-0 flex-1 justify-between items-center gap-2.5 min-h-[44px] h-auto py-2 px-3 sm:px-3.5 rounded-2xl border-border/70 hover:border-primary/50 bg-card/60 transition-all text-left",
                                         {
                                           "bg-primary/20 hover:bg-primary/30 border-primary/50": isEventTask,
                                           "opacity-50 grayscale": isCompleted
@@ -593,17 +595,21 @@ export default function TaskForm() {
                                       onClick={() => selectQuickStartTask(task, category)}
                                       onDoubleClick={() => task.id && !isEventTask && !isDefaultTask(task) && handleOpenDialog(task, category)}
                                     >
-                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      <div className="flex items-center gap-2.5 min-w-0 flex-1 py-0.5">
                                         <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                                        <span className={cn("truncate text-left text-sm font-medium text-foreground", isCompleted && "line-through text-muted-foreground")}>{task.name}</span>
+                                        <span className={cn("text-left text-xs sm:text-sm font-medium text-foreground line-clamp-2 break-words leading-tight sm:leading-snug", isCompleted && "line-through text-muted-foreground")}>
+                                          {task.name}
+                                        </span>
                                       </div>
-                                      <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap shrink-0 ml-2">{formatDuration(task.duration)}</span>
+                                      <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap shrink-0 ml-2 self-center">{formatDuration(task.duration)}</span>
                                     </Button>
                                     {!isCompleted && (
                                       <Button 
                                         size="icon" 
                                         variant="secondary"
-                                        className="shrink-0 h-11 w-11 rounded-2xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 transition-all duration-200 active:scale-95 shadow-sm"
+                                        title={`Start ${task.name}`}
+                                        aria-label={`Start task: ${task.name}`}
+                                        className="shrink-0 h-10 w-10 sm:h-11 sm:w-11 min-w-[40px] sm:min-w-[44px] rounded-2xl bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground border border-primary/20 transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center self-center"
                                          onClick={async () => {
                                            let colorVal = undefined;
                                            const categoryData = mergedTasks[category];
@@ -643,7 +649,7 @@ export default function TaskForm() {
                                            });
                                          }}
                                       >
-                                        <Play className="w-4 h-4 fill-current" />
+                                        <Play className="w-4 h-4 fill-current ml-0.5" />
                                       </Button>
                                     )}
                                   </div>
