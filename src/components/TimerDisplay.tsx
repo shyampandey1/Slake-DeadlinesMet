@@ -83,6 +83,7 @@ interface TimerDisplayProps {
   expectedEndTime?: number;
   coOpSessionId?: string;
   forceRestart?: boolean;
+  autoStart?: boolean;
 }
 
 type FlashState = 'none' | 'breathing' | 'three-times' | 'continuous';
@@ -101,7 +102,7 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 };
 
 
-export default function TimerDisplay({ taskName: rawTaskName, initialDuration, category, color, expectedEndTime, coOpSessionId, forceRestart }: TimerDisplayProps) {
+export default function TimerDisplay({ taskName: rawTaskName, initialDuration, category, color, expectedEndTime, coOpSessionId, forceRestart, autoStart }: TimerDisplayProps) {
   const taskName = useMemo(() => {
     const cleaned = sanitizeSpeechTranscript(rawTaskName || "Focus Session");
     if (/^(?:drink(?:\s+a|\s+some)?(?:\s+glass\s+of)?\s+water|glass\s+of\s+water|hydrate)$/i.test(cleaned)) {
@@ -426,6 +427,13 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   }, []);
 
   const cancelScheduledNotification = useCallback(async () => {
+    if (user?.uid) {
+      fetch('/api/timer/schedule-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, clear: true })
+      }).catch(() => {});
+    }
     if (!('serviceWorker' in navigator)) return;
     if (navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'CANCEL_TIMER' });
@@ -435,7 +443,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
       const notifications = await registration.getNotifications({ tag: 'timer-done' });
       notifications.forEach(n => n.close());
     } catch (e) {}
-  }, []);
+  }, [user]);
 
   const showCompletionNotification = useCallback(async (isScheduled = false) => {
     if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
@@ -461,6 +469,18 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
           taskName: taskName,
           endTime: triggerTime
         });
+      }
+
+      if (user?.uid) {
+        fetch('/api/timer/schedule-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            taskName: taskName,
+            endTime: triggerTime
+          })
+        }).catch(err => console.warn('Failed to schedule backend timer notification:', err));
       }
 
       const isTriggerSupported = typeof window !== 'undefined' && 'Notification' in window && 'showTrigger' in Notification.prototype;
@@ -492,7 +512,7 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
     } catch (fallbackErr) {
       console.warn("Notification constructor fallback failed", fallbackErr);
     }
-  }, [taskName, offlineNotificationsEnabled]);
+  }, [taskName, offlineNotificationsEnabled, user]);
 
   const togglePause = useCallback((forceState?: boolean) => {
     const nextPaused = typeof forceState === 'boolean' ? forceState : !isPaused;
@@ -1162,6 +1182,10 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
                   initialRemainingSeconds = savedSec;
                   shouldStartPaused = true;
                 }
+              }
+
+              if (autoStart) {
+                shouldStartPaused = false;
               }
 
               const computedEndTime = (expectedEndTime && expectedEndTime > Date.now())

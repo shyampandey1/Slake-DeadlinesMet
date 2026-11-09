@@ -24,6 +24,9 @@ export default function ServiceWorkerRegistrar() {
     try {
       if ("Notification" in window) {
         setPermissionState(Notification.permission);
+        if (Notification.permission === "granted") {
+          requestPermissionAndToken().catch(() => {});
+        }
       }
     } catch (e) {
       console.warn("Notifications not supported in this PWA context");

@@ -192,7 +192,11 @@ export type UserProfile = {
         hydrationReminders: boolean;
         dailySummary: boolean;
         taskReminders?: boolean;
+        routineNudges?: boolean;
     };
+    lastRoutineBlockNotified?: string;
+    lastRoutineDate?: string;
+    lastRoutineNotifiedAt?: any;
     fcmTokens?: string[];
     lifestyleVector?: number[];
     hasSharedRoutine?: boolean;

@@ -60,6 +60,7 @@ export default function TimerPageContent() {
       expectedEndTime={expectedEndTime}
       coOpSessionId={coOpSessionId}
       forceRestart={forceRestart}
+      autoStart={autoStart}
     />
   );
 }

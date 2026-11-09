@@ -71,6 +71,7 @@ function SettingsPageComponent() {
     const [isSavingHealth, setIsSavingHealth] = useState(false);
 
     // Notification Preferences
+    const [routineNudges, setRoutineNudges] = useState(profileData?.notificationSettings?.routineNudges ?? true);
     const [taskReminders, setTaskReminders] = useState(profileData?.notificationSettings?.taskReminders ?? true);
     const [streakExpiryWarning, setStreakExpiryWarning] = useState(profileData?.notificationSettings?.streakExpiryWarning ?? true);
     const [hydrationReminders, setHydrationReminders] = useState(profileData?.notificationSettings?.hydrationReminders ?? true);
@@ -89,6 +90,7 @@ function SettingsPageComponent() {
             setHeight(profileData.height || 0);
             setAvgBP(profileData.averageBP || "120/80");
             setGoogleFitConnected(profileData.googleFitConnected || false);
+            setRoutineNudges(profileData.notificationSettings?.routineNudges ?? true);
             setTaskReminders(profileData.notificationSettings?.taskReminders ?? true);
             setStreakExpiryWarning(profileData.notificationSettings?.streakExpiryWarning ?? true);
             setHydrationReminders(profileData.notificationSettings?.hydrationReminders ?? true);
@@ -247,7 +249,8 @@ function SettingsPageComponent() {
                     streakExpiryWarning,
                     hydrationReminders,
                     dailySummary,
-                    taskReminders
+                    taskReminders,
+                    routineNudges
                 }
             });
             toast({ title: "Preferences Saved", description: "Your notification settings have been updated." });
@@ -435,6 +438,21 @@ function SettingsPageComponent() {
                             </div>
 
                             <div className="pt-4 border-t border-border/50 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <Label className="font-medium flex items-center gap-2">
+                                            🧭 Routine Task Nudges
+                                        </Label>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Get targeted prompts to open the app and start your focus timer when each routine block begins.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={routineNudges}
+                                        onCheckedChange={setRoutineNudges}
+                                    />
+                                </div>
+
                                 <div className="flex items-center justify-between">
                                     <div className="flex flex-col gap-1">
                                         <Label className="font-medium flex items-center gap-2">

@@ -142,7 +142,7 @@ export async function GET(req: Request) {
       // -----------------------------------------------------------------------
       // 2A. PROACTIVE ROUTINE TASK & TIMER LAUNCH NUDGES
       // -----------------------------------------------------------------------
-      const routineNudgesEnabled = notificationSettings?.taskReminders !== false;
+      const routineNudgesEnabled = notificationSettings?.routineNudges !== false && notificationSettings?.taskReminders !== false;
       if (routineNudgesEnabled) {
         try {
           // Check if user currently has an active running timer
@@ -155,15 +155,18 @@ export async function GET(req: Request) {
             let routineTasks: Array<{ name: string; duration: number; category?: string; startTime?: string }> = [];
 
             if (!presetSnap.empty) {
-              routineTasks = presetSnap.docs.map(doc => {
-                const d = doc.data();
-                return {
-                  name: d.name,
-                  duration: d.duration || 15,
-                  category: d.category || 'General',
-                  startTime: d.startTime,
-                };
-              });
+              routineTasks = await Promise.all(
+                presetSnap.docs.map(async (doc) => {
+                  const d = doc.data();
+                  const plainName = await decryptText(d.name, userId);
+                  return {
+                    name: plainName || d.name || 'Routine Task',
+                    duration: d.duration || 15,
+                    category: d.category || 'General',
+                    startTime: d.startTime,
+                  };
+                })
+              );
             } else {
               const profileKey = (profileToRoutineMap as any)[userData.profile || 'General'] || 'General';
               const template = defaultRoutines.routines[profileKey as keyof typeof defaultRoutines.routines] || defaultRoutines.routines['General'] || [];
