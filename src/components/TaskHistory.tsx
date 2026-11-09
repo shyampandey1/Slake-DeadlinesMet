@@ -1264,7 +1264,7 @@ function TaskLogBookContent() {
                                                     </span>
                                                 </div>
                                                 <p className="font-bold text-foreground truncate">{activeTimer.taskName}</p>
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                     Progress: {activeProgressLabel} focused / {formatDuration(activeTimer.initialDuration)} planned
                                                 </p>
                                             </div>
@@ -1302,15 +1302,23 @@ function TaskLogBookContent() {
                                             <h3 className="font-semibold text-lg mb-2 sticky top-0 bg-card py-1">{day}</h3>
                                             <div className="space-y-3">
                                                 {groupedTasks[day].map((task) => (
-                                                    <div key={task.id} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card border border-border shadow-sm hover:border-primary/30 transition-colors">
-                                                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                                                    <div 
+                                                        key={task.id} 
+                                                        onClick={() => !task.completed && handleTaskClick(task)}
+                                                        className={cn(
+                                                            "flex items-center justify-between gap-2.5 sm:gap-4 p-2.5 sm:p-3 rounded-xl bg-card border border-border shadow-sm transition-all",
+                                                            !task.completed && "cursor-pointer hover:border-primary/40",
+                                                            task.status === 'in_progress' ? "border-primary/30 bg-primary/[0.02]" : "hover:border-primary/30"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
                                                              {/* Visual Category Icon Container */}
                                                             <div className="p-2 rounded-xl bg-muted/60 border border-border flex-shrink-0 flex items-center justify-center">
                                                                 {getCategoryIcon(task.category)}
                                                             </div>
                                                             <div className="flex-1 min-w-0 text-left">
-                                                                <p className="font-semibold block truncate text-foreground text-sm sm:text-base">{task.name}</p>
-                                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                                <p className="font-semibold block truncate text-foreground text-sm sm:text-base leading-snug">{task.name}</p>
+                                                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                                                     Time spent: {formatTaskProgress(task)}
                                                                     {!task.completed && ` of ${formatDuration(task.initialDuration)}`}
                                                                     {task.createdAt && ` • ${format(new Date(task.createdAt), "p")}`}
@@ -1319,26 +1327,42 @@ function TaskLogBookContent() {
                                                         </div>
                                                         <div className="flex-shrink-0">
                                                             {task.completed ? (
-                                                                <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full text-xs font-bold">
+                                                                <div className="flex items-center gap-1.5 text-green-500 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap">
                                                                     <ThumbsUp className="h-3.5 w-3.5" />
                                                                     <span>Done</span>
                                                                 </div>
                                                             ) : task.status === 'in_progress' ? (
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="flex items-center gap-1 text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full text-xs font-bold">
+                                                                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 sm:gap-2">
+                                                                    <div className="flex items-center gap-1 text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap">
                                                                         <span className="relative flex h-1.5 w-1.5 mr-0.5">
                                                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                                                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
                                                                         </span>
                                                                         <span>In Progress</span>
                                                                     </div>
-                                                                    <Button size="sm" variant="default" onClick={() => handleTaskClick(task)} className="h-auto py-1 px-2.5 rounded-full text-xs shadow-sm bg-primary text-primary-foreground font-semibold">
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        variant="default" 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleTaskClick(task);
+                                                                        }} 
+                                                                        className="h-6 sm:h-auto py-0.5 sm:py-1 px-2.5 rounded-full text-xs shadow-sm bg-primary text-primary-foreground font-semibold whitespace-nowrap"
+                                                                    >
                                                                         <Play className="mr-1 h-3 w-3 fill-current" />
                                                                         Resume
                                                                     </Button>
                                                                 </div>
                                                             ) : (
-                                                                <Button size="sm" variant="secondary" onClick={() => handleTaskClick(task)} className="h-auto py-1.5 px-3 rounded-full text-xs shadow-sm">
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="secondary" 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleTaskClick(task);
+                                                                    }} 
+                                                                    className="h-auto py-1.5 px-3 rounded-full text-xs shadow-sm whitespace-nowrap"
+                                                                >
                                                                     <Play className="mr-1.5 h-3 w-3 fill-current" />
                                                                     Continue
                                                                 </Button>
