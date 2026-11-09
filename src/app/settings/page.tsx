@@ -76,6 +76,7 @@ function SettingsPageComponent() {
     const [hydrationReminders, setHydrationReminders] = useState(profileData?.notificationSettings?.hydrationReminders ?? true);
     const [dailySummary, setDailySummary] = useState(profileData?.notificationSettings?.dailySummary ?? true);
     const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+    const [isSendingTest, setIsSendingTest] = useState(false);
 
     useEffect(() => {
         if (profileData) {
@@ -254,6 +255,63 @@ function SettingsPageComponent() {
             toast({ title: "Error Saving", description: e.message, variant: "destructive" });
         } finally {
             setIsSavingNotifications(false);
+        }
+    };
+
+    const handleSendTestNotification = async () => {
+        if (!notificationsEnabled) {
+            toast({
+                title: "Enable Push Notifications First",
+                description: "Please toggle Push Notifications on above to receive test alerts.",
+                variant: "destructive"
+            });
+            return;
+        }
+        setIsSendingTest(true);
+        try {
+            const { syncFcmToken } = await import('@/lib/fcm');
+            if (user && !('isMockUser' in user)) {
+                const token = await syncFcmToken(user.uid);
+                if (!token) {
+                    toast({
+                        title: "No Device Token Found",
+                        description: "Could not retrieve push registration credentials. Ensure notification permissions are allowed.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+                const res = await fetch('/api/send-nudge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token,
+                        title: "🎯 Test Routine Alert",
+                        body: "Notifications are working! You will receive routine and task timer alerts even with the app closed.",
+                        tag: "test-notification"
+                    })
+                });
+                if (res.ok) {
+                    toast({
+                        title: "Test Alert Dispatched!",
+                        description: "Lock your phone or close the app to confirm it appears on your lock screen/shade."
+                    });
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    toast({
+                        title: "Failed to Send Alert",
+                        description: data.error || "Server could not send push notification.",
+                        variant: "destructive"
+                    });
+                }
+            }
+        } catch (e: any) {
+            toast({
+                title: "Test Alert Error",
+                description: e.message || "Failed to trigger test push.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSendingTest(false);
         }
     };
 
@@ -437,10 +495,16 @@ function SettingsPageComponent() {
                                     />
                                 </div>
 
-                                <Button className="w-full" onClick={handleSaveNotificationPreferences} disabled={isSavingNotifications}>
-                                    {isSavingNotifications ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                    Save Notification Settings
-                                </Button>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <Button className="flex-1" onClick={handleSaveNotificationPreferences} disabled={isSavingNotifications}>
+                                        {isSavingNotifications ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                        Save Notification Settings
+                                    </Button>
+                                    <Button variant="secondary" className="flex-1 border border-border" onClick={handleSendTestNotification} disabled={isSendingTest}>
+                                        {isSendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bell className="mr-2 h-4 w-4 text-emerald-400" />}
+                                        Send Test Alert
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

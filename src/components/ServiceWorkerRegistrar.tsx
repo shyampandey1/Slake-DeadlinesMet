@@ -117,11 +117,11 @@ export default function ServiceWorkerRegistrar() {
             {permissionState !== "granted" && permissionState !== "denied" && (
               <div className="flex items-center justify-between pt-1">
                 <div className="flex flex-col">
-                  <span className="font-headline font-semibold text-white">Enable Alerts</span>
-                  <span className="text-[10px] text-zinc-500 max-w-[150px] leading-tight mt-1">Receive automated AI suggestions that physically start your timer natively</span>
+                  <span className="font-headline font-semibold text-white">Enable Task & Routine Alerts</span>
+                  <span className="text-[10px] text-zinc-400 max-w-[170px] leading-tight mt-1">Get notifications to launch your routine tasks and when timers finish even with the app closed.</span>
                 </div>
-                <Button onClick={attemptToRequestNotifications} size="sm" variant="secondary" className="rounded-full bg-white/10 hover:bg-white/20 text-white">
-                  <Bell className="mr-2 h-4 w-4 text-emerald-400" /> Allow
+                <Button onClick={attemptToRequestNotifications} size="sm" variant="secondary" className="rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold border border-emerald-500/30 shadow-sm">
+                  <Bell className="mr-1.5 h-4 w-4 text-emerald-400" /> Enable
                 </Button>
               </div>
             )}

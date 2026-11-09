@@ -1,5 +1,51 @@
-const CACHE_NAME = 'slake-offline-cache-v2.9';
+const CACHE_NAME = 'slake-offline-cache-v3.0';
 const scheduledTimers = new Map();
+
+// --- 0. FIREBASE MESSAGING INITIALIZATION ---
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDzkJ_Y0y2BKRIHxUeslXLblxO-0wjMCx0",
+    authDomain: "dealdlinesmet.firebaseapp.com",
+    projectId: "dealdlinesmet",
+    storageBucket: "dealdlinesmet.firebasestorage.app",
+    messagingSenderId: "703127832822",
+    appId: "1:703127832822:web:5138c41dff450efca084d7",
+    measurementId: "G-ZSSHQ37TH2"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  const messaging = firebase.messaging();
+
+  messaging.onBackgroundMessage((payload) => {
+    const notificationTitle = payload.notification?.title || payload.data?.title || payload.title || 'DeadlinesMet Routine Alert';
+    const notificationBody = payload.notification?.body || payload.data?.body || payload.body || 'Time to conquer your session!';
+    const targetUrl = payload.data?.url || payload.fcmOptions?.link || payload.notification?.click_action || payload.url || '/';
+
+    const notificationOptions = {
+      body: notificationBody,
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      tag: payload.notification?.tag || payload.data?.tag || 'routine-nudge',
+      data: {
+        url: targetUrl,
+        type: payload.data?.type || payload.type || 'ROUTINE_TASK',
+        ...(payload.data || {})
+      }
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+} catch (fbErr) {
+  console.warn('[SW] Firebase messaging compat script load skipped or failed:', fbErr);
+}
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -84,24 +130,27 @@ self.addEventListener("message", (event) => {
   }
 });
 
-// Incoming Web Push Notifications (including Firebase Cloud Messaging)
+// Incoming Web Push Notifications (including Firebase Cloud Messaging and raw WebPush)
 self.addEventListener("push", (event) => {
   if (event.data) {
     try {
       const payload = event.data.json();
       
-      const title = payload.notification?.title || payload.data?.title || payload.title || "DeadlinesMet Notifications";
+      const title = payload.notification?.title || payload.data?.title || payload.title || "DeadlinesMet Routine Alert";
       const body = payload.notification?.body || payload.data?.body || payload.body || "Time to focus!";
-      const targetUrl = payload.data?.url || payload.url || "/";
+      const targetUrl = payload.data?.url || payload.fcmOptions?.link || payload.notification?.click_action || payload.url || "/";
 
       const options = {
         body: body,
         icon: "/icon.svg",
         badge: "/icon.svg",
+        requireInteraction: true,
         vibrate: [200, 100, 200],
+        tag: payload.notification?.tag || payload.data?.tag || "routine-nudge",
         data: {
           url: targetUrl,
-          type: payload.data?.type || payload.type || "DEFAULT",
+          type: payload.data?.type || payload.type || "ROUTINE_TASK",
+          ...(payload.data || {})
         },
       };
 
@@ -140,7 +189,8 @@ self.addEventListener("notificationclick", (event) => {
         targetUrl = "/settings"; 
         break;
       case 'TIMER':
-        targetUrl = "/";
+      case 'ROUTINE_TASK':
+        targetUrl = "/timer";
         break;
     }
   }

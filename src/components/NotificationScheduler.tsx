@@ -155,22 +155,46 @@ export default function NotificationScheduler() {
 
   // 2. ACTIVE FOCUS TIMER NOTIFICATION WATCHER (across all pages)
   useEffect(() => {
+    if (!activeTimer && user?.uid) {
+      fetch('/api/timer/schedule-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          clear: true,
+        }),
+      }).catch(() => {});
+      return;
+    }
+
     if (!activeTimer || activeTimer.isPaused || !activeTimer.expectedEndTime) return;
     if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") return;
 
     const remainingMs = activeTimer.expectedEndTime - Date.now();
     const timerDedupeKey = `notified_timer_${activeTimer.expectedEndTime}`;
 
-    // Register with service worker
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      decryptText(activeTimer.taskName, user?.uid || "").then((plainName) => {
+    // Register with service worker and server background scheduler
+    decryptText(activeTimer.taskName, user?.uid || "").then((plainName) => {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller?.postMessage({
           type: "SCHEDULE_TIMER",
           taskName: plainName,
           endTime: activeTimer.expectedEndTime,
         });
-      });
-    }
+      }
+
+      if (user?.uid) {
+        fetch('/api/timer/schedule-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            taskName: plainName,
+            endTime: activeTimer.expectedEndTime,
+          }),
+        }).catch(() => {});
+      }
+    });
 
     if (remainingMs > 0) {
       const timer = setTimeout(async () => {

@@ -23,7 +23,8 @@ export default function TimerPageContent() {
   const expectedEndTimeStr = searchParams.get('expectedEndTime');
   const expectedEndTime = expectedEndTimeStr ? parseInt(expectedEndTimeStr, 10) : undefined;
   const coOpSessionId = searchParams.get('coOpSessionId') ?? undefined;
-  const forceRestart = searchParams.get('forceRestart') === 'true';
+  const autoStart = searchParams.get('autoStart') === 'true';
+  const forceRestart = searchParams.get('forceRestart') === 'true' || autoStart;
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
