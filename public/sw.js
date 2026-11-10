@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slake-offline-cache-v3.0';
+const CACHE_NAME = 'slake-offline-cache-v3.1';
 const scheduledTimers = new Map();
 
 // --- 0. FIREBASE MESSAGING INITIALIZATION ---
@@ -121,6 +121,35 @@ self.addEventListener("message", (event) => {
         data: {
           url: "/calendar?from_notification=true",
           type: "CALENDAR",
+        },
+        requireInteraction: true,
+      });
+      scheduledTimers.delete(tag);
+    }, delay);
+    scheduledTimers.set(tag, timerId);
+  }
+
+  // 4. Scheduled Routine Task Alert
+  if (event.data.type === "SCHEDULE_ROUTINE_TASK") {
+    const { id, name, time, duration, category } = event.data;
+    const tag = `routine-${id || name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    if (scheduledTimers.has(tag)) {
+      clearTimeout(scheduledTimers.get(tag));
+    }
+    const delay = Math.max(0, time - Date.now());
+    const launchUrl = `/timer?task=${encodeURIComponent(name)}&duration=${duration || 15}&category=${encodeURIComponent(category || 'General')}&autoStart=true`;
+    const timerId = setTimeout(() => {
+      self.registration.showNotification(`⏰ Scheduled Task: ${name}`, {
+        body: `Ready for "${name}" (${duration || 15} min)? Tap to start your focus session now!`,
+        icon: "/icon.svg",
+        badge: "/icon.svg",
+        tag: tag,
+        vibrate: [200, 100, 200],
+        data: {
+          url: launchUrl,
+          type: "ROUTINE_TASK",
+          taskName: name,
+          category: category,
         },
         requireInteraction: true,
       });

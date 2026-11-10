@@ -231,12 +231,11 @@ export function useRoutineStore() {
           const docRef = doc(db, 'users', user.uid, 'customRoutines', profile.id);
           await setDoc(docRef, profile, { merge: true });
 
-          // Also update user's lifestyle vector in Firestore if present
-          if (profile.routineVector && profile.routineVector.length > 0) {
-            await updateDoc(doc(db, 'users', user.uid), {
-              lifestyleVector: profile.routineVector,
-            });
-          }
+          // Also update active profile & lifestyle vector in Firestore
+          await setDoc(doc(db, 'users', user.uid), {
+            activeRoutineProfileId: profile.id,
+            ...(profile.routineVector && profile.routineVector.length > 0 ? { lifestyleVector: profile.routineVector } : {})
+          }, { merge: true });
         } catch (err) {
           console.warn('[useRoutineStore] Failed to save custom routine to Firestore:', err);
         }
@@ -255,7 +254,13 @@ export function useRoutineStore() {
         localStorage.setItem(LOCAL_STORAGE_ACTIVE_PROFILE_KEY, profileId);
       }
     } catch (e) {}
-  }, []);
+
+    if (user && db) {
+      setDoc(doc(db, 'users', user.uid), {
+        activeRoutineProfileId: profileId || 'default'
+      }, { merge: true }).catch(console.warn);
+    }
+  }, [user]);
 
   // Rename an existing profile
   const renameCustomProfile = useCallback(

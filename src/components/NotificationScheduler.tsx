@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useCalendarEvents } from "@/hooks/useFirestore";
+import { useCalendarEvents, useTasks } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
+import { useRoutineStore } from "@/hooks/useRoutineStore";
 import { isToday, parseISO, isAfter } from "date-fns";
 import { decryptText } from "@/lib/crypto";
 
@@ -11,6 +12,8 @@ export default function NotificationScheduler() {
   const { events } = useCalendarEvents();
   const { user } = useAuth();
   const { activeTimer } = useActiveTimer();
+  const { presetTasks, categoryTimeRanges } = useRoutineStore();
+  const { tasks: loggedTasks } = useTasks();
   const notifiedIdsRef = useRef<Set<string>>(new Set());
 
   // Helper to trigger system notification with service worker and native fallbacks
@@ -153,7 +156,166 @@ export default function NotificationScheduler() {
     };
   }, [events, user]);
 
-  // 2. ACTIVE FOCUS TIMER NOTIFICATION WATCHER (across all pages)
+  // 2. SCHEDULE ROUTINE TASKS ACCORDING TO USER'S CIRCADIAN SCHEDULE
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
+      return;
+    }
+    if (!presetTasks || Object.keys(presetTasks).length === 0) return;
+
+    const timeouts: NodeJS.Timeout[] = [];
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    // Compute completed task names for today
+    const completedToday = new Set<string>();
+    loggedTasks.forEach((t) => {
+      if (t.completed) {
+        const createdDate = t.createdAt ? new Date(t.createdAt) : null;
+        if (createdDate && isToday(createdDate)) {
+          completedToday.add(t.name.toLowerCase().trim());
+        }
+      }
+    });
+
+    // Schedule each routine task
+    Object.entries(presetTasks).forEach(([category, { tasks }]) => {
+      const timeRange = categoryTimeRanges[category];
+      let categoryPointer = timeRange?.start ? new Date(timeRange.start) : new Date(now);
+
+      (tasks || []).forEach((task) => {
+        const taskName = task.name;
+        const taskDuration = task.duration || 15;
+        let scheduledDate: Date;
+
+        if (typeof task.startTime === 'string' && task.startTime.includes(':')) {
+          const [h, m] = task.startTime.split(':').map((v) => parseInt(v, 10));
+          scheduledDate = new Date(now);
+          scheduledDate.setHours(h || 0, m || 0, 0, 0);
+        } else {
+          scheduledDate = new Date(categoryPointer);
+          categoryPointer = new Date(categoryPointer.getTime() + taskDuration * 60000);
+        }
+
+        const scheduledTime = scheduledDate.getTime();
+        const diffMs = scheduledTime - now.getTime();
+        const dedupeKey = `notified_routine_${task.id || taskName}_${todayStr}`;
+
+        // Skip if already notified or completed today
+        if (notifiedIdsRef.current.has(dedupeKey) || sessionStorage.getItem(dedupeKey) === "true") {
+          return;
+        }
+        if (completedToday.has(taskName.toLowerCase().trim())) {
+          return;
+        }
+
+        const launchUrl = `/timer?task=${encodeURIComponent(taskName)}&duration=${taskDuration}&category=${encodeURIComponent(category)}&autoStart=true`;
+
+        // Register with Service Worker for background wakeups
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller && diffMs > 0) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "SCHEDULE_ROUTINE_TASK",
+            id: task.id || taskName,
+            name: taskName,
+            time: scheduledTime,
+            duration: taskDuration,
+            category: category,
+          });
+        }
+
+        // Active in-app timeout scheduler
+        if (diffMs > 0 && diffMs <= 24 * 60 * 60 * 1000) {
+          const timer = setTimeout(async () => {
+            if (sessionStorage.getItem(dedupeKey) === "true") return;
+            // Check if user is currently running a timer
+            if (activeTimer && !activeTimer.isPaused) return;
+
+            notifiedIdsRef.current.add(dedupeKey);
+            sessionStorage.setItem(dedupeKey, "true");
+
+            await triggerNotification(`⏰ Scheduled Task: ${taskName}`, {
+              body: `Ready for "${taskName}" (${taskDuration} min)? Tap to launch your timer and start now!`,
+              icon: "/icon.svg",
+              badge: "/icon.svg",
+              tag: `routine-${taskName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+              ...({ vibrate: [200, 100, 200] } as any),
+              data: {
+                url: launchUrl,
+                type: "ROUTINE_TASK",
+                taskName: taskName,
+                category: category,
+              },
+              requireInteraction: true,
+            });
+          }, diffMs);
+
+          timeouts.push(timer);
+        }
+      });
+    });
+
+    // Periodic sweep every 30 seconds for routine tasks
+    const interval = setInterval(async () => {
+      const currentNow = Date.now();
+      if (activeTimer && !activeTimer.isPaused) return;
+
+      Object.entries(presetTasks).forEach(([category, { tasks }]) => {
+        const timeRange = categoryTimeRanges[category];
+        let categoryPointer = timeRange?.start ? new Date(timeRange.start) : new Date(currentNow);
+
+        (tasks || []).forEach(async (task) => {
+          const taskName = task.name;
+          const taskDuration = task.duration || 15;
+          let scheduledDate: Date;
+
+          if (typeof task.startTime === 'string' && task.startTime.includes(':')) {
+            const [h, m] = task.startTime.split(':').map((v) => parseInt(v, 10));
+            scheduledDate = new Date(currentNow);
+            scheduledDate.setHours(h || 0, m || 0, 0, 0);
+          } else {
+            scheduledDate = new Date(categoryPointer);
+            categoryPointer = new Date(categoryPointer.getTime() + taskDuration * 60000);
+          }
+
+          const diff = scheduledDate.getTime() - currentNow;
+          const dedupeKey = `notified_routine_${task.id || taskName}_${todayStr}`;
+
+          // Trigger if within 1 minute before start or up to 5 minutes after start
+          if (diff <= 60000 && diff >= -5 * 60000) {
+            if (!notifiedIdsRef.current.has(dedupeKey) && sessionStorage.getItem(dedupeKey) !== "true") {
+              if (completedToday.has(taskName.toLowerCase().trim())) return;
+
+              notifiedIdsRef.current.add(dedupeKey);
+              sessionStorage.setItem(dedupeKey, "true");
+
+              const launchUrl = `/timer?task=${encodeURIComponent(taskName)}&duration=${taskDuration}&category=${encodeURIComponent(category)}&autoStart=true`;
+              await triggerNotification(`⏰ Scheduled Task: ${taskName}`, {
+                body: `Ready for "${taskName}" (${taskDuration} min)? Tap to launch your timer and start now!`,
+                icon: "/icon.svg",
+                badge: "/icon.svg",
+                tag: `routine-${taskName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+                ...({ vibrate: [200, 100, 200] } as any),
+                data: {
+                  url: launchUrl,
+                  type: "ROUTINE_TASK",
+                  taskName: taskName,
+                  category: category,
+                },
+                requireInteraction: true,
+              });
+            }
+          }
+        });
+      });
+    }, 30000);
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+      clearInterval(interval);
+    };
+  }, [presetTasks, categoryTimeRanges, loggedTasks, activeTimer]);
+
+  // 3. ACTIVE FOCUS TIMER NOTIFICATION WATCHER (across all pages)
   useEffect(() => {
     if (!activeTimer && user?.uid) {
       fetch('/api/timer/schedule-notification', {

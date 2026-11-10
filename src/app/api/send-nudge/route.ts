@@ -16,26 +16,48 @@ function initAdmin() {
 export async function POST(req: Request) {
   try {
     initAdmin();
-    const { token, title, body, tag } = await req.json();
+    const { token, title, body, tag, url } = await req.json();
 
     if (!token) {
       return NextResponse.json({ error: "Token is required" }, { status: 400 });
     }
 
-    const message = {
+    const launchUrl = url || "/timer?task=Test%20Focus%20Session&duration=15&category=Deep%20Focus&autoStart=true";
+
+    const message: any = {
       token: token,
       notification: {
-        title: title || "New Nudge!",
-        body: body || "You have a new activity.",
+        title: title || "⏰ Scheduled Task: Test Routine",
+        body: body || "Ready for your focus session? Tap to launch your timer and start now!",
       },
       android: {
         priority: 'high' as const,
         notification: {
-          tag: tag || 'nudge',
+          tag: tag || 'routine-nudge',
+          icon: '/icon.svg',
         }
       },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+        },
+        notification: {
+          title: title || "⏰ Scheduled Task: Test Routine",
+          body: body || "Ready for your focus session? Tap to launch your timer and start now!",
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          tag: tag || 'routine-nudge',
+          vibrate: [200, 100, 200],
+          requireInteraction: true,
+        },
+        fcmOptions: {
+          link: launchUrl,
+        },
+      },
       data: {
-        tag: tag || 'nudge',
+        url: launchUrl,
+        type: 'ROUTINE_TASK',
+        tag: tag || 'routine-nudge',
       }
     };
 

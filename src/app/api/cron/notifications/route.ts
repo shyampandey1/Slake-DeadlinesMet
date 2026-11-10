@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 import { UserProfile } from '@/types';
 import { decryptText } from '@/lib/crypto';
-import { defaultRoutines, profileToRoutineMap, CATEGORY_TIME_BLOCKS } from '@/lib/routines';
+import { defaultRoutines, profileToRoutineMap, CATEGORY_TIME_BLOCKS, categoryConfig } from '@/lib/routines';
 
 function initAdmin() {
   if (!admin.apps.length) {
@@ -17,6 +17,233 @@ function initAdmin() {
       });
     }
   }
+}
+
+interface ScheduledRoutineTask {
+  id?: string;
+  name: string;
+  category: string;
+  duration: number;
+  startTime: string; // HH:mm
+  startMinutes: number; // minutes from midnight (0..1439)
+}
+
+async function resolveUserRoutineTasks(
+  userId: string,
+  userData: UserProfile & { activeRoutineProfileId?: string },
+  db: admin.firestore.Firestore
+): Promise<ScheduledRoutineTask[]> {
+  const result: ScheduledRoutineTask[] = [];
+
+  // 1. Check customRoutines collection
+  try {
+    let customProfileDoc: admin.firestore.DocumentSnapshot | null = null;
+    if (userData.activeRoutineProfileId && userData.activeRoutineProfileId !== 'default') {
+      const docSnap = await db.collection('users').doc(userId).collection('customRoutines').doc(userData.activeRoutineProfileId).get();
+      if (docSnap.exists) {
+        customProfileDoc = docSnap;
+      }
+    }
+
+    if (!customProfileDoc) {
+      // Fetch latest custom routine if available
+      const latestSnap = await db.collection('users').doc(userId).collection('customRoutines').orderBy('updatedAt', 'desc').limit(1).get();
+      if (!latestSnap.empty) {
+        customProfileDoc = latestSnap.docs[0];
+      }
+    }
+
+    if (customProfileDoc && customProfileDoc.exists) {
+      const data = customProfileDoc.data() || {};
+      const tasks = (data.tasks || []) as Array<{
+        id?: string;
+        title?: string;
+        name?: string;
+        startTime?: string;
+        durationMinutes?: number;
+        duration?: number;
+        category?: string;
+      }>;
+
+      if (tasks.length > 0) {
+        let currentPointerMinutes = 6 * 60; // 06:00
+        for (const t of tasks) {
+          const taskName = t.title || t.name || 'Routine Task';
+          const duration = Math.max(1, Number(t.durationMinutes || t.duration) || 15);
+          let startMinutes = currentPointerMinutes;
+          let startTimeStr = '';
+
+          if (t.startTime && t.startTime.includes(':')) {
+            const [h, m] = t.startTime.split(':').map(Number);
+            if (!isNaN(h) && !isNaN(m)) {
+              startMinutes = h * 60 + m;
+              startTimeStr = t.startTime;
+            }
+          }
+
+          if (!startTimeStr) {
+            const h = Math.floor(startMinutes / 60) % 24;
+            const m = startMinutes % 60;
+            startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
+
+          currentPointerMinutes = startMinutes + duration;
+
+          result.push({
+            id: t.id,
+            name: taskName,
+            category: t.category || 'General',
+            duration,
+            startTime: startTimeStr,
+            startMinutes,
+          });
+        }
+        return result;
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to read customRoutines for user ${userId}:`, err);
+  }
+
+  // 2. Check userPresetTasks collection
+  try {
+    const presetSnap = await db.collection('users').doc(userId).collection('userPresetTasks').get();
+    if (!presetSnap.empty) {
+      const rawTasks = await Promise.all(
+        presetSnap.docs.map(async (doc) => {
+          const d = doc.data();
+          const plainName = await decryptText(d.name, userId);
+          return {
+            id: doc.id,
+            name: plainName || d.name || 'Routine Task',
+            category: d.category || 'General',
+            duration: Math.max(1, Number(d.duration) || 15),
+            startTime: d.startTime,
+            order: d.order || 0,
+          };
+        })
+      );
+
+      // Group by category and sequence
+      const grouped: Record<string, typeof rawTasks> = {};
+      rawTasks.forEach((t) => {
+        if (!grouped[t.category]) grouped[t.category] = [];
+        grouped[t.category].push(t);
+      });
+
+      const categories = Object.keys(grouped).sort(
+        (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99)
+      );
+
+      for (const cat of categories) {
+        const catTasks = grouped[cat].sort((a, b) => (a.order || 0) - (b.order || 0));
+        let blockStartHour = CATEGORY_TIME_BLOCKS[cat]?.start;
+        if (blockStartHour === undefined) {
+          const ord = categoryConfig[cat]?.order ?? 99;
+          if (ord <= 5) blockStartHour = 6.0;
+          else if (ord <= 15) blockStartHour = 7.0;
+          else if (ord <= 28) blockStartHour = 9.0;
+          else if (ord <= 35) blockStartHour = 13.0;
+          else if (ord <= 45) blockStartHour = 14.5;
+          else if (ord <= 55) blockStartHour = 17.5;
+          else if (ord <= 65) blockStartHour = 19.5;
+          else if (ord <= 79) blockStartHour = 21.0;
+          else blockStartHour = 22.0;
+        }
+
+        let currentMins = Math.round(blockStartHour * 60);
+        for (const t of catTasks) {
+          let taskMins = currentMins;
+          let startTimeStr = '';
+          if (t.startTime && t.startTime.includes(':')) {
+            const [h, m] = t.startTime.split(':').map(Number);
+            if (!isNaN(h) && !isNaN(m)) {
+              taskMins = h * 60 + m;
+              startTimeStr = t.startTime;
+            }
+          }
+          if (!startTimeStr) {
+            const h = Math.floor(taskMins / 60) % 24;
+            const m = taskMins % 60;
+            startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
+          currentMins = taskMins + t.duration;
+          result.push({
+            id: t.id,
+            name: t.name,
+            category: cat,
+            duration: t.duration,
+            startTime: startTimeStr,
+            startMinutes: taskMins,
+          });
+        }
+      }
+      return result;
+    }
+  } catch (err) {
+    console.warn(`Failed to read userPresetTasks for user ${userId}:`, err);
+  }
+
+  // 3. Fallback to default profession routines
+  const profileKey = (profileToRoutineMap as any)[userData.profile || 'General'] || 'General';
+  const template = defaultRoutines.routines[profileKey as keyof typeof defaultRoutines.routines] || defaultRoutines.routines['General'] || [];
+
+  const grouped: Record<string, typeof template> = {};
+  template.forEach((t) => {
+    const cat = t.category || 'General';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(t);
+  });
+
+  const categories = Object.keys(grouped).sort(
+    (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99)
+  );
+
+  for (const cat of categories) {
+    const catTasks = grouped[cat];
+    let blockStartHour = CATEGORY_TIME_BLOCKS[cat]?.start;
+    if (blockStartHour === undefined) {
+      const ord = categoryConfig[cat]?.order ?? 99;
+      if (ord <= 5) blockStartHour = 6.0;
+      else if (ord <= 15) blockStartHour = 7.0;
+      else if (ord <= 28) blockStartHour = 9.0;
+      else if (ord <= 35) blockStartHour = 13.0;
+      else if (ord <= 45) blockStartHour = 14.5;
+      else if (ord <= 55) blockStartHour = 17.5;
+      else if (ord <= 65) blockStartHour = 19.5;
+      else if (ord <= 79) blockStartHour = 21.0;
+      else blockStartHour = 22.0;
+    }
+
+    let currentMins = Math.round(blockStartHour * 60);
+    for (const t of catTasks) {
+      let taskMins = currentMins;
+      let startTimeStr = '';
+      if (t.startTime && t.startTime.includes(':')) {
+        const [h, m] = t.startTime.split(':').map(Number);
+        if (!isNaN(h) && !isNaN(m)) {
+          taskMins = h * 60 + m;
+          startTimeStr = t.startTime;
+        }
+      }
+      if (!startTimeStr) {
+        const h = Math.floor(taskMins / 60) % 24;
+        const m = taskMins % 60;
+        startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+      const dur = Math.max(1, Number(t.duration) || 15);
+      currentMins = taskMins + dur;
+      result.push({
+        name: t.name,
+        category: cat,
+        duration: dur,
+        startTime: startTimeStr,
+        startMinutes: taskMins,
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function GET(req: Request) {
@@ -140,7 +367,7 @@ export async function GET(req: Request) {
       const todayStr = userLocalTime.toISOString().split('T')[0];
 
       // -----------------------------------------------------------------------
-      // 2A. PROACTIVE ROUTINE TASK & TIMER LAUNCH NUDGES
+      // 2A. PROACTIVE ROUTINE TASK & TIMER LAUNCH NUDGES (SCHEDULE-BASED)
       // -----------------------------------------------------------------------
       const routineNudgesEnabled = notificationSettings?.routineNudges !== false && notificationSettings?.taskReminders !== false;
       if (routineNudgesEnabled) {
@@ -150,131 +377,105 @@ export async function GET(req: Request) {
           const isCurrentlyFocusing = userActiveSessionSnap.exists && userActiveSessionSnap.data()?.status === 'running';
 
           if (!isCurrentlyFocusing) {
-            // Retrieve user's customized routine tasks or fallback to 18-profession library
-            const presetSnap = await db.collection('users').doc(userId).collection('userPresetTasks').get();
-            let routineTasks: Array<{ name: string; duration: number; category?: string; startTime?: string }> = [];
+            // Resolve all routine tasks with exact start times (from customRoutines, userPresetTasks, or default)
+            const routineTasks = await resolveUserRoutineTasks(userId, userData, db);
+            const currentMinutesOfDay = userLocalHour * 60 + userLocalMinute;
 
-            if (!presetSnap.empty) {
-              routineTasks = await Promise.all(
-                presetSnap.docs.map(async (doc) => {
-                  const d = doc.data();
-                  const plainName = await decryptText(d.name, userId);
-                  return {
-                    name: plainName || d.name || 'Routine Task',
-                    duration: d.duration || 15,
-                    category: d.category || 'General',
-                    startTime: d.startTime,
-                  };
-                })
-              );
-            } else {
-              const profileKey = (profileToRoutineMap as any)[userData.profile || 'General'] || 'General';
-              const template = defaultRoutines.routines[profileKey as keyof typeof defaultRoutines.routines] || defaultRoutines.routines['General'] || [];
-              routineTasks = template.map(t => ({
-                name: t.name,
-                duration: t.duration || 15,
-                category: t.category || 'General',
-                startTime: t.startTime,
-              }));
-            }
+            // Fetch completed tasks for today to avoid notifying for already-finished tasks
+            const completedSnap = await db.collection('users').doc(userId).collection('tasks')
+              .where('completed', '==', true)
+              .get();
 
-            // Identify active category block for the current local time
-            let activeCategory: string | null = null;
-
-            // 1. First priority: tasks with explicit startTime within 45 minutes of now
-            for (const t of routineTasks) {
-              if (t.startTime && t.startTime.includes(':')) {
-                const [h, m] = t.startTime.split(':').map(Number);
-                const tDecimal = (h || 0) + (m || 0) / 60;
-                if (currentDecimalHour >= tDecimal - 0.25 && currentDecimalHour < tDecimal + 1.25) {
-                  activeCategory = t.category || null;
-                  break;
-                }
+            const completedNames = new Set<string>();
+            for (const tDoc of completedSnap.docs) {
+              const tData = tDoc.data();
+              const tDate = tData.createdAt?.toDate ? tData.createdAt.toDate().toISOString().split('T')[0] : tData.createdAt?.split('T')[0];
+              if (tDate === todayStr) {
+                const plainName = await decryptText(tData.name, userId);
+                completedNames.add(plainName.toLowerCase().trim());
               }
             }
 
-            // 2. Second priority: Match against CATEGORY_TIME_BLOCKS
-            if (!activeCategory) {
-              const categoriesInRoutine = Array.from(new Set(routineTasks.map(t => t.category).filter(Boolean))) as string[];
-              for (const cat of categoriesInRoutine) {
-                const block = CATEGORY_TIME_BLOCKS[cat];
-                if (block && currentDecimalHour >= block.start && currentDecimalHour < block.end) {
-                  activeCategory = cat;
-                  break;
-                }
-              }
-            }
+            const notifiedTodayMap = (userData as any).notifiedRoutineTasks?.[todayStr] || {};
 
-            if (activeCategory) {
-              // Deduplication: at most ONE nudge per routine block per day
-              const lastNudge = userData.lastRoutineNudge;
-              const alreadyNudgedThisBlockToday = lastNudge?.block === activeCategory && lastNudge?.date === todayStr;
+            for (const task of routineTasks) {
+              const diffMinutes = task.startMinutes - currentMinutesOfDay;
+              // Trigger window: starting within next 15 mins or started within past 5 mins
+              const isTimeForTask = diffMinutes >= -5 && diffMinutes <= 15;
+              if (!isTimeForTask) continue;
 
-              if (!alreadyNudgedThisBlockToday) {
-                // Check completed tasks today to find the first pending task in this block
-                const completedSnap = await db.collection('users').doc(userId).collection('tasks')
-                  .where('completed', '==', true)
-                  .get();
+              const taskSlug = task.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+              if (notifiedTodayMap[taskSlug] === true) continue;
+              if (completedNames.has(task.name.toLowerCase().trim())) continue;
 
-                const completedNames = new Set<string>();
-                for (const tDoc of completedSnap.docs) {
-                  const tData = tDoc.data();
-                  const tDate = tData.createdAt?.toDate ? tData.createdAt.toDate().toISOString().split('T')[0] : tData.createdAt?.split('T')[0];
-                  if (tDate === todayStr) {
-                    const plainName = await decryptText(tData.name, userId);
-                    completedNames.add(plainName.toLowerCase().trim());
+              const launchUrl = `/timer?task=${encodeURIComponent(task.name)}&duration=${task.duration}&category=${encodeURIComponent(task.category)}&autoStart=true`;
+
+              const message = {
+                notification: {
+                  title: `⏰ Scheduled Task: ${task.name}`,
+                  body: `Ready for "${task.name}" (${task.duration}m)? Scheduled for ${task.startTime}. Tap to start focusing!`,
+                },
+                tokens: userTokens,
+                data: {
+                  url: launchUrl,
+                  type: 'ROUTINE_TASK',
+                  category: task.category,
+                  taskName: task.name,
+                  startTime: task.startTime,
+                  duration: task.duration.toString(),
+                },
+                webpush: {
+                  headers: {
+                    Urgency: 'high',
+                  },
+                  notification: {
+                    title: `⏰ Scheduled Task: ${task.name}`,
+                    body: `Ready for "${task.name}" (${task.duration}m)? Scheduled for ${task.startTime}. Tap to start focusing!`,
+                    icon: '/icon.svg',
+                    badge: '/icon.svg',
+                    tag: `routine-${taskSlug}`,
+                    vibrate: [200, 100, 200],
+                    requireInteraction: true,
+                  },
+                  fcmOptions: {
+                    link: launchUrl,
+                  },
+                },
+              };
+
+              const sendResult = await admin.messaging().sendEachForMulticast(message);
+
+              // Stale token cleanup
+              if (sendResult.failureCount > 0) {
+                const badTokens: string[] = [];
+                sendResult.responses.forEach((resp, idx) => {
+                  if (!resp.success) {
+                    const errCode = resp.error?.code;
+                    if (errCode === 'messaging/registration-token-not-registered' || errCode === 'messaging/invalid-registration-token') {
+                      badTokens.push(userTokens[idx]);
+                    }
                   }
-                }
-
-                const tasksInBlock = routineTasks.filter(t => t.category === activeCategory);
-                const nextPendingTask = tasksInBlock.find(t => !completedNames.has(t.name.toLowerCase().trim()));
-
-                if (nextPendingTask) {
-                  const plainTaskName = nextPendingTask.name;
-                  const taskDuration = nextPendingTask.duration || 15;
-                  const launchUrl = `/timer?task=${encodeURIComponent(plainTaskName)}&duration=${taskDuration}&category=${encodeURIComponent(activeCategory)}&autoStart=true`;
-
-                  const message = {
-                    notification: {
-                      title: `⏰ Time for ${activeCategory}`,
-                      body: `Ready for "${plainTaskName}" (${taskDuration}m)? Tap to launch your timer and start now!`,
-                    },
-                    tokens: userTokens,
-                    data: {
-                      url: launchUrl,
-                      type: 'ROUTINE_TASK',
-                      category: activeCategory,
-                      taskName: plainTaskName,
-                      duration: taskDuration.toString(),
-                    },
-                    webpush: {
-                      notification: {
-                        title: `⏰ Time for ${activeCategory}`,
-                        body: `Ready for "${plainTaskName}" (${taskDuration}m)? Tap to launch your timer and start now!`,
-                        icon: '/icon.svg',
-                        badge: '/icon.svg',
-                        tag: `routine-${activeCategory.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
-                        vibrate: [200, 100, 200],
-                        requireInteraction: true,
-                      },
-                      fcmOptions: {
-                        link: launchUrl,
-                      },
-                    },
-                  };
-
-                  await admin.messaging().sendEachForMulticast(message);
+                });
+                if (badTokens.length > 0) {
                   await userDoc.ref.update({
-                    lastRoutineNudge: {
-                      block: activeCategory,
-                      taskName: plainTaskName,
-                      date: todayStr,
-                      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    },
-                  });
-                  results.push({ userId, type: 'routine_nudge', block: activeCategory, taskName: plainTaskName });
+                    fcmTokens: admin.firestore.FieldValue.arrayRemove(...badTokens),
+                  }).catch(() => {});
                 }
               }
+
+              // Record per-task deduplication in user document
+              await userDoc.ref.update({
+                [`notifiedRoutineTasks.${todayStr}.${taskSlug}`]: true,
+                lastRoutineNudge: {
+                  block: task.category,
+                  taskName: task.name,
+                  date: todayStr,
+                  timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                },
+              });
+
+              results.push({ userId, type: 'routine_task_nudge', taskName: task.name, startTime: task.startTime, category: task.category });
+              notifiedTodayMap[taskSlug] = true;
             }
           }
         } catch (routineErr) {

@@ -288,9 +288,10 @@ function SettingsPageComponent() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         token,
-                        title: "🎯 Test Routine Alert",
-                        body: "Notifications are working! You will receive routine and task timer alerts even with the app closed.",
-                        tag: "test-notification"
+                        title: "⏰ Scheduled Task: Test Routine",
+                        body: "Ready for your 15m focus sprint? Tap to launch your timer and start now!",
+                        url: "/timer?task=Test%20Focus%20Sprint&duration=15&category=Deep%20Focus&autoStart=true",
+                        tag: "test-routine-nudge"
                     })
                 });
                 if (res.ok) {
