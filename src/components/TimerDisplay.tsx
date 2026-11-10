@@ -78,6 +78,8 @@ import { Sparkles as SparklesIcon, Activity as ActivityIcon, Eye as EyeIcon, Win
 interface TimerDisplayProps {
   taskName: string;
   initialDuration: number; // in minutes
+  remainingSeconds?: number;
+  taskId?: string;
   category?: string;
   color?: string;
   expectedEndTime?: number;
@@ -102,7 +104,7 @@ const getWeatherIcon = (code: number, isNight: boolean): LucideIcon => {
 };
 
 
-export default function TimerDisplay({ taskName: rawTaskName, initialDuration, category, color, expectedEndTime, coOpSessionId, forceRestart, autoStart }: TimerDisplayProps) {
+export default function TimerDisplay({ taskName: rawTaskName, initialDuration, remainingSeconds, taskId, category, color, expectedEndTime, coOpSessionId, forceRestart, autoStart }: TimerDisplayProps) {
   const taskName = useMemo(() => {
     const cleaned = sanitizeSpeechTranscript(rawTaskName || "Focus Session");
     if (/^(?:drink(?:\s+a|\s+some)?(?:\s+glass\s+of)?\s+water|glass\s+of\s+water|hydrate)$/i.test(cleaned)) {
@@ -149,6 +151,9 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
   }, []);
 
   const [timeRemaining, setTimeRemaining] = useState(() => {
+    if (remainingSeconds && remainingSeconds > 0) {
+      return remainingSeconds;
+    }
     if (typeof window !== 'undefined' && !forceRestart) {
       try {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1159,7 +1164,11 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
               // Check if URL specified exact remaining seconds (e.g. from resume) or if there is an in-progress Firestore task with stored remaining seconds
               let initialRemainingSeconds = Math.round(effectiveDuration * 60);
               let shouldStartPaused = false;
-              if (typeof window !== 'undefined') {
+
+              if (remainingSeconds && remainingSeconds > 0) {
+                initialRemainingSeconds = remainingSeconds;
+                shouldStartPaused = true;
+              } else if (typeof window !== 'undefined') {
                 const urlParams = new URLSearchParams(window.location.search);
                 const secondsParam = urlParams.get('seconds');
                 if (secondsParam && !isNaN(parseFloat(secondsParam))) {
@@ -1171,16 +1180,20 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
                 }
               }
 
-              // Check existing in-progress task from Firestore
-              const existingInProgress = tasks.find(
-                t => t.status === 'in_progress' && (t.name || "").toLowerCase().trim() === taskName.toLowerCase().trim()
-              );
-              if (existingInProgress) {
-                currentTaskIdRef.current = existingInProgress.id;
-                const savedSec = existingInProgress.timeLeftWhenPaused ?? existingInProgress.remainingSeconds;
-                if (savedSec !== undefined && savedSec > 0) {
-                  initialRemainingSeconds = savedSec;
-                  shouldStartPaused = true;
+              if (taskId) {
+                currentTaskIdRef.current = taskId;
+              } else {
+                // Check existing in-progress task from Firestore
+                const existingInProgress = tasks.find(
+                  t => t.status === 'in_progress' && (t.name || "").toLowerCase().trim() === taskName.toLowerCase().trim()
+                );
+                if (existingInProgress) {
+                  currentTaskIdRef.current = existingInProgress.id;
+                  const savedSec = existingInProgress.timeLeftWhenPaused ?? existingInProgress.remainingSeconds;
+                  if (savedSec !== undefined && savedSec > 0 && !remainingSeconds) {
+                    initialRemainingSeconds = savedSec;
+                    shouldStartPaused = true;
+                  }
                 }
               }
 
@@ -1214,6 +1227,13 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, c
                     currentTaskIdRef.current = newId;
                     updateTimer({ taskId: newId });
                   }
+                }).catch(console.error);
+              } else {
+                updateTask(currentTaskIdRef.current, {
+                  status: 'in_progress',
+                  remainingSeconds: initialRemaining,
+                  timeLeftWhenPaused: shouldStartPaused ? initialRemaining : undefined,
+                  updatedAt: new Date().toISOString()
                 }).catch(console.error);
               }
 

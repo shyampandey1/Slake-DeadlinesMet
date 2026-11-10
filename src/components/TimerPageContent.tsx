@@ -10,12 +10,25 @@ export default function TimerPageContent() {
   const router = useRouter();
 
   const taskName = searchParams.get('task');
+  const taskId = searchParams.get('taskId') ?? undefined;
   const durationStr = searchParams.get('duration');
+  const initialDurationStr = searchParams.get('initialDuration');
   const secondsStr = searchParams.get('seconds');
   
-  let duration = durationStr ? parseFloat(durationStr) : null;
+  // Planned duration in minutes
+  let duration = initialDurationStr ? parseFloat(initialDurationStr) : (durationStr ? parseFloat(durationStr) : null);
+  
+  // Specific remaining seconds left when resuming
+  let remainingSeconds: number | undefined = undefined;
   if (secondsStr && !isNaN(parseFloat(secondsStr))) {
-    duration = parseFloat(secondsStr) / 60;
+    const parsedSec = Math.round(parseFloat(secondsStr));
+    if (parsedSec > 0) {
+      remainingSeconds = parsedSec;
+    }
+  }
+
+  if (duration === null && remainingSeconds !== undefined) {
+    duration = Math.max(1, Math.round(remainingSeconds / 60));
   }
   
   const category = searchParams.get('category') ?? undefined;
@@ -54,7 +67,9 @@ export default function TimerPageContent() {
   return (
     <TimerDisplay
       taskName={taskName!}
+      taskId={taskId}
       initialDuration={duration!}
+      remainingSeconds={remainingSeconds}
       category={category}
       color={color}
       expectedEndTime={expectedEndTime}

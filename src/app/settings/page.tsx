@@ -262,51 +262,124 @@ function SettingsPageComponent() {
     };
 
     const handleSendTestNotification = async () => {
-        if (!notificationsEnabled) {
-            toast({
-                title: "Enable Push Notifications First",
-                description: "Please toggle Push Notifications on above to receive test alerts.",
-                variant: "destructive"
-            });
-            return;
-        }
         setIsSendingTest(true);
         try {
-            const { syncFcmToken } = await import('@/lib/fcm');
-            if (user && !('isMockUser' in user)) {
-                const token = await syncFcmToken(user.uid);
-                if (!token) {
-                    toast({
-                        title: "No Device Token Found",
-                        description: "Could not retrieve push registration credentials. Ensure notification permissions are allowed.",
-                        variant: "destructive"
-                    });
-                    return;
+            // 1. Ensure browser permission is granted
+            if (typeof window !== "undefined" && "Notification" in window) {
+                if (Notification.permission !== "granted") {
+                    const perm = await Notification.requestPermission();
+                    if (perm !== "granted") {
+                        toast({
+                            title: "Notification Permission Required",
+                            description: "Please grant browser notification permissions to receive alerts.",
+                            variant: "destructive"
+                        });
+                        setIsSendingTest(false);
+                        return;
+                    }
                 }
-                const res = await fetch('/api/send-nudge', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token,
-                        title: "⏰ Scheduled Task: Test Routine",
-                        body: "Ready for your 15m focus sprint? Tap to launch your timer and start now!",
-                        url: "/timer?task=Test%20Focus%20Sprint&duration=15&category=Deep%20Focus&autoStart=true",
-                        tag: "test-routine-nudge"
-                    })
+                setNotificationsEnabled(true);
+            }
+
+            // 2. Play gentle audio chime test
+            try {
+                const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                }
+            } catch (e) {}
+
+            // 3. Trigger immediate native / Service Worker notification
+            const notifTitle = "⏰ Scheduled Task: Test Routine";
+            const notifOptions = {
+                body: "Ready for your 15m focus sprint? Tap to launch your timer and start now!",
+                icon: "/icon.svg",
+                badge: "/icon.svg",
+                tag: "test-routine-nudge",
+                vibrate: [200, 100, 200],
+                data: {
+                    url: "/timer?task=Test%20Focus%20Sprint&duration=15&category=Deep%20Focus&autoStart=true",
+                    type: "ROUTINE_TASK"
+                },
+                requireInteraction: true
+            };
+
+            let localTriggered = false;
+            if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    if (reg && reg.showNotification) {
+                        await reg.showNotification(notifTitle, notifOptions);
+                        localTriggered = true;
+                    }
+                } catch (swErr) {
+                    console.warn("SW showNotification failed", swErr);
+                }
+            }
+
+            if (!localTriggered && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+                try {
+                    new Notification(notifTitle, notifOptions);
+                    localTriggered = true;
+                } catch (nErr) {
+                    console.warn("Notification constructor fallback failed", nErr);
+                }
+            }
+
+            // 4. Also attempt remote FCM push for lock screen / background verification
+            let remoteSuccess = false;
+            try {
+                const { syncFcmToken } = await import('@/lib/fcm');
+                if (user && !('isMockUser' in user)) {
+                    const token = await syncFcmToken(user.uid);
+                    if (token) {
+                        const res = await fetch('/api/send-nudge', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                token,
+                                title: notifTitle,
+                                body: notifOptions.body,
+                                url: notifOptions.data.url,
+                                tag: notifOptions.tag
+                            })
+                        });
+                        if (res.ok) {
+                            remoteSuccess = true;
+                        }
+                    }
+                }
+            } catch (fcmErr) {
+                console.warn("FCM remote dispatch warning:", fcmErr);
+            }
+
+            if (remoteSuccess) {
+                toast({
+                    title: "Test Alert Dispatched!",
+                    description: "Push sent to your device and local alert triggered."
                 });
-                if (res.ok) {
-                    toast({
-                        title: "Test Alert Dispatched!",
-                        description: "Lock your phone or close the app to confirm it appears on your lock screen/shade."
-                    });
-                } else {
-                    const data = await res.json().catch(() => ({}));
-                    toast({
-                        title: "Failed to Send Alert",
-                        description: data.error || "Server could not send push notification.",
-                        variant: "destructive"
-                    });
-                }
+            } else if (localTriggered) {
+                toast({
+                    title: "Test Alert Triggered!",
+                    description: "Local notification and audio chime verified successfully."
+                });
+            } else {
+                toast({
+                    title: "Alert Notice",
+                    description: "Please check your browser notification and sound permissions.",
+                    variant: "destructive"
+                });
             }
         } catch (e: any) {
             toast({

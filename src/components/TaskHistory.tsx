@@ -35,18 +35,23 @@ import type { RagQueryResponse } from "@/app/api/analytics/rag-query/route";
 import { Search, Brain, Zap, Volume2 } from "lucide-react";
 
 function formatDuration(minutes: number): string {
-    if (minutes === 0) return "0m";
-    if (minutes < 1) return "<1m";
-    if (minutes >= 60) {
-        const hours = Math.floor(minutes / 60);
-        const remainingMinutes = minutes % 60;
-        return `${hours}h ${remainingMinutes > 0 ? ` ${remainingMinutes}m` : ''}`;
+    if (isNaN(minutes) || minutes <= 0) return "0m";
+    const totalSec = Math.round(minutes * 60);
+    if (totalSec < 60) {
+        return `${totalSec}s`;
     }
-    return `${minutes}m`;
+    const totalMins = Math.floor(totalSec / 60);
+    const extraSec = totalSec % 60;
+    if (totalMins >= 60) {
+        const hours = Math.floor(totalMins / 60);
+        const remMins = totalMins % 60;
+        return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+    }
+    return extraSec > 0 ? `${totalMins}m ${extraSec}s` : `${totalMins}m`;
 }
 
 function formatTaskProgress(task: Task): string {
-    const totalSec = Math.max(60, (task.initialDuration || 0) * 60);
+    const totalSec = Math.max(60, Math.round((task.initialDuration || 0) * 60));
     const remSec = task.timeLeftWhenPaused ?? task.remainingSeconds;
     
     if (remSec !== undefined && remSec >= 0) {
@@ -185,7 +190,11 @@ function TaskLogBookContent() {
                 const params = new URLSearchParams({
                     task: activeTimer.taskName,
                     duration: activeTimer.initialDuration.toString(),
+                    initialDuration: activeTimer.initialDuration.toString(),
+                    autoStart: "true",
                 });
+                if (task.id) params.set("taskId", task.id);
+                else if (activeTimer.taskId) params.set("taskId", activeTimer.taskId);
                 if (activeTimer.category) params.set("category", activeTimer.category);
                 if (activeTimer.color) params.set("color", activeTimer.color);
                 if (activeTimer.coOpSessionId) params.set("coOpSessionId", activeTimer.coOpSessionId);
@@ -200,18 +209,29 @@ function TaskLogBookContent() {
                 return;
             }
 
-            const remSec = task.timeLeftWhenPaused ?? task.remainingSeconds;
+            const initialPlannedDur = task.initialDuration || 15;
+            const totalPlannedSec = Math.max(60, Math.round(initialPlannedDur * 60));
+            const spentSec = Math.round((task.duration || 0) * 60);
+
+            let remSec = task.timeLeftWhenPaused ?? task.remainingSeconds;
+            if (remSec === undefined || remSec <= 0) {
+                remSec = Math.max(0, totalPlannedSec - spentSec);
+            }
+
+            // If user spent their full planned time but task is still in progress (e.g. 1m of 1m),
+            // provide a fresh 5-minute continuation sprint so it doesn't immediately finish or start from 0
+            if (remSec <= 0) {
+                remSec = 5 * 60;
+            }
+
             const params = new URLSearchParams({
                 task: task.name,
+                taskId: task.id,
+                initialDuration: initialPlannedDur.toString(),
+                duration: (Math.max(1, Math.round(remSec / 60))).toString(),
+                seconds: remSec.toString(),
+                autoStart: "true",
             });
-
-            if (remSec !== undefined && remSec > 0) {
-                params.set("seconds", remSec.toString());
-                params.set("duration", (remSec / 60).toString());
-            } else {
-                const remainingDuration = task.initialDuration - task.duration;
-                params.set("duration", Math.max(1, remainingDuration).toString());
-            }
 
             if (task.category) {
                 params.set("category", task.category);
@@ -727,7 +747,7 @@ function TaskLogBookContent() {
                                     <div className="min-w-0 pr-2">
                                         <p className="font-semibold text-foreground truncate">{res.title}</p>
                                         <p className="text-[10px] text-muted-foreground">
-                                            {res.category} • {res.duration}m • {res.timestamp ? new Date(res.timestamp).toLocaleDateString() : ''}
+                                            {res.category} • {formatDuration(res.duration)} • {res.timestamp ? new Date(res.timestamp).toLocaleDateString() : ''}
                                         </p>
                                     </div>
                                     <Badge className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-[10px] font-mono shrink-0">
@@ -1275,7 +1295,10 @@ function TaskLogBookContent() {
                                                         const params = new URLSearchParams({
                                                             task: activeTimer.taskName,
                                                             duration: activeTimer.initialDuration.toString(),
+                                                            initialDuration: activeTimer.initialDuration.toString(),
+                                                            autoStart: "true",
                                                         });
+                                                        if (activeTimer.taskId) params.set("taskId", activeTimer.taskId);
                                                         if (activeTimer.category) params.set("category", activeTimer.category);
                                                         if (activeTimer.color) params.set("color", activeTimer.color);
                                                         if (activeTimer.coOpSessionId) params.set("coOpSessionId", activeTimer.coOpSessionId);

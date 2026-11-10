@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCalendarEvents, useTasks } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveTimer } from "@/hooks/useActiveTimer";
@@ -16,11 +16,45 @@ export default function NotificationScheduler() {
   const { tasks: loggedTasks } = useTasks();
   const notifiedIdsRef = useRef<Set<string>>(new Set());
 
-  // Helper to trigger system notification with service worker and native fallbacks
+  // Dynamic permission tracker so scheduler arms immediately when user grants permission
+  const [hasPermission, setHasPermission] = useState<boolean>(() => {
+    return typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    const check = () => {
+      setHasPermission(Notification.permission === "granted");
+    };
+    check();
+    const interval = setInterval(check, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper to trigger system notification with service worker, web audio, and native fallbacks
   const triggerNotification = async (title: string, options: NotificationOptions) => {
     if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
       return;
     }
+
+    // Play gentle audio chime
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      }
+    } catch (e) {}
 
     try {
       if ("serviceWorker" in navigator) {
@@ -43,9 +77,7 @@ export default function NotificationScheduler() {
 
   // 1. SCHEDULE UPCOMING CALENDAR TASKS
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
-      return;
-    }
+    if (!hasPermission) return;
 
     const timeouts: NodeJS.Timeout[] = [];
     const now = new Date();
@@ -77,14 +109,16 @@ export default function NotificationScheduler() {
           const duration = event.duration || 25;
 
           // Dispatch background registration to Service Worker
-          if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-              type: "SCHEDULE_TASK",
-              id: event.id,
-              name: plainName,
-              time: eventTime,
-              duration: duration,
-            });
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((reg) => {
+              reg.active?.postMessage({
+                type: "SCHEDULE_TASK",
+                id: event.id,
+                name: plainName,
+                time: eventTime,
+                duration: duration,
+              });
+            }).catch(() => {});
           }
 
           // Active in-app timeout scheduler
@@ -154,13 +188,11 @@ export default function NotificationScheduler() {
       timeouts.forEach(clearTimeout);
       clearInterval(interval);
     };
-  }, [events, user]);
+  }, [events, user, hasPermission]);
 
   // 2. SCHEDULE ROUTINE TASKS ACCORDING TO USER'S CIRCADIAN SCHEDULE
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
-      return;
-    }
+    if (!hasPermission) return;
     if (!presetTasks || Object.keys(presetTasks).length === 0) return;
 
     const timeouts: NodeJS.Timeout[] = [];
@@ -212,22 +244,23 @@ export default function NotificationScheduler() {
         const launchUrl = `/timer?task=${encodeURIComponent(taskName)}&duration=${taskDuration}&category=${encodeURIComponent(category)}&autoStart=true`;
 
         // Register with Service Worker for background wakeups
-        if ("serviceWorker" in navigator && navigator.serviceWorker.controller && diffMs > 0) {
-          navigator.serviceWorker.controller.postMessage({
-            type: "SCHEDULE_ROUTINE_TASK",
-            id: task.id || taskName,
-            name: taskName,
-            time: scheduledTime,
-            duration: taskDuration,
-            category: category,
-          });
+        if ("serviceWorker" in navigator && diffMs > 0) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.active?.postMessage({
+              type: "SCHEDULE_ROUTINE_TASK",
+              id: task.id || taskName,
+              name: taskName,
+              time: scheduledTime,
+              duration: taskDuration,
+              category: category,
+            });
+          }).catch(() => {});
         }
 
-        // Active in-app timeout scheduler
+        // Active in-app timeout scheduler (future task due within 24h)
         if (diffMs > 0 && diffMs <= 24 * 60 * 60 * 1000) {
           const timer = setTimeout(async () => {
             if (sessionStorage.getItem(dedupeKey) === "true") return;
-            // Check if user is currently running a timer
             if (activeTimer && !activeTimer.isPaused) return;
 
             notifiedIdsRef.current.add(dedupeKey);
@@ -250,6 +283,27 @@ export default function NotificationScheduler() {
           }, diffMs);
 
           timeouts.push(timer);
+        } else if (diffMs <= 60000 && diffMs >= -10 * 60000) {
+          // Task due right now or started in last 10 minutes upon app open
+          if (!activeTimer || activeTimer.isPaused) {
+            notifiedIdsRef.current.add(dedupeKey);
+            sessionStorage.setItem(dedupeKey, "true");
+
+            triggerNotification(`⏰ Scheduled Task: ${taskName}`, {
+              body: `Ready for "${taskName}" (${taskDuration} min)? Tap to launch your timer and start now!`,
+              icon: "/icon.svg",
+              badge: "/icon.svg",
+              tag: `routine-${taskName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+              ...({ vibrate: [200, 100, 200] } as any),
+              data: {
+                url: launchUrl,
+                type: "ROUTINE_TASK",
+                taskName: taskName,
+                category: category,
+              },
+              requireInteraction: true,
+            }).catch(() => {});
+          }
         }
       });
     });
@@ -280,8 +334,8 @@ export default function NotificationScheduler() {
           const diff = scheduledDate.getTime() - currentNow;
           const dedupeKey = `notified_routine_${task.id || taskName}_${todayStr}`;
 
-          // Trigger if within 1 minute before start or up to 5 minutes after start
-          if (diff <= 60000 && diff >= -5 * 60000) {
+          // Trigger if within 1 minute before start or up to 10 minutes after start
+          if (diff <= 60000 && diff >= -10 * 60000) {
             if (!notifiedIdsRef.current.has(dedupeKey) && sessionStorage.getItem(dedupeKey) !== "true") {
               if (completedToday.has(taskName.toLowerCase().trim())) return;
 
@@ -313,7 +367,7 @@ export default function NotificationScheduler() {
       timeouts.forEach(clearTimeout);
       clearInterval(interval);
     };
-  }, [presetTasks, categoryTimeRanges, loggedTasks, activeTimer]);
+  }, [presetTasks, categoryTimeRanges, loggedTasks, activeTimer, hasPermission]);
 
   // 3. ACTIVE FOCUS TIMER NOTIFICATION WATCHER (across all pages)
   useEffect(() => {

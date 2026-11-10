@@ -124,12 +124,17 @@ const iconMap: { [key: string]: LucideIcon } = {
 };
 
 function formatDuration(minutes: number): string {
-  if (minutes >= 60) {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+  if (isNaN(minutes) || minutes <= 0) return "0m";
+  const totalSec = Math.round(minutes * 60);
+  if (totalSec < 60) return `${totalSec}s`;
+  const totalMins = Math.floor(totalSec / 60);
+  const extraSec = totalSec % 60;
+  if (totalMins >= 60) {
+    const hours = Math.floor(totalMins / 60);
+    const remainingMinutes = totalMins % 60;
     return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
   }
-  return `${minutes}m`;
+  return extraSec > 0 ? `${totalMins}m ${extraSec}s` : `${totalMins}m`;
 }
 
 export default function TaskForm() {
