@@ -130,8 +130,8 @@ export default function NotificationScheduler() {
 
             await triggerNotification(`Upcoming Task: ${plainName}`, {
               body: `Your scheduled task "${plainName}" (${duration} min) starts now!`,
-              icon: "/icon.svg",
-              badge: "/icon.svg",
+              icon: "/icon-192.png",
+              badge: "/badge-72.png",
               tag: `event-${event.id}`,
               ...({ vibrate: [200, 100, 200] } as any),
               data: {
@@ -169,8 +169,8 @@ export default function NotificationScheduler() {
             const plainName = await decryptText(event.name, user?.uid || "");
             await triggerNotification(`Upcoming Task: ${plainName}`, {
               body: `Your scheduled task "${plainName}" (${event.duration || 25} min) starts now!`,
-              icon: "/icon.svg",
-              badge: "/icon.svg",
+              icon: "/icon-192.png",
+              badge: "/badge-72.png",
               tag: `event-${event.id}`,
               ...({ vibrate: [200, 100, 200] } as any),
               data: {
@@ -268,8 +268,8 @@ export default function NotificationScheduler() {
 
             await triggerNotification(`⏰ Scheduled Task: ${taskName}`, {
               body: `Ready for "${taskName}" (${taskDuration} min)? Tap to launch your timer and start now!`,
-              icon: "/icon.svg",
-              badge: "/icon.svg",
+              icon: "/icon-192.png",
+              badge: "/badge-72.png",
               tag: `routine-${taskName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
               ...({ vibrate: [200, 100, 200] } as any),
               data: {
@@ -291,8 +291,8 @@ export default function NotificationScheduler() {
 
             triggerNotification(`⏰ Scheduled Task: ${taskName}`, {
               body: `Ready for "${taskName}" (${taskDuration} min)? Tap to launch your timer and start now!`,
-              icon: "/icon.svg",
-              badge: "/icon.svg",
+              icon: "/icon-192.png",
+              badge: "/badge-72.png",
               tag: `routine-${taskName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
               ...({ vibrate: [200, 100, 200] } as any),
               data: {
@@ -345,8 +345,8 @@ export default function NotificationScheduler() {
               const launchUrl = `/timer?task=${encodeURIComponent(taskName)}&duration=${taskDuration}&category=${encodeURIComponent(category)}&autoStart=true`;
               await triggerNotification(`⏰ Scheduled Task: ${taskName}`, {
                 body: `Ready for "${taskName}" (${taskDuration} min)? Tap to launch your timer and start now!`,
-                icon: "/icon.svg",
-                badge: "/icon.svg",
+                icon: "/icon-192.png",
+                badge: "/badge-72.png",
                 tag: `routine-${taskName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
                 ...({ vibrate: [200, 100, 200] } as any),
                 data: {
@@ -420,8 +420,8 @@ export default function NotificationScheduler() {
         const plainName = await decryptText(activeTimer.taskName, user?.uid || "");
         await triggerNotification("Session Complete!", {
           body: `Time's up! You've finished: ${plainName}`,
-          icon: "/icon.svg",
-          badge: "/icon.svg",
+          icon: "/icon-192.png",
+          badge: "/badge-72.png",
           tag: "timer-done",
           ...({ vibrate: [300, 100, 300] } as any),
           data: {

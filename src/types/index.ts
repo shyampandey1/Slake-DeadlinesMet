@@ -137,6 +137,7 @@ export type UserProfile = {
     instagramLink?: string;
     // Regional Data
     region?: string;
+    timeZone?: string; // IANA timezone, e.g., 'Asia/Kolkata', 'America/New_York'
     country?: string;
     currency?: string; // e.g., 'INR', 'USD'
     // Biometric Data

@@ -1,23 +1,15 @@
 import { NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
+import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
 import { UserProfile } from '@/types';
 import { decryptText } from '@/lib/crypto';
-import { defaultRoutines, profileToRoutineMap, CATEGORY_TIME_BLOCKS, categoryConfig } from '@/lib/routines';
+import {
+  defaultRoutines,
+  profileToRoutineMap,
+  categoryConfig,
+  getCategoryTimeBlock,
+} from '@/lib/routines';
 
-function initAdmin() {
-  if (!admin.apps.length) {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey,
-        }),
-      });
-    }
-  }
-}
+export const dynamic = 'force-dynamic';
 
 interface ScheduledRoutineTask {
   id?: string;
@@ -28,91 +20,343 @@ interface ScheduledRoutineTask {
   startMinutes: number; // minutes from midnight (0..1439)
 }
 
+interface PushPayload {
+  title: string;
+  body: string;
+  url: string;
+  type: string;
+  tag: string;
+  extraData?: Record<string, string>;
+}
+
+function getUserTokens(userData: Partial<UserProfile> & { fcmToken?: string }): string[] {
+  return Array.from(
+    new Set([
+      ...(Array.isArray(userData.fcmTokens) ? userData.fcmTokens : []),
+      ...(typeof userData.fcmToken === 'string' && userData.fcmToken ? [userData.fcmToken] : []),
+    ])
+  ).filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+}
+
+function resolveUserLocalTime(
+  now: Date,
+  userData: { timeZone?: string; region?: string }
+) {
+  const candidates = [
+    userData.timeZone,
+    typeof userData.region === 'string' && userData.region.includes('/')
+      ? userData.region
+      : undefined,
+    'UTC',
+  ];
+
+  let validTz = 'UTC';
+  for (const tz of candidates) {
+    if (!tz) continue;
+    try {
+      Intl.DateTimeFormat('en-US', { timeZone: tz });
+      validTz = tz;
+      break;
+    } catch {
+      // Ignore city names like 'Mumbai' and try next fallback
+    }
+  }
+
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: validTz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: validTz,
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(now);
+
+  const hourRaw = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
+  const hour = hourRaw === 24 ? 0 : hourRaw;
+
+  return {
+    timeZone: validTz,
+    todayStr,
+    hour,
+    minute,
+    minutesOfDay: hour * 60 + minute,
+  };
+}
+
+function formatDateInTimeZone(dateInput: any, timeZone: string): string | null {
+  try {
+    const d = dateInput?.toDate ? dateInput.toDate() : new Date(dateInput);
+    if (!d || isNaN(d.getTime())) return null;
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+  } catch {
+    return null;
+  }
+}
+
+async function sendWebPush(
+  userDocRef: admin.firestore.DocumentReference,
+  tokens: string[],
+  payload: PushPayload
+): Promise<{ successCount: number; failureCount: number; errors: string[] }> {
+  if (tokens.length === 0) {
+    return { successCount: 0, failureCount: 0, errors: [] };
+  }
+
+  const message: admin.messaging.MulticastMessage = {
+    tokens,
+    data: {
+      title: payload.title,
+      body: payload.body,
+      url: payload.url,
+      type: payload.type,
+      tag: payload.tag,
+      icon: '/icon-192.png',
+      badge: '/badge-72.png',
+      requireInteraction: 'true',
+      ...(payload.extraData || {}),
+    },
+    android: {
+      priority: 'high',
+    },
+    apns: {
+      headers: {
+        'apns-priority': '10',
+      },
+      payload: {
+        aps: {
+          alert: {
+            title: payload.title,
+            body: payload.body,
+          },
+          sound: 'default',
+        },
+      },
+    },
+    webpush: {
+      headers: {
+        Urgency: 'high',
+        TTL: '900',
+      },
+      fcmOptions: {
+        link: payload.url,
+      },
+    },
+  };
+
+  const sendResult = await admin.messaging().sendEachForMulticast(message);
+  const errors: string[] = [];
+
+  if (sendResult.failureCount > 0) {
+    const badTokens: string[] = [];
+    sendResult.responses.forEach((resp, idx) => {
+      if (!resp.success) {
+        const errCode = resp.error?.code || 'unknown_error';
+        errors.push(`${errCode}: ${resp.error?.message || 'Send failed'}`);
+        if (
+          errCode === 'messaging/registration-token-not-registered' ||
+          errCode === 'messaging/invalid-registration-token'
+        ) {
+          badTokens.push(tokens[idx]);
+        }
+      }
+    });
+
+    if (badTokens.length > 0) {
+      await userDocRef
+        .update({
+          fcmTokens: admin.firestore.FieldValue.arrayRemove(...badTokens),
+        })
+        .catch(() => {});
+    }
+  }
+
+  return {
+    successCount: sendResult.successCount,
+    failureCount: sendResult.failureCount,
+    errors,
+  };
+}
+
+function buildCategorizedSchedule(
+  flatTasks: Array<{
+    id?: string;
+    name: string;
+    category: string;
+    duration: number;
+    startTime?: string;
+    order?: number;
+  }>
+): ScheduledRoutineTask[] {
+  const result: ScheduledRoutineTask[] = [];
+  const grouped: Record<string, typeof flatTasks> = {};
+
+  flatTasks.forEach((t) => {
+    if (!grouped[t.category]) grouped[t.category] = [];
+    grouped[t.category].push(t);
+  });
+
+  const categories = Object.keys(grouped).sort(
+    (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99)
+  );
+
+  for (const cat of categories) {
+    const catTasks = grouped[cat].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const block = getCategoryTimeBlock(cat);
+    let currentMins = Math.round(block.start * 60);
+
+    for (const t of catTasks) {
+      let taskMins = currentMins;
+      let startTimeStr = '';
+      if (t.startTime && t.startTime.includes(':')) {
+        const [h, m] = t.startTime.split(':').map(Number);
+        if (!isNaN(h) && !isNaN(m)) {
+          taskMins = h * 60 + m;
+          startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+      }
+      if (!startTimeStr) {
+        const h = Math.floor(taskMins / 60) % 24;
+        const m = taskMins % 60;
+        startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+      currentMins = taskMins + t.duration;
+      result.push({
+        id: t.id,
+        name: t.name,
+        category: cat,
+        duration: t.duration,
+        startTime: startTimeStr,
+        startMinutes: taskMins,
+      });
+    }
+  }
+
+  return result;
+}
+
 async function resolveUserRoutineTasks(
-  userId: string,
+  uid: string,
   userData: UserProfile & { activeRoutineProfileId?: string },
   db: admin.firestore.Firestore
 ): Promise<ScheduledRoutineTask[]> {
-  const result: ScheduledRoutineTask[] = [];
-
-  // 1. Check customRoutines collection
-  try {
-    let customProfileDoc: admin.firestore.DocumentSnapshot | null = null;
-    if (userData.activeRoutineProfileId && userData.activeRoutineProfileId !== 'default') {
-      const docSnap = await db.collection('users').doc(userId).collection('customRoutines').doc(userData.activeRoutineProfileId).get();
-      if (docSnap.exists) {
-        customProfileDoc = docSnap;
-      }
-    }
-
-    if (!customProfileDoc) {
-      // Fetch latest custom routine if available
-      const latestSnap = await db.collection('users').doc(userId).collection('customRoutines').orderBy('updatedAt', 'desc').limit(1).get();
-      if (!latestSnap.empty) {
-        customProfileDoc = latestSnap.docs[0];
-      }
-    }
-
-    if (customProfileDoc && customProfileDoc.exists) {
-      const data = customProfileDoc.data() || {};
-      const tasks = (data.tasks || []) as Array<{
-        id?: string;
-        title?: string;
-        name?: string;
-        startTime?: string;
-        durationMinutes?: number;
-        duration?: number;
-        category?: string;
-      }>;
-
-      if (tasks.length > 0) {
-        let currentPointerMinutes = 6 * 60; // 06:00
-        for (const t of tasks) {
-          const taskName = t.title || t.name || 'Routine Task';
-          const duration = Math.max(1, Number(t.durationMinutes || t.duration) || 15);
-          let startMinutes = currentPointerMinutes;
-          let startTimeStr = '';
-
-          if (t.startTime && t.startTime.includes(':')) {
-            const [h, m] = t.startTime.split(':').map(Number);
-            if (!isNaN(h) && !isNaN(m)) {
-              startMinutes = h * 60 + m;
-              startTimeStr = t.startTime;
-            }
-          }
-
-          if (!startTimeStr) {
-            const h = Math.floor(startMinutes / 60) % 24;
-            const m = startMinutes % 60;
-            startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-          }
-
-          currentPointerMinutes = startMinutes + duration;
-
-          result.push({
-            id: t.id,
-            name: taskName,
-            category: t.category || 'General',
-            duration,
-            startTime: startTimeStr,
-            startMinutes,
-          });
+  // 1. Check customRoutines only if user hasn't explicitly switched to 'default'
+  if (userData.activeRoutineProfileId !== 'default') {
+    try {
+      let customProfileDoc: admin.firestore.DocumentSnapshot | null = null;
+      if (userData.activeRoutineProfileId) {
+        const docSnap = await db
+          .collection('users')
+          .doc(uid)
+          .collection('customRoutines')
+          .doc(userData.activeRoutineProfileId)
+          .get();
+        if (docSnap.exists) {
+          customProfileDoc = docSnap;
         }
-        return result;
+      } else {
+        const latestSnap = await db
+          .collection('users')
+          .doc(uid)
+          .collection('customRoutines')
+          .orderBy('updatedAt', 'desc')
+          .limit(1)
+          .get();
+        if (!latestSnap.empty) {
+          customProfileDoc = latestSnap.docs[0];
+        }
       }
+
+      if (customProfileDoc && customProfileDoc.exists) {
+        const data = customProfileDoc.data() || {};
+        const tasks = (data.tasks || []) as Array<{
+          id?: string;
+          title?: string;
+          name?: string;
+          startTime?: string;
+          durationMinutes?: number;
+          duration?: number;
+          category?: string;
+        }>;
+
+        if (tasks.length > 0) {
+          const result: ScheduledRoutineTask[] = [];
+          let currentPointerMinutes = 6 * 60;
+
+          for (const t of tasks) {
+            const rawTitle = t.title || t.name || 'Routine Task';
+            const taskName = (await decryptText(rawTitle, uid)) || rawTitle;
+            const duration = Math.max(1, Number(t.durationMinutes || t.duration) || 15);
+            let startMinutes = currentPointerMinutes;
+            let startTimeStr = '';
+
+            if (t.startTime && t.startTime.includes(':')) {
+              const [h, m] = t.startTime.split(':').map(Number);
+              if (!isNaN(h) && !isNaN(m)) {
+                startMinutes = h * 60 + m;
+                startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+              }
+            }
+
+            if (!startTimeStr) {
+              const h = Math.floor(startMinutes / 60) % 24;
+              const m = startMinutes % 60;
+              startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+
+            currentPointerMinutes = startMinutes + duration;
+
+            result.push({
+              id: t.id,
+              name: taskName,
+              category: t.category || 'General',
+              duration,
+              startTime: startTimeStr,
+              startMinutes,
+            });
+          }
+          return result;
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to read customRoutines for user ${uid}:`, err);
     }
-  } catch (err) {
-    console.warn(`Failed to read customRoutines for user ${userId}:`, err);
   }
 
-  // 2. Check userPresetTasks collection
+  // 2. Check userPresetTasks filtered by user's active profession
   try {
-    const presetSnap = await db.collection('users').doc(userId).collection('userPresetTasks').get();
+    const activeProfession = userData.profile || 'General';
+    let presetSnap = await db
+      .collection('users')
+      .doc(uid)
+      .collection('userPresetTasks')
+      .where('profession', '==', activeProfession)
+      .get();
+
+    if (presetSnap.empty) {
+      // Fallback for legacy preset docs without a profession field
+      presetSnap = await db
+        .collection('users')
+        .doc(uid)
+        .collection('userPresetTasks')
+        .get();
+    }
+
     if (!presetSnap.empty) {
       const rawTasks = await Promise.all(
         presetSnap.docs.map(async (doc) => {
           const d = doc.data();
-          const plainName = await decryptText(d.name, userId);
+          const plainName = await decryptText(d.name, uid);
           return {
             id: doc.id,
             name: plainName || d.name || 'Routine Task',
@@ -123,285 +367,219 @@ async function resolveUserRoutineTasks(
           };
         })
       );
-
-      // Group by category and sequence
-      const grouped: Record<string, typeof rawTasks> = {};
-      rawTasks.forEach((t) => {
-        if (!grouped[t.category]) grouped[t.category] = [];
-        grouped[t.category].push(t);
-      });
-
-      const categories = Object.keys(grouped).sort(
-        (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99)
-      );
-
-      for (const cat of categories) {
-        const catTasks = grouped[cat].sort((a, b) => (a.order || 0) - (b.order || 0));
-        let blockStartHour = CATEGORY_TIME_BLOCKS[cat]?.start;
-        if (blockStartHour === undefined) {
-          const ord = categoryConfig[cat]?.order ?? 99;
-          if (ord <= 5) blockStartHour = 6.0;
-          else if (ord <= 15) blockStartHour = 7.0;
-          else if (ord <= 28) blockStartHour = 9.0;
-          else if (ord <= 35) blockStartHour = 13.0;
-          else if (ord <= 45) blockStartHour = 14.5;
-          else if (ord <= 55) blockStartHour = 17.5;
-          else if (ord <= 65) blockStartHour = 19.5;
-          else if (ord <= 79) blockStartHour = 21.0;
-          else blockStartHour = 22.0;
-        }
-
-        let currentMins = Math.round(blockStartHour * 60);
-        for (const t of catTasks) {
-          let taskMins = currentMins;
-          let startTimeStr = '';
-          if (t.startTime && t.startTime.includes(':')) {
-            const [h, m] = t.startTime.split(':').map(Number);
-            if (!isNaN(h) && !isNaN(m)) {
-              taskMins = h * 60 + m;
-              startTimeStr = t.startTime;
-            }
-          }
-          if (!startTimeStr) {
-            const h = Math.floor(taskMins / 60) % 24;
-            const m = taskMins % 60;
-            startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-          }
-          currentMins = taskMins + t.duration;
-          result.push({
-            id: t.id,
-            name: t.name,
-            category: cat,
-            duration: t.duration,
-            startTime: startTimeStr,
-            startMinutes: taskMins,
-          });
-        }
-      }
-      return result;
+      return buildCategorizedSchedule(rawTasks);
     }
   } catch (err) {
-    console.warn(`Failed to read userPresetTasks for user ${userId}:`, err);
+    console.warn(`Failed to read userPresetTasks for user ${uid}:`, err);
   }
 
   // 3. Fallback to default profession routines
   const profileKey = (profileToRoutineMap as any)[userData.profile || 'General'] || 'General';
-  const template = defaultRoutines.routines[profileKey as keyof typeof defaultRoutines.routines] || defaultRoutines.routines['General'] || [];
+  const template =
+    defaultRoutines.routines[profileKey as keyof typeof defaultRoutines.routines] ||
+    defaultRoutines.routines['General'] ||
+    [];
 
-  const grouped: Record<string, typeof template> = {};
-  template.forEach((t) => {
-    const cat = t.category || 'General';
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(t);
-  });
-
-  const categories = Object.keys(grouped).sort(
-    (a, b) => (categoryConfig[a]?.order ?? 99) - (categoryConfig[b]?.order ?? 99)
+  return buildCategorizedSchedule(
+    template.map((t, idx) => ({
+      name: t.name,
+      category: t.category || 'General',
+      duration: Math.max(1, Number(t.duration) || 15),
+      startTime: t.startTime,
+      order: idx,
+    }))
   );
+}
 
-  for (const cat of categories) {
-    const catTasks = grouped[cat];
-    let blockStartHour = CATEGORY_TIME_BLOCKS[cat]?.start;
-    if (blockStartHour === undefined) {
-      const ord = categoryConfig[cat]?.order ?? 99;
-      if (ord <= 5) blockStartHour = 6.0;
-      else if (ord <= 15) blockStartHour = 7.0;
-      else if (ord <= 28) blockStartHour = 9.0;
-      else if (ord <= 35) blockStartHour = 13.0;
-      else if (ord <= 45) blockStartHour = 14.5;
-      else if (ord <= 55) blockStartHour = 17.5;
-      else if (ord <= 65) blockStartHour = 19.5;
-      else if (ord <= 79) blockStartHour = 21.0;
-      else blockStartHour = 22.0;
-    }
+function isAuthorizedCronRequest(req: Request): { ok: boolean; status?: number; reason?: string } {
+  const configuredSecret = process.env.CRON_SECRET?.trim();
+  const isProd = process.env.NODE_ENV === 'production';
 
-    let currentMins = Math.round(blockStartHour * 60);
-    for (const t of catTasks) {
-      let taskMins = currentMins;
-      let startTimeStr = '';
-      if (t.startTime && t.startTime.includes(':')) {
-        const [h, m] = t.startTime.split(':').map(Number);
-        if (!isNaN(h) && !isNaN(m)) {
-          taskMins = h * 60 + m;
-          startTimeStr = t.startTime;
-        }
-      }
-      if (!startTimeStr) {
-        const h = Math.floor(taskMins / 60) % 24;
-        const m = taskMins % 60;
-        startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      }
-      const dur = Math.max(1, Number(t.duration) || 15);
-      currentMins = taskMins + dur;
-      result.push({
-        name: t.name,
-        category: cat,
-        duration: dur,
-        startTime: startTimeStr,
-        startMinutes: taskMins,
-      });
+  if (!configuredSecret) {
+    if (isProd) {
+      return {
+        ok: false,
+        status: 500,
+        reason: 'CRON_SECRET is not configured on the server.',
+      };
     }
+    return { ok: true };
   }
 
-  return result;
+  const authHeader = req.headers.get('authorization')?.trim();
+  const customHeader = req.headers.get('x-cron-secret')?.trim();
+  const url = new URL(req.url);
+  const querySecret = url.searchParams.get('secret')?.trim();
+
+  if (
+    authHeader === `Bearer ${configuredSecret}` ||
+    customHeader === configuredSecret ||
+    querySecret === configuredSecret
+  ) {
+    return { ok: true };
+  }
+
+  return { ok: false, status: 401, reason: 'Unauthorized' };
 }
 
 export async function GET(req: Request) {
-  // Check for authorization (Vercel Cron / GitHub Actions uses a secret)
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && process.env.NODE_ENV === 'production') {
-    return new Response('Unauthorized', { status: 401 });
+  const authCheck = isAuthorizedCronRequest(req);
+  if (!authCheck.ok) {
+    return NextResponse.json(
+      { error: authCheck.reason || 'Unauthorized' },
+      { status: authCheck.status || 401 }
+    );
   }
 
   try {
-    initAdmin();
-    if (!admin.apps.length) {
-      return NextResponse.json({ error: "Firebase admin not configured" }, { status: 500 });
+    const adminStatus = ensureFirebaseAdmin();
+    if (!adminStatus.ok) {
+      return NextResponse.json(
+        { error: adminStatus.error || 'Firebase admin not configured' },
+        { status: 500 }
+      );
     }
 
     const db = admin.firestore();
     const now = new Date();
     const results: any[] = [];
+    const errorsSample: string[] = [];
+    let usersScanned = 0;
+    let usersWithTokens = 0;
+    let activeSessionsScanned = 0;
+    let totalSent = 0;
+    let totalFailed = 0;
 
     // =========================================================================
     // 1. ACTIVE FOCUS TIMER SESSIONS: NOTIFY COMPLETED SESSIONS (APP CLOSED)
     // =========================================================================
     try {
       const activeSessionsSnap = await db.collection('active_sessions').get();
+      activeSessionsScanned = activeSessionsSnap.size;
+
       for (const sessionDoc of activeSessionsSnap.docs) {
         const sessionData = sessionDoc.data();
-        const userId = sessionDoc.id;
+        const uid = sessionDoc.id;
         const status = sessionData.status;
         const notified = sessionData.notified === true;
 
         if (status === 'running' && !notified) {
           const startedAtMillis = sessionData.startedAt?.toMillis
             ? sessionData.startedAt.toMillis()
-            : (sessionData.startedAt ? new Date(sessionData.startedAt).getTime() : 0);
-          const durationMillis = sessionData.durationMillis || (25 * 60 * 1000);
-          const expectedEndTime = startedAtMillis + durationMillis;
+            : sessionData.startedAt
+              ? new Date(sessionData.startedAt).getTime()
+              : 0;
+          const durationMillis = sessionData.durationMillis || 25 * 60 * 1000;
+          const expectedEndTime =
+            typeof sessionData.expectedEndTime === 'number'
+              ? sessionData.expectedEndTime
+              : startedAtMillis + durationMillis;
 
-          // If session end time has arrived
-          if (now.getTime() >= expectedEndTime) {
-            const userDoc = await db.collection('users').doc(userId).get();
+          if (expectedEndTime > 0 && now.getTime() >= expectedEndTime) {
+            const userDoc = await db.collection('users').doc(uid).get();
             if (userDoc.exists) {
               const uData = userDoc.data() as UserProfile & { fcmToken?: string };
-              const userTokens: string[] = Array.from(
-                new Set([...(uData.fcmTokens || []), ...(uData.fcmToken ? [uData.fcmToken] : [])])
-              ).filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
+              const userTokens = getUserTokens(uData);
 
               if (userTokens.length > 0) {
-                const plainTaskName = await decryptText(sessionData.currentTaskId, userId);
+                const plainTaskName = await decryptText(sessionData.currentTaskId, uid);
                 const taskTitle = plainTaskName || 'Focus Session';
 
-                const message = {
-                  notification: {
-                    title: '🎉 Session Complete!',
-                    body: `Time's up! You've finished: ${taskTitle}. Great work!`,
-                  },
-                  tokens: userTokens,
-                  data: {
-                    url: '/timer?from_notification=true',
-                    type: 'TIMER',
-                    taskName: taskTitle,
-                  },
-                  webpush: {
-                    notification: {
-                      title: '🎉 Session Complete!',
-                      body: `Time's up! You've finished: ${taskTitle}. Great work!`,
-                      icon: '/icon.svg',
-                      badge: '/icon.svg',
-                      tag: 'timer-done',
-                      vibrate: [300, 100, 300],
-                      requireInteraction: true,
-                    },
-                    fcmOptions: {
-                      link: '/timer?from_notification=true',
-                    },
-                  },
-                };
-
-                await admin.messaging().sendEachForMulticast(message);
-                await sessionDoc.ref.update({
-                  notified: true,
-                  status: 'finished',
-                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+                  title: '🎉 Session Complete!',
+                  body: `Time's up! You've finished: ${taskTitle}. Great work!`,
+                  url: '/timer?from_notification=true',
+                  type: 'TIMER',
+                  tag: 'timer-done',
+                  extraData: { taskName: taskTitle },
                 });
-                results.push({ userId, type: 'timer_complete', taskName: taskTitle });
+
+                totalSent += sendRes.successCount;
+                totalFailed += sendRes.failureCount;
+                if (sendRes.errors.length > 0 && errorsSample.length < 10) {
+                  errorsSample.push(...sendRes.errors.slice(0, 2));
+                }
+
+                if (sendRes.successCount > 0) {
+                  await sessionDoc.ref.update({
+                    notified: true,
+                    status: 'finished',
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  });
+                  results.push({ uid, type: 'timer_complete', taskName: taskTitle });
+                }
               }
             }
           }
         }
       }
-    } catch (sessionErr) {
+    } catch (sessionErr: any) {
       console.error('Failed to process active_sessions timer notifications:', sessionErr);
+      errorsSample.push(`active_sessions: ${sessionErr?.message || String(sessionErr)}`);
     }
 
     // =========================================================================
     // 2. USER ROUTINE & SCHEDULED TASKS NOTIFICATIONS
     // =========================================================================
     const usersSnap = await db.collection('users').get();
+    usersScanned = usersSnap.size;
 
     for (const userDoc of usersSnap.docs) {
-      const userData = userDoc.data() as UserProfile & { fcmToken?: string; lastRoutineNudge?: any };
-      const { notificationSettings, region, userId } = userData;
+      const uid = userDoc.id;
+      const userData = userDoc.data() as UserProfile & {
+        fcmToken?: string;
+        lastRoutineNudge?: any;
+        activeRoutineProfileId?: string;
+      };
+      const { notificationSettings, reformerPreference } = userData;
 
-      // Harmonize tokens: support both fcmTokens (array) and fcmToken (legacy string)
-      const userTokens: string[] = Array.from(
-        new Set([...(userData.fcmTokens || []), ...(userData.fcmToken ? [userData.fcmToken] : [])])
-      ).filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
-
+      const userTokens = getUserTokens(userData);
       if (userTokens.length === 0) continue;
+      usersWithTokens++;
 
-      // Determine local time for user
-      const userTimeZone = region || 'UTC';
-      let userLocalTime = now;
-      try {
-        userLocalTime = new Date(now.toLocaleString('en-US', { timeZone: userTimeZone }));
-      } catch (e) {
-        userLocalTime = now;
-      }
-      const userLocalHour = userLocalTime.getHours();
-      const userLocalMinute = userLocalTime.getMinutes();
-      const currentDecimalHour = userLocalHour + userLocalMinute / 60;
-      const todayStr = userLocalTime.toISOString().split('T')[0];
+      const localTime = resolveUserLocalTime(now, userData);
+      const { timeZone, todayStr, hour: userLocalHour, minute: userLocalMinute, minutesOfDay: currentMinutesOfDay } = localTime;
+      const notifiedTodayMap = { ...((userData as any).notifiedRoutineTasks?.[todayStr] || {}) };
+      const notifiedSystemMap = { ...((userData as any).notifiedSystemNudges?.[todayStr] || {}) };
 
       // -----------------------------------------------------------------------
       // 2A. PROACTIVE ROUTINE TASK & TIMER LAUNCH NUDGES (SCHEDULE-BASED)
       // -----------------------------------------------------------------------
-      const routineNudgesEnabled = notificationSettings?.routineNudges !== false && notificationSettings?.taskReminders !== false;
+      const routineNudgesEnabled =
+        notificationSettings?.routineNudges !== false &&
+        notificationSettings?.taskReminders !== false;
+
       if (routineNudgesEnabled) {
         try {
-          // Check if user currently has an active running timer
-          const userActiveSessionSnap = await db.collection('active_sessions').doc(userId).get();
-          const isCurrentlyFocusing = userActiveSessionSnap.exists && userActiveSessionSnap.data()?.status === 'running';
+          const userActiveSessionSnap = await db.collection('active_sessions').doc(uid).get();
+          const activeSessionData = userActiveSessionSnap.data();
+          const isCurrentlyFocusing =
+            userActiveSessionSnap.exists && activeSessionData?.status === 'running';
 
           if (!isCurrentlyFocusing) {
-            // Resolve all routine tasks with exact start times (from customRoutines, userPresetTasks, or default)
-            const routineTasks = await resolveUserRoutineTasks(userId, userData, db);
-            const currentMinutesOfDay = userLocalHour * 60 + userLocalMinute;
+            const routineTasks = await resolveUserRoutineTasks(uid, userData, db);
 
-            // Fetch completed tasks for today to avoid notifying for already-finished tasks
-            const completedSnap = await db.collection('users').doc(userId).collection('tasks')
+            const completedSnap = await db
+              .collection('users')
+              .doc(uid)
+              .collection('tasks')
               .where('completed', '==', true)
               .get();
 
             const completedNames = new Set<string>();
             for (const tDoc of completedSnap.docs) {
               const tData = tDoc.data();
-              const tDate = tData.createdAt?.toDate ? tData.createdAt.toDate().toISOString().split('T')[0] : tData.createdAt?.split('T')[0];
+              const tDate = formatDateInTimeZone(tData.createdAt, timeZone);
               if (tDate === todayStr) {
-                const plainName = await decryptText(tData.name, userId);
+                const plainName = await decryptText(tData.name, uid);
                 completedNames.add(plainName.toLowerCase().trim());
               }
             }
 
-            const notifiedTodayMap = (userData as any).notifiedRoutineTasks?.[todayStr] || {};
-
             for (const task of routineTasks) {
               const diffMinutes = task.startMinutes - currentMinutesOfDay;
-              // Trigger window: starting within next 15 mins or started within past 5 mins
-              const isTimeForTask = diffMinutes >= -5 && diffMinutes <= 15;
+              // Match 15m ahead up to 15m past scheduled start (absorbs cron jitter)
+              const isTimeForTask = diffMinutes >= -15 && diffMinutes <= 15;
               if (!isTimeForTask) continue;
 
               const taskSlug = task.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -410,76 +588,53 @@ export async function GET(req: Request) {
 
               const launchUrl = `/timer?task=${encodeURIComponent(task.name)}&duration=${task.duration}&category=${encodeURIComponent(task.category)}&autoStart=true`;
 
-              const message = {
-                notification: {
-                  title: `⏰ Scheduled Task: ${task.name}`,
-                  body: `Ready for "${task.name}" (${task.duration}m)? Scheduled for ${task.startTime}. Tap to start focusing!`,
-                },
-                tokens: userTokens,
-                data: {
-                  url: launchUrl,
-                  type: 'ROUTINE_TASK',
+              const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+                title: `⏰ Scheduled Task: ${task.name}`,
+                body: `Ready for "${task.name}" (${task.duration}m)? Scheduled for ${task.startTime}. Tap to start focusing!`,
+                url: launchUrl,
+                type: 'ROUTINE_TASK',
+                tag: `routine-${taskSlug}`,
+                extraData: {
                   category: task.category,
                   taskName: task.name,
                   startTime: task.startTime,
                   duration: task.duration.toString(),
                 },
-                webpush: {
-                  headers: {
-                    Urgency: 'high',
-                  },
-                  notification: {
-                    title: `⏰ Scheduled Task: ${task.name}`,
-                    body: `Ready for "${task.name}" (${task.duration}m)? Scheduled for ${task.startTime}. Tap to start focusing!`,
-                    icon: '/icon.svg',
-                    badge: '/icon.svg',
-                    tag: `routine-${taskSlug}`,
-                    vibrate: [200, 100, 200],
-                    requireInteraction: true,
-                  },
-                  fcmOptions: {
-                    link: launchUrl,
-                  },
-                },
-              };
-
-              const sendResult = await admin.messaging().sendEachForMulticast(message);
-
-              // Stale token cleanup
-              if (sendResult.failureCount > 0) {
-                const badTokens: string[] = [];
-                sendResult.responses.forEach((resp, idx) => {
-                  if (!resp.success) {
-                    const errCode = resp.error?.code;
-                    if (errCode === 'messaging/registration-token-not-registered' || errCode === 'messaging/invalid-registration-token') {
-                      badTokens.push(userTokens[idx]);
-                    }
-                  }
-                });
-                if (badTokens.length > 0) {
-                  await userDoc.ref.update({
-                    fcmTokens: admin.firestore.FieldValue.arrayRemove(...badTokens),
-                  }).catch(() => {});
-                }
-              }
-
-              // Record per-task deduplication in user document
-              await userDoc.ref.update({
-                [`notifiedRoutineTasks.${todayStr}.${taskSlug}`]: true,
-                lastRoutineNudge: {
-                  block: task.category,
-                  taskName: task.name,
-                  date: todayStr,
-                  timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                },
               });
 
-              results.push({ userId, type: 'routine_task_nudge', taskName: task.name, startTime: task.startTime, category: task.category });
-              notifiedTodayMap[taskSlug] = true;
+              totalSent += sendRes.successCount;
+              totalFailed += sendRes.failureCount;
+              if (sendRes.errors.length > 0 && errorsSample.length < 10) {
+                errorsSample.push(...sendRes.errors.slice(0, 2));
+              }
+
+              if (sendRes.successCount > 0) {
+                await userDoc.ref.update({
+                  [`notifiedRoutineTasks.${todayStr}.${taskSlug}`]: true,
+                  lastRoutineNudge: {
+                    block: task.category,
+                    taskName: task.name,
+                    date: todayStr,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                  },
+                });
+
+                results.push({
+                  uid,
+                  type: 'routine_task_nudge',
+                  taskName: task.name,
+                  startTime: task.startTime,
+                  category: task.category,
+                });
+                notifiedTodayMap[taskSlug] = true;
+              }
             }
           }
-        } catch (routineErr) {
-          console.error(`Failed to process routine nudges for user ${userId}:`, routineErr);
+        } catch (routineErr: any) {
+          console.error(`Failed to process routine nudges for user ${uid}:`, routineErr);
+          if (errorsSample.length < 10) {
+            errorsSample.push(`routine(${uid}): ${routineErr?.message || String(routineErr)}`);
+          }
         }
       }
 
@@ -488,220 +643,201 @@ export async function GET(req: Request) {
       // -----------------------------------------------------------------------
       if (notificationSettings?.taskReminders !== false) {
         try {
-          const eventsSnap = await db.collection('users').doc(userId).collection('userEvents').get();
+          const eventsSnap = await db.collection('users').doc(uid).collection('userEvents').get();
           for (const eventDoc of eventsSnap.docs) {
             const eventData = eventDoc.data();
             if (!eventData.date) continue;
 
-            const eventDate = new Date(eventData.date);
+            const eventDate = eventData.date?.toDate ? eventData.date.toDate() : new Date(eventData.date);
             if (isNaN(eventDate.getTime())) continue;
 
-            // Check if event is scheduled for around now (starting within next 30m or started within past 15m)
             const diffMinutes = (eventDate.getTime() - now.getTime()) / (1000 * 60);
             const isUpcoming = diffMinutes >= -15 && diffMinutes <= 30;
 
             const lastNotified = eventData.lastNotifiedAt?.toDate
               ? eventData.lastNotifiedAt.toDate().getTime()
-              : (eventData.lastNotifiedAt ? new Date(eventData.lastNotifiedAt).getTime() : 0);
-            const alreadyNotifiedRecently = (now.getTime() - lastNotified) < 1000 * 60 * 60; // within 60 mins
+              : eventData.lastNotifiedAt
+                ? new Date(eventData.lastNotifiedAt).getTime()
+                : 0;
+            const alreadyNotifiedRecently = now.getTime() - lastNotified < 1000 * 60 * 60;
 
             if (isUpcoming && !alreadyNotifiedRecently) {
-              const plainTaskName = await decryptText(eventData.name, userId);
+              const plainTaskName = await decryptText(eventData.name, uid);
               const taskDuration = eventData.duration || 25;
-              const launchUrl = `/calendar?from_notification=true`;
+              const launchUrl = `/timer?task=${encodeURIComponent(plainTaskName)}&duration=${taskDuration}&category=Calendar&autoStart=true`;
 
-              const message = {
-                notification: {
-                  title: `Upcoming Task: ${plainTaskName}`,
-                  body: `Your scheduled task "${plainTaskName}" (${taskDuration} min) starts now! Time to conquer your deadline.`,
-                },
-                tokens: userTokens,
-                data: {
-                  url: launchUrl,
-                  type: 'CALENDAR',
-                  eventId: eventDoc.id,
-                },
-                webpush: {
-                  notification: {
-                    title: `Upcoming Task: ${plainTaskName}`,
-                    body: `Your scheduled task "${plainTaskName}" (${taskDuration} min) starts now!`,
-                    icon: '/icon.svg',
-                    badge: '/icon.svg',
-                    tag: `event-${eventDoc.id}`,
-                    vibrate: [200, 100, 200],
-                    requireInteraction: true,
-                  },
-                  fcmOptions: {
-                    link: launchUrl,
-                  },
-                },
-              };
-
-              await admin.messaging().sendEachForMulticast(message);
-              await eventDoc.ref.update({
-                lastNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+              const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+                title: `📅 Upcoming Task: ${plainTaskName}`,
+                body: `Your scheduled task "${plainTaskName}" (${taskDuration} min) starts now! Tap to launch timer.`,
+                url: launchUrl,
+                type: 'CALENDAR',
+                tag: `event-${eventDoc.id}`,
+                extraData: { eventId: eventDoc.id },
               });
-              results.push({ userId, type: 'task_reminder', taskName: plainTaskName });
+
+              totalSent += sendRes.successCount;
+              totalFailed += sendRes.failureCount;
+
+              if (sendRes.successCount > 0) {
+                await eventDoc.ref.update({
+                  lastNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                results.push({ uid, type: 'task_reminder', taskName: plainTaskName });
+              }
             }
           }
-        } catch (taskErr) {
-          console.error(`Failed to process task notifications for user ${userId}:`, taskErr);
+        } catch (taskErr: any) {
+          console.error(`Failed to process task notifications for user ${uid}:`, taskErr);
+          if (errorsSample.length < 10) {
+            errorsSample.push(`calendar(${uid}): ${taskErr?.message || String(taskErr)}`);
+          }
         }
       }
 
       // -----------------------------------------------------------------------
-      // 2C. HYDRATION REMINDERS
+      // 2C. HYDRATION REMINDERS (Deduped per glass slot/day)
       // -----------------------------------------------------------------------
       if (notificationSettings?.hydrationReminders) {
-        if (userLocalHour >= 9 && userLocalHour <= 21 && (userLocalHour - 9) % 3 === 0 && userLocalMinute < 15) {
+        if (userLocalHour >= 9 && userLocalHour <= 21 && (userLocalHour - 9) % 3 === 0 && userLocalMinute < 20) {
           const glassNumber = Math.floor((userLocalHour - 9) / 3) + 1;
-          const message = {
-            notification: {
-              title: "💧 Hydration Goal: 8 Glasses",
+          const slotKey = `hydration_${glassNumber}`;
+          if (!notifiedSystemMap[slotKey]) {
+            const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+              title: '💧 Hydration Goal: 8 Glasses',
               body: `Time for glass #${glassNumber}! Staying hydrated is key to your 8-glass daily discipline.`,
-            },
-            tokens: userTokens,
-            data: { url: "/", type: "HYDRATION" },
-            webpush: {
-              notification: {
-                title: "💧 Hydration Goal: 8 Glasses",
-                body: `Time for glass #${glassNumber}! Staying hydrated is key to your daily discipline.`,
-                icon: "/icon.svg",
-                badge: "/icon.svg",
-                tag: "hydration-reminder",
-              },
-              fcmOptions: { link: "/" }
+              url: '/',
+              type: 'HYDRATION',
+              tag: 'hydration-reminder',
+            });
+            totalSent += sendRes.successCount;
+            totalFailed += sendRes.failureCount;
+            if (sendRes.successCount > 0) {
+              await userDoc.ref.update({ [`notifiedSystemNudges.${todayStr}.${slotKey}`]: true });
+              notifiedSystemMap[slotKey] = true;
+              results.push({ uid, type: 'hydration', glassNumber });
             }
-          };
-          await admin.messaging().sendEachForMulticast(message);
-          results.push({ userId, type: 'hydration' });
+          }
         }
       }
 
       // -----------------------------------------------------------------------
-      // 2D. MOVERS PROTOCOL REMINDERS
+      // 2D. MOVERS PROTOCOL REMINDERS (Deduped per day)
       // -----------------------------------------------------------------------
-      const { reformerPreference } = userData;
-
-      if (userLocalHour === 7 && userLocalMinute < 15) {
-        const message = {
-          notification: {
-            title: "🌅 MOVERS: Morning Primer",
-            body: "Start your M-O-V-E sequence: Meditation, Oxygenation, Visualization, and Exercise.",
-          },
-          tokens: userTokens,
-          data: { url: "/routine", type: "MOVERS_MORNING" },
-          webpush: {
-            notification: {
-              title: "🌅 MOVERS: Morning Primer",
-              body: "Start your M-O-V-E sequence: Meditation, Oxygenation, Visualization, and Exercise.",
-              icon: "/icon.svg",
-              badge: "/icon.svg",
-              tag: "movers-morning",
-            },
-            fcmOptions: { link: "/routine" }
-          }
-        };
-        await admin.messaging().sendEachForMulticast(message);
-        results.push({ userId, type: 'movers_morning' });
+      if (userLocalHour === 7 && userLocalMinute < 20 && !notifiedSystemMap['movers_morning']) {
+        const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+          title: '🌅 MOVERS: Morning Primer',
+          body: 'Start your M-O-V-E sequence: Meditation, Oxygenation, Visualization, and Exercise.',
+          url: '/routine',
+          type: 'MOVERS_MORNING',
+          tag: 'movers-morning',
+        });
+        totalSent += sendRes.successCount;
+        totalFailed += sendRes.failureCount;
+        if (sendRes.successCount > 0) {
+          await userDoc.ref.update({ [`notifiedSystemNudges.${todayStr}.movers_morning`]: true });
+          results.push({ uid, type: 'movers_morning' });
+        }
       }
 
-      if (userLocalHour === 21 && userLocalMinute < 15) {
-        const bodyText = reformerPreference === 'evening_restorer'
-          ? "Time for your Evening Restorer: Meditation, Oxygenation, Visualization, Reading, and Scribing."
-          : "Wind down with your Reading (R) and Scribing (S) protocol.";
+      if (userLocalHour === 21 && userLocalMinute < 20 && !notifiedSystemMap['movers_evening']) {
+        const bodyText =
+          reformerPreference === 'evening_restorer'
+            ? 'Time for your Evening Restorer: Meditation, Oxygenation, Visualization, Reading, and Scribing.'
+            : 'Wind down with your Reading (R) and Scribing (S) protocol.';
 
-        const message = {
-          notification: {
-            title: "🌙 MOVERS: Evening Protocol",
-            body: bodyText,
-          },
-          tokens: userTokens,
-          data: { url: "/routine", type: "MOVERS_EVENING" },
-          webpush: {
-            notification: {
-              title: "🌙 MOVERS: Evening Protocol",
-              body: bodyText,
-              icon: "/icon.svg",
-              badge: "/icon.svg",
-              tag: "movers-evening",
-            },
-            fcmOptions: { link: "/routine" }
-          }
-        };
-        await admin.messaging().sendEachForMulticast(message);
-        results.push({ userId, type: 'movers_evening' });
+        const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+          title: '🌙 MOVERS: Evening Protocol',
+          body: bodyText,
+          url: '/routine',
+          type: 'MOVERS_EVENING',
+          tag: 'movers-evening',
+        });
+        totalSent += sendRes.successCount;
+        totalFailed += sendRes.failureCount;
+        if (sendRes.successCount > 0) {
+          await userDoc.ref.update({ [`notifiedSystemNudges.${todayStr}.movers_evening`]: true });
+          results.push({ uid, type: 'movers_evening' });
+        }
       }
 
       // -----------------------------------------------------------------------
-      // 2E. STREAK EXPIRY WARNING
+      // 2E. STREAK EXPIRY WARNING (Deduped per day)
       // -----------------------------------------------------------------------
-      if (notificationSettings?.streakExpiryWarning && userLocalHour === 20 && userLocalMinute < 15) {
-        const tasksSnap = await db.collection('users').doc(userId).collection('tasks')
+      if (
+        notificationSettings?.streakExpiryWarning &&
+        userLocalHour === 20 &&
+        userLocalMinute < 20 &&
+        !notifiedSystemMap['streak_warning']
+      ) {
+        const tasksSnap = await db
+          .collection('users')
+          .doc(uid)
+          .collection('tasks')
           .where('completed', '==', true)
           .get();
 
         let hasCompletedToday = false;
-        tasksSnap.forEach(tDoc => {
+        tasksSnap.forEach((tDoc) => {
           const tData = tDoc.data();
-          const tDate = tData.createdAt?.toDate ? tData.createdAt.toDate().toISOString().split('T')[0] : tData.createdAt?.split('T')[0];
+          const tDate = formatDateInTimeZone(tData.createdAt, timeZone);
           if (tDate === todayStr) hasCompletedToday = true;
         });
 
         if (!hasCompletedToday) {
-          const message = {
-            notification: {
-              title: "🔥 Streak at Risk!",
-              body: "You haven't completed any tasks today. Complete one now to save your streak!",
-            },
-            tokens: userTokens,
-            data: { url: "/", type: "STREAK_WARNING" },
-            webpush: {
-              notification: {
-                title: "🔥 Streak at Risk!",
-                body: "You haven't completed any tasks today. Complete one now to save your streak!",
-                icon: "/icon.svg",
-                badge: "/icon.svg",
-                tag: "streak-warning",
-              },
-              fcmOptions: { link: "/" }
-            }
-          };
-          await admin.messaging().sendEachForMulticast(message);
-          results.push({ userId, type: 'streak_warning' });
+          const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+            title: '🔥 Streak at Risk!',
+            body: "You haven't completed any tasks today. Complete one now to save your streak!",
+            url: '/',
+            type: 'STREAK_WARNING',
+            tag: 'streak-warning',
+          });
+          totalSent += sendRes.successCount;
+          totalFailed += sendRes.failureCount;
+          if (sendRes.successCount > 0) {
+            await userDoc.ref.update({ [`notifiedSystemNudges.${todayStr}.streak_warning`]: true });
+            results.push({ uid, type: 'streak_warning' });
+          }
         }
       }
 
       // -----------------------------------------------------------------------
-      // 2F. DAILY SUMMARY
+      // 2F. DAILY SUMMARY (Deduped per day)
       // -----------------------------------------------------------------------
-      if (notificationSettings?.dailySummary && userLocalHour === 8 && userLocalMinute < 15) {
-        const message = {
-          notification: {
-            title: "📊 Your Morning Briefing",
-            body: "Ready for a productive day? Your routine is waiting for you in Slake.",
-          },
-          tokens: userTokens,
-          data: { url: "/", type: "DAILY_SUMMARY" },
-          webpush: {
-            notification: {
-              title: "📊 Your Morning Briefing",
-              body: "Ready for a productive day? Your routine is waiting for you in Slake.",
-              icon: "/icon.svg",
-              badge: "/icon.svg",
-              tag: "daily-summary",
-            },
-            fcmOptions: { link: "/" }
-          }
-        };
-        await admin.messaging().sendEachForMulticast(message);
-        results.push({ userId, type: 'daily_summary' });
+      if (
+        notificationSettings?.dailySummary &&
+        userLocalHour === 8 &&
+        userLocalMinute < 20 &&
+        !notifiedSystemMap['daily_summary']
+      ) {
+        const sendRes = await sendWebPush(userDoc.ref, userTokens, {
+          title: '📊 Your Morning Briefing',
+          body: 'Ready for a productive day? Your routine is waiting for you in DeadlinesMet.',
+          url: '/',
+          type: 'DAILY_SUMMARY',
+          tag: 'daily-summary',
+        });
+        totalSent += sendRes.successCount;
+        totalFailed += sendRes.failureCount;
+        if (sendRes.successCount > 0) {
+          await userDoc.ref.update({ [`notifiedSystemNudges.${todayStr}.daily_summary`]: true });
+          results.push({ uid, type: 'daily_summary' });
+        }
       }
     }
 
-    return NextResponse.json({ success: true, processed: results.length, details: results });
+    return NextResponse.json({
+      success: true,
+      usersScanned,
+      usersWithTokens,
+      activeSessionsScanned,
+      processed: results.length,
+      totalSent,
+      totalFailed,
+      details: results,
+      ...(errorsSample.length > 0 ? { errorsSample } : {}),
+    });
   } catch (error: any) {
-    console.error("Cron Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Cron Error:', error);
+    return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
   }
 }

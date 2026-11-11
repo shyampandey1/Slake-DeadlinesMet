@@ -1,27 +1,12 @@
 import { NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
-
-function initAdmin() {
-  if (!admin.apps.length) {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey,
-        }),
-      });
-    }
-  }
-}
+import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { userId, userName, userEmail, rewardName, amount, creditsRedeemed, upiId, payoutMethod, payoutDetails, formattedPayout } = body;
 
-    initAdmin();
+    const adminStatus = ensureFirebaseAdmin();
 
     const formattedCredits = creditsRedeemed ? Number(creditsRedeemed).toLocaleString() : '0';
     const upiStr = upiId && upiId.trim() ? upiId.trim() : 'N/A';
@@ -32,7 +17,7 @@ export async function POST(req: Request) {
     let fcmSentCount = 0;
 
     // Check if firebase admin is initialized
-    if (admin.apps.length) {
+    if (adminStatus.ok && admin.apps.length) {
       const db = admin.firestore();
 
       // Store in admin_notifications collection

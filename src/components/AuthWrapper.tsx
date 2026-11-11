@@ -93,8 +93,8 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
         navigator.serviceWorker.ready.then((reg) => {
           reg.showNotification("Session Closed", {
             body: "Keep track of your goals and daily routines. See you soon!",
-            icon: "/icon.svg",
-            badge: "/icon.svg",
+            icon: "/icon-192.png",
+            badge: "/badge-72.png",
             silent: true,
             tag: "session-quit",
           });

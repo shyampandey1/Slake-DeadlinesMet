@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit Notification API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl -X GET "https://slake-deadlines-met.vercel.app/api/cron/notifications" \
-          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET GitHub Actions secret is empty or unset."
+            exit 1
+          fi
+          curl -sS --fail-with-body -m 25 -X GET "https://slake-deadlines-met.vercel.app/api/cron/notifications" \
+            -H "Authorization: Bearer $CRON_SECRET"

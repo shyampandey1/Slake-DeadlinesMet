@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
+import { auth } from "@/lib/firebase";
 import { useTasks } from "@/hooks/useFirestore";
 import { useAudioSettings } from "@/hooks/useAudioSettings";
 import { useWeather } from "@/hooks/useWeather";
 import { useProfile } from "@/hooks/useProfile";
-import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save, Award, Activity, Heart, Globe } from "lucide-react";
+import { Sun, Moon, Bell, Volume2, Trash2, Cloud, CloudOff, User, Edit, Check, X, Loader2, LocateFixed, Save, Award, Activity, Heart, Globe, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 
 import {
   AlertDialog,
@@ -32,6 +33,25 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+
+interface NotificationHealthReport {
+    firebaseAdminConfigured: boolean;
+    adminCredentialMode: string | null;
+    adminError: string | null;
+    cronSecretConfigured: boolean;
+    vapidKeyConfigured: boolean;
+    readyForClosedAppPush: boolean;
+    serverTimeUtc?: string;
+    userDiagnostics?: {
+        uid: string;
+        userDocExists: boolean;
+        fcmTokensCount: number;
+        timeZone: string | null;
+        region: string | null;
+        activeRoutineProfileId: string | null;
+        notificationSettings: Record<string, boolean> | null;
+    } | null;
+}
 
 function SettingsPageComponent() {
     const { theme, setTheme } = useTheme();
@@ -79,6 +99,14 @@ function SettingsPageComponent() {
     const [isSavingNotifications, setIsSavingNotifications] = useState(false);
     const [isSendingTest, setIsSendingTest] = useState(false);
 
+    // Push Notification Diagnostics
+    const [diagLoading, setDiagLoading] = useState(false);
+    const [serverHealth, setServerHealth] = useState<NotificationHealthReport | null>(null);
+    const [healthFetchError, setHealthFetchError] = useState<string | null>(null);
+    const [swState, setSwState] = useState<string>("checking");
+    const [fcmSyncStatus, setFcmSyncStatus] = useState<{ tokenPresent: boolean; error?: string; vapidKeyPresent: boolean } | null>(null);
+    const [detectedTimeZone, setDetectedTimeZone] = useState<string>("");
+
     useEffect(() => {
         if (profileData) {
             setElitePhone(profileData.phone || "");
@@ -106,6 +134,55 @@ function SettingsPageComponent() {
         return "N/A";
     };
 
+    const refreshDiagnostics = async (syncToken = false) => {
+        setDiagLoading(true);
+        setHealthFetchError(null);
+        try {
+            if (typeof window !== "undefined") {
+                try {
+                    setDetectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+                } catch {}
+                if ("Notification" in window) {
+                    setNotificationsEnabled(Notification.permission === "granted");
+                }
+                if ("serviceWorker" in navigator) {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    setSwState(reg?.active ? "active" : reg ? "installing" : "not-registered");
+                } else {
+                    setSwState("unsupported");
+                }
+            }
+
+            if (syncToken && user && !("isMockUser" in user)) {
+                const { syncFcmTokenDetailed } = await import("@/lib/fcm");
+                const tokenRes = await syncFcmTokenDetailed(user.uid);
+                setFcmSyncStatus({
+                    tokenPresent: Boolean(tokenRes.token),
+                    error: tokenRes.error,
+                    vapidKeyPresent: tokenRes.vapidKeyPresent,
+                });
+            }
+
+            const headers: Record<string, string> = {};
+            if (auth.currentUser) {
+                try {
+                    const idToken = await auth.currentUser.getIdToken();
+                    if (idToken) headers.Authorization = `Bearer ${idToken}`;
+                } catch {}
+            }
+            const res = await fetch("/api/notifications/health", { headers, cache: "no-store" });
+            if (!res.ok) {
+                throw new Error(`Health check failed (HTTP ${res.status})`);
+            }
+            const data: NotificationHealthReport = await res.json();
+            setServerHealth(data);
+        } catch (err: any) {
+            setHealthFetchError(err?.message || "Failed to load notification diagnostics.");
+        } finally {
+            setDiagLoading(false);
+        }
+    };
+
     useEffect(() => {
         setMounted(true);
         if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -117,6 +194,10 @@ function SettingsPageComponent() {
             setOfflineNotificationsEnabled(savedOffline === 'true');
         }
     }, []);
+
+    useEffect(() => {
+        refreshDiagnostics(false);
+    }, [user?.uid]);
 
     const handleClearHistory = () => {
         clearTasks();
@@ -152,21 +233,36 @@ function SettingsPageComponent() {
         setTempLocation("Current Location");
     }
 
+    const syncTokenWithToast = async () => {
+        if (!user || 'isMockUser' in user) return;
+        const { syncFcmTokenDetailed } = await import('@/lib/fcm');
+        const tokenRes = await syncFcmTokenDetailed(user.uid);
+        setFcmSyncStatus({
+            tokenPresent: Boolean(tokenRes.token),
+            error: tokenRes.error,
+            vapidKeyPresent: tokenRes.vapidKeyPresent,
+        });
+        if (!tokenRes.token) {
+            toast({
+                title: "Background Push Token Not Registered",
+                description: tokenRes.error || "Check notification permission and NEXT_PUBLIC_FIREBASE_VAPID_KEY.",
+                variant: "destructive"
+            });
+        }
+        await refreshDiagnostics(false);
+    };
+
     const handleNotificationToggle = async (enabled: boolean) => {
         if (enabled) {
             if (Notification.permission === 'granted') {
                 setNotificationsEnabled(true);
-                import('@/lib/fcm').then(({ requestFirebaseNotificationPermission }) => {
-                     if(user && !('isMockUser' in user)) requestFirebaseNotificationPermission(user.uid);
-                });
+                await syncTokenWithToast();
             } else if (Notification.permission !== 'denied') {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     setNotificationsEnabled(true);
                     toast({ title: "Notifications enabled!" });
-                    import('@/lib/fcm').then(({ requestFirebaseNotificationPermission }) => {
-                         if(user && !('isMockUser' in user)) requestFirebaseNotificationPermission(user.uid);
-                    });
+                    await syncTokenWithToast();
                 } else {
                     setNotificationsEnabled(false);
                     toast({ title: "Notifications permission denied.", variant: 'destructive' });
@@ -244,7 +340,12 @@ function SettingsPageComponent() {
     const handleSaveNotificationPreferences = async () => {
         setIsSavingNotifications(true);
         try {
+            let localTimeZone = "";
+            try {
+                localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+            } catch {}
             await updateUserProfileData({
+                ...(localTimeZone ? { timeZone: localTimeZone } : {}),
                 notificationSettings: {
                     streakExpiryWarning,
                     hydrationReminders,
@@ -253,7 +354,8 @@ function SettingsPageComponent() {
                     routineNudges
                 }
             });
-            toast({ title: "Preferences Saved", description: "Your notification settings have been updated." });
+            await refreshDiagnostics(false);
+            toast({ title: "Preferences Saved", description: "Your notification settings and timezone have been updated." });
         } catch(e: any) {
             toast({ title: "Error Saving", description: e.message, variant: "destructive" });
         } finally {
@@ -304,8 +406,8 @@ function SettingsPageComponent() {
             const notifTitle = "⏰ Scheduled Task: Test Routine";
             const notifOptions = {
                 body: "Ready for your 15m focus sprint? Tap to launch your timer and start now!",
-                icon: "/icon.svg",
-                badge: "/icon.svg",
+                icon: "/icon-192.png",
+                badge: "/badge-72.png",
                 tag: "test-routine-nudge",
                 vibrate: [200, 100, 200],
                 data: {
@@ -337,47 +439,64 @@ function SettingsPageComponent() {
                 }
             }
 
-            // 4. Also attempt remote FCM push for lock screen / background verification
+            // 4. Also attempt remote FCM push for lock screen / closed-app verification
             let remoteSuccess = false;
+            let remoteError: string | null = null;
             try {
-                const { syncFcmToken } = await import('@/lib/fcm');
-                if (user && !('isMockUser' in user)) {
-                    const token = await syncFcmToken(user.uid);
-                    if (token) {
+                const { syncFcmTokenDetailed } = await import('@/lib/fcm');
+                if (!user || 'isMockUser' in user) {
+                    remoteError = "Sign in with a real account to test server push.";
+                } else {
+                    const tokenRes = await syncFcmTokenDetailed(user.uid);
+                    setFcmSyncStatus({
+                        tokenPresent: Boolean(tokenRes.token),
+                        error: tokenRes.error,
+                        vapidKeyPresent: tokenRes.vapidKeyPresent,
+                    });
+                    if (!tokenRes.token) {
+                        remoteError = tokenRes.error || "Could not obtain FCM token (check NEXT_PUBLIC_FIREBASE_VAPID_KEY).";
+                    } else {
                         const res = await fetch('/api/send-nudge', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                token,
+                                token: tokenRes.token,
                                 title: notifTitle,
                                 body: notifOptions.body,
                                 url: notifOptions.data.url,
                                 tag: notifOptions.tag
                             })
                         });
+                        const payload = await res.json().catch(() => ({}));
                         if (res.ok) {
                             remoteSuccess = true;
+                        } else {
+                            remoteError = payload?.error || `Server push failed (HTTP ${res.status}).`;
                         }
                     }
                 }
-            } catch (fcmErr) {
-                console.warn("FCM remote dispatch warning:", fcmErr);
+            } catch (fcmErr: any) {
+                console.warn("FCM remote dispatch error:", fcmErr);
+                remoteError = fcmErr?.message || "Failed to reach /api/send-nudge.";
             }
+
+            await refreshDiagnostics(false);
 
             if (remoteSuccess) {
                 toast({
-                    title: "Test Alert Dispatched!",
-                    description: "Push sent to your device and local alert triggered."
+                    title: "Closed-App Push & Local Alert Sent!",
+                    description: "Server FCM push succeeded and your local alert triggered."
                 });
             } else if (localTriggered) {
                 toast({
-                    title: "Test Alert Triggered!",
-                    description: "Local notification and audio chime verified successfully."
+                    title: "Local Alert Only — Background Push Failed",
+                    description: remoteError || "Server push is not configured for closed-app delivery.",
+                    variant: "destructive"
                 });
             } else {
                 toast({
-                    title: "Alert Notice",
-                    description: "Please check your browser notification and sound permissions.",
+                    title: "Notification Failed",
+                    description: remoteError || "Check browser notification permission and service worker status.",
                     variant: "destructive"
                 });
             }
@@ -585,6 +704,106 @@ function SettingsPageComponent() {
                                         checked={dailySummary}
                                         onCheckedChange={setDailySummary}
                                     />
+                                </div>
+
+                                {/* Live Push Notification Diagnostics */}
+                                <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Closed-App Push Diagnostics
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 px-2 text-xs"
+                                            onClick={() => refreshDiagnostics(true)}
+                                            disabled={diagLoading}
+                                        >
+                                            <RefreshCw className={`mr-1.5 h-3 w-3 ${diagLoading ? "animate-spin" : ""}`} />
+                                            Sync &amp; Refresh
+                                        </Button>
+                                    </div>
+                                    {(() => {
+                                        const browserPerm = mounted && typeof window !== "undefined" && "Notification" in window
+                                            ? Notification.permission
+                                            : "unsupported";
+                                        const registeredCount = serverHealth?.userDiagnostics?.fcmTokensCount;
+                                        const hasDeviceToken = Boolean(
+                                            fcmSyncStatus?.tokenPresent || (typeof registeredCount === "number" && registeredCount > 0)
+                                        );
+                                        const vapidOk = serverHealth
+                                            ? serverHealth.vapidKeyConfigured
+                                            : fcmSyncStatus
+                                              ? fcmSyncStatus.vapidKeyPresent
+                                              : true;
+                                        const missingServerParts: string[] = [];
+                                        if (serverHealth) {
+                                            if (!serverHealth.firebaseAdminConfigured) {
+                                                missingServerParts.push(serverHealth.adminError ? `Admin SDK (${serverHealth.adminError})` : "Firebase Admin env");
+                                            }
+                                            if (!serverHealth.cronSecretConfigured) missingServerParts.push("CRON_SECRET");
+                                            if (!serverHealth.vapidKeyConfigured) missingServerParts.push("VAPID key");
+                                        }
+                                        const profileTz = serverHealth?.userDiagnostics?.timeZone || profileData?.timeZone || "";
+                                        const activeTz = profileTz || detectedTimeZone || "UTC";
+
+                                        const rows = [
+                                            {
+                                                label: "Permission",
+                                                ok: browserPerm === "granted",
+                                                detail: browserPerm === "granted" ? "Granted" : `Blocked / ${browserPerm}`,
+                                            },
+                                            {
+                                                label: "Service Worker",
+                                                ok: swState === "active",
+                                                detail: swState === "active" ? "Active (/sw.js)" : swState,
+                                            },
+                                            {
+                                                label: "FCM Device Token",
+                                                ok: hasDeviceToken && vapidOk,
+                                                detail: !vapidOk
+                                                    ? "Missing NEXT_PUBLIC_FIREBASE_VAPID_KEY"
+                                                    : hasDeviceToken
+                                                      ? `Registered${typeof registeredCount === "number" && registeredCount > 0 ? ` (${registeredCount} device${registeredCount > 1 ? "s" : ""})` : ""}`
+                                                      : fcmSyncStatus?.error || "Not synced yet — tap Sync & Refresh",
+                                            },
+                                            {
+                                                label: "Server Push Engine",
+                                                ok: Boolean(serverHealth?.readyForClosedAppPush),
+                                                detail: healthFetchError
+                                                    ? healthFetchError
+                                                    : !serverHealth
+                                                      ? "Checking..."
+                                                      : serverHealth.readyForClosedAppPush
+                                                        ? `Ready (${serverHealth.adminCredentialMode || "ok"})`
+                                                        : `Missing: ${missingServerParts.join(", ")}`,
+                                            },
+                                            {
+                                                label: "Active Timezone",
+                                                ok: Boolean(profileTz),
+                                                detail: profileTz ? activeTz : `${activeTz} (unsaved — tap Save Settings)`,
+                                            },
+                                        ];
+
+                                        return (
+                                            <div className="space-y-1.5 text-xs">
+                                                {rows.map((row) => (
+                                                    <div key={row.label} className="flex items-start justify-between gap-3">
+                                                        <span className="text-muted-foreground shrink-0">{row.label}</span>
+                                                        <span className={`inline-flex items-center gap-1 text-right break-all ${row.ok ? "text-emerald-400" : "text-amber-400"}`}>
+                                                            {row.ok ? (
+                                                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                                            ) : (
+                                                                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                                            )}
+                                                            <span>{row.detail}</span>
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-3">

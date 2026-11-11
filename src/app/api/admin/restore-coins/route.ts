@@ -1,20 +1,5 @@
 import { NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
-
-function initAdmin() {
-  if (!admin.apps.length) {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey,
-        }),
-      });
-    }
-  }
-}
+import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function GET(req: Request) {
   return handleRestoration(req);
@@ -26,12 +11,12 @@ export async function POST(req: Request) {
 
 async function handleRestoration(req: Request) {
   try {
-    initAdmin();
+    const adminStatus = ensureFirebaseAdmin();
 
-    if (!admin.apps.length) {
+    if (!adminStatus.ok) {
       return NextResponse.json({
         success: false,
-        message: 'Firebase Admin not initialized. Server credentials pending or client-side restoration active.',
+        message: adminStatus.error || 'Firebase Admin not initialized. Server credentials pending or client-side restoration active.',
       }, { status: 200 });
     }
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import { app, db } from '@/lib/firebase';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getMessaging, onMessage, isSupported } from 'firebase/messaging';
+import { app } from '@/lib/firebase';
+import { syncFcmToken } from '@/lib/fcm';
 import { useAuth } from '@/hooks/useAuth';
 
 export function useFCM() {
@@ -11,46 +11,38 @@ export function useFCM() {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || 'isMockUser' in user) return;
 
-    const requestPermissionAndGetToken = async () => {
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          const messaging = getMessaging(app);
-          const token = await getToken(messaging, {
-            vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-          });
-
-          if (token) {
-            setFcmToken(token);
-            // Save token to user's firestore document
-            const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
-              fcmTokens: arrayUnion(token)
-            });
-          }
-        }
-      } catch (error) {
-        console.error("An error occurred while retrieving token. ", error);
+    const init = async () => {
+      if (typeof window === 'undefined' || !('Notification' in window)) return;
+      if (Notification.permission === 'granted') {
+        const token = await syncFcmToken(user.uid);
+        if (token) setFcmToken(token);
       }
     };
 
-    requestPermissionAndGetToken();
+    init().catch(() => {});
   }, [user]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      try {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    let unsubscribe: (() => void) | undefined;
+
+    isSupported()
+      .then((supported) => {
+        if (!supported) return;
         const messaging = getMessaging(app);
-        const unsubscribe = onMessage(messaging, () => {
-          // Do not trigger system push if app is open
+        unsubscribe = onMessage(messaging, () => {
+          // App is open; NotificationScheduler handles active foreground alerts
         });
-        return () => unsubscribe();
-      } catch (e) {
+      })
+      .catch((e) => {
         console.warn("FCM messaging error in foreground", e);
-      }
-    }
+      });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   return { fcmToken };

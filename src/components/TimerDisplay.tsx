@@ -455,8 +455,8 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, r
 
     const notificationOptions: any = {
       body: `Time's up! You've finished: ${taskName}`,
-      icon: "/icon.svg",
-      badge: "/icon.svg",
+      icon: "/icon-192.png",
+      badge: "/badge-72.png",
       tag: "timer-done",
       vibrate: [300, 100, 300],
       data: {

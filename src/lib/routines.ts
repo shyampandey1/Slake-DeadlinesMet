@@ -858,6 +858,22 @@ export const CATEGORY_TIME_BLOCKS: { [category: string]: { start: number; end: n
     'Evening & Bedtime Reset': { start: 22, end: 24 },
 };
 
+export function getCategoryTimeBlock(category: string): { start: number; end: number } {
+    const known = CATEGORY_TIME_BLOCKS[category];
+    if (known) return known;
+
+    const order = categoryConfig[category]?.order ?? 99;
+    if (order <= 5) return { start: 5.5, end: 7.0 };
+    if (order <= 15) return { start: 7.0, end: 8.5 };
+    if (order <= 28) return { start: 8.5, end: 13.0 };
+    if (order <= 35) return { start: 13.0, end: 14.5 };
+    if (order <= 45) return { start: 14.5, end: 17.5 };
+    if (order <= 55) return { start: 17.5, end: 19.5 };
+    if (order <= 65) return { start: 19.5, end: 21.0 };
+    if (order <= 79) return { start: 21.0, end: 22.5 };
+    return { start: 22.5, end: 24.0 };
+}
+
 export const computeCategoryTimeRanges = (
     presetTasks: Preset,
     referenceDate: Date = new Date()
@@ -930,21 +946,7 @@ export const computeCategoryTimeRanges = (
     // 2. Fill any missing categories from CATEGORY_TIME_BLOCKS or categoryConfig order
     Object.keys(presetTasks).forEach((category) => {
         if (!ranges[category]) {
-            let block = CATEGORY_TIME_BLOCKS[category];
-
-            if (!block) {
-                const config = categoryConfig[category];
-                const order = config?.order ?? 99;
-                if (order <= 5) block = { start: 5.5, end: 7.0 };
-                else if (order <= 15) block = { start: 7.0, end: 8.5 };
-                else if (order <= 28) block = { start: 8.5, end: 13.0 };
-                else if (order <= 35) block = { start: 13.0, end: 14.5 };
-                else if (order <= 45) block = { start: 14.5, end: 17.5 };
-                else if (order <= 55) block = { start: 17.5, end: 19.5 };
-                else if (order <= 65) block = { start: 19.5, end: 21.0 };
-                else if (order <= 79) block = { start: 21.0, end: 22.5 };
-                else block = { start: 22.5, end: 24.0 };
-            }
+            const block = getCategoryTimeBlock(category);
 
             const startDate = new Date(referenceDate);
             startDate.setHours(Math.floor(block.start), Math.round((block.start % 1) * 60), 0, 0);

@@ -282,17 +282,41 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                     }
                 }
             }
+            let detectedTz: string | undefined;
+            try {
+                detectedTz = typeof window !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+            } catch {}
+
+            const patch: Partial<UserProfile> = {};
+            if (detectedTz && dataToSet.timeZone !== detectedTz) {
+                dataToSet.timeZone = detectedTz;
+                patch.timeZone = detectedTz;
+            }
+            if (!dataToSet.userId) {
+                dataToSet.userId = user.uid;
+                patch.userId = user.uid;
+            }
+            if (Object.keys(patch).length > 0 && !isOffline && isSyncEnabled) {
+                updateDoc(profileRef, patch).catch(() => {});
+            }
         } else {
+            let detectedTz: string | undefined;
+            try {
+                detectedTz = typeof window !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+            } catch {}
             dataToSet = { 
                 userId: user.uid, 
                 profile: "General", 
                 daysOff: [] as Day[], 
                 customProfessions: [], 
                 routineVersions: {},
+                ...(detectedTz ? { timeZone: detectedTz } : {}),
                 notificationSettings: {
                     streakExpiryWarning: true,
                     hydrationReminders: true,
-                    dailySummary: true
+                    dailySummary: true,
+                    taskReminders: true,
+                    routineNudges: true
                 },
                 displayName: user.displayName || undefined,
                 email: user.email || undefined,
@@ -346,8 +370,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
                          navigator.serviceWorker.ready.then((reg) => {
                              reg.showNotification("New Reformers Message", {
                                  body: displayBody,
-                                 icon: "/icon.svg",
-                                 badge: "/icon.svg",
+                                 icon: "/icon-192.png",
+                                 badge: "/badge-72.png",
                                  tag: `msg-${change.doc.id}`,
                                  data: { url: "/reformers?from_notification=true" }
                              });

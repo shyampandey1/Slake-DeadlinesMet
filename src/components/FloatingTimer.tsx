@@ -121,8 +121,8 @@ export default function FloatingTimer() {
                 reg.showNotification("Session Complete!", {
                   ...({ vibrate: [300, 100, 300] } as any),
                   body: `Time's up! You've finished: ${taskTitle}`,
-                  icon: "/icon.svg",
-                  badge: "/icon.svg",
+                  icon: "/icon-192.png",
+                  badge: "/badge-72.png",
                   tag: "timer-done",
                                     data: { url: "/timer?from_notification=true", type: "TIMER" },
                   requireInteraction: true,
