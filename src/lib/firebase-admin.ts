@@ -21,6 +21,7 @@ export interface FirebaseAdminVerificationStatus extends FirebaseAdminInitStatus
     | 'ok'
     | 'missing_env'
     | 'malformed_json'
+    | 'malformed_client_email'
     | 'service_account_not_found'
     | 'invalid_private_key'
     | 'invalid_credential';
@@ -39,6 +40,7 @@ interface AdminRuntimeMeta {
   mode: 'service_account_json' | 'split_env';
   configuredProjectId: string;
   configuredClientEmailMasked: string;
+  clientEmailSyntaxError: string | null;
   hadFormattingArtifacts: boolean;
 }
 
@@ -226,6 +228,7 @@ function initializeFromCandidate(
       mode: candidate.mode,
       configuredProjectId: candidate.projectId,
       configuredClientEmailMasked: maskEmail(candidate.clientEmail) || '***',
+      clientEmailSyntaxError: validateServiceAccountEmailSyntax(candidate.clientEmail),
       hadFormattingArtifacts: candidate.hadFormattingArtifacts,
     };
     return {
@@ -250,36 +253,35 @@ export function classifyFirebaseAdminError(err: any): {
 } {
   const msg = String(err?.message || err || '');
   const lower = msg.toLowerCase();
+  const userMessage =
+    'Background reminders are temporarily unavailable right now. In-app alerts still work normally.';
 
-  if (lower.includes('account not found') || lower.includes('invalid_grant')) {
-    return {
-      diagnosisCode: 'service_account_not_found',
-      error: msg,
-      userMessage:
-        'Background reminders are currently offline while the server account key is being updated.',
-    };
+  if (lower.includes('malformed') && lower.includes('client_email')) {
+    return { diagnosisCode: 'malformed_client_email', error: msg, userMessage };
   }
-
+  if (lower.includes('account not found') || lower.includes('invalid_grant')) {
+    return { diagnosisCode: 'service_account_not_found', error: msg, userMessage };
+  }
   if (
     lower.includes('private key') ||
     lower.includes('pem') ||
     lower.includes('decoder routines') ||
     lower.includes('asn1')
   ) {
-    return {
-      diagnosisCode: 'invalid_private_key',
-      error: msg,
-      userMessage:
-        'Background reminders are temporarily unavailable due to a server key formatting issue.',
-    };
+    return { diagnosisCode: 'invalid_private_key', error: msg, userMessage };
   }
+  return { diagnosisCode: 'invalid_credential', error: msg, userMessage };
+}
 
-  return {
-    diagnosisCode: 'invalid_credential',
-    error: msg,
-    userMessage:
-      'Background reminders are temporarily unavailable. Please try again shortly.',
-  };
+function validateServiceAccountEmailSyntax(clientEmail: string | undefined): string | null {
+  if (!clientEmail) return 'Missing client_email.';
+  if (
+    clientEmail.includes('://') ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)
+  ) {
+    return `Service account client_email is malformed (${maskEmail(clientEmail)}); expected *@${EXPECTED_FIREBASE_PROJECT_ID}.iam.gserviceaccount.com.`;
+  }
+  return null;
 }
 
 export function ensureFirebaseAdmin(): FirebaseAdminInitStatus {
@@ -347,6 +349,15 @@ export async function verifyFirebaseAdminAccess(): Promise<FirebaseAdminVerifica
     error?: string;
     diagnosisCode: FirebaseAdminVerificationStatus['diagnosisCode'];
   }> => {
+    const emailSyntaxErr = activeMeta?.clientEmailSyntaxError || null;
+    if (emailSyntaxErr) {
+      return {
+        verified: false,
+        error: emailSyntaxErr,
+        diagnosisCode: 'malformed_client_email',
+      };
+    }
+
     try {
       const appInstance = admin.app();
       const cred = appInstance.options.credential;
