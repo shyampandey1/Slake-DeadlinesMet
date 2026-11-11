@@ -7,3 +7,4 @@ crons = ["*/2 * * * *"]
 
 [vars]
 TARGET_URL = "https://slake-deadlines-met.vercel.app/api/cron/notifications"
+

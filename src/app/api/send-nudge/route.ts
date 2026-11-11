@@ -1,12 +1,29 @@
 import { NextResponse } from 'next/server';
-import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
+import {
+  admin,
+  verifyFirebaseAdminAccess,
+  classifyFirebaseAdminError,
+} from '@/lib/firebase-admin';
 
 export async function POST(req: Request) {
   try {
-    const adminStatus = ensureFirebaseAdmin();
-    if (!adminStatus.ok) {
+    const verify = await verifyFirebaseAdminAccess();
+    if (!verify.ok || !verify.oauthVerified) {
+      const classified = classifyFirebaseAdminError(
+        verify.oauthError || verify.error || 'Firebase Admin unavailable'
+      );
+      console.error('[send-nudge] Firebase Admin verification failed:', {
+        diagnosisCode: verify.diagnosisCode,
+        configuredProjectId: verify.configuredProjectId,
+        configuredClientEmailMasked: verify.configuredClientEmailMasked,
+        error: verify.oauthError || verify.error,
+      });
       return NextResponse.json(
-        { error: adminStatus.error || 'Firebase Admin is not configured on the server.' },
+        {
+          error: verify.oauthError || verify.error || 'Firebase Admin is not configured.',
+          userMessage: classified.userMessage,
+          code: verify.diagnosisCode,
+        },
         { status: 500 }
       );
     }
@@ -14,7 +31,14 @@ export async function POST(req: Request) {
     const { token, title, body, tag, url } = await req.json();
 
     if (!token) {
-      return NextResponse.json({ error: 'Token is required' }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Token is required',
+          userMessage: 'Your device could not be registered for background alerts yet.',
+          code: 'missing_token',
+        },
+        { status: 400 }
+      );
     }
 
     const launchUrl =
@@ -70,10 +94,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, messageId: response });
   } catch (error: any) {
     console.error('Error sending message:', error);
+    const errCode = error?.code || '';
+    if (
+      errCode === 'messaging/registration-token-not-registered' ||
+      errCode === 'messaging/invalid-registration-token'
+    ) {
+      return NextResponse.json(
+        {
+          error: error?.message || 'Expired device token',
+          userMessage:
+            'Your browser notification link expired. Refresh your notification settings and try again.',
+          code: 'token_invalid',
+        },
+        { status: 400 }
+      );
+    }
+
+    const classified = classifyFirebaseAdminError(error);
     return NextResponse.json(
       {
-        error: error?.message || 'Failed to send FCM push notification.',
-        code: error?.code || undefined,
+        error: error?.message || 'Failed to send push notification.',
+        userMessage: classified.userMessage,
+        code: error?.code || classified.diagnosisCode,
       },
       { status: 500 }
     );

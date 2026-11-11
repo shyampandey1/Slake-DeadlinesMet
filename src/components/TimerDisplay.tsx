@@ -468,12 +468,16 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, r
 
     if (isScheduled) {
       const triggerTime = Date.now() + (timeRemainingRef.current * 1000);
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'SCHEDULE_TIMER',
-          taskName: taskName,
-          endTime: triggerTime
-        });
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready
+          .then((reg) => {
+            reg.active?.postMessage({
+              type: 'SCHEDULE_TIMER',
+              taskName: taskName,
+              endTime: triggerTime
+            });
+          })
+          .catch(() => {});
       }
 
       if (user?.uid) {

@@ -161,6 +161,27 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [user, isInitialized]);
 
+    const buildActiveSessionPayload = (encryptedName: string, timer: ActiveTimer, now: number) => {
+        const durationMillis = timer.initialDuration * 60 * 1000;
+        const startedAtMillis = timer.isPaused
+            ? now - (durationMillis - (timer.timeLeftWhenPaused || 0) * 1000)
+            : timer.expectedEndTime - durationMillis;
+
+        return {
+            currentTaskId: encryptedName,
+            status: timer.isPaused ? 'paused' : 'running',
+            startedAt: new Date(startedAtMillis),
+            durationMillis,
+            expectedEndTime: timer.expectedEndTime,
+            notified: false,
+            pausedAtMillis: timer.isPaused ? now : null,
+            category: timer.category || null,
+            color: timer.color || null,
+            coOpSessionId: timer.coOpSessionId || null,
+            taskId: timer.taskId || null,
+        };
+    };
+
     const saveTimer = useCallback((timer: ActiveTimer | null) => {
         localWriteTimestampRef.current = Date.now();
         if (clearTimeoutRef.current) {
@@ -178,25 +199,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             // Sync to Firestore immediately
             if (user) {
                 const now = Date.now();
-                const durationMillis = timer.initialDuration * 60 * 1000;
-                // Reverse engineering startedAt from expectedEndTime
-                const startedAtMillis = timer.isPaused
-                    ? now - (durationMillis - (timer.timeLeftWhenPaused || 0) * 1000)
-                    : timer.expectedEndTime - durationMillis;
-
                 encryptText(timer.taskName, user.uid).then(encryptedName => {
-                    const payload = {
-                        currentTaskId: encryptedName,
-                        status: timer.isPaused ? 'paused' : 'running',
-                        startedAt: new Date(startedAtMillis), // Firestore handles JS Dates natively when setting docs
-                        durationMillis: durationMillis,
-                        pausedAtMillis: timer.isPaused ? now : null,
-                        category: timer.category || null,
-                        color: timer.color || null,
-                        coOpSessionId: timer.coOpSessionId || null,
-                        taskId: timer.taskId || null
-                    };
-
+                    const payload = buildActiveSessionPayload(encryptedName, timer, now);
                     setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
                 }).catch(() => {});
             }
@@ -257,24 +261,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
             // Sync to Firestore
             if (user) {
                 const now = Date.now();
-                const durationMillis = updated.initialDuration * 60 * 1000;
-                const startedAtMillis = updated.isPaused
-                    ? now - (durationMillis - (updated.timeLeftWhenPaused || 0) * 1000)
-                    : updated.expectedEndTime - durationMillis;
-
                 encryptText(updated.taskName, user.uid).then(encryptedName => {
-                    const payload = {
-                        currentTaskId: encryptedName,
-                        status: updated.isPaused ? 'paused' : 'running',
-                        startedAt: new Date(startedAtMillis),
-                        durationMillis: durationMillis,
-                        pausedAtMillis: updated.isPaused ? now : null,
-                        category: updated.category || null,
-                        color: updated.color || null,
-                        coOpSessionId: updated.coOpSessionId || null,
-                        taskId: updated.taskId || null
-                    };
-
+                    const payload = buildActiveSessionPayload(encryptedName, updated, now);
                     setDoc(doc(db, 'active_sessions', user.uid), payload).catch(console.error);
                 }).catch(() => {});
             }

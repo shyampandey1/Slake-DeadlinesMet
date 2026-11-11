@@ -90,12 +90,14 @@ export default function ServiceWorkerRegistrar() {
         if (res?.token) {
           toast({
             title: "Background Alerts Enabled!",
-            description: "You'll receive closed-app reminders for scheduled routines & timers.",
+            description: "You'll receive reminders for scheduled tasks even when the app is closed.",
           });
         } else {
           toast({
-            title: "Permission Granted (Push Sync Incomplete)",
-            description: res?.error || "Check Settings -> Notifications for push diagnostics.",
+            title: "Alerts Partially Enabled",
+            description:
+              res?.userFriendlyError ||
+              "We couldn't connect this device for closed-app reminders yet. Try opening Settings to refresh.",
             variant: "destructive",
           });
         }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
+import { admin, verifyFirebaseAdminAccess } from '@/lib/firebase-admin';
 import { UserProfile } from '@/types';
 import { decryptText } from '@/lib/crypto';
 import {
@@ -432,10 +432,15 @@ export async function GET(req: Request) {
   }
 
   try {
-    const adminStatus = ensureFirebaseAdmin();
-    if (!adminStatus.ok) {
+    const verify = await verifyFirebaseAdminAccess();
+    if (!verify.ok || !verify.oauthVerified) {
       return NextResponse.json(
-        { error: adminStatus.error || 'Firebase admin not configured' },
+        {
+          error: verify.oauthError || verify.error || 'Firebase admin credential verification failed',
+          diagnosisCode: verify.diagnosisCode,
+          configuredProjectId: verify.configuredProjectId,
+          configuredClientEmailMasked: verify.configuredClientEmailMasked,
+        },
         { status: 500 }
       );
     }

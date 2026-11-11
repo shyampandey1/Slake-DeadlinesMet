@@ -28,3 +28,4 @@ GitHub Actions `schedule:` crons are heavily delayed/throttled (empirically runn
    - Name: `Authorization`
    - Value: `Bearer <YOUR_VERCEL_CRON_SECRET>`
 6. Enable failure alerts so HTTP `401`/`500` errors surface immediately.
+

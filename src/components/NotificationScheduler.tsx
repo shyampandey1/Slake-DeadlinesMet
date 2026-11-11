@@ -8,6 +8,18 @@ import { useRoutineStore } from "@/hooks/useRoutineStore";
 import { isToday, parseISO, isAfter } from "date-fns";
 import { decryptText } from "@/lib/crypto";
 
+function getLocalDateKey(d = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return d.toISOString().split("T")[0];
+  }
+}
+
 export default function NotificationScheduler() {
   const { events } = useCalendarEvents();
   const { user } = useAuth();
@@ -81,7 +93,7 @@ export default function NotificationScheduler() {
 
     const timeouts: NodeJS.Timeout[] = [];
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const todayStr = getLocalDateKey(now);
 
     const scheduleTasks = async () => {
       for (const event of events) {
@@ -197,7 +209,7 @@ export default function NotificationScheduler() {
 
     const timeouts: NodeJS.Timeout[] = [];
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const todayStr = getLocalDateKey(now);
 
     // Compute completed task names for today
     const completedToday = new Set<string>();
@@ -391,12 +403,16 @@ export default function NotificationScheduler() {
 
     // Register with service worker and server background scheduler
     decryptText(activeTimer.taskName, user?.uid || "").then((plainName) => {
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller?.postMessage({
-          type: "SCHEDULE_TIMER",
-          taskName: plainName,
-          endTime: activeTimer.expectedEndTime,
-        });
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.ready
+          .then((reg) => {
+            reg.active?.postMessage({
+              type: "SCHEDULE_TIMER",
+              taskName: plainName,
+              endTime: activeTimer.expectedEndTime,
+            });
+          })
+          .catch(() => {});
       }
 
       if (user?.uid) {

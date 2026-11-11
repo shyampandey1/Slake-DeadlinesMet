@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slake-offline-cache-v4.0';
+const CACHE_NAME = 'slake-offline-cache-v4.1';
 const scheduledTimers = new Map();
 
 self.addEventListener('install', () => {
@@ -167,7 +167,11 @@ self.addEventListener('push', (event) => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration
+      .showNotification(title, options)
+      .catch((err) => console.warn('[SW] Failed to display push notification:', err))
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {

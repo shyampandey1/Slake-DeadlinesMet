@@ -1,20 +1,5 @@
 import { NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
-
-function initAdmin() {
-  if (!admin.apps.length) {
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && privateKey) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey,
-        }),
-      });
-    }
-  }
-}
+import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
 
 export async function POST(req: Request) {
   try {
@@ -25,9 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid payload: id and author.uid are required' }, { status: 400 });
     }
 
-    initAdmin();
+    const adminStatus = ensureFirebaseAdmin();
 
-    if (admin.apps.length) {
+    if (adminStatus.ok && admin.apps.length) {
       const db = admin.firestore();
       await db.collection('shared_routines').doc(id).set(
         {

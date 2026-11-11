@@ -1,26 +1,50 @@
 import { NextResponse } from 'next/server';
-import { admin, ensureFirebaseAdmin } from '@/lib/firebase-admin';
+import {
+  admin,
+  verifyFirebaseAdminAccess,
+  classifyFirebaseAdminError,
+} from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const adminStatus = ensureFirebaseAdmin();
+  const verify = await verifyFirebaseAdminAccess();
   const cronSecretConfigured = Boolean(process.env.CRON_SECRET?.trim());
   const vapidKeyConfigured = Boolean(process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY?.trim());
+  const readyForClosedAppPush =
+    verify.ok && verify.oauthVerified && vapidKeyConfigured;
+
+  let userMessage = 'Background alerts are active.';
+  if (!vapidKeyConfigured) {
+    userMessage = 'Background notifications are not enabled on this server yet.';
+  } else if (!verify.ok || !verify.oauthVerified) {
+    userMessage = verify.oauthError
+      ? classifyFirebaseAdminError(verify.oauthError).userMessage
+      : 'Background notifications are temporarily unavailable.';
+  }
 
   const response: Record<string, any> = {
-    firebaseAdminConfigured: adminStatus.ok,
-    adminCredentialMode: adminStatus.mode || null,
-    adminError: adminStatus.ok ? null : adminStatus.error || 'Firebase Admin unavailable',
+    firebaseAdminConfigured: verify.ok,
+    firebaseAdminVerified: verify.oauthVerified,
+    adminCredentialMode: verify.mode || null,
+    diagnosisCode: verify.diagnosisCode,
+    adminError: verify.oauthVerified
+      ? null
+      : verify.oauthError || verify.error || 'Firebase Admin unavailable',
+    expectedFirebaseProjectId: verify.expectedFirebaseProjectId,
+    configuredProjectId: verify.configuredProjectId || null,
+    configuredClientEmailMasked: verify.configuredClientEmailMasked || null,
+    hadFormattingArtifacts: Boolean(verify.hadFormattingArtifacts),
     cronSecretConfigured,
     vapidKeyConfigured,
-    readyForClosedAppPush: adminStatus.ok && vapidKeyConfigured,
+    readyForClosedAppPush,
+    userMessage,
     serverTimeUtc: new Date().toISOString(),
   };
 
-  // Optional verified user diagnostic check
+  // Optional verified user diagnostic check (only when Admin OAuth actually works)
   const authHeader = req.headers.get('authorization');
-  if (adminStatus.ok && authHeader?.startsWith('Bearer ')) {
+  if (verify.ok && verify.oauthVerified && authHeader?.startsWith('Bearer ')) {
     const idToken = authHeader.slice('Bearer '.length).trim();
     if (idToken) {
       try {
@@ -31,7 +55,9 @@ export async function GET(req: Request) {
         const tokens = Array.from(
           new Set([
             ...(Array.isArray(userData.fcmTokens) ? userData.fcmTokens : []),
-            ...(typeof userData.fcmToken === 'string' && userData.fcmToken ? [userData.fcmToken] : []),
+            ...(typeof userData.fcmToken === 'string' && userData.fcmToken
+              ? [userData.fcmToken]
+              : []),
           ])
         ).filter((t): t is string => typeof t === 'string' && t.trim().length > 0);
 

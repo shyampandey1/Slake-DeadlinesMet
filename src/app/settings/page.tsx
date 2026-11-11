@@ -36,11 +36,14 @@ import { useToast } from "@/hooks/use-toast";
 
 interface NotificationHealthReport {
     firebaseAdminConfigured: boolean;
+    firebaseAdminVerified?: boolean;
     adminCredentialMode: string | null;
+    diagnosisCode?: string;
     adminError: string | null;
     cronSecretConfigured: boolean;
     vapidKeyConfigured: boolean;
     readyForClosedAppPush: boolean;
+    userMessage?: string;
     serverTimeUtc?: string;
     userDiagnostics?: {
         uid: string;
@@ -99,12 +102,12 @@ function SettingsPageComponent() {
     const [isSavingNotifications, setIsSavingNotifications] = useState(false);
     const [isSendingTest, setIsSendingTest] = useState(false);
 
-    // Push Notification Diagnostics
+    // Notification Delivery Status
     const [diagLoading, setDiagLoading] = useState(false);
     const [serverHealth, setServerHealth] = useState<NotificationHealthReport | null>(null);
     const [healthFetchError, setHealthFetchError] = useState<string | null>(null);
     const [swState, setSwState] = useState<string>("checking");
-    const [fcmSyncStatus, setFcmSyncStatus] = useState<{ tokenPresent: boolean; error?: string; vapidKeyPresent: boolean } | null>(null);
+    const [fcmSyncStatus, setFcmSyncStatus] = useState<{ tokenPresent: boolean; error?: string; userFriendlyError?: string; vapidKeyPresent: boolean } | null>(null);
     const [detectedTimeZone, setDetectedTimeZone] = useState<string>("");
 
     useEffect(() => {
@@ -134,16 +137,19 @@ function SettingsPageComponent() {
         return "N/A";
     };
 
-    const refreshDiagnostics = async (syncToken = false) => {
+    const refreshDiagnostics = async (forceTokenSync = false) => {
         setDiagLoading(true);
         setHealthFetchError(null);
         try {
+            let canSyncToken = forceTokenSync;
             if (typeof window !== "undefined") {
                 try {
                     setDetectedTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || "");
                 } catch {}
                 if ("Notification" in window) {
-                    setNotificationsEnabled(Notification.permission === "granted");
+                    const granted = Notification.permission === "granted";
+                    setNotificationsEnabled(granted);
+                    if (granted) canSyncToken = true;
                 }
                 if ("serviceWorker" in navigator) {
                     const reg = await navigator.serviceWorker.getRegistration();
@@ -153,12 +159,13 @@ function SettingsPageComponent() {
                 }
             }
 
-            if (syncToken && user && !("isMockUser" in user)) {
+            if (canSyncToken && user && !("isMockUser" in user)) {
                 const { syncFcmTokenDetailed } = await import("@/lib/fcm");
                 const tokenRes = await syncFcmTokenDetailed(user.uid);
                 setFcmSyncStatus({
                     tokenPresent: Boolean(tokenRes.token),
                     error: tokenRes.error,
+                    userFriendlyError: tokenRes.userFriendlyError,
                     vapidKeyPresent: tokenRes.vapidKeyPresent,
                 });
             }
@@ -172,12 +179,12 @@ function SettingsPageComponent() {
             }
             const res = await fetch("/api/notifications/health", { headers, cache: "no-store" });
             if (!res.ok) {
-                throw new Error(`Health check failed (HTTP ${res.status})`);
+                throw new Error("Could not check delivery status right now.");
             }
             const data: NotificationHealthReport = await res.json();
             setServerHealth(data);
         } catch (err: any) {
-            setHealthFetchError(err?.message || "Failed to load notification diagnostics.");
+            setHealthFetchError(err?.message || "Could not check delivery status right now.");
         } finally {
             setDiagLoading(false);
         }
@@ -240,12 +247,13 @@ function SettingsPageComponent() {
         setFcmSyncStatus({
             tokenPresent: Boolean(tokenRes.token),
             error: tokenRes.error,
+            userFriendlyError: tokenRes.userFriendlyError,
             vapidKeyPresent: tokenRes.vapidKeyPresent,
         });
         if (!tokenRes.token) {
             toast({
-                title: "Background Push Token Not Registered",
-                description: tokenRes.error || "Check notification permission and NEXT_PUBLIC_FIREBASE_VAPID_KEY.",
+                title: "Couldn't Connect This Device",
+                description: tokenRes.userFriendlyError || "Please check your browser notification settings and try again.",
                 variant: "destructive"
             });
         }
@@ -439,22 +447,26 @@ function SettingsPageComponent() {
                 }
             }
 
-            // 4. Also attempt remote FCM push for lock screen / closed-app verification
+            // 4. Also attempt remote background push for closed-app verification
             let remoteSuccess = false;
-            let remoteError: string | null = null;
+            let remoteUserError: string | null = null;
             try {
                 const { syncFcmTokenDetailed } = await import('@/lib/fcm');
                 if (!user || 'isMockUser' in user) {
-                    remoteError = "Sign in with a real account to test server push.";
+                    remoteUserError = "Please sign in to receive reminders when the app is closed.";
                 } else {
                     const tokenRes = await syncFcmTokenDetailed(user.uid);
                     setFcmSyncStatus({
                         tokenPresent: Boolean(tokenRes.token),
                         error: tokenRes.error,
+                        userFriendlyError: tokenRes.userFriendlyError,
                         vapidKeyPresent: tokenRes.vapidKeyPresent,
                     });
                     if (!tokenRes.token) {
-                        remoteError = tokenRes.error || "Could not obtain FCM token (check NEXT_PUBLIC_FIREBASE_VAPID_KEY).";
+                        console.warn("Device notification registration failed:", tokenRes.error);
+                        remoteUserError =
+                            tokenRes.userFriendlyError ||
+                            "Could not connect this device for background reminders yet.";
                     } else {
                         const res = await fetch('/api/send-nudge', {
                             method: 'POST',
@@ -471,32 +483,35 @@ function SettingsPageComponent() {
                         if (res.ok) {
                             remoteSuccess = true;
                         } else {
-                            remoteError = payload?.error || `Server push failed (HTTP ${res.status}).`;
+                            console.warn("Background test alert server error:", payload?.error || res.status);
+                            remoteUserError =
+                                payload?.userMessage ||
+                                "Background reminders are temporarily unavailable. Please try again later.";
                         }
                     }
                 }
             } catch (fcmErr: any) {
-                console.warn("FCM remote dispatch error:", fcmErr);
-                remoteError = fcmErr?.message || "Failed to reach /api/send-nudge.";
+                console.warn("Background test alert dispatch failed:", fcmErr);
+                remoteUserError = "Could not reach the reminder service right now.";
             }
 
             await refreshDiagnostics(false);
 
             if (remoteSuccess) {
                 toast({
-                    title: "Closed-App Push & Local Alert Sent!",
-                    description: "Server FCM push succeeded and your local alert triggered."
+                    title: "Test Alert Sent!",
+                    description: "Both on-screen and closed-app notifications are working on this device."
                 });
             } else if (localTriggered) {
                 toast({
-                    title: "Local Alert Only — Background Push Failed",
-                    description: remoteError || "Server push is not configured for closed-app delivery.",
+                    title: "On-Screen Alert Worked",
+                    description: remoteUserError || "Closed-app reminders are currently unavailable.",
                     variant: "destructive"
                 });
             } else {
                 toast({
-                    title: "Notification Failed",
-                    description: remoteError || "Check browser notification permission and service worker status.",
+                    title: "Notification Blocked",
+                    description: remoteUserError || "Please allow notifications in your browser settings and try again.",
                     variant: "destructive"
                 });
             }
@@ -706,11 +721,11 @@ function SettingsPageComponent() {
                                     />
                                 </div>
 
-                                {/* Live Push Notification Diagnostics */}
+                                {/* Clean Consumer Notification Status */}
                                 <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-2.5">
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                            Closed-App Push Diagnostics
+                                        <span className="text-xs font-semibold text-muted-foreground">
+                                            Notification Status
                                         </span>
                                         <Button
                                             type="button"
@@ -721,7 +736,7 @@ function SettingsPageComponent() {
                                             disabled={diagLoading}
                                         >
                                             <RefreshCw className={`mr-1.5 h-3 w-3 ${diagLoading ? "animate-spin" : ""}`} />
-                                            Sync &amp; Refresh
+                                            Refresh
                                         </Button>
                                     </div>
                                     {(() => {
@@ -729,79 +744,90 @@ function SettingsPageComponent() {
                                             ? Notification.permission
                                             : "unsupported";
                                         const registeredCount = serverHealth?.userDiagnostics?.fcmTokensCount;
-                                        const hasDeviceToken = Boolean(
+                                        const hasDeviceConnected = Boolean(
                                             fcmSyncStatus?.tokenPresent || (typeof registeredCount === "number" && registeredCount > 0)
                                         );
-                                        const vapidOk = serverHealth
-                                            ? serverHealth.vapidKeyConfigured
-                                            : fcmSyncStatus
-                                              ? fcmSyncStatus.vapidKeyPresent
-                                              : true;
-                                        const missingServerParts: string[] = [];
-                                        if (serverHealth) {
-                                            if (!serverHealth.firebaseAdminConfigured) {
-                                                missingServerParts.push(serverHealth.adminError ? `Admin SDK (${serverHealth.adminError})` : "Firebase Admin env");
-                                            }
-                                            if (!serverHealth.cronSecretConfigured) missingServerParts.push("CRON_SECRET");
-                                            if (!serverHealth.vapidKeyConfigured) missingServerParts.push("VAPID key");
-                                        }
                                         const profileTz = serverHealth?.userDiagnostics?.timeZone || profileData?.timeZone || "";
-                                        const activeTz = profileTz || detectedTimeZone || "UTC";
+                                        const activeTz = profileTz || detectedTimeZone || "Device local time";
+
+                                        const permText =
+                                            browserPerm === "granted"
+                                                ? "Allowed"
+                                                : browserPerm === "denied"
+                                                  ? "Blocked in browser"
+                                                  : browserPerm === "default"
+                                                    ? "Not enabled yet"
+                                                    : "Not supported";
+
+                                        const deviceOk = browserPerm === "granted" && hasDeviceConnected;
+                                        const deviceText =
+                                            browserPerm !== "granted"
+                                                ? "Waiting for permission"
+                                                : diagLoading
+                                                  ? "Connecting..."
+                                                  : hasDeviceConnected
+                                                    ? "Connected"
+                                                    : fcmSyncStatus?.userFriendlyError || "Tap Refresh to connect";
+
+                                        const backgroundReady = Boolean(serverHealth?.readyForClosedAppPush && swState === "active");
+                                        const backgroundText = healthFetchError
+                                            ? "Unable to check right now"
+                                            : !serverHealth
+                                              ? "Checking..."
+                                              : !serverHealth.readyForClosedAppPush
+                                                ? "Temporarily unavailable"
+                                                : swState === "active"
+                                                  ? "Active"
+                                                  : swState === "unsupported"
+                                                    ? "Unsupported on this browser"
+                                                    : "Setting up...";
 
                                         const rows = [
                                             {
-                                                label: "Permission",
+                                                label: "Alert Permission",
                                                 ok: browserPerm === "granted",
-                                                detail: browserPerm === "granted" ? "Granted" : `Blocked / ${browserPerm}`,
+                                                detail: permText,
                                             },
                                             {
-                                                label: "Service Worker",
-                                                ok: swState === "active",
-                                                detail: swState === "active" ? "Active (/sw.js)" : swState,
+                                                label: "This Device",
+                                                ok: deviceOk,
+                                                detail: deviceText,
                                             },
                                             {
-                                                label: "FCM Device Token",
-                                                ok: hasDeviceToken && vapidOk,
-                                                detail: !vapidOk
-                                                    ? "Missing NEXT_PUBLIC_FIREBASE_VAPID_KEY"
-                                                    : hasDeviceToken
-                                                      ? `Registered${typeof registeredCount === "number" && registeredCount > 0 ? ` (${registeredCount} device${registeredCount > 1 ? "s" : ""})` : ""}`
-                                                      : fcmSyncStatus?.error || "Not synced yet — tap Sync & Refresh",
+                                                label: "Closed-App Alerts",
+                                                ok: backgroundReady,
+                                                detail: backgroundText,
                                             },
                                             {
-                                                label: "Server Push Engine",
-                                                ok: Boolean(serverHealth?.readyForClosedAppPush),
-                                                detail: healthFetchError
-                                                    ? healthFetchError
-                                                    : !serverHealth
-                                                      ? "Checking..."
-                                                      : serverHealth.readyForClosedAppPush
-                                                        ? `Ready (${serverHealth.adminCredentialMode || "ok"})`
-                                                        : `Missing: ${missingServerParts.join(", ")}`,
-                                            },
-                                            {
-                                                label: "Active Timezone",
-                                                ok: Boolean(profileTz),
-                                                detail: profileTz ? activeTz : `${activeTz} (unsaved — tap Save Settings)`,
+                                                label: "Time Zone",
+                                                ok: Boolean(profileTz || detectedTimeZone),
+                                                detail: activeTz,
                                             },
                                         ];
 
                                         return (
-                                            <div className="space-y-1.5 text-xs">
-                                                {rows.map((row) => (
-                                                    <div key={row.label} className="flex items-start justify-between gap-3">
-                                                        <span className="text-muted-foreground shrink-0">{row.label}</span>
-                                                        <span className={`inline-flex items-center gap-1 text-right break-all ${row.ok ? "text-emerald-400" : "text-amber-400"}`}>
-                                                            {row.ok ? (
-                                                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                                                            ) : (
-                                                                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                                                            )}
-                                                            <span>{row.detail}</span>
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <>
+                                                <div className="space-y-1.5 text-xs">
+                                                    {rows.map((row) => (
+                                                        <div key={row.label} className="flex items-start justify-between gap-3">
+                                                            <span className="text-muted-foreground shrink-0">{row.label}</span>
+                                                            <span className={`inline-flex items-center gap-1 text-right break-words ${row.ok ? "text-emerald-400" : "text-amber-400"}`}>
+                                                                {row.ok ? (
+                                                                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                                                ) : (
+                                                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                                                )}
+                                                                <span>{row.detail}</span>
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {!diagLoading && serverHealth && !serverHealth.readyForClosedAppPush && serverHealth.userMessage && (
+                                                    <p className="text-[11px] text-amber-400/90 pt-1 border-t border-border/40">
+                                                        {serverHealth.userMessage}
+                                                    </p>
+                                                )}
+                                            </>
                                         );
                                     })()}
                                 </div>
