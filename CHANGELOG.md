@@ -2,6 +2,22 @@
 
 All notable changes to the DeadlinesMet (Slake) ecosystem will be documented in this file.
 
+## [2.7.3] - 2026-11-14
+
+### Fixed Closed-App Offline Notifications & Cron Delivery
+- **Firebase Admin Service Account Auto-Repair (`firebase-admin.ts`):**
+  - Resolved `malformed_client_email` error (`fireba***@://gserviceaccount.com`) that disabled server-side OAuth2 token minting and caused all background notification endpoints (`/api/cron/notifications`, `/api/send-nudge`, `/api/timer/schedule-notification`) to return HTTP 500.
+  - Implemented `repairServiceAccountEmail` with dual-tier self-healing:
+    1. Canonical extraction directly from Google Cloud's `client_x509_cert_url` (which holds the exact URL-encoded authentic client email).
+    2. Intelligent syntax reconstruction when protocol artifacts (`://`, `http:`, `https:`) or truncated domains are present in environment variables.
+  - Live production health check (`/api/notifications/health`) confirmed restored: `readyForClosedAppPush: true`, `diagnosisCode: ok`, and `userMessage: "Background alerts are active."`.
+- **Periodic Notification Cron Health & GitHub Actions Pipeline (`hourly-notifications.yml`):**
+  - Enhanced GitHub Actions periodic cron workflow (`.github/workflows/hourly-notifications.yml`) with verbose status code reporting, human-actionable error messages, and response body logging.
+  - Resolved recurring cron failure emails caused by HTTP 500 responses from `/api/cron/notifications`.
+- **Cross-Platform Environment Fixes (`package.json`, `TimerDisplay.tsx`):**
+  - Made postinstall cache-clearing script cross-platform using native Node `fs.rmSync` instead of Unix-only `rm -rf`.
+  - Fixed CoOp session status typing (`"PAUSED"` literal) and non-null narrowing in `TimerDisplay.tsx`.
+
 ## [2.7.2] - 2026-11-07
 
 ### Technical Debt, Performance & Bundle Sweep
