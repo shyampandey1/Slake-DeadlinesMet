@@ -1279,14 +1279,14 @@ export default function TimerDisplay({ taskName: rawTaskName, initialDuration, r
 
               if (targetCoOpSessionId) {
                 updateSession({
-                  status: shouldStartPaused ? "paused" : "running",
+                  status: shouldStartPaused ? "PAUSED" : "running",
                   isPaused: shouldStartPaused,
                   startTime: Date.now(),
                   expectedEndTime: computedEndTime,
                   timeLeftWhenPaused: shouldStartPaused ? initialRemaining : null
                 });
               }
-            } else {
+            } else if (activeTimer) {
               // RESTORE from active timer
               if (activeTimer.taskId) {
                 currentTaskIdRef.current = activeTimer.taskId;

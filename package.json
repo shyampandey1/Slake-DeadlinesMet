@@ -7,7 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "rm -rf .next"
+    "postinstall": "node -e \"try { fs.rmSync('.next', { recursive: true, force: true }); } catch (e) {}\""
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.3",
