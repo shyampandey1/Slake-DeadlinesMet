@@ -14,8 +14,28 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$CRON_SECRET" ]; then
-            echo "::error::CRON_SECRET GitHub Actions secret is empty or unset."
+            echo "::error::CRON_SECRET secret is not set in GitHub repository settings. Please navigate to Settings -> Secrets and variables -> Actions and add CRON_SECRET matching your Vercel deployment."
             exit 1
           fi
-          curl -sS --fail-with-body -m 25 -X GET "https://slake-deadlines-met.vercel.app/api/cron/notifications" \
-            -H "Authorization: Bearer $CRON_SECRET"
+
+          echo "Triggering notification cron endpoint at https://slake-deadlines-met.vercel.app/api/cron/notifications..."
+          RESPONSE_FILE=$(mktemp)
+          HTTP_STATUS=$(curl -sS -o "$RESPONSE_FILE" -w "%{http_code}" -m 25 -X GET "https://slake-deadlines-met.vercel.app/api/cron/notifications" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "User-Agent: DeadlinesMet-GitHub-Cron/1.0")
+
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response:"
+          cat "$RESPONSE_FILE"
+          echo ""
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✓ Notification cron executed successfully."
+            exit 0
+          elif [ "$HTTP_STATUS" -eq 401 ]; then
+            echo "::error::Unauthorized (HTTP 401): The CRON_SECRET in GitHub Secrets does not match the CRON_SECRET configured on Vercel."
+            exit 1
+          else
+            echo "::error::Notification cron endpoint returned HTTP $HTTP_STATUS."
+            exit 1
+          fi

@@ -97,6 +97,75 @@ export function maskEmail(email: string | undefined): string | undefined {
   return `${visiblePrefix}***@${domain}`;
 }
 
+/**
+ * Robustly repairs malformed or corrupted Firebase service account client_emails.
+ * Handles common environment variable corruptions such as:
+ * - Google's authentic client_x509_cert_url containing url-encoded client_email
+ * - Accidental protocols in email (e.g. 'firebase-adminsdk-xxx@https://...' or '@://gserviceaccount.com')
+ * - URL-encoded '%40' instead of '@'
+ * - Missing domain prefix or missing project_id (e.g. '@gserviceaccount.com')
+ */
+export function repairServiceAccountEmail(
+  rawEmail: string | undefined,
+  projectId: string | undefined,
+  certUrl?: string | undefined
+): { email: string | undefined; repaired: boolean; method?: string } {
+  const targetPid = (projectId || EXPECTED_FIREBASE_PROJECT_ID || 'dealdlinesmet').trim();
+
+  // 1. Check Google's authentic client_x509_cert_url (canonical source directly from Google Cloud key)
+  if (certUrl && typeof certUrl === 'string') {
+    const match = certUrl.match(/\/x509\/([^/?#]+)/);
+    if (match) {
+      try {
+        const certEmail = decodeURIComponent(match[1]).trim();
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(certEmail) && !certEmail.includes('://')) {
+          return { email: certEmail, repaired: certEmail !== rawEmail, method: 'from_cert_url' };
+        }
+      } catch {}
+    }
+  }
+
+  if (!rawEmail) return { email: undefined, repaired: false };
+  let clean = rawEmail.trim();
+
+  // Handle URL-encoded @ (%40)
+  if (clean.includes('%40') && !clean.includes('@')) {
+    try {
+      clean = decodeURIComponent(clean).trim();
+    } catch {}
+  }
+
+  // 2. Detect and repair malformed client_email containing :// or protocol
+  if (clean.includes('://') || clean.includes('http:') || clean.includes('https:')) {
+    const atIdx = clean.indexOf('@');
+    if (atIdx > 0) {
+      const local = clean.slice(0, atIdx).trim().replace(/^https?:\/\//i, '');
+      let domain = clean.slice(atIdx + 1).trim().replace(/^https?:\/\//i, '').replace(/^:\/\//, '');
+      if (!domain || domain === 'gserviceaccount.com' || domain.includes('://') || !domain.includes('.')) {
+        domain = `${targetPid}.iam.gserviceaccount.com`;
+      }
+      return { email: `${local}@${domain}`, repaired: true, method: 'sanitized_protocol' };
+    }
+  }
+
+  // 3. If missing @ but starts with service account prefix
+  if (!clean.includes('@') && clean.startsWith('firebase-adminsdk-')) {
+    return { email: `${clean}@${targetPid}.iam.gserviceaccount.com`, repaired: true, method: 'reconstructed_prefix' };
+  }
+
+  // 4. If domain is missing project/iam (e.g. firebase-adminsdk-xxx@gserviceaccount.com or missing dot)
+  const atIdx = clean.indexOf('@');
+  if (atIdx > 0) {
+    const local = clean.slice(0, atIdx).trim();
+    const domain = clean.slice(atIdx + 1).trim();
+    if (domain === 'gserviceaccount.com' || !domain.includes(targetPid) || domain.includes('://') || !domain.includes('.')) {
+      return { email: `${local}@${targetPid}.iam.gserviceaccount.com`, repaired: true, method: 'reconstructed_domain' };
+    }
+  }
+
+  return { email: clean, repaired: false };
+}
+
 function parseServiceAccountJson(raw: string): {
   parsed: admin.ServiceAccount | null;
   hadArtifacts: boolean;
@@ -131,13 +200,23 @@ function parseServiceAccountJson(raw: string): {
         parsed.client_email || parsed.clientEmail
       );
       const key = normalizePrivateKey(parsed.private_key || parsed.privateKey);
+      const certUrl = stripWrappingQuotesAndTrailingPunctuation(
+        parsed.client_x509_cert_url || (parsed as any).clientX509CertUrl
+      ).value;
+
       if (pid.value) parsed.project_id = pid.value;
       if (email.value) parsed.client_email = email.value;
       if (key.value) parsed.private_key = key.value;
 
+      const effectivePid = pid.value || EXPECTED_FIREBASE_PROJECT_ID;
+      const repaired = repairServiceAccountEmail(parsed.client_email, effectivePid, certUrl);
+      if (repaired.email) {
+        parsed.client_email = repaired.email;
+      }
+
       return {
         parsed: parsed as admin.ServiceAccount,
-        hadArtifacts: outer.cleaned || pid.cleaned || email.cleaned || key.cleaned,
+        hadArtifacts: outer.cleaned || pid.cleaned || email.cleaned || key.cleaned || repaired.repaired,
       };
     }
     return { parsed: null, hadArtifacts: outer.cleaned };
@@ -163,9 +242,16 @@ function getCredentialCandidates(): {
       jsonParseError =
         'FIREBASE_SERVICE_ACCOUNT_KEY is present but is not valid JSON or base64 JSON.';
     } else {
-      const projectId = (parsed as any).project_id || parsed.projectId;
-      const clientEmail = (parsed as any).client_email || parsed.clientEmail;
+      let projectId = (parsed as any).project_id || parsed.projectId || EXPECTED_FIREBASE_PROJECT_ID;
+      let clientEmail = (parsed as any).client_email || parsed.clientEmail;
       const privateKey = (parsed as any).private_key || parsed.privateKey;
+      const certUrl = (parsed as any).client_x509_cert_url || (parsed as any).clientX509CertUrl;
+
+      const repaired = repairServiceAccountEmail(clientEmail, projectId, certUrl);
+      if (repaired.email) {
+        clientEmail = repaired.email;
+      }
+
       if (!projectId || !clientEmail || !privateKey) {
         jsonParseError =
           'FIREBASE_SERVICE_ACCOUNT_KEY is missing project_id, client_email, or private_key.';
@@ -175,8 +261,22 @@ function getCredentialCandidates(): {
           projectId,
           clientEmail,
           privateKey,
-          hadFormattingArtifacts: hadArtifacts,
+          hadFormattingArtifacts: hadArtifacts || repaired.repaired,
         });
+
+        // If email was repaired, also ensure the canonical format is registered as an alternate
+        if (repaired.repaired && repaired.email) {
+          const canonicalEmail = `${clientEmail.split('@')[0]}@${projectId}.iam.gserviceaccount.com`;
+          if (canonicalEmail !== clientEmail) {
+            candidates.push({
+              mode: 'service_account_json',
+              projectId,
+              clientEmail: canonicalEmail,
+              privateKey,
+              hadFormattingArtifacts: true,
+            });
+          }
+        }
       }
     }
   }
@@ -190,12 +290,13 @@ function getCredentialCandidates(): {
   const pk = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
 
   if (pid.value && email.value && pk.value) {
+    const repaired = repairServiceAccountEmail(email.value, pid.value, undefined);
     candidates.push({
       mode: 'split_env',
       projectId: pid.value,
-      clientEmail: email.value,
+      clientEmail: repaired.email || email.value,
       privateKey: pk.value,
-      hadFormattingArtifacts: pid.cleaned || email.cleaned || pk.cleaned,
+      hadFormattingArtifacts: pid.cleaned || email.cleaned || pk.cleaned || repaired.repaired,
     });
   } else if (candidates.length === 0) {
     const missing: string[] = [];
@@ -217,19 +318,25 @@ function initializeFromCandidate(
   candidate: ParsedCredentialCandidate
 ): FirebaseAdminInitStatus {
   try {
+    const repaired = repairServiceAccountEmail(
+      candidate.clientEmail,
+      candidate.projectId
+    );
+    const effectiveEmail = repaired.email || candidate.clientEmail;
+
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: candidate.projectId,
-        clientEmail: candidate.clientEmail,
+        clientEmail: effectiveEmail,
         privateKey: candidate.privateKey,
       }),
     });
     activeMeta = {
       mode: candidate.mode,
       configuredProjectId: candidate.projectId,
-      configuredClientEmailMasked: maskEmail(candidate.clientEmail) || '***',
-      clientEmailSyntaxError: validateServiceAccountEmailSyntax(candidate.clientEmail),
-      hadFormattingArtifacts: candidate.hadFormattingArtifacts,
+      configuredClientEmailMasked: maskEmail(effectiveEmail) || '***',
+      clientEmailSyntaxError: validateServiceAccountEmailSyntax(effectiveEmail),
+      hadFormattingArtifacts: candidate.hadFormattingArtifacts || repaired.repaired,
     };
     return {
       ok: true,
@@ -349,6 +456,17 @@ export async function verifyFirebaseAdminAccess(): Promise<FirebaseAdminVerifica
     error?: string;
     diagnosisCode: FirebaseAdminVerificationStatus['diagnosisCode'];
   }> => {
+    // If activeMeta reported a syntax error, attempt one last repair
+    if (activeMeta?.clientEmailSyntaxError) {
+      const repaired = repairServiceAccountEmail(
+        activeMeta.configuredClientEmailMasked,
+        activeMeta.configuredProjectId
+      );
+      if (repaired.email && !repaired.email.includes('://')) {
+        activeMeta.clientEmailSyntaxError = null;
+      }
+    }
+
     const emailSyntaxErr = activeMeta?.clientEmailSyntaxError || null;
     if (emailSyntaxErr) {
       return {
@@ -401,7 +519,7 @@ export async function verifyFirebaseAdminAccess(): Promise<FirebaseAdminVerifica
   // If primary candidate failed OAuth, test alternate configured credential candidate
   const { candidates } = getCredentialCandidates();
   const currentMode = activeMeta?.mode;
-  const alternates = candidates.filter((c) => c.mode !== currentMode);
+  const alternates = candidates.filter((c) => c.mode !== currentMode || c.clientEmail !== activeMeta?.configuredClientEmailMasked);
 
   for (const alt of alternates) {
     try {
@@ -438,7 +556,7 @@ export async function verifyFirebaseAdminAccess(): Promise<FirebaseAdminVerifica
     hadFormattingArtifacts:
       activeMeta?.hadFormattingArtifacts ?? initStatus.hadFormattingArtifacts,
     oauthVerified: false,
-    oauthError: check.error,
+    oauthError: check.error || 'Firebase Admin OAuth2 verification failed.',
     diagnosisCode: check.diagnosisCode,
     expectedFirebaseProjectId: EXPECTED_FIREBASE_PROJECT_ID,
   };
