@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slake-offline-cache-v4.1';
+const CACHE_NAME = 'slake-offline-cache-v4.2';
 const scheduledTimers = new Map();
 
 self.addEventListener('install', () => {
@@ -147,6 +147,7 @@ self.addEventListener('push', (event) => {
 
   const targetUrl =
     data.url ||
+    notif.data?.url ||
     payload.fcmOptions?.link ||
     payload.FCM_MSG?.fcmOptions?.link ||
     notif.click_action ||
@@ -155,8 +156,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body,
-    icon: data.icon || '/icon-192.png',
-    badge: data.badge || '/badge-72.png',
+    icon: data.icon || notif.icon || '/icon-192.png',
+    badge: data.badge || notif.badge || '/badge-72.png',
     requireInteraction: true,
     vibrate: [200, 100, 200],
     tag: data.tag || notif.tag || 'routine-nudge',

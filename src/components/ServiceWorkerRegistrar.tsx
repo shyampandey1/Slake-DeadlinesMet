@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Bell, X } from "lucide-react";
+import { Download, Bell, X, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useWeather } from "@/hooks/useWeather";
 
 export default function ServiceWorkerRegistrar() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [permissionState, setPermissionState] = useState<NotificationPermission>("default");
+  const [geoPermissionState, setGeoPermissionState] = useState<string>("prompt");
   const [isVisible, setIsVisible] = useState(true);
   const { user } = useAuth();
   const { requestPermissionAndToken, forceSyncToken } = useNotifications();
   const { toast } = useToast();
+  const { fetchWeatherForCurrentUserLocation } = useWeather();
 
   useEffect(() => {
     // 1. Register Unified Service Worker
@@ -32,11 +35,17 @@ export default function ServiceWorkerRegistrar() {
       if ("Notification" in window) {
         setPermissionState(Notification.permission);
       }
+      if ("permissions" in navigator && navigator.permissions?.query) {
+        navigator.permissions.query({ name: "geolocation" as PermissionName }).then((res) => {
+          setGeoPermissionState(res.state);
+          res.onchange = () => setGeoPermissionState(res.state);
+        }).catch(() => {});
+      }
       if (sessionStorage.getItem("slake_sw_banner_dismissed") === "true") {
         setIsVisible(false);
       }
     } catch {
-      console.warn("Notifications not supported in this PWA context");
+      console.warn("Permissions API check not supported in this PWA context");
     }
 
     // 2. Capture native install prompt
@@ -113,10 +122,33 @@ export default function ServiceWorkerRegistrar() {
     }
   };
 
+  const attemptToRequestLocation = () => {
+    try {
+      fetchWeatherForCurrentUserLocation();
+      toast({
+        title: "Detecting Location",
+        description: "Please allow location access to sync local weather & circadian time.",
+      });
+      // Check permission state shortly after prompt
+      setTimeout(() => {
+        if ("permissions" in navigator && navigator.permissions?.query) {
+          navigator.permissions.query({ name: "geolocation" as PermissionName }).then((res) => {
+            setGeoPermissionState(res.state);
+          }).catch(() => {});
+        }
+      }, 3000);
+    } catch (e) {
+      console.warn("Location request failed:", e);
+    }
+  };
+
   const needsNotificationPrompt =
     Boolean(user) && permissionState !== "granted" && permissionState !== "denied";
 
-  if (!showInstall && !needsNotificationPrompt) return null;
+  const needsLocationPrompt =
+    Boolean(user) && geoPermissionState === "prompt";
+
+  if (!showInstall && !needsNotificationPrompt && !needsLocationPrompt) return null;
 
   return (
     <div className="fixed bottom-24 left-0 right-0 z-[100] mx-4 pointer-events-none flex justify-center">
@@ -169,6 +201,21 @@ export default function ServiceWorkerRegistrar() {
                 </div>
                 <Button onClick={attemptToRequestNotifications} size="sm" variant="secondary" className="rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold border border-emerald-500/30 shadow-sm shrink-0">
                   <Bell className="mr-1.5 h-4 w-4 text-emerald-400" /> Enable
+                </Button>
+              </div>
+            )}
+
+            {/* Location Prompt Panel if ungranted */}
+            {!needsNotificationPrompt && needsLocationPrompt && (
+              <div className="flex items-center justify-between pt-1 gap-2">
+                <div className="flex flex-col">
+                  <span className="font-headline font-semibold text-white text-sm">Enable Local Weather & Time</span>
+                  <span className="text-[11px] text-zinc-400 leading-tight mt-1">
+                    Allow location to accurately track your local circadian rhythm and weather.
+                  </span>
+                </div>
+                <Button onClick={attemptToRequestLocation} size="sm" variant="secondary" className="rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-semibold border border-sky-500/30 shadow-sm shrink-0">
+                  <MapPin className="mr-1.5 h-4 w-4 text-sky-400" /> Enable
                 </Button>
               </div>
             )}

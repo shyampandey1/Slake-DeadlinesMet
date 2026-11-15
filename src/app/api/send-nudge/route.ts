@@ -51,6 +51,10 @@ export async function POST(req: Request) {
 
     const message: admin.messaging.Message = {
       token,
+      notification: {
+        title: notifTitle,
+        body: notifBody,
+      },
       data: {
         title: notifTitle,
         body: notifBody,
@@ -63,6 +67,12 @@ export async function POST(req: Request) {
       },
       android: {
         priority: 'high',
+        notification: {
+          title: notifTitle,
+          body: notifBody,
+          icon: 'icon_192',
+          tag: notifTag,
+        },
       },
       apns: {
         headers: {
@@ -82,6 +92,20 @@ export async function POST(req: Request) {
         headers: {
           Urgency: 'high',
           TTL: '900',
+        },
+        notification: {
+          title: notifTitle,
+          body: notifBody,
+          icon: '/icon-192.png',
+          badge: '/badge-72.png',
+          tag: notifTag,
+          requireInteraction: true,
+          vibrate: [200, 100, 200],
+          data: {
+            url: launchUrl,
+            type: 'ROUTINE_TASK',
+            tag: notifTag,
+          },
         },
         fcmOptions: {
           link: launchUrl,

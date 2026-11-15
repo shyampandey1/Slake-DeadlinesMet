@@ -131,17 +131,18 @@ export function useWeather() {
         },
         (error) => {
           console.error("Geolocation error:", error);
-          // Fallback to default location if permission is denied or Auto mode fails
+          // Only overwrite if explicitly in Auto/empty mode
           if (location === 'Auto' || !location) {
-              setLocation('Delhi, India');
+            // Keep Auto marker in state but load Delhi weather as default
+            fetchCoordinates('Delhi, India');
           } else {
-              fetchCoordinates(location);
+            fetchCoordinates(location);
           }
         },
-        { timeout: 10000 }
+        { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 }
       );
     } else {
-        if (location === 'Auto' || !location) setLocation('Delhi, India');
+        if (location === 'Auto' || !location) fetchCoordinates('Delhi, India');
         else fetchCoordinates(location);
     }
   }, [fetchWeatherByCoords, fetchCoordinates, location, setLocation]);

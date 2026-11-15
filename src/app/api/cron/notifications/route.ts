@@ -29,6 +29,31 @@ interface PushPayload {
   extraData?: Record<string, string>;
 }
 
+export function parseTimeStringToMinutes(timeStr: string | undefined): { minutes: number; formatted: string } | null {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const trimmed = timeStr.trim();
+  // Matches "14:30", "2:30 PM", "02:30 pm", "9:05 AM", "9:05am", "19:00", "5:06 AM"
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+  if (!match) return null;
+  let hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  const meridiem = match[3]?.toUpperCase();
+
+  if (isNaN(hour) || isNaN(minute) || minute < 0 || minute > 59) return null;
+
+  if (meridiem === 'PM' && hour < 12) {
+    hour += 12;
+  } else if (meridiem === 'AM' && hour === 12) {
+    hour = 0;
+  }
+
+  if (hour < 0 || hour > 23) return null;
+
+  const totalMinutes = hour * 60 + minute;
+  const formatted = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  return { minutes: totalMinutes, formatted };
+}
+
 function getUserTokens(userData: Partial<UserProfile> & { fcmToken?: string }): string[] {
   return Array.from(
     new Set([
@@ -115,6 +140,10 @@ async function sendWebPush(
 
   const message: admin.messaging.MulticastMessage = {
     tokens,
+    notification: {
+      title: payload.title,
+      body: payload.body,
+    },
     data: {
       title: payload.title,
       body: payload.body,
@@ -128,6 +157,12 @@ async function sendWebPush(
     },
     android: {
       priority: 'high',
+      notification: {
+        title: payload.title,
+        body: payload.body,
+        icon: 'icon_192',
+        tag: payload.tag,
+      },
     },
     apns: {
       headers: {
@@ -147,6 +182,21 @@ async function sendWebPush(
       headers: {
         Urgency: 'high',
         TTL: '900',
+      },
+      notification: {
+        title: payload.title,
+        body: payload.body,
+        icon: '/icon-192.png',
+        badge: '/badge-72.png',
+        tag: payload.tag,
+        requireInteraction: true,
+        vibrate: [200, 100, 200],
+        data: {
+          url: payload.url,
+          type: payload.type,
+          tag: payload.tag,
+          ...(payload.extraData || {}),
+        },
       },
       fcmOptions: {
         link: payload.url,
@@ -176,6 +226,7 @@ async function sendWebPush(
       await userDocRef
         .update({
           fcmTokens: admin.firestore.FieldValue.arrayRemove(...badTokens),
+          fcmToken: admin.firestore.FieldValue.delete(),
         })
         .catch(() => {});
     }
@@ -218,14 +269,11 @@ function buildCategorizedSchedule(
     for (const t of catTasks) {
       let taskMins = currentMins;
       let startTimeStr = '';
-      if (t.startTime && t.startTime.includes(':')) {
-        const [h, m] = t.startTime.split(':').map(Number);
-        if (!isNaN(h) && !isNaN(m)) {
-          taskMins = h * 60 + m;
-          startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        }
-      }
-      if (!startTimeStr) {
+      const parsedTime = parseTimeStringToMinutes(t.startTime);
+      if (parsedTime) {
+        taskMins = parsedTime.minutes;
+        startTimeStr = parsedTime.formatted;
+      } else {
         const h = Math.floor(taskMins / 60) % 24;
         const m = taskMins % 60;
         startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -299,16 +347,11 @@ async function resolveUserRoutineTasks(
             const duration = Math.max(1, Number(t.durationMinutes || t.duration) || 15);
             let startMinutes = currentPointerMinutes;
             let startTimeStr = '';
-
-            if (t.startTime && t.startTime.includes(':')) {
-              const [h, m] = t.startTime.split(':').map(Number);
-              if (!isNaN(h) && !isNaN(m)) {
-                startMinutes = h * 60 + m;
-                startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-              }
-            }
-
-            if (!startTimeStr) {
+            const parsedTime = parseTimeStringToMinutes(t.startTime);
+            if (parsedTime) {
+              startMinutes = parsedTime.minutes;
+              startTimeStr = parsedTime.formatted;
+            } else {
               const h = Math.floor(startMinutes / 60) % 24;
               const m = startMinutes % 60;
               startTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
